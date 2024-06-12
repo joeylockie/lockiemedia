@@ -35,7 +35,7 @@
 		}
 		
 		#navbar a.active {
-		  background-color: #04AA6D;
+		  background-color: #0415aa;
 		  color: white;
 		}
 		
@@ -60,8 +60,22 @@
 		<a href="javascript:void(0)">News</a>
 		<a href="javascript:void(0)">Contact</a>
 	  </div>
+	  <script>
+		window.onscroll = function() {myFunction()};
+		
+		var navbar = document.getElementById("navbar");
+		var sticky = navbar.offsetTop;
+		
+		function myFunction() {
+		  if (window.pageYOffset >= sticky) {
+			navbar.classList.add("sticky")
+		  } else {
+			navbar.classList.remove("sticky");
+		  }
+		}
+		</script>
     <font color="white"> <center> 
-        <br><br><br>
+        <br><br><br><br><br>
         <font size="+3">What is Video Game Quality Assurance?</font><br><br>
 Webster's dictionary defines Quality Assurance as ...... Nah screw that 
 <br><br><br>
@@ -79,20 +93,15 @@ Webster's dictionary defines Quality Assurance as ...... Nah screw that
  </script>
 Live Twitch QAStream
 
-<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+
 test
 
-<script>
-	window.onscroll = function() {myFunction()};
-	
-	var navbar = document.getElementById("navbar");
-	var sticky = navbar.offsetTop;
-	
-	function myFunction() {
-	  if (window.pageYOffset >= sticky) {
-		navbar.classList.add("sticky")
-	  } else {
-		navbar.classList.remove("sticky");
-	  }
-	}
-	</script>
+
+
+
+
+
+
+
+
