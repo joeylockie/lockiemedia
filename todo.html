@@ -78,11 +78,11 @@
             </div>
             <form id="modalTodoFormAdd">
                 <div>
-                    <label for="modalTaskInputAdd" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Task Description</label>
-                    <input type="text" id="modalTaskInputAdd" placeholder="e.g., Buy groceries" class="w-full p-3 border-2 bg-white text-slate-900 placeholder-slate-400 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-shadow duration-300 dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-400 dark:border-slate-600" required>
+                    <label for="modalTaskInputAdd" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Task Description (you can include a date like 'tomorrow' or '12/25/2024')</label>
+                    <input type="text" id="modalTaskInputAdd" placeholder="e.g., Buy groceries for next Friday" class="w-full p-3 border-2 bg-white text-slate-900 placeholder-slate-400 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-shadow duration-300 dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-400 dark:border-slate-600" required>
                 </div>
                 <div class="mt-4">
-                    <label for="modalDueDateInputAdd" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Due Date</label>
+                    <label for="modalDueDateInputAdd" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Due Date (optional, if not in description)</label>
                     <input type="date" id="modalDueDateInputAdd" class="w-full p-3 border-2 bg-white text-slate-900 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 dark:[color-scheme:dark]">
                 </div>
                 <div class="mt-4">
@@ -193,7 +193,8 @@
                             <i id="sidebarToggleIcon" class="fas fa-chevron-left"></i>
                         </button>
                     </div>
-                    <div> <button
+                    <div> 
+                        <button
                             id="openAddModalButton"
                             type="button"
                             class="bg-sky-500 hover:bg-sky-600 text-white font-semibold p-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 ease-in-out transform hover:-translate-y-0.5 w-full flex items-center sidebar-button-icon-only justify-center md:justify-start"
@@ -279,7 +280,7 @@
         const cancelAddModalBtn = document.getElementById('cancelAddModalBtn'); 
         const modalTodoFormAdd = document.getElementById('modalTodoFormAdd'); 
         const modalTaskInputAdd = document.getElementById('modalTaskInputAdd'); 
-        const modalDueDateInputAdd = document.getElementById('modalDueDateInputAdd'); 
+        const modalDueDateInputAdd = document.getElementById('modalDueDateInputAdd'); // Re-added
         const modalPriorityInputAdd = document.getElementById('modalPriorityInputAdd'); 
         const modalNotesInputAdd = document.getElementById('modalNotesInputAdd');
 
@@ -385,7 +386,7 @@
             const year = today.getFullYear(); 
             const mm = String(today.getMonth() + 1).padStart(2, '0'); 
             const dd = String(today.getDate()).padStart(2, '0');
-            modalDueDateInputAdd.min = `${year}-${mm}-${dd}`;
+            modalDueDateInputAdd.min = `${year}-${mm}-${dd}`; // Set min for re-added due date field
         }
 
         function closeAddModal() {
@@ -566,26 +567,91 @@
             });
             updateClearCompletedButton();
         }
+        
+        /**
+         * Parses a date string from various formats or keywords.
+         * @param {string} text - The text to parse for a date.
+         * @returns {{parsedDate: string|null, remainingText: string}}
+         */
+        function parseDateFromText(text) {
+            let parsedDate = null;
+            let remainingText = text;
+            const today = new Date();
+            today.setHours(0,0,0,0);
+
+            const patterns = [
+                { regex: /\b(today)\b/i, handler: () => getTodayDateString() },
+                { regex: /\b(tomorrow)\b/i, handler: () => {
+                    const tomorrow = new Date(today);
+                    tomorrow.setDate(today.getDate() + 1);
+                    return tomorrow.toISOString().split('T')[0];
+                }},
+                // YYYY-MM-DD
+                { regex: /(\d{4}-\d{1,2}-\d{1,2})/g, handler: (match) => match[0] },
+                // MM/DD/YYYY or M/D/YY etc.
+                { regex: /(\d{1,2}\/\d{1,2}\/\d{2,4})/g, handler: (match) => {
+                    const parts = match[0].split('/');
+                    const year = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
+                    const month = parts[0].padStart(2, '0');
+                    const day = parts[1].padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                }}
+                // Add more complex patterns like "next Monday", "July 15" if needed
+            ];
+
+            for (const pattern of patterns) {
+                const match = pattern.regex.exec(remainingText);
+                if (match) {
+                    const potentialDate = pattern.handler(match);
+                    // Validate if the parsed string is a valid date
+                    if (!isNaN(new Date(potentialDate).getTime())) {
+                        parsedDate = potentialDate;
+                        remainingText = remainingText.replace(match[0], '').trim();
+                        break; // Use the first valid date found
+                    }
+                }
+            }
+            return { parsedDate, remainingText };
+        }
+
 
         function handleAddTask(event) {
             event.preventDefault();
-            const taskText = modalTaskInputAdd.value.trim();
-            const dueDate = modalDueDateInputAdd.value;
+            const rawTaskText = modalTaskInputAdd.value.trim();
+            const explicitDueDate = modalDueDateInputAdd.value; // Get value from the dedicated due date field
             const priority = modalPriorityInputAdd.value;
             const notes = modalNotesInputAdd.value.trim(); 
 
-            if (taskText === '') { showMessage('Task description cannot be empty!', 'error'); modalTaskInputAdd.focus(); return; }
+            if (rawTaskText === '') { 
+                showMessage('Task description cannot be empty!', 'error'); 
+                modalTaskInputAdd.focus(); 
+                return; 
+            }
+
+            let finalDueDate = null;
+            let finalTaskText = rawTaskText;
+
+            const { parsedDate: dateFromDescription, remainingText: textAfterDateRemoval } = parseDateFromText(rawTaskText);
+
+            if (dateFromDescription) {
+                finalDueDate = dateFromDescription;
+                finalTaskText = textAfterDateRemoval || rawTaskText; // Use original if date parsing left empty string
+            } else if (explicitDueDate) {
+                finalDueDate = explicitDueDate;
+            }
+            // If neither, finalDueDate remains null
+
             const newTask = { 
                 id: Date.now(), 
-                text: taskText, 
+                text: finalTaskText, 
                 completed: false, 
-                dueDate: dueDate || null, 
+                dueDate: finalDueDate, 
                 priority: priority,
                 notes: notes || '' 
             };
             tasks.unshift(newTask);
             saveTasks();
-            if (currentFilter.startsWith('due') && dueDate) { setFilter(currentFilter); }
+            if (currentFilter.startsWith('due') && finalDueDate) { setFilter(currentFilter); }
             else if (currentFilter === 'completed') { setFilter('all'); }
             else { renderTasks(); } 
             closeAddModal(); 
@@ -596,7 +662,7 @@
             event.preventDefault();
             const taskId = parseInt(modalViewEditTaskId.value); 
             const taskText = modalTaskInputViewEdit.value.trim();
-            const dueDate = modalDueDateInputViewEdit.value;
+            const dueDate = modalDueDateInputViewEdit.value; // Edit modal still uses explicit date input
             const priority = modalPriorityInputViewEdit.value;
             const notes = modalNotesInputViewEdit.value.trim(); 
 
