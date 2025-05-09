@@ -36,12 +36,20 @@
             max-height: calc(100vh - 5rem); 
             transition: width 0.3s ease-in-out, padding 0.3s ease-in-out; 
         }
-        .priority-badge {
+        .priority-badge, .label-badge { /* Added .label-badge */
             display: inline-block; padding: 0.15rem 0.5rem; font-size: 0.75rem; 
             font-weight: 600; border-radius: 0.375rem; 
             text-transform: capitalize;
         }
-        .filter-btn, .sort-btn { min-height: 42px; } /* Applied to sort buttons too */
+        .label-badge { /* Specific styling for label badge if needed, e.g., different color */
+            background-color: #e0e7ff; /* Tailwind indigo-100 */
+            color: #4338ca; /* Tailwind indigo-700 */
+        }
+        .dark .label-badge {
+            background-color: #3730a3; /* Tailwind indigo-700 */
+            color: #c7d2fe; /* Tailwind indigo-300 */
+        }
+        .filter-btn, .sort-btn { min-height: 42px; } 
         .view-details-heading {
             font-weight: 600; 
             font-size: 0.95rem; 
@@ -50,7 +58,6 @@
         .dark .view-details-heading {
             color: #d1d5db; 
         }
-        /* Sidebar minimized state specific styles */
         .sidebar-minimized .sidebar-button-icon-only {
             justify-content: center; 
         }
@@ -60,8 +67,6 @@
         .sidebar-minimized .sidebar-text-content {
             display: none; 
         }
-
-        /* Tooltip Styling */
         #iconTooltip {
             position: absolute;
             background-color: #1f2937; 
@@ -77,16 +82,13 @@
         .dark #iconTooltip {
             background-color: #374151; 
         }
-        /* Active state for sort buttons */
         .sort-btn-active {
-            background-color: #0ea5e9 !important; /* sky-500 */
+            background-color: #0ea5e9 !important; 
             color: white !important;
         }
         .dark .sort-btn-active {
-             background-color: #0284c7 !important; /* sky-600 */
+             background-color: #0284c7 !important; 
         }
-
-
     </style>
 </head>
 <body class="bg-gradient-to-br from-slate-900 to-slate-700 min-h-screen flex flex-col items-center justify-start pt-8 sm:pt-10 p-2 sm:p-4 selection:bg-sky-400 selection:text-white dark:selection:bg-sky-600 dark:selection:text-white">
@@ -107,9 +109,15 @@
                     <label for="modalTaskInputAdd" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Task Description (e.g., 'Buy groceries for next Friday', 'Meeting on monday', 'Project due next month')</label>
                     <input type="text" id="modalTaskInputAdd" placeholder="Enter task description..." class="w-full p-3 border-2 bg-white text-slate-900 placeholder-slate-400 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-shadow duration-300 dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-400 dark:border-slate-600" required>
                 </div>
-                <div class="mt-4">
-                    <label for="modalDueDateInputAdd" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Due Date (optional, if not in description)</label>
-                    <input type="date" id="modalDueDateInputAdd" class="w-full p-3 border-2 bg-white text-slate-900 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 dark:[color-scheme:dark]">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                    <div>
+                        <label for="modalDueDateInputAdd" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Due Date (optional)</label>
+                        <input type="date" id="modalDueDateInputAdd" class="w-full p-3 border-2 bg-white text-slate-900 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 dark:[color-scheme:dark]">
+                    </div>
+                    <div>
+                        <label for="modalTimeInputAdd" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Time (optional)</label>
+                        <input type="time" id="modalTimeInputAdd" class="w-full p-3 border-2 bg-white text-slate-900 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 dark:[color-scheme:dark]">
+                    </div>
                 </div>
                 <div class="mt-4">
                     <label for="modalPriorityInputAdd" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Priority</label>
@@ -118,6 +126,11 @@
                         <option value="medium" selected>Medium</option>
                         <option value="high">High</option>
                     </select>
+                </div>
+                <div class="mt-4">
+                    <label for="modalLabelInputAdd" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Label (e.g., Work, Personal)</label>
+                    <input type="text" id="modalLabelInputAdd" list="existingLabels" placeholder="Type or select a label" class="w-full p-3 border-2 bg-white text-slate-900 placeholder-slate-400 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-shadow duration-300 dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-400 dark:border-slate-600">
+                    <datalist id="existingLabels"></datalist>
                 </div>
                 <div class="mt-4">
                     <label for="modalNotesInputAdd" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Notes</label>
@@ -145,9 +158,15 @@
                     <label for="modalTaskInputViewEdit" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Task Description</label>
                     <input type="text" id="modalTaskInputViewEdit" placeholder="e.g., Buy groceries" class="w-full p-3 border-2 bg-white text-slate-900 placeholder-slate-400 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-shadow duration-300 dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-400 dark:border-slate-600" required>
                 </div>
-                <div class="mt-4">
-                    <label for="modalDueDateInputViewEdit" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Due Date</label>
-                    <input type="date" id="modalDueDateInputViewEdit" class="w-full p-3 border-2 bg-white text-slate-900 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 dark:[color-scheme:dark]">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                    <div>
+                        <label for="modalDueDateInputViewEdit" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Due Date</label>
+                        <input type="date" id="modalDueDateInputViewEdit" class="w-full p-3 border-2 bg-white text-slate-900 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 dark:[color-scheme:dark]">
+                    </div>
+                    <div>
+                        <label for="modalTimeInputViewEdit" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Time</label>
+                        <input type="time" id="modalTimeInputViewEdit" class="w-full p-3 border-2 bg-white text-slate-900 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 dark:[color-scheme:dark]">
+                    </div>
                 </div>
                 <div class="mt-4">
                     <label for="modalPriorityInputViewEdit" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Priority</label>
@@ -156,6 +175,11 @@
                         <option value="medium">Medium</option>
                         <option value="high">High</option>
                     </select>
+                </div>
+                <div class="mt-4">
+                    <label for="modalLabelInputViewEdit" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Label</label>
+                    <input type="text" id="modalLabelInputViewEdit" list="existingLabelsEdit" placeholder="Type or select a label" class="w-full p-3 border-2 bg-white text-slate-900 placeholder-slate-400 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-shadow duration-300 dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-400 dark:border-slate-600">
+                    <datalist id="existingLabelsEdit"></datalist>
                 </div>
                 <div class="mt-4">
                     <label for="modalNotesInputViewEdit" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Notes</label>
@@ -182,17 +206,29 @@
                     <strong class="view-details-heading block mb-0.5">Description:</strong>
                     <p id="viewTaskText" class="break-all"></p>
                 </div>
-                <div>
-                    <strong class="view-details-heading block mb-0.5">Due Date:</strong>
-                    <p id="viewTaskDueDate"></p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+                    <div>
+                        <strong class="view-details-heading block mb-0.5">Due Date:</strong>
+                        <p id="viewTaskDueDate"></p>
+                    </div>
+                    <div>
+                        <strong class="view-details-heading block mb-0.5">Time:</strong>
+                        <p id="viewTaskTime"></p>
+                    </div>
+                </div>
+                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+                    <div>
+                        <strong class="view-details-heading block mb-0.5">Priority:</strong>
+                        <p id="viewTaskPriority" class="capitalize"></p>
+                    </div>
+                    <div>
+                        <strong class="view-details-heading block mb-0.5">Status:</strong>
+                        <p id="viewTaskStatus" class="capitalize"></p>
+                    </div>
                 </div>
                 <div>
-                    <strong class="view-details-heading block mb-0.5">Priority:</strong>
-                    <p id="viewTaskPriority" class="capitalize"></p>
-                </div>
-                 <div>
-                    <strong class="view-details-heading block mb-0.5">Status:</strong>
-                    <p id="viewTaskStatus" class="capitalize"></p>
+                    <strong class="view-details-heading block mb-0.5">Label:</strong>
+                    <p id="viewTaskLabel" class="capitalize"></p>
                 </div>
                 <div>
                     <strong class="view-details-heading block mb-0.5">Notes:</strong>
@@ -243,7 +279,7 @@
                                 <i class="fas fa-check-circle w-5 mr-0"></i><span class="sidebar-text-content ml-2 md:ml-2.5">Completed</span>
                             </button>
                             <hr class="my-2 border-slate-200 dark:border-slate-700">
-                             <h3 class="sidebar-text-content text-md font-semibold text-slate-600 dark:text-slate-400 mt-2 mb-1">Filter Dates</h3>
+                             <h2 class="sidebar-text-content text-lg md:text-xl font-semibold text-slate-700 dark:text-slate-200 mt-2 mb-1">Filter Dates</h2>
                             <button id="filterDueToday" title="Due Today" class="filter-btn w-full text-left px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center" data-filter="dueToday">
                                 <i class="fas fa-calendar-day w-5 mr-0"></i><span class="sidebar-text-content ml-2 md:ml-2.5">Due Today</span>
                             </button>
@@ -273,12 +309,15 @@
             <main class="w-full flex-grow bg-white dark:bg-slate-900 p-4 md:p-6 lg:p-8 rounded-xl shadow-2xl min-h-[300px] mt-4 md:mt-0">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 md:mb-6">
                     <h2 class="text-xl sm:text-2xl md:text-3xl font-semibold text-slate-800 dark:text-slate-100">Your Tasks</h2>
-                    <div class="flex gap-2 mt-3 sm:mt-0">
+                    <div class="flex gap-2 mt-3 sm:mt-0 flex-wrap">
                         <button id="sortByDueDateBtn" title="Sort by Due Date" class="sort-btn bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-medium py-2 px-3 rounded-lg transition-colors duration-300 flex items-center">
                             <i class="fas fa-sort-amount-down mr-1.5"></i> Due Date
                         </button>
                         <button id="sortByPriorityBtn" title="Sort by Priority" class="sort-btn bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-medium py-2 px-3 rounded-lg transition-colors duration-300 flex items-center">
                             <i class="fas fa-exclamation-circle mr-1.5"></i> Priority
+                        </button>
+                        <button id="sortByLabelBtn" title="Sort by Label" class="sort-btn bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-medium py-2 px-3 rounded-lg transition-colors duration-300 flex items-center">
+                            <i class="fas fa-tags mr-1.5"></i> Label
                         </button>
                     </div>
                 </div>
@@ -304,6 +343,7 @@
         const iconTooltip = document.getElementById('iconTooltip'); 
         const sortByDueDateBtn = document.getElementById('sortByDueDateBtn');
         const sortByPriorityBtn = document.getElementById('sortByPriorityBtn');
+        const sortByLabelBtn = document.getElementById('sortByLabelBtn'); // New sort button
 
 
         const taskList = document.getElementById('taskList');
@@ -323,7 +363,10 @@
         const modalTodoFormAdd = document.getElementById('modalTodoFormAdd'); 
         const modalTaskInputAdd = document.getElementById('modalTaskInputAdd'); 
         const modalDueDateInputAdd = document.getElementById('modalDueDateInputAdd'); 
+        const modalTimeInputAdd = document.getElementById('modalTimeInputAdd'); // New time input
         const modalPriorityInputAdd = document.getElementById('modalPriorityInputAdd'); 
+        const modalLabelInputAdd = document.getElementById('modalLabelInputAdd'); // New label input
+        const existingLabelsDatalist = document.getElementById('existingLabels'); // Datalist for add modal
         const modalNotesInputAdd = document.getElementById('modalNotesInputAdd');
 
         // View/Edit Task Modal elements
@@ -335,7 +378,10 @@
         const modalViewEditTaskId = document.getElementById('modalViewEditTaskId');
         const modalTaskInputViewEdit = document.getElementById('modalTaskInputViewEdit');
         const modalDueDateInputViewEdit = document.getElementById('modalDueDateInputViewEdit');
+        const modalTimeInputViewEdit = document.getElementById('modalTimeInputViewEdit'); // New time input
         const modalPriorityInputViewEdit = document.getElementById('modalPriorityInputViewEdit');
+        const modalLabelInputViewEdit = document.getElementById('modalLabelInputViewEdit'); // New label input
+        const existingLabelsEditDatalist = document.getElementById('existingLabelsEdit'); // Datalist for edit modal
         const modalNotesInputViewEdit = document.getElementById('modalNotesInputViewEdit'); 
 
 
@@ -347,18 +393,21 @@
         const editFromViewModalBtn = document.getElementById('editFromViewModalBtn');
         const viewTaskText = document.getElementById('viewTaskText');
         const viewTaskDueDate = document.getElementById('viewTaskDueDate');
+        const viewTaskTime = document.getElementById('viewTaskTime'); // For displaying time
         const viewTaskPriority = document.getElementById('viewTaskPriority');
         const viewTaskStatus = document.getElementById('viewTaskStatus');
+        const viewTaskLabel = document.getElementById('viewTaskLabel'); // For displaying label
         const viewTaskNotes = document.getElementById('viewTaskNotes'); 
 
 
         // --- Application State ---
-        let tasks = JSON.parse(localStorage.getItem('todos_v2')) || [];
+        let tasks = JSON.parse(localStorage.getItem('todos_v3')) || []; // Updated storage key for new structure
         let currentFilter = 'all';
-        let currentSort = 'default'; // 'default', 'dueDate', 'priority'
+        let currentSort = 'default'; // 'default', 'dueDate', 'priority', 'label'
         let editingTaskId = null; 
         let currentViewTaskId = null;
         let tooltipTimeout = null; 
+        let uniqueLabels = []; // To store unique labels for datalist
 
         // --- Theme Management ---
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
@@ -462,6 +511,7 @@
             modalTaskInputAdd.focus();
             modalTodoFormAdd.reset(); 
             modalPriorityInputAdd.value = 'medium';
+            populateDatalist(existingLabelsDatalist); // Populate datalist for labels
             const today = new Date();
             const year = today.getFullYear(); 
             const mm = String(today.getMonth() + 1).padStart(2, '0'); 
@@ -485,7 +535,10 @@
             modalViewEditTaskId.value = task.id;
             modalTaskInputViewEdit.value = task.text;
             modalDueDateInputViewEdit.value = task.dueDate || ''; 
+            modalTimeInputViewEdit.value = task.time || ''; // Populate time
             modalPriorityInputViewEdit.value = task.priority;
+            modalLabelInputViewEdit.value = task.label || ''; // Populate label
+            populateDatalist(existingLabelsEditDatalist); // Populate datalist for labels
             modalNotesInputViewEdit.value = task.notes || ''; 
             const today = new Date();
             const year = today.getFullYear(); 
@@ -516,8 +569,10 @@
             currentViewTaskId = taskId; 
             viewTaskText.textContent = task.text;
             viewTaskDueDate.textContent = task.dueDate ? formatDate(task.dueDate) : 'Not set';
+            viewTaskTime.textContent = task.time ? formatTime(task.time) : 'Not set'; // Display formatted time
             viewTaskPriority.textContent = task.priority || 'Not set';
             viewTaskStatus.textContent = task.completed ? 'Completed' : 'Active';
+            viewTaskLabel.textContent = task.label || 'None'; // Display label
             viewTaskNotes.textContent = task.notes || 'No notes added.'; 
             viewTaskDetailsModal.classList.remove('hidden');
             setTimeout(() => {
@@ -536,12 +591,21 @@
         }
 
 
-        // --- Date Helper Functions ---
+        // --- Date & Time Helper Functions ---
         function getTodayDateString() { return new Date().toISOString().split('T')[0]; }
         function getStartOfWeek(date) { const d = new Date(date); const day = d.getDay(); const diff = d.getDate() - day + (day === 0 ? -6 : 1); return new Date(d.setDate(diff)); }
         function getEndOfWeek(date) { const d = new Date(date); const startOfWeek = getStartOfWeek(d); return new Date(startOfWeek.setDate(startOfWeek.getDate() + 6)); }
         function getStartOfMonth(date) { return new Date(date.getFullYear(), date.getMonth(), 1); }
         function getEndOfMonth(date) { return new Date(date.getFullYear(), date.getMonth() + 1, 0); }
+        function formatDate(dateString) { if (!dateString) return ''; const date = new Date(dateString); const userTimezoneOffset = date.getTimezoneOffset() * 60000; const correctedDate = new Date(date.getTime() + userTimezoneOffset); return correctedDate.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); }
+        function formatTime(timeString) { // HH:mm
+            if (!timeString) return '';
+            const [hours, minutes] = timeString.split(':');
+            const h = parseInt(hours, 10);
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            const formattedHours = h % 12 || 12; // Convert 0 to 12 for 12 AM/PM
+            return `${formattedHours}:${minutes} ${ampm}`;
+        }
 
 
         // --- Core Functions ---
@@ -557,9 +621,30 @@
             messageBox.style.zIndex = '200'; 
             setTimeout(() => { messageBox.style.display = 'none'; }, 3000); 
         }
-        function saveTasks() { localStorage.setItem('todos_v2', JSON.stringify(tasks)); }
+        function saveTasks() { 
+            localStorage.setItem('todos_v3', JSON.stringify(tasks)); // Updated key
+            updateUniqueLabels(); // Update unique labels whenever tasks are saved
+        }
         function getPriorityClass(priority) { switch (priority) { case 'high': return 'bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100'; case 'medium': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-600 dark:text-yellow-100'; case 'low': return 'bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100'; default: return 'bg-slate-100 text-slate-700 dark:bg-slate-600 dark:text-slate-200'; } }
-        function formatDate(dateString) { if (!dateString) return ''; const date = new Date(dateString); const userTimezoneOffset = date.getTimezoneOffset() * 60000; const correctedDate = new Date(date.getTime() + userTimezoneOffset); return correctedDate.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); }
+        
+        function updateUniqueLabels() {
+            const labels = new Set();
+            tasks.forEach(task => {
+                if (task.label && task.label.trim() !== '') {
+                    labels.add(task.label.trim().toLowerCase()); // Store lowercase for consistency
+                }
+            });
+            uniqueLabels = Array.from(labels).sort(); // Keep them sorted
+        }
+
+        function populateDatalist(datalistElement) {
+            datalistElement.innerHTML = ''; // Clear existing options
+            uniqueLabels.forEach(label => {
+                const option = document.createElement('option');
+                option.value = label;
+                datalistElement.appendChild(option);
+            });
+        }
 
 
         function renderTasks() {
@@ -569,7 +654,7 @@
             today.setHours(0, 0, 0, 0);
 
             // Apply filters first
-            if (currentFilter === 'all') { tasksToRender = [...tasks]; } // Use a copy for sorting
+            if (currentFilter === 'all') { tasksToRender = [...tasks]; } 
             else if (currentFilter === 'active') { tasksToRender = tasks.filter(task => !task.completed); }
             else if (currentFilter === 'completed') { tasksToRender = tasks.filter(task => task.completed); }
             else if (currentFilter === 'dueToday') { const todayStr = getTodayDateString(); tasksToRender = tasks.filter(task => task.dueDate === todayStr && !task.completed); }
@@ -598,16 +683,25 @@
             if (currentSort === 'dueDate') {
                 tasksToRender.sort((a, b) => {
                     if (!a.dueDate && !b.dueDate) return 0;
-                    if (!a.dueDate) return 1; // Tasks without due date go to bottom
+                    if (!a.dueDate) return 1; 
                     if (!b.dueDate) return -1;
-                    return new Date(a.dueDate) - new Date(b.dueDate);
+                    const dateA = new Date(a.dueDate + (a.time ? `T${a.time}` : 'T00:00:00'));
+                    const dateB = new Date(b.dueDate + (b.time ? `T${b.time}` : 'T00:00:00'));
+                    return dateA - dateB;
                 });
             } else if (currentSort === 'priority') {
                 tasksToRender.sort((a, b) => {
                     return (priorityOrder[a.priority] || 4) - (priorityOrder[b.priority] || 4);
                 });
+            } else if (currentSort === 'label') {
+                tasksToRender.sort((a,b) => {
+                    const labelA = (a.label || '').toLowerCase();
+                    const labelB = (b.label || '').toLowerCase();
+                    if (labelA < labelB) return -1;
+                    if (labelA > labelB) return 1;
+                    return 0;
+                });
             }
-            // If currentSort is 'default', no explicit sort is applied here, tasks remain in filtered order (usually reverse chronological by add time)
 
 
             emptyState.classList.toggle('hidden', tasks.length !== 0);
@@ -637,13 +731,36 @@
                 let textColorClass = task.completed ? 'text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-200';
                 span.className = `text-sm sm:text-base break-all ${textColorClass} ${task.completed ? 'completed-text' : ''}`;
                 textDetailsDiv.appendChild(span);
-                if (task.dueDate || task.priority) {
-                    const detailsDiv = document.createElement('div');
-                    detailsDiv.className = 'flex items-center flex-wrap gap-x-2 gap-y-1 mt-1 sm:mt-1.5 text-xs';
-                    if (task.priority) { const priorityBadge = document.createElement('span'); priorityBadge.textContent = task.priority; priorityBadge.className = `priority-badge ${getPriorityClass(task.priority)}`; detailsDiv.appendChild(priorityBadge); }
-                    if (task.dueDate) { const dueDateSpan = document.createElement('span'); dueDateSpan.className = 'text-slate-500 dark:text-slate-400 flex items-center'; dueDateSpan.innerHTML = `<i class="far fa-calendar-alt mr-1"></i> ${formatDate(task.dueDate)}`; detailsDiv.appendChild(dueDateSpan); }
-                    textDetailsDiv.appendChild(detailsDiv);
+                
+                const detailsContainer = document.createElement('div');
+                detailsContainer.className = 'flex items-center flex-wrap gap-x-2 gap-y-1 mt-1 sm:mt-1.5 text-xs';
+
+                if (task.priority) { 
+                    const priorityBadge = document.createElement('span'); 
+                    priorityBadge.textContent = task.priority; 
+                    priorityBadge.className = `priority-badge ${getPriorityClass(task.priority)}`; 
+                    detailsContainer.appendChild(priorityBadge); 
                 }
+                if (task.label) {
+                    const labelBadge = document.createElement('span');
+                    labelBadge.textContent = task.label;
+                    labelBadge.className = 'label-badge'; // Use the new class for label styling
+                    detailsContainer.appendChild(labelBadge);
+                }
+                if (task.dueDate) { 
+                    const dueDateSpan = document.createElement('span'); 
+                    dueDateSpan.className = 'text-slate-500 dark:text-slate-400 flex items-center'; 
+                    let dateDisplay = formatDate(task.dueDate);
+                    if (task.time) {
+                        dateDisplay += ` ${formatTime(task.time)}`;
+                    }
+                    dueDateSpan.innerHTML = `<i class="far fa-calendar-alt mr-1"></i> ${dateDisplay}`; 
+                    detailsContainer.appendChild(dueDateSpan); 
+                }
+                if (detailsContainer.hasChildNodes()) {
+                    textDetailsDiv.appendChild(detailsContainer);
+                }
+
                 mainContentClickableArea.appendChild(checkbox);
                 mainContentClickableArea.appendChild(textDetailsDiv);
                 const deleteButton = document.createElement('button');
@@ -755,7 +872,9 @@
             event.preventDefault();
             const rawTaskText = modalTaskInputAdd.value.trim();
             const explicitDueDate = modalDueDateInputAdd.value; 
+            const time = modalTimeInputAdd.value; // Get time
             const priority = modalPriorityInputAdd.value;
+            const label = modalLabelInputAdd.value.trim(); // Get label
             const notes = modalNotesInputAdd.value.trim(); 
 
             if (rawTaskText === '') { 
@@ -781,11 +900,13 @@
                 text: finalTaskText, 
                 completed: false, 
                 dueDate: finalDueDate, 
+                time: time || null, // Save time
                 priority: priority,
+                label: label || '', // Save label
                 notes: notes || '' 
             };
             tasks.unshift(newTask);
-            saveTasks();
+            saveTasks(); // This will also update uniqueLabels
             if (currentFilter.startsWith('due') && finalDueDate) { setFilter(currentFilter); }
             else if (currentFilter === 'completed') { setFilter('all'); }
             else { renderTasks(); } 
@@ -798,17 +919,19 @@
             const taskId = parseInt(modalViewEditTaskId.value); 
             const taskText = modalTaskInputViewEdit.value.trim();
             const dueDate = modalDueDateInputViewEdit.value; 
+            const time = modalTimeInputViewEdit.value; // Get time
             const priority = modalPriorityInputViewEdit.value;
+            const label = modalLabelInputViewEdit.value.trim(); // Get label
             const notes = modalNotesInputViewEdit.value.trim(); 
 
             if (taskText === '') { showMessage('Task description cannot be empty!', 'error'); modalTaskInputViewEdit.focus(); return; }
 
             tasks = tasks.map(task =>
                 task.id === taskId
-                    ? { ...task, text: taskText, dueDate: dueDate || null, priority: priority, notes: notes || '' } 
+                    ? { ...task, text: taskText, dueDate: dueDate || null, time: time || null, priority: priority, label: label || '', notes: notes || '' } 
                     : task
             );
-            saveTasks();
+            saveTasks(); // This will also update uniqueLabels
             renderTasks(); 
             closeViewEditModal();
             showMessage('Task updated successfully!', 'success');
@@ -826,7 +949,7 @@
 
         function setFilter(filter) { 
             currentFilter = filter; 
-            currentSort = 'default'; // Reset sort when filter changes
+            currentSort = 'default'; 
             updateSortButtonStates();
             filterButtons.forEach(button => { const isActive = button.dataset.filter === filter; button.setAttribute('data-active', isActive.toString()); const baseInactive = ['bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600']; const iconInactive = ['text-slate-500', 'dark:text-slate-400']; const active = ['bg-sky-500', 'text-white', 'font-semibold']; const iconActive = ['text-sky-100']; button.classList.remove(...baseInactive, ...active); button.querySelector('i')?.classList.remove(...iconInactive, ...iconActive); if (isActive) { button.classList.add(...active); button.querySelector('i')?.classList.add(...iconActive); } else { button.classList.add(...baseInactive); button.querySelector('i')?.classList.add(...iconInactive); } }); renderTasks(); 
         }
@@ -836,6 +959,7 @@
         function updateSortButtonStates() {
             sortByDueDateBtn.classList.toggle('sort-btn-active', currentSort === 'dueDate');
             sortByPriorityBtn.classList.toggle('sort-btn-active', currentSort === 'priority');
+            sortByLabelBtn.classList.toggle('sort-btn-active', currentSort === 'label'); // Update new sort button
         }
 
         // --- Event Listeners ---
@@ -886,6 +1010,12 @@
             updateSortButtonStates();
             renderTasks();
         });
+        
+        sortByLabelBtn.addEventListener('click', () => { // Listener for new sort button
+            currentSort = currentSort === 'label' ? 'default' : 'label';
+            updateSortButtonStates();
+            renderTasks();
+        });
 
 
         document.addEventListener('keydown', (event) => {
@@ -907,6 +1037,7 @@
         });
 
         // --- Initial Setup ---
+        updateUniqueLabels(); // Initial population of unique labels
         filterButtons.forEach(button => { button.classList.add('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600'); button.querySelector('i')?.classList.add('text-slate-500', 'dark:text-slate-400'); });
         
         const savedSidebarState = localStorage.getItem('sidebarState');
@@ -924,7 +1055,7 @@
             } else {
                 setSidebarMinimized(false);
             }
-            updateSortButtonStates(); // Initialize sort button states
+            updateSortButtonStates(); 
         };
     </script>
 </body>
