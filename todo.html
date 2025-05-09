@@ -260,7 +260,7 @@
                 </div>
             </aside>
 
-            <main class="flex-grow bg-white dark:bg-slate-900 p-4 md:p-6 lg:p-8 rounded-xl shadow-2xl min-h-[300px] mt-4 md:mt-0">
+            <main class="w-full flex-grow bg-white dark:bg-slate-900 p-4 md:p-6 lg:p-8 rounded-xl shadow-2xl min-h-[300px] mt-4 md:mt-0">
                 <h2 class="text-xl sm:text-2xl md:text-3xl font-semibold text-slate-800 dark:text-slate-100 mb-4 md:mb-6">Your Tasks</h2>
                 <ul id="taskList" class="space-y-3 sm:space-y-3.5">
                     </ul>
@@ -352,9 +352,8 @@
         function setSidebarMinimized(minimize) {
             hideTooltip(); 
             if (minimize) {
-                // Minimize: Apply small width and padding for all screens
-                taskSidebar.classList.remove('md:w-72', 'lg:w-80', 'p-5', 'sm:p-6', 'md:p-5', 'w-full'); // Remove all width/padding classes
-                taskSidebar.classList.add('w-16', 'p-3', 'sidebar-minimized'); // Standard minimized size
+                taskSidebar.classList.remove('md:w-72', 'lg:w-80', 'w-full', 'p-5', 'sm:p-6', 'md:p-5', 'sm:p-4');
+                taskSidebar.classList.add('w-16', 'p-3', 'sidebar-minimized'); 
                 
                 sidebarToggleIcon.classList.remove('fa-chevron-left');
                 sidebarToggleIcon.classList.add('fa-chevron-right');
@@ -362,14 +361,13 @@
                 sidebarTextElements.forEach(el => el.classList.add('hidden'));
                 sidebarIconOnlyButtons.forEach(btn => {
                     btn.classList.add('justify-center');
-                    btn.classList.remove('md:justify-start'); // Ensure this is removed for minimized state
+                    // btn.classList.remove('md:justify-start'); // Not needed as text is hidden
                     const icon = btn.querySelector('i');
-                    if(icon) icon.classList.remove('md:mr-2', 'md:mr-2.5', 'ml-2'); // Remove all margins
+                    if(icon) icon.classList.remove('md:mr-2', 'md:mr-2.5', 'ml-2'); 
                 });
                 localStorage.setItem('sidebarState', 'minimized');
             } else { // Expand
-                taskSidebar.classList.remove('w-16', 'p-3', 'sidebar-minimized'); // Remove minimized specific classes
-                // Add back responsive widths and paddings
+                taskSidebar.classList.remove('w-16', 'p-3', 'sidebar-minimized'); 
                 taskSidebar.classList.add('w-full', 'md:w-72', 'lg:w-80', 'p-3', 'sm:p-4', 'md:p-5'); 
 
                 sidebarToggleIcon.classList.remove('fa-chevron-right');
@@ -377,20 +375,18 @@
                 
                 sidebarTextElements.forEach(el => el.classList.remove('hidden'));
                  sidebarIconOnlyButtons.forEach(btn => {
-                    btn.classList.remove('justify-center'); // Remove centered justification
-                    // Add back md:justify-start if it was there, but rely on flex default for mobile (start)
-                    // btn.classList.add('md:justify-start'); // This might not be needed if default is start
+                    btn.classList.remove('justify-center'); 
+                    // btn.classList.add('md:justify-start'); // Re-add if you want specific md justification
                     const icon = btn.querySelector('i');
                     const textSpan = btn.querySelector('.sidebar-text-content');
                     if(icon && textSpan && !textSpan.classList.contains('hidden')) {
-                        // Re-apply original margins based on button type for md+ screens
+                        // Add back original margins
                         if (btn.id === 'openAddModalButton' || btn.id === 'clearCompletedBtn') {
-                             icon.classList.add('md:mr-2');
+                             icon.classList.add('md:mr-2'); // For md screens
                         } else { 
-                             icon.classList.add('md:mr-2.5');
+                             icon.classList.add('md:mr-2.5'); // For md screens
                         }
-                        // Add back margin for text on mobile if needed (e.g., ml-2 on the span)
-                        textSpan.classList.add('ml-2'); 
+                        textSpan.classList.add('ml-2'); // For all screens when expanded
                     }
                 });
                 localStorage.setItem('sidebarState', 'expanded');
