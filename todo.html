@@ -36,18 +36,18 @@
             max-height: calc(100vh - 5rem); 
             transition: width 0.3s ease-in-out, padding 0.3s ease-in-out; 
         }
-        .priority-badge, .label-badge { /* Added .label-badge */
+        .priority-badge, .label-badge { 
             display: inline-block; padding: 0.15rem 0.5rem; font-size: 0.75rem; 
             font-weight: 600; border-radius: 0.375rem; 
             text-transform: capitalize;
         }
-        .label-badge { /* Specific styling for label badge if needed, e.g., different color */
+        .label-badge { 
             background-color: #e0e7ff; /* Tailwind indigo-100 */
             color: #4338ca; /* Tailwind indigo-700 */
         }
         .dark .label-badge {
-            background-color: #3730a3; /* Tailwind indigo-700 */
-            color: #c7d2fe; /* Tailwind indigo-300 */
+            background-color: #4f46e5; /* Tailwind indigo-600 */
+            color: #e0e7ff; /* Tailwind indigo-200 */
         }
         .filter-btn, .sort-btn { min-height: 42px; } 
         .view-details-heading {
@@ -242,6 +242,27 @@
         </div>
     </div>
 
+    <div id="manageLabelsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-opacity-70 overflow-y-auto h-full w-full flex items-center justify-center hidden z-[170]">
+        <div class="relative mx-auto p-5 sm:p-6 border w-full max-w-md shadow-xl rounded-xl bg-white dark:bg-slate-800 transform transition-all duration-300 ease-in-out scale-95 opacity-0" id="modalDialogManageLabels">
+            <div class="flex justify-between items-center pb-3 mb-4 border-b border-slate-200 dark:border-slate-700">
+                <h3 class="text-2xl font-semibold text-slate-800 dark:text-slate-100">Manage Labels</h3>
+                <button id="closeManageLabelsModalBtn" type="button" class="text-slate-400 hover:text-slate-600 dark:text-slate-300 dark:hover:text-slate-100 transition-colors p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700" aria-label="Close modal">
+                    <i class="fas fa-times fa-lg"></i>
+                </button>
+            </div>
+            <form id="addNewLabelForm" class="flex gap-2 mb-4">
+                <input type="text" id="newLabelInput" placeholder="New label name" class="flex-grow p-2.5 border-2 bg-white text-slate-900 placeholder-slate-400 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-400 dark:border-slate-600">
+                <button type="submit" class="bg-sky-500 hover:bg-sky-600 text-white font-semibold p-2.5 rounded-lg shadow-md">Add</button>
+            </form>
+            <h4 class="text-lg font-medium text-slate-700 dark:text-slate-200 mb-2">Existing Labels:</h4>
+            <ul id="existingLabelsList" class="max-h-60 overflow-y-auto space-y-1 pr-1">
+                </ul>
+             <div class="mt-6 flex justify-end">
+                <button type="button" id="closeManageLabelsSecondaryBtn" class="px-5 py-2.5 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500 transition-colors font-medium">Close</button>
+            </div>
+        </div>
+    </div>
+
 
     <div class="w-full max-w-6xl mx-auto">
         <h1 class="text-4xl sm:text-5xl font-bold text-center text-white mb-8 sm:mb-10">My Todo List</h1>
@@ -297,10 +318,17 @@
                         <button
                             id="clearCompletedBtn"
                             title="Clear Completed Tasks"
-                            class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2.5 px-3 md:px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 ease-in-out transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed w-full flex items-center sidebar-button-icon-only justify-center"
+                            class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2.5 px-3 md:px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 ease-in-out transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed w-full flex items-center sidebar-button-icon-only justify-center mb-2"
                             disabled
                         >
                             <i class="fas fa-eraser mr-0"></i> <span class="sidebar-text-content ml-2">Clear Completed</span>
+                        </button>
+                        <button
+                            id="manageLabelsBtn"
+                            title="Manage Labels"
+                            class="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2.5 px-3 md:px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 ease-in-out transform hover:-translate-y-0.5 w-full flex items-center sidebar-button-icon-only justify-center"
+                        >
+                            <i class="fas fa-tags mr-0"></i> <span class="sidebar-text-content ml-2">Labels</span>
                         </button>
                     </div>
                 </div>
@@ -343,7 +371,7 @@
         const iconTooltip = document.getElementById('iconTooltip'); 
         const sortByDueDateBtn = document.getElementById('sortByDueDateBtn');
         const sortByPriorityBtn = document.getElementById('sortByPriorityBtn');
-        const sortByLabelBtn = document.getElementById('sortByLabelBtn'); // New sort button
+        const sortByLabelBtn = document.getElementById('sortByLabelBtn'); 
 
 
         const taskList = document.getElementById('taskList');
@@ -363,10 +391,10 @@
         const modalTodoFormAdd = document.getElementById('modalTodoFormAdd'); 
         const modalTaskInputAdd = document.getElementById('modalTaskInputAdd'); 
         const modalDueDateInputAdd = document.getElementById('modalDueDateInputAdd'); 
-        const modalTimeInputAdd = document.getElementById('modalTimeInputAdd'); // New time input
+        const modalTimeInputAdd = document.getElementById('modalTimeInputAdd'); 
         const modalPriorityInputAdd = document.getElementById('modalPriorityInputAdd'); 
-        const modalLabelInputAdd = document.getElementById('modalLabelInputAdd'); // New label input
-        const existingLabelsDatalist = document.getElementById('existingLabels'); // Datalist for add modal
+        const modalLabelInputAdd = document.getElementById('modalLabelInputAdd'); 
+        const existingLabelsDatalist = document.getElementById('existingLabels'); 
         const modalNotesInputAdd = document.getElementById('modalNotesInputAdd');
 
         // View/Edit Task Modal elements
@@ -378,10 +406,10 @@
         const modalViewEditTaskId = document.getElementById('modalViewEditTaskId');
         const modalTaskInputViewEdit = document.getElementById('modalTaskInputViewEdit');
         const modalDueDateInputViewEdit = document.getElementById('modalDueDateInputViewEdit');
-        const modalTimeInputViewEdit = document.getElementById('modalTimeInputViewEdit'); // New time input
+        const modalTimeInputViewEdit = document.getElementById('modalTimeInputViewEdit'); 
         const modalPriorityInputViewEdit = document.getElementById('modalPriorityInputViewEdit');
-        const modalLabelInputViewEdit = document.getElementById('modalLabelInputViewEdit'); // New label input
-        const existingLabelsEditDatalist = document.getElementById('existingLabelsEdit'); // Datalist for edit modal
+        const modalLabelInputViewEdit = document.getElementById('modalLabelInputViewEdit'); 
+        const existingLabelsEditDatalist = document.getElementById('existingLabelsEdit'); 
         const modalNotesInputViewEdit = document.getElementById('modalNotesInputViewEdit'); 
 
 
@@ -393,21 +421,31 @@
         const editFromViewModalBtn = document.getElementById('editFromViewModalBtn');
         const viewTaskText = document.getElementById('viewTaskText');
         const viewTaskDueDate = document.getElementById('viewTaskDueDate');
-        const viewTaskTime = document.getElementById('viewTaskTime'); // For displaying time
+        const viewTaskTime = document.getElementById('viewTaskTime'); 
         const viewTaskPriority = document.getElementById('viewTaskPriority');
         const viewTaskStatus = document.getElementById('viewTaskStatus');
-        const viewTaskLabel = document.getElementById('viewTaskLabel'); // For displaying label
+        const viewTaskLabel = document.getElementById('viewTaskLabel'); 
         const viewTaskNotes = document.getElementById('viewTaskNotes'); 
+
+        // Manage Labels Modal elements
+        const manageLabelsModal = document.getElementById('manageLabelsModal');
+        const modalDialogManageLabels = document.getElementById('modalDialogManageLabels');
+        const closeManageLabelsModalBtn = document.getElementById('closeManageLabelsModalBtn');
+        const closeManageLabelsSecondaryBtn = document.getElementById('closeManageLabelsSecondaryBtn');
+        const addNewLabelForm = document.getElementById('addNewLabelForm');
+        const newLabelInput = document.getElementById('newLabelInput');
+        const existingLabelsList = document.getElementById('existingLabelsList');
+        const manageLabelsBtn = document.getElementById('manageLabelsBtn');
 
 
         // --- Application State ---
-        let tasks = JSON.parse(localStorage.getItem('todos_v3')) || []; // Updated storage key for new structure
+        let tasks = JSON.parse(localStorage.getItem('todos_v3')) || []; 
         let currentFilter = 'all';
-        let currentSort = 'default'; // 'default', 'dueDate', 'priority', 'label'
+        let currentSort = 'default'; 
         let editingTaskId = null; 
         let currentViewTaskId = null;
         let tooltipTimeout = null; 
-        let uniqueLabels = []; // To store unique labels for datalist
+        let uniqueLabels = []; 
 
         // --- Theme Management ---
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
@@ -450,7 +488,7 @@
                     const icon = btn.querySelector('i');
                     const textSpan = btn.querySelector('.sidebar-text-content');
                     if(icon && textSpan && !textSpan.classList.contains('hidden')) {
-                        if (btn.id === 'openAddModalButton' || btn.id === 'clearCompletedBtn') {
+                        if (btn.id === 'openAddModalButton' || btn.id === 'clearCompletedBtn' || btn.id === 'manageLabelsBtn') { // Added manageLabelsBtn
                              icon.classList.add('md:mr-2'); 
                         } else { 
                              icon.classList.add('md:mr-2.5'); 
@@ -511,7 +549,7 @@
             modalTaskInputAdd.focus();
             modalTodoFormAdd.reset(); 
             modalPriorityInputAdd.value = 'medium';
-            populateDatalist(existingLabelsDatalist); // Populate datalist for labels
+            populateDatalist(existingLabelsDatalist); 
             const today = new Date();
             const year = today.getFullYear(); 
             const mm = String(today.getMonth() + 1).padStart(2, '0'); 
@@ -535,10 +573,10 @@
             modalViewEditTaskId.value = task.id;
             modalTaskInputViewEdit.value = task.text;
             modalDueDateInputViewEdit.value = task.dueDate || ''; 
-            modalTimeInputViewEdit.value = task.time || ''; // Populate time
+            modalTimeInputViewEdit.value = task.time || ''; 
             modalPriorityInputViewEdit.value = task.priority;
-            modalLabelInputViewEdit.value = task.label || ''; // Populate label
-            populateDatalist(existingLabelsEditDatalist); // Populate datalist for labels
+            modalLabelInputViewEdit.value = task.label || ''; 
+            populateDatalist(existingLabelsEditDatalist); 
             modalNotesInputViewEdit.value = task.notes || ''; 
             const today = new Date();
             const year = today.getFullYear(); 
@@ -569,10 +607,10 @@
             currentViewTaskId = taskId; 
             viewTaskText.textContent = task.text;
             viewTaskDueDate.textContent = task.dueDate ? formatDate(task.dueDate) : 'Not set';
-            viewTaskTime.textContent = task.time ? formatTime(task.time) : 'Not set'; // Display formatted time
+            viewTaskTime.textContent = task.time ? formatTime(task.time) : 'Not set'; 
             viewTaskPriority.textContent = task.priority || 'Not set';
             viewTaskStatus.textContent = task.completed ? 'Completed' : 'Active';
-            viewTaskLabel.textContent = task.label || 'None'; // Display label
+            viewTaskLabel.textContent = task.label || 'None'; 
             viewTaskNotes.textContent = task.notes || 'No notes added.'; 
             viewTaskDetailsModal.classList.remove('hidden');
             setTimeout(() => {
@@ -590,6 +628,86 @@
             }, 200);
         }
 
+        // --- Modal Functions (Manage Labels) ---
+        function openManageLabelsModal() {
+            populateManageLabelsList();
+            manageLabelsModal.classList.remove('hidden');
+             setTimeout(() => {
+                modalDialogManageLabels.classList.remove('scale-95', 'opacity-0');
+                modalDialogManageLabels.classList.add('scale-100', 'opacity-100');
+            }, 10);
+            newLabelInput.focus();
+        }
+
+        function closeManageLabelsModal() {
+            modalDialogManageLabels.classList.add('scale-95', 'opacity-0');
+            modalDialogManageLabels.classList.remove('scale-100', 'opacity-100');
+            setTimeout(() => {
+                manageLabelsModal.classList.add('hidden');
+            }, 200);
+        }
+
+        function populateManageLabelsList() {
+            existingLabelsList.innerHTML = ''; // Clear current list
+            uniqueLabels.forEach(label => {
+                const li = document.createElement('li');
+                li.className = 'flex justify-between items-center p-2 bg-slate-50 dark:bg-slate-700 rounded-md';
+                
+                const span = document.createElement('span');
+                span.textContent = label;
+                span.className = 'text-slate-700 dark:text-slate-200 capitalize';
+                li.appendChild(span);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.innerHTML = '<i class="fas fa-trash-alt text-red-500 hover:text-red-700"></i>';
+                deleteBtn.className = 'p-1';
+                deleteBtn.title = `Delete label "${label}"`;
+                deleteBtn.addEventListener('click', () => handleDeleteLabel(label));
+                li.appendChild(deleteBtn);
+
+                existingLabelsList.appendChild(li);
+            });
+            if (uniqueLabels.length === 0) {
+                existingLabelsList.innerHTML = '<li class="text-slate-500 dark:text-slate-400 text-center">No labels created yet.</li>';
+            }
+        }
+
+        function handleAddNewLabel(event) {
+            event.preventDefault();
+            const labelName = newLabelInput.value.trim().toLowerCase();
+            if (labelName === '') {
+                showMessage('Label name cannot be empty.', 'error');
+                return;
+            }
+            if (uniqueLabels.includes(labelName)) {
+                showMessage(`Label "${labelName}" already exists.`, 'error');
+                return;
+            }
+            uniqueLabels.push(labelName);
+            uniqueLabels.sort();
+            saveTasks(); // This calls updateUniqueLabels which sorts and updates datalists
+            populateManageLabelsList();
+            populateDatalist(existingLabelsDatalist);
+            populateDatalist(existingLabelsEditDatalist);
+            newLabelInput.value = '';
+            showMessage(`Label "${labelName}" added.`, 'success');
+        }
+
+        function handleDeleteLabel(labelToDelete) {
+            const normalizedLabelToDelete = labelToDelete.toLowerCase();
+            // Update tasks that use this label
+            tasks = tasks.map(task => {
+                if (task.label && task.label.toLowerCase() === normalizedLabelToDelete) {
+                    return { ...task, label: '' }; // Set label to empty string
+                }
+                return task;
+            });
+            saveTasks(); // This will also update uniqueLabels and datalists
+            populateManageLabelsList(); // Re-render the list in the manage labels modal
+            renderTasks(); // Re-render the main task list
+            showMessage(`Label "${labelToDelete}" deleted and removed from tasks.`, 'success');
+        }
+
 
         // --- Date & Time Helper Functions ---
         function getTodayDateString() { return new Date().toISOString().split('T')[0]; }
@@ -598,12 +716,12 @@
         function getStartOfMonth(date) { return new Date(date.getFullYear(), date.getMonth(), 1); }
         function getEndOfMonth(date) { return new Date(date.getFullYear(), date.getMonth() + 1, 0); }
         function formatDate(dateString) { if (!dateString) return ''; const date = new Date(dateString); const userTimezoneOffset = date.getTimezoneOffset() * 60000; const correctedDate = new Date(date.getTime() + userTimezoneOffset); return correctedDate.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); }
-        function formatTime(timeString) { // HH:mm
+        function formatTime(timeString) { 
             if (!timeString) return '';
             const [hours, minutes] = timeString.split(':');
             const h = parseInt(hours, 10);
             const ampm = h >= 12 ? 'PM' : 'AM';
-            const formattedHours = h % 12 || 12; // Convert 0 to 12 for 12 AM/PM
+            const formattedHours = h % 12 || 12; 
             return `${formattedHours}:${minutes} ${ampm}`;
         }
 
@@ -622,8 +740,8 @@
             setTimeout(() => { messageBox.style.display = 'none'; }, 3000); 
         }
         function saveTasks() { 
-            localStorage.setItem('todos_v3', JSON.stringify(tasks)); // Updated key
-            updateUniqueLabels(); // Update unique labels whenever tasks are saved
+            localStorage.setItem('todos_v3', JSON.stringify(tasks)); 
+            updateUniqueLabels(); 
         }
         function getPriorityClass(priority) { switch (priority) { case 'high': return 'bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100'; case 'medium': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-600 dark:text-yellow-100'; case 'low': return 'bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100'; default: return 'bg-slate-100 text-slate-700 dark:bg-slate-600 dark:text-slate-200'; } }
         
@@ -631,17 +749,20 @@
             const labels = new Set();
             tasks.forEach(task => {
                 if (task.label && task.label.trim() !== '') {
-                    labels.add(task.label.trim().toLowerCase()); // Store lowercase for consistency
+                    labels.add(task.label.trim().toLowerCase()); 
                 }
             });
-            uniqueLabels = Array.from(labels).sort(); // Keep them sorted
+            uniqueLabels = Array.from(labels).sort(); 
+            populateDatalist(existingLabelsDatalist); // Update datalist for Add modal
+            populateDatalist(existingLabelsEditDatalist); // Update datalist for Edit modal
         }
 
         function populateDatalist(datalistElement) {
-            datalistElement.innerHTML = ''; // Clear existing options
+            if (!datalistElement) return; // Guard against null element if IDs mismatch
+            datalistElement.innerHTML = ''; 
             uniqueLabels.forEach(label => {
                 const option = document.createElement('option');
-                option.value = label;
+                option.value = label.charAt(0).toUpperCase() + label.slice(1); // Capitalize for display in datalist
                 datalistElement.appendChild(option);
             });
         }
@@ -744,7 +865,7 @@
                 if (task.label) {
                     const labelBadge = document.createElement('span');
                     labelBadge.textContent = task.label;
-                    labelBadge.className = 'label-badge'; // Use the new class for label styling
+                    labelBadge.className = 'label-badge'; 
                     detailsContainer.appendChild(labelBadge);
                 }
                 if (task.dueDate) { 
@@ -872,9 +993,9 @@
             event.preventDefault();
             const rawTaskText = modalTaskInputAdd.value.trim();
             const explicitDueDate = modalDueDateInputAdd.value; 
-            const time = modalTimeInputAdd.value; // Get time
+            const time = modalTimeInputAdd.value; 
             const priority = modalPriorityInputAdd.value;
-            const label = modalLabelInputAdd.value.trim(); // Get label
+            const label = modalLabelInputAdd.value.trim(); 
             const notes = modalNotesInputAdd.value.trim(); 
 
             if (rawTaskText === '') { 
@@ -900,13 +1021,13 @@
                 text: finalTaskText, 
                 completed: false, 
                 dueDate: finalDueDate, 
-                time: time || null, // Save time
+                time: time || null, 
                 priority: priority,
-                label: label || '', // Save label
+                label: label || '', 
                 notes: notes || '' 
             };
             tasks.unshift(newTask);
-            saveTasks(); // This will also update uniqueLabels
+            saveTasks(); 
             if (currentFilter.startsWith('due') && finalDueDate) { setFilter(currentFilter); }
             else if (currentFilter === 'completed') { setFilter('all'); }
             else { renderTasks(); } 
@@ -919,9 +1040,9 @@
             const taskId = parseInt(modalViewEditTaskId.value); 
             const taskText = modalTaskInputViewEdit.value.trim();
             const dueDate = modalDueDateInputViewEdit.value; 
-            const time = modalTimeInputViewEdit.value; // Get time
+            const time = modalTimeInputViewEdit.value; 
             const priority = modalPriorityInputViewEdit.value;
-            const label = modalLabelInputViewEdit.value.trim(); // Get label
+            const label = modalLabelInputViewEdit.value.trim(); 
             const notes = modalNotesInputViewEdit.value.trim(); 
 
             if (taskText === '') { showMessage('Task description cannot be empty!', 'error'); modalTaskInputViewEdit.focus(); return; }
@@ -931,7 +1052,7 @@
                     ? { ...task, text: taskText, dueDate: dueDate || null, time: time || null, priority: priority, label: label || '', notes: notes || '' } 
                     : task
             );
-            saveTasks(); // This will also update uniqueLabels
+            saveTasks(); 
             renderTasks(); 
             closeViewEditModal();
             showMessage('Task updated successfully!', 'success');
@@ -959,7 +1080,7 @@
         function updateSortButtonStates() {
             sortByDueDateBtn.classList.toggle('sort-btn-active', currentSort === 'dueDate');
             sortByPriorityBtn.classList.toggle('sort-btn-active', currentSort === 'priority');
-            sortByLabelBtn.classList.toggle('sort-btn-active', currentSort === 'label'); // Update new sort button
+            sortByLabelBtn.classList.toggle('sort-btn-active', currentSort === 'label'); 
         }
 
         // --- Event Listeners ---
@@ -986,6 +1107,13 @@
         });
         viewTaskDetailsModal.addEventListener('click', (event) => { if (event.target === viewTaskDetailsModal) closeViewTaskDetailsModal(); });
 
+        // Manage Labels Modal Listeners
+        if (manageLabelsBtn) manageLabelsBtn.addEventListener('click', openManageLabelsModal);
+        if (closeManageLabelsModalBtn) closeManageLabelsModalBtn.addEventListener('click', closeManageLabelsModal);
+        if (closeManageLabelsSecondaryBtn) closeManageLabelsSecondaryBtn.addEventListener('click', closeManageLabelsModal);
+        if (addNewLabelForm) addNewLabelForm.addEventListener('submit', handleAddNewLabel);
+        if (manageLabelsModal) manageLabelsModal.addEventListener('click', (event) => { if (event.target === manageLabelsModal) closeManageLabelsModal(); });
+
 
         filterButtons.forEach(button => button.addEventListener('click', () => setFilter(button.dataset.filter)));
         clearCompletedBtn.addEventListener('click', clearCompletedTasks);
@@ -1011,7 +1139,7 @@
             renderTasks();
         });
         
-        sortByLabelBtn.addEventListener('click', () => { // Listener for new sort button
+        sortByLabelBtn.addEventListener('click', () => { 
             currentSort = currentSort === 'label' ? 'default' : 'label';
             updateSortButtonStates();
             renderTasks();
@@ -1022,7 +1150,8 @@
             const isAddModalOpen = !addTaskModal.classList.contains('hidden');
             const isViewEditModalOpen = !viewEditTaskModal.classList.contains('hidden');
             const isViewDetailsModalOpen = !viewTaskDetailsModal.classList.contains('hidden');
-            const isAnyModalOpen = isAddModalOpen || isViewEditModalOpen || isViewDetailsModalOpen;
+            const isManageLabelsModalOpen = !manageLabelsModal.classList.contains('hidden');
+            const isAnyModalOpen = isAddModalOpen || isViewEditModalOpen || isViewDetailsModalOpen || isManageLabelsModalOpen;
             const isInputFocused = document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT' || document.activeElement.tagName === 'TEXTAREA';
 
             if ((event.key === '+' || event.key === '=') && !isAnyModalOpen && !isInputFocused) {
@@ -1033,11 +1162,12 @@
                 if (isAddModalOpen) closeAddModal(); 
                 if (isViewEditModalOpen) closeViewEditModal();
                 if (isViewDetailsModalOpen) closeViewTaskDetailsModal();
+                if (isManageLabelsModalOpen) closeManageLabelsModal();
             }
         });
 
         // --- Initial Setup ---
-        updateUniqueLabels(); // Initial population of unique labels
+        updateUniqueLabels(); 
         filterButtons.forEach(button => { button.classList.add('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600'); button.querySelector('i')?.classList.add('text-slate-500', 'dark:text-slate-400'); });
         
         const savedSidebarState = localStorage.getItem('sidebarState');
