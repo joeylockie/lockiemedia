@@ -50,12 +50,17 @@
         .dark .view-details-heading {
             color: #d1d5db; 
         }
+        /* Sidebar minimized state specific styles */
         .sidebar-minimized .sidebar-button-icon-only {
-            justify-content: center;
+            justify-content: center; /* Center icon and text (text will be hidden) */
         }
         .sidebar-minimized .sidebar-button-icon-only i {
-            margin-right: 0 !important; 
+            margin-right: 0 !important; /* Remove margin from icon when text is hidden */
         }
+        .sidebar-minimized .sidebar-text-content {
+            display: none; /* Hide text when minimized */
+        }
+
         /* Tooltip Styling */
         #iconTooltip {
             position: absolute;
@@ -75,7 +80,7 @@
 
     </style>
 </head>
-<body class="bg-gradient-to-br from-slate-900 to-slate-700 min-h-screen flex flex-col items-center justify-start pt-8 sm:pt-10 p-4 selection:bg-sky-400 selection:text-white dark:selection:bg-sky-600 dark:selection:text-white">
+<body class="bg-gradient-to-br from-slate-900 to-slate-700 min-h-screen flex flex-col items-center justify-start pt-8 sm:pt-10 p-2 sm:p-4 selection:bg-sky-400 selection:text-white dark:selection:bg-sky-600 dark:selection:text-white">
 
     <div id="messageBox" class="message-box"></div>
     <div id="iconTooltip"></div> 
@@ -197,11 +202,11 @@
         <h1 class="text-4xl sm:text-5xl font-bold text-center text-white mb-8 sm:mb-10">My Todo List</h1>
 
         <div class="flex flex-col md:flex-row gap-6 lg:gap-8">
-            <aside id="taskSidebar" class="bg-slate-100 dark:bg-slate-800 rounded-xl shadow-xl flex-shrink-0 md:sticky md:top-10 md:self-start sticky-sidebar md:w-72 lg:w-80 p-5 sm:p-6">
-                <div class="space-y-6">
-                    <div class="flex justify-between items-center mb-3">
-                        <h2 class="sidebar-text-content text-xl font-semibold text-slate-700 dark:text-slate-200">Add Task</h2>
-                        <button id="sidebarToggleBtn" title="Toggle Sidebar" class="hidden md:block p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300">
+            <aside id="taskSidebar" class="bg-slate-100 dark:bg-slate-800 rounded-xl shadow-xl flex-shrink-0 md:sticky md:top-10 md:self-start sticky-sidebar w-full md:w-72 lg:w-80 p-3 sm:p-4 md:p-5">
+                <div class="space-y-4 md:space-y-6">
+                    <div class="flex justify-between items-center mb-2 md:mb-3">
+                        <h2 class="sidebar-text-content text-lg md:text-xl font-semibold text-slate-700 dark:text-slate-200">Add Task</h2>
+                        <button id="sidebarToggleBtn" title="Toggle Sidebar" class="p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300">
                             <i id="sidebarToggleIcon" class="fas fa-chevron-left"></i>
                         </button>
                     </div>
@@ -210,54 +215,54 @@
                             id="openAddModalButton"
                             type="button"
                             title="Add New Task"
-                            class="bg-sky-500 hover:bg-sky-600 text-white font-semibold p-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 ease-in-out transform hover:-translate-y-0.5 w-full flex items-center sidebar-button-icon-only justify-center md:justify-start"
+                            class="bg-sky-500 hover:bg-sky-600 text-white font-semibold p-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 ease-in-out transform hover:-translate-y-0.5 w-full flex items-center sidebar-button-icon-only justify-center"
                         >
-                            <i class="fas fa-plus mr-0 md:mr-2"></i> <span class="sidebar-text-content">Add New Task</span>
+                            <i class="fas fa-plus mr-0"></i> <span class="sidebar-text-content ml-2">Add New Task</span>
                         </button>
                     </div>
 
                     <div>
-                        <h2 class="sidebar-text-content text-xl font-semibold text-slate-700 dark:text-slate-200 mb-3">Filter Tasks</h2>
+                        <h2 class="sidebar-text-content text-lg md:text-xl font-semibold text-slate-700 dark:text-slate-200 mb-2 md:mb-3">Filter Tasks</h2>
                         <div class="flex flex-col gap-2">
-                            <button id="filterAll" title="All Tasks" class="filter-btn w-full text-left px-4 py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center md:justify-start" data-filter="all">
-                                <i class="fas fa-list-ul w-5 mr-0 md:mr-2.5"></i><span class="sidebar-text-content">All Tasks</span>
+                            <button id="filterAll" title="All Tasks" class="filter-btn w-full text-left px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center" data-filter="all">
+                                <i class="fas fa-list-ul w-5 mr-0"></i><span class="sidebar-text-content ml-2 md:ml-2.5">All Tasks</span>
                             </button>
-                            <button id="filterActive" title="Active Tasks" class="filter-btn w-full text-left px-4 py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center md:justify-start" data-filter="active">
-                                <i class="fas fa-bolt w-5 mr-0 md:mr-2.5"></i><span class="sidebar-text-content">Active</span>
+                            <button id="filterActive" title="Active Tasks" class="filter-btn w-full text-left px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center" data-filter="active">
+                                <i class="fas fa-bolt w-5 mr-0"></i><span class="sidebar-text-content ml-2 md:ml-2.5">Active</span>
                             </button>
-                            <button id="filterCompleted" title="Completed Tasks" class="filter-btn w-full text-left px-4 py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center md:justify-start" data-filter="completed">
-                                <i class="fas fa-check-circle w-5 mr-0 md:mr-2.5"></i><span class="sidebar-text-content">Completed</span>
+                            <button id="filterCompleted" title="Completed Tasks" class="filter-btn w-full text-left px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center" data-filter="completed">
+                                <i class="fas fa-check-circle w-5 mr-0"></i><span class="sidebar-text-content ml-2 md:ml-2.5">Completed</span>
                             </button>
                             <hr class="my-2 border-slate-200 dark:border-slate-700">
-                            <button id="filterDueToday" title="Due Today" class="filter-btn w-full text-left px-4 py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center md:justify-start" data-filter="dueToday">
-                                <i class="fas fa-calendar-day w-5 mr-0 md:mr-2.5"></i><span class="sidebar-text-content">Due Today</span>
+                            <button id="filterDueToday" title="Due Today" class="filter-btn w-full text-left px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center" data-filter="dueToday">
+                                <i class="fas fa-calendar-day w-5 mr-0"></i><span class="sidebar-text-content ml-2 md:ml-2.5">Due Today</span>
                             </button>
-                            <button id="filterDueThisWeek" title="Due This Week" class="filter-btn w-full text-left px-4 py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center md:justify-start" data-filter="dueThisWeek">
-                                <i class="fas fa-calendar-week w-5 mr-0 md:mr-2.5"></i><span class="sidebar-text-content">Due This Week</span>
+                            <button id="filterDueThisWeek" title="Due This Week" class="filter-btn w-full text-left px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center" data-filter="dueThisWeek">
+                                <i class="fas fa-calendar-week w-5 mr-0"></i><span class="sidebar-text-content ml-2 md:ml-2.5">Due This Week</span>
                             </button>
-                            <button id="filterDueThisMonth" title="Due This Month" class="filter-btn w-full text-left px-4 py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center md:justify-start" data-filter="dueThisMonth">
-                                <i class="far fa-calendar-alt w-5 mr-0 md:mr-2.5"></i><span class="sidebar-text-content">Due This Month</span>
+                            <button id="filterDueThisMonth" title="Due This Month" class="filter-btn w-full text-left px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center" data-filter="dueThisMonth">
+                                <i class="far fa-calendar-alt w-5 mr-0"></i><span class="sidebar-text-content ml-2 md:ml-2.5">Due This Month</span>
                             </button>
                         </div>
                     </div>
 
                     <div>
-                        <h2 class="sidebar-text-content text-xl font-semibold text-slate-700 dark:text-slate-200 mb-3">Manage</h2>
+                        <h2 class="sidebar-text-content text-lg md:text-xl font-semibold text-slate-700 dark:text-slate-200 mb-2 md:mb-3">Manage</h2>
                         <button
                             id="clearCompletedBtn"
                             title="Clear Completed Tasks"
-                            class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2.5 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 ease-in-out transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed w-full flex items-center sidebar-button-icon-only justify-center md:justify-start"
+                            class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2.5 px-3 md:px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 ease-in-out transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed w-full flex items-center sidebar-button-icon-only justify-center"
                             disabled
                         >
-                            <i class="fas fa-eraser mr-0 md:mr-2"></i> <span class="sidebar-text-content">Clear Completed</span>
+                            <i class="fas fa-eraser mr-0"></i> <span class="sidebar-text-content ml-2">Clear Completed</span>
                         </button>
                     </div>
                 </div>
             </aside>
 
-            <main class="flex-grow bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-xl shadow-2xl min-h-[300px]">
-                <h2 class="text-2xl sm:text-3xl font-semibold text-slate-800 dark:text-slate-100 mb-6">Your Tasks</h2>
-                <ul id="taskList" class="space-y-3.5">
+            <main class="flex-grow bg-white dark:bg-slate-900 p-4 md:p-6 lg:p-8 rounded-xl shadow-2xl min-h-[300px] mt-4 md:mt-0">
+                <h2 class="text-xl sm:text-2xl md:text-3xl font-semibold text-slate-800 dark:text-slate-100 mb-4 md:mb-6">Your Tasks</h2>
+                <ul id="taskList" class="space-y-3 sm:space-y-3.5">
                     </ul>
                 <p id="emptyState" class="text-center text-slate-500 dark:text-slate-400 mt-8 py-5 hidden">No tasks yet. Add some!</p>
                 <p id="noMatchingTasks" class="text-center text-slate-500 dark:text-slate-400 mt-8 py-5 hidden">No tasks match the current filter.</p>
@@ -347,35 +352,45 @@
         function setSidebarMinimized(minimize) {
             hideTooltip(); 
             if (minimize) {
-                taskSidebar.classList.remove('md:w-72', 'lg:w-80', 'p-5', 'sm:p-6');
-                taskSidebar.classList.add('md:w-20', 'lg:w-20', 'p-3', 'sm:p-3', 'sidebar-minimized');
+                // Minimize: Apply small width and padding for all screens
+                taskSidebar.classList.remove('md:w-72', 'lg:w-80', 'p-5', 'sm:p-6', 'md:p-5', 'w-full'); // Remove all width/padding classes
+                taskSidebar.classList.add('w-16', 'p-3', 'sidebar-minimized'); // Standard minimized size
+                
                 sidebarToggleIcon.classList.remove('fa-chevron-left');
                 sidebarToggleIcon.classList.add('fa-chevron-right');
+                
                 sidebarTextElements.forEach(el => el.classList.add('hidden'));
                 sidebarIconOnlyButtons.forEach(btn => {
                     btn.classList.add('justify-center');
-                    btn.classList.remove('md:justify-start');
+                    btn.classList.remove('md:justify-start'); // Ensure this is removed for minimized state
                     const icon = btn.querySelector('i');
-                    if(icon) icon.classList.remove('md:mr-2', 'md:mr-2.5');
+                    if(icon) icon.classList.remove('md:mr-2', 'md:mr-2.5', 'ml-2'); // Remove all margins
                 });
                 localStorage.setItem('sidebarState', 'minimized');
             } else { // Expand
-                taskSidebar.classList.add('md:w-72', 'lg:w-80', 'p-5', 'sm:p-6');
-                taskSidebar.classList.remove('md:w-20', 'lg:w-20', 'p-3', 'sm:p-3', 'sidebar-minimized');
+                taskSidebar.classList.remove('w-16', 'p-3', 'sidebar-minimized'); // Remove minimized specific classes
+                // Add back responsive widths and paddings
+                taskSidebar.classList.add('w-full', 'md:w-72', 'lg:w-80', 'p-3', 'sm:p-4', 'md:p-5'); 
+
                 sidebarToggleIcon.classList.remove('fa-chevron-right');
                 sidebarToggleIcon.classList.add('fa-chevron-left');
+                
                 sidebarTextElements.forEach(el => el.classList.remove('hidden'));
                  sidebarIconOnlyButtons.forEach(btn => {
-                    btn.classList.remove('justify-center');
-                    btn.classList.add('md:justify-start');
+                    btn.classList.remove('justify-center'); // Remove centered justification
+                    // Add back md:justify-start if it was there, but rely on flex default for mobile (start)
+                    // btn.classList.add('md:justify-start'); // This might not be needed if default is start
                     const icon = btn.querySelector('i');
                     const textSpan = btn.querySelector('.sidebar-text-content');
                     if(icon && textSpan && !textSpan.classList.contains('hidden')) {
+                        // Re-apply original margins based on button type for md+ screens
                         if (btn.id === 'openAddModalButton' || btn.id === 'clearCompletedBtn') {
                              icon.classList.add('md:mr-2');
                         } else { 
                              icon.classList.add('md:mr-2.5');
                         }
+                        // Add back margin for text on mobile if needed (e.g., ml-2 on the span)
+                        textSpan.classList.add('ml-2'); 
                     }
                 });
                 localStorage.setItem('sidebarState', 'expanded');
@@ -514,7 +529,18 @@
 
 
         // --- Core Functions ---
-        function showMessage(message, type = 'success') { messageBox.textContent = message; messageBox.className = 'message-box'; if (type === 'success') { messageBox.classList.add('bg-green-100', 'text-green-800', 'dark:bg-green-700', 'dark:text-green-100'); } else { messageBox.classList.add('bg-red-100', 'text-red-800', 'dark:bg-red-700', 'dark:text-red-100'); } messageBox.style.display = 'block'; messageBox.style.zIndex = '200'; setTimeout(() => { messageBox.style.display = 'none'; }, 3000); }
+        function showMessage(message, type = 'success') { 
+            messageBox.textContent = message; 
+            messageBox.className = 'message-box'; 
+            if (type === 'success') { 
+                messageBox.classList.add('bg-green-100', 'text-green-800', 'dark:bg-green-700', 'dark:text-green-100'); 
+            } else { 
+                messageBox.classList.add('bg-red-100', 'text-red-800', 'dark:bg-red-700', 'dark:text-red-100'); 
+            } 
+            messageBox.style.display = 'block'; 
+            messageBox.style.zIndex = '200'; 
+            setTimeout(() => { messageBox.style.display = 'none'; }, 3000); 
+        }
         function saveTasks() { localStorage.setItem('todos_v2', JSON.stringify(tasks)); }
         function getPriorityClass(priority) { switch (priority) { case 'high': return 'bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100'; case 'medium': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-600 dark:text-yellow-100'; case 'low': return 'bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100'; default: return 'bg-slate-100 text-slate-700 dark:bg-slate-600 dark:text-slate-200'; } }
         function formatDate(dateString) { if (!dateString) return ''; const date = new Date(dateString); const userTimezoneOffset = date.getTimezoneOffset() * 60000; const correctedDate = new Date(date.getTime() + userTimezoneOffset); return correctedDate.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); }
@@ -555,7 +581,7 @@
 
             tasksToRender.forEach((task) => {
                 const li = document.createElement('li');
-                li.className = `task-item flex items-start justify-between bg-slate-100 dark:bg-slate-700 p-3.5 rounded-lg shadow hover:shadow-md transition-shadow duration-300 ${task.completed ? 'opacity-60' : ''} overflow-hidden`;
+                li.className = `task-item flex items-start justify-between bg-slate-100 dark:bg-slate-700 p-3 sm:p-3.5 rounded-lg shadow hover:shadow-md transition-shadow duration-300 ${task.completed ? 'opacity-60' : ''} overflow-hidden`;
                 li.dataset.taskId = task.id;
                 const mainContentClickableArea = document.createElement('div'); 
                 mainContentClickableArea.className = 'task-item-clickable-area flex items-start flex-grow min-w-0 mr-2 rounded-l-lg'; 
@@ -568,18 +594,18 @@
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
                 checkbox.checked = task.completed;
-                checkbox.className = 'form-checkbox h-5 w-5 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 dark:focus:ring-sky-500 mt-0.5 mr-3 cursor-pointer flex-shrink-0';
+                checkbox.className = 'form-checkbox h-5 w-5 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 dark:focus:ring-sky-500 mt-0.5 mr-2 sm:mr-3 cursor-pointer flex-shrink-0';
                 checkbox.addEventListener('change', () => toggleComplete(task.id));
                 const textDetailsDiv = document.createElement('div');
                 textDetailsDiv.className = 'flex flex-col';
                 const span = document.createElement('span');
                 span.textContent = task.text;
                 let textColorClass = task.completed ? 'text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-200';
-                span.className = `break-all ${textColorClass} ${task.completed ? 'completed-text' : ''}`;
+                span.className = `text-sm sm:text-base break-all ${textColorClass} ${task.completed ? 'completed-text' : ''}`;
                 textDetailsDiv.appendChild(span);
                 if (task.dueDate || task.priority) {
                     const detailsDiv = document.createElement('div');
-                    detailsDiv.className = 'flex items-center flex-wrap gap-x-2 gap-y-1 mt-1.5 text-xs';
+                    detailsDiv.className = 'flex items-center flex-wrap gap-x-2 gap-y-1 mt-1 sm:mt-1.5 text-xs';
                     if (task.priority) { const priorityBadge = document.createElement('span'); priorityBadge.textContent = task.priority; priorityBadge.className = `priority-badge ${getPriorityClass(task.priority)}`; detailsDiv.appendChild(priorityBadge); }
                     if (task.dueDate) { const dueDateSpan = document.createElement('span'); dueDateSpan.className = 'text-slate-500 dark:text-slate-400 flex items-center'; dueDateSpan.innerHTML = `<i class="far fa-calendar-alt mr-1"></i> ${formatDate(task.dueDate)}`; detailsDiv.appendChild(dueDateSpan); }
                     textDetailsDiv.appendChild(detailsDiv);
@@ -587,7 +613,7 @@
                 mainContentClickableArea.appendChild(checkbox);
                 mainContentClickableArea.appendChild(textDetailsDiv);
                 const deleteButton = document.createElement('button');
-                deleteButton.className = 'delete-btn text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-500 transition-colors duration-300 px-2 py-1 flex-shrink-0 self-start';
+                deleteButton.className = 'delete-btn text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-500 transition-colors duration-300 px-1 sm:px-2 py-1 flex-shrink-0 self-start';
                 deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
                 deleteButton.setAttribute('aria-label', 'Delete task');
                 deleteButton.addEventListener('click', () => deleteTask(task.id));
@@ -602,7 +628,7 @@
             let parsedDate = null;
             let remainingText = text;
             const today = new Date();
-            today.setHours(0, 0, 0, 0); // Normalize today to the start of the day
+            today.setHours(0, 0, 0, 0); 
 
             const daysOfWeek = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
             const shortDaysOfWeek = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
@@ -621,7 +647,7 @@
                     regex: /\b(next week)\b/i, 
                     handler: () => {
                         const nextWeek = new Date(today);
-                        nextWeek.setDate(today.getDate() - today.getDay() + 1 + 7); // Go to next Monday
+                        nextWeek.setDate(today.getDate() - today.getDay() + 1 + 7); 
                         return nextWeek.toISOString().split('T')[0];
                     }
                 },
@@ -635,11 +661,11 @@
                 {
                     regex: /\b(next year)\b/i,
                     handler: () => {
-                        const nextYear = new Date(today.getFullYear() + 1, 0, 1); // Jan 1st of next year
+                        const nextYear = new Date(today.getFullYear() + 1, 0, 1); 
                         return nextYear.toISOString().split('T')[0];
                     }
                 },
-                { // Specific days of the week (e.g., "Monday", "fri")
+                { 
                     regex: new RegExp(`\\b(on\\s+)?(${daysOfWeek.join('|')}|${shortDaysOfWeek.join('|')})\\b`, 'i'),
                     handler: (match) => {
                         const dayName = match[2].toLowerCase();
@@ -647,15 +673,15 @@
                         if (targetDayIndex === -1) {
                             targetDayIndex = shortDaysOfWeek.indexOf(dayName);
                         }
-                        if (targetDayIndex === -1) return null; // Should not happen with regex
+                        if (targetDayIndex === -1) return null; 
 
                         const currentDayIndex = today.getDay();
                         let daysToAdd = targetDayIndex - currentDayIndex;
 
-                        if (daysToAdd < 0 || (daysToAdd === 0 && new Date().getHours() > 0 )) { // If day has passed this week or is today but later
+                        if (daysToAdd < 0 || (daysToAdd === 0 && new Date().getHours() > 0 )) { 
                             daysToAdd += 7;
                         }
-                         if (targetDayIndex === currentDayIndex && daysToAdd !== 7){ // if it's today and not set for next week
+                         if (targetDayIndex === currentDayIndex && daysToAdd !== 7){ 
                             daysToAdd = 0;
                         }
 
@@ -665,8 +691,8 @@
                         return targetDate.toISOString().split('T')[0];
                     }
                 },
-                { regex: /(\d{4}-\d{1,2}-\d{1,2})/g, handler: (match) => match[0] }, // YYYY-MM-DD
-                { regex: /(\d{1,2}\/\d{1,2}\/\d{2,4})/g, handler: (match) => { // MM/DD/YYYY or M/D/YY
+                { regex: /(\d{4}-\d{1,2}-\d{1,2})/g, handler: (match) => match[0] }, 
+                { regex: /(\d{1,2}\/\d{1,2}\/\d{2,4})/g, handler: (match) => { 
                     const parts = match[0].split('/');
                     const year = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
                     const month = parts[0].padStart(2, '0');
@@ -681,10 +707,8 @@
                     const potentialDate = pattern.handler(match);
                     if (potentialDate && !isNaN(new Date(potentialDate).getTime())) {
                         parsedDate = potentialDate;
-                        // Remove the matched date string from the text
-                        // For "on monday", remove "on monday". For just "monday", remove "monday".
                         const matchedString = match[0];
-                        remainingText = remainingText.replace(matchedString, '').replace(/\s\s+/g, ' ').trim(); // Clean up extra spaces
+                        remainingText = remainingText.replace(matchedString, '').replace(/\s\s+/g, ' ').trim(); 
                         break; 
                     }
                 }
@@ -758,7 +782,14 @@
 
 
         function toggleComplete(taskId) { tasks = tasks.map(task => task.id === taskId ? { ...task, completed: !task.completed } : task); saveTasks(); renderTasks(); }
-        function deleteTask(taskId) { tasks = tasks.filter(task => task.id !== taskId); saveTasks(); renderTasks(); showMessage('Task deleted.', 'success'); }
+        
+        function deleteTask(taskId) { 
+            tasks = tasks.filter(task => task.id !== taskId); 
+            saveTasks(); 
+            renderTasks(); 
+            showMessage('Task deleted.', 'error'); 
+        }
+
         function setFilter(filter) { currentFilter = filter; filterButtons.forEach(button => { const isActive = button.dataset.filter === filter; button.setAttribute('data-active', isActive.toString()); const baseInactive = ['bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600']; const iconInactive = ['text-slate-500', 'dark:text-slate-400']; const active = ['bg-sky-500', 'text-white', 'font-semibold']; const iconActive = ['text-sky-100']; button.classList.remove(...baseInactive, ...active); button.querySelector('i')?.classList.remove(...iconInactive, ...iconActive); if (isActive) { button.classList.add(...active); button.querySelector('i')?.classList.add(...iconActive); } else { button.classList.add(...baseInactive); button.querySelector('i')?.classList.add(...iconInactive); } }); renderTasks(); }
         function updateClearCompletedButton() { clearCompletedBtn.disabled = !tasks.some(task => task.completed); }
         function clearCompletedTasks() { const completedCount = tasks.filter(task => task.completed).length; if (completedCount === 0) { showMessage('No completed tasks to clear.', 'error'); return; } tasks = tasks.filter(task => !task.completed); saveTasks(); renderTasks(); showMessage(`${completedCount} completed task(s) cleared.`, 'success'); }
@@ -794,7 +825,7 @@
         // Sidebar Toggle Listener
         if (sidebarToggleBtn) {
             sidebarToggleBtn.addEventListener('click', () => {
-                const isCurrentlyMinimized = taskSidebar.classList.contains('md:w-20');
+                const isCurrentlyMinimized = taskSidebar.classList.contains('w-16') || taskSidebar.classList.contains('md:w-20');
                 setSidebarMinimized(!isCurrentlyMinimized);
             });
         }
@@ -821,18 +852,16 @@
         // --- Initial Setup ---
         filterButtons.forEach(button => { button.classList.add('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600'); button.querySelector('i')?.classList.add('text-slate-500', 'dark:text-slate-400'); });
         
-        // Load and apply sidebar state on page load
         const savedSidebarState = localStorage.getItem('sidebarState');
         if (savedSidebarState === 'minimized') {
             setSidebarMinimized(true);
         } else {
-            setSidebarMinimized(false); // Default to expanded
+            setSidebarMinimized(false); 
         }
         
-        setFilter('all'); // Set initial filter after sidebar state is potentially set
+        setFilter('all'); 
         window.onload = () => { 
             setFilter(currentFilter); 
-            // Re-apply sidebar state in case of complex interactions or if initial classes were not fully set
              if (localStorage.getItem('sidebarState') === 'minimized') {
                 setSidebarMinimized(true);
             } else {
