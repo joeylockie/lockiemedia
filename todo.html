@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Todo List</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script>
+        // Apply theme on initial load
+        function applyInitialTheme() {
+            if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+        applyInitialTheme();
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .task-item-clickable-area:hover {
+            cursor: pointer;
+        }
+        .task-item:hover .delete-btn { opacity: 1; }
+        .delete-btn { opacity: 0; transition: opacity 0.3s ease; }
+        .completed-text { text-decoration: line-through; }
+        .message-box {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            padding: 1rem 1.5rem; border-radius: 0.375rem;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            z-index: 200; display: none;
+        }
+        .sticky-sidebar {
+            position: sticky; top: 2.5rem; align-self: flex-start;
+            max-height: calc(100vh - 5rem); 
+            /* overflow-y: auto; Removed as per request */
+            /* Transition for width and padding changes */
+            transition: width 0.3s ease-in-out, padding 0.3s ease-in-out; 
+        }
+        .priority-badge {
+            display: inline-block; padding: 0.15rem 0.5rem; font-size: 0.75rem; /* text-xs */
+            font-weight: 600; /* font-semibold */ border-radius: 0.375rem; /* rounded-md */
+            text-transform: capitalize;
+        }
+        .filter-btn { min-height: 42px; }
+        /* Styling for headings in View Task Details Modal */
+        .view-details-heading {
+            font-weight: 600; /* semibold */
+            font-size: 0.95rem; /* slightly larger than text-sm */
+            color: #374151; /* Tailwind gray-700 */
+        }
+        .dark .view-details-heading {
+            color: #d1d5db; /* Tailwind gray-300 */
+        }
+
+        /* Sidebar minimized state specific styles for buttons to center icon */
+        .sidebar-minimized .sidebar-button-icon-only {
+            justify-content: center;
+        }
+        .sidebar-minimized .sidebar-button-icon-only i {
+            margin-right: 0 !important; /* Remove margin from icon when text is hidden */
+        }
+
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 to-slate-700 min-h-screen flex flex-col items-center justify-start pt-8 sm:pt-10 p-4 selection:bg-sky-400 selection:text-white dark:selection:bg-sky-600 dark:selection:text-white">
+
+    <div id="messageBox" class="message-box"></div>
+
+    <div id="addTaskModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-opacity-70 overflow-y-auto h-full w-full flex items-center justify-center hidden z-[150]">
+        <div class="relative mx-auto p-5 sm:p-6 border w-full max-w-lg shadow-xl rounded-xl bg-white dark:bg-slate-800 transform transition-all duration-300 ease-in-out scale-95 opacity-0" id="modalDialogAdd">
+            <div class="flex justify-between items-center pb-3 mb-4 border-b border-slate-200 dark:border-slate-700">
+                <h3 class="text-2xl font-semibold text-slate-800 dark:text-slate-100">Add New Task</h3>
+                <button id="closeAddModalBtn" type="button" class="text-slate-400 hover:text-slate-600 dark:text-slate-300 dark:hover:text-slate-100 transition-colors p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700" aria-label="Close modal">
+                    <i class="fas fa-times fa-lg"></i>
+                </button>
+            </div>
+            <form id="modalTodoFormAdd">
+                <div>
+                    <label for="modalTaskInputAdd" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Task Description</label>
+                    <input type="text" id="modalTaskInputAdd" placeholder="e.g., Buy groceries" class="w-full p-3 border-2 bg-white text-slate-900 placeholder-slate-400 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-shadow duration-300 dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-400 dark:border-slate-600" required>
+                </div>
+                <div class="mt-4">
+                    <label for="modalDueDateInputAdd" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Due Date</label>
+                    <input type="date" id="modalDueDateInputAdd" class="w-full p-3 border-2 bg-white text-slate-900 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 dark:[color-scheme:dark]">
+                </div>
+                <div class="mt-4">
+                    <label for="modalPriorityInputAdd" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Priority</label>
+                    <select id="modalPriorityInputAdd" class="w-full p-3 border-2 bg-white text-slate-900 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600">
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+                <div class="mt-4">
+                    <label for="modalNotesInputAdd" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Notes</label>
+                    <textarea id="modalNotesInputAdd" placeholder="Add any relevant notes..." rows="3" class="w-full p-3 border-2 bg-white text-slate-900 placeholder-slate-400 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-shadow duration-300 dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-400 dark:border-slate-600"></textarea>
+                </div>
+                <div class="mt-6 flex justify-end gap-3">
+                    <button type="button" id="cancelAddModalBtn" class="px-5 py-2.5 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500 transition-colors font-medium">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors font-semibold">Save Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="viewEditTaskModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-opacity-70 overflow-y-auto h-full w-full flex items-center justify-center hidden z-[150]">
+        <div class="relative mx-auto p-5 sm:p-6 border w-full max-w-lg shadow-xl rounded-xl bg-white dark:bg-slate-800 transform transition-all duration-300 ease-in-out scale-95 opacity-0" id="modalDialogViewEdit">
+            <div class="flex justify-between items-center pb-3 mb-4 border-b border-slate-200 dark:border-slate-700">
+                <h3 class="text-2xl font-semibold text-slate-800 dark:text-slate-100">Edit Task Details</h3>
+                <button id="closeViewEditModalBtn" type="button" class="text-slate-400 hover:text-slate-600 dark:text-slate-300 dark:hover:text-slate-100 transition-colors p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700" aria-label="Close modal">
+                    <i class="fas fa-times fa-lg"></i>
+                </button>
+            </div>
+            <form id="modalTodoFormViewEdit">
+                <input type="hidden" id="modalViewEditTaskId"> 
+                <div>
+                    <label for="modalTaskInputViewEdit" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Task Description</label>
+                    <input type="text" id="modalTaskInputViewEdit" placeholder="e.g., Buy groceries" class="w-full p-3 border-2 bg-white text-slate-900 placeholder-slate-400 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-shadow duration-300 dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-400 dark:border-slate-600" required>
+                </div>
+                <div class="mt-4">
+                    <label for="modalDueDateInputViewEdit" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Due Date</label>
+                    <input type="date" id="modalDueDateInputViewEdit" class="w-full p-3 border-2 bg-white text-slate-900 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 dark:[color-scheme:dark]">
+                </div>
+                <div class="mt-4">
+                    <label for="modalPriorityInputViewEdit" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Priority</label>
+                    <select id="modalPriorityInputViewEdit" class="w-full p-3 border-2 bg-white text-slate-900 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600">
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+                <div class="mt-4">
+                    <label for="modalNotesInputViewEdit" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Notes</label>
+                    <textarea id="modalNotesInputViewEdit" placeholder="Add any relevant notes..." rows="3" class="w-full p-3 border-2 bg-white text-slate-900 placeholder-slate-400 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-shadow duration-300 dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-400 dark:border-slate-600"></textarea>
+                </div>
+                <div class="mt-6 flex justify-end gap-3">
+                    <button type="button" id="cancelViewEditModalBtn" class="px-5 py-2.5 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500 transition-colors font-medium">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors font-semibold">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="viewTaskDetailsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-opacity-70 overflow-y-auto h-full w-full flex items-center justify-center hidden z-[160]">
+        <div class="relative mx-auto p-5 sm:p-6 border w-full max-w-lg shadow-xl rounded-xl bg-white dark:bg-slate-800 transform transition-all duration-300 ease-in-out scale-95 opacity-0" id="modalDialogViewDetails">
+            <div class="flex justify-between items-center pb-3 mb-4 border-b border-slate-200 dark:border-slate-700">
+                <h3 class="text-2xl font-semibold text-slate-800 dark:text-slate-100">Task Information</h3>
+                <button id="closeViewDetailsModalBtn" type="button" class="text-slate-400 hover:text-slate-600 dark:text-slate-300 dark:hover:text-slate-100 transition-colors p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700" aria-label="Close modal">
+                    <i class="fas fa-times fa-lg"></i>
+                </button>
+            </div>
+            <div class="space-y-4 text-sm text-slate-700 dark:text-slate-300">
+                <div>
+                    <strong class="view-details-heading block mb-0.5">Description:</strong>
+                    <p id="viewTaskText" class="break-all"></p>
+                </div>
+                <div>
+                    <strong class="view-details-heading block mb-0.5">Due Date:</strong>
+                    <p id="viewTaskDueDate"></p>
+                </div>
+                <div>
+                    <strong class="view-details-heading block mb-0.5">Priority:</strong>
+                    <p id="viewTaskPriority" class="capitalize"></p>
+                </div>
+                 <div>
+                    <strong class="view-details-heading block mb-0.5">Status:</strong>
+                    <p id="viewTaskStatus" class="capitalize"></p>
+                </div>
+                <div>
+                    <strong class="view-details-heading block mb-0.5">Notes:</strong>
+                    <p id="viewTaskNotes" class="mt-1 break-all whitespace-pre-wrap"></p> 
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end gap-3">
+                <button type="button" id="editFromViewModalBtn" class="px-5 py-2.5 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors font-semibold">Edit Task</button>
+                <button type="button" id="closeViewDetailsSecondaryBtn" class="px-5 py-2.5 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500 transition-colors font-medium">Close</button>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="w-full max-w-6xl mx-auto">
+        <h1 class="text-4xl sm:text-5xl font-bold text-center text-white mb-8 sm:mb-10">My Todo List</h1>
+
+        <div class="flex flex-col md:flex-row gap-6 lg:gap-8">
+            <aside id="taskSidebar" class="bg-slate-100 dark:bg-slate-800 rounded-xl shadow-xl flex-shrink-0 md:sticky md:top-10 md:self-start sticky-sidebar md:w-72 lg:w-80 p-5 sm:p-6">
+                <div class="space-y-6">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="sidebar-text-content text-xl font-semibold text-slate-700 dark:text-slate-200">Add Task</h2>
+                        <button id="sidebarToggleBtn" title="Toggle Sidebar" class="hidden md:block p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300">
+                            <i id="sidebarToggleIcon" class="fas fa-chevron-left"></i>
+                        </button>
+                    </div>
+                    <div> <button
+                            id="openAddModalButton"
+                            type="button"
+                            class="bg-sky-500 hover:bg-sky-600 text-white font-semibold p-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 ease-in-out transform hover:-translate-y-0.5 w-full flex items-center sidebar-button-icon-only justify-center md:justify-start"
+                        >
+                            <i class="fas fa-plus mr-0 md:mr-2"></i> <span class="sidebar-text-content">Add New Task</span>
+                        </button>
+                    </div>
+
+                    <div>
+                        <h2 class="sidebar-text-content text-xl font-semibold text-slate-700 dark:text-slate-200 mb-3">Filter Tasks</h2>
+                        <div class="flex flex-col gap-2">
+                            <button id="filterAll" class="filter-btn w-full text-left px-4 py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center md:justify-start" data-filter="all">
+                                <i class="fas fa-list-ul w-5 mr-0 md:mr-2.5"></i><span class="sidebar-text-content">All Tasks</span>
+                            </button>
+                            <button id="filterActive" class="filter-btn w-full text-left px-4 py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center md:justify-start" data-filter="active">
+                                <i class="fas fa-bolt w-5 mr-0 md:mr-2.5"></i><span class="sidebar-text-content">Active</span>
+                            </button>
+                            <button id="filterCompleted" class="filter-btn w-full text-left px-4 py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center md:justify-start" data-filter="completed">
+                                <i class="fas fa-check-circle w-5 mr-0 md:mr-2.5"></i><span class="sidebar-text-content">Completed</span>
+                            </button>
+                            <hr class="my-2 border-slate-200 dark:border-slate-700">
+                            <button id="filterDueToday" class="filter-btn w-full text-left px-4 py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center md:justify-start" data-filter="dueToday">
+                                <i class="fas fa-calendar-day w-5 mr-0 md:mr-2.5"></i><span class="sidebar-text-content">Due Today</span>
+                            </button>
+                            <button id="filterDueThisWeek" class="filter-btn w-full text-left px-4 py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center md:justify-start" data-filter="dueThisWeek">
+                                <i class="fas fa-calendar-week w-5 mr-0 md:mr-2.5"></i><span class="sidebar-text-content">Due This Week</span>
+                            </button>
+                            <button id="filterDueThisMonth" class="filter-btn w-full text-left px-4 py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center md:justify-start" data-filter="dueThisMonth">
+                                <i class="far fa-calendar-alt w-5 mr-0 md:mr-2.5"></i><span class="sidebar-text-content">Due This Month</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h2 class="sidebar-text-content text-xl font-semibold text-slate-700 dark:text-slate-200 mb-3">Manage</h2>
+                        <button
+                            id="clearCompletedBtn"
+                            class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2.5 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 ease-in-out transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed w-full flex items-center sidebar-button-icon-only justify-center md:justify-start"
+                            disabled
+                        >
+                            <i class="fas fa-eraser mr-0 md:mr-2"></i> <span class="sidebar-text-content">Clear Completed</span>
+                        </button>
+                    </div>
+                </div>
+            </aside>
+
+            <main class="flex-grow bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-xl shadow-2xl min-h-[300px]">
+                <h2 class="text-2xl sm:text-3xl font-semibold text-slate-800 dark:text-slate-100 mb-6">Your Tasks</h2>
+                <ul id="taskList" class="space-y-3.5">
+                    </ul>
+                <p id="emptyState" class="text-center text-slate-500 dark:text-slate-400 mt-8 py-5 hidden">No tasks yet. Add some!</p>
+                <p id="noMatchingTasks" class="text-center text-slate-500 dark:text-slate-400 mt-8 py-5 hidden">No tasks match the current filter.</p>
+            </main>
+        </div>
+    </div>
+
+    <footer class="text-center text-slate-400 dark:text-slate-500 mt-10 sm:mt-12 mb-6 text-sm">
+        <p>Todo List App &copy; <span id="currentYear"></span></p>
+    </footer>
+
+    <script>
+        // --- DOM Elements ---
+        const taskSidebar = document.getElementById('taskSidebar'); 
+        const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+        const sidebarToggleIcon = document.getElementById('sidebarToggleIcon');
+        const sidebarTextElements = taskSidebar.querySelectorAll('.sidebar-text-content');
+        const sidebarIconOnlyButtons = taskSidebar.querySelectorAll('.sidebar-button-icon-only');
+
+
+        const taskList = document.getElementById('taskList');
+        const emptyState = document.getElementById('emptyState');
+        const noMatchingTasks = document.getElementById('noMatchingTasks');
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        const clearCompletedBtn = document.getElementById('clearCompletedBtn');
+        const messageBox = document.getElementById('messageBox');
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+        // Add Task Modal elements
+        const addTaskModal = document.getElementById('addTaskModal');
+        const modalDialogAdd = document.getElementById('modalDialogAdd'); 
+        const openAddModalButton = document.getElementById('openAddModalButton'); 
+        const closeAddModalBtn = document.getElementById('closeAddModalBtn'); 
+        const cancelAddModalBtn = document.getElementById('cancelAddModalBtn'); 
+        const modalTodoFormAdd = document.getElementById('modalTodoFormAdd'); 
+        const modalTaskInputAdd = document.getElementById('modalTaskInputAdd'); 
+        const modalDueDateInputAdd = document.getElementById('modalDueDateInputAdd'); 
+        const modalPriorityInputAdd = document.getElementById('modalPriorityInputAdd'); 
+        const modalNotesInputAdd = document.getElementById('modalNotesInputAdd');
+
+        // View/Edit Task Modal elements
+        const viewEditTaskModal = document.getElementById('viewEditTaskModal');
+        const modalDialogViewEdit = document.getElementById('modalDialogViewEdit');
+        const closeViewEditModalBtn = document.getElementById('closeViewEditModalBtn');
+        const cancelViewEditModalBtn = document.getElementById('cancelViewEditModalBtn');
+        const modalTodoFormViewEdit = document.getElementById('modalTodoFormViewEdit');
+        const modalViewEditTaskId = document.getElementById('modalViewEditTaskId');
+        const modalTaskInputViewEdit = document.getElementById('modalTaskInputViewEdit');
+        const modalDueDateInputViewEdit = document.getElementById('modalDueDateInputViewEdit');
+        const modalPriorityInputViewEdit = document.getElementById('modalPriorityInputViewEdit');
+        const modalNotesInputViewEdit = document.getElementById('modalNotesInputViewEdit'); 
+
+
+        // View Task Details Modal elements
+        const viewTaskDetailsModal = document.getElementById('viewTaskDetailsModal');
+        const modalDialogViewDetails = document.getElementById('modalDialogViewDetails');
+        const closeViewDetailsModalBtn = document.getElementById('closeViewDetailsModalBtn');
+        const closeViewDetailsSecondaryBtn = document.getElementById('closeViewDetailsSecondaryBtn');
+        const editFromViewModalBtn = document.getElementById('editFromViewModalBtn');
+        const viewTaskText = document.getElementById('viewTaskText');
+        const viewTaskDueDate = document.getElementById('viewTaskDueDate');
+        const viewTaskPriority = document.getElementById('viewTaskPriority');
+        const viewTaskStatus = document.getElementById('viewTaskStatus');
+        const viewTaskNotes = document.getElementById('viewTaskNotes'); 
+
+
+        // --- Application State ---
+        let tasks = JSON.parse(localStorage.getItem('todos_v2')) || [];
+        let currentFilter = 'all';
+        let editingTaskId = null; 
+        let currentViewTaskId = null;
+
+        // --- Theme Management ---
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            }
+        });
+        
+        // --- Sidebar Toggle Functionality ---
+        function setSidebarMinimized(minimize) {
+            if (minimize) {
+                taskSidebar.classList.remove('md:w-72', 'lg:w-80', 'p-5', 'sm:p-6');
+                taskSidebar.classList.add('md:w-20', 'lg:w-20', 'p-3', 'sm:p-3', 'sidebar-minimized');
+                sidebarToggleIcon.classList.remove('fa-chevron-left');
+                sidebarToggleIcon.classList.add('fa-chevron-right');
+                sidebarTextElements.forEach(el => el.classList.add('hidden'));
+                sidebarIconOnlyButtons.forEach(btn => {
+                    btn.classList.add('justify-center');
+                    btn.classList.remove('md:justify-start');
+                    const icon = btn.querySelector('i');
+                    if(icon) icon.classList.remove('md:mr-2', 'md:mr-2.5');
+                });
+                localStorage.setItem('sidebarState', 'minimized');
+            } else { // Expand
+                taskSidebar.classList.add('md:w-72', 'lg:w-80', 'p-5', 'sm:p-6');
+                taskSidebar.classList.remove('md:w-20', 'lg:w-20', 'p-3', 'sm:p-3', 'sidebar-minimized');
+                sidebarToggleIcon.classList.remove('fa-chevron-right');
+                sidebarToggleIcon.classList.add('fa-chevron-left');
+                sidebarTextElements.forEach(el => el.classList.remove('hidden'));
+                 sidebarIconOnlyButtons.forEach(btn => {
+                    btn.classList.remove('justify-center');
+                    btn.classList.add('md:justify-start');
+                    const icon = btn.querySelector('i');
+                    const textSpan = btn.querySelector('.sidebar-text-content');
+                    // Re-add margin if text is present
+                    if(icon && textSpan && !textSpan.classList.contains('hidden')) {
+                        if (btn.id === 'openAddModalButton' || btn.id === 'clearCompletedBtn') {
+                             icon.classList.add('md:mr-2');
+                        } else { // For filter buttons
+                             icon.classList.add('md:mr-2.5');
+                        }
+                    }
+                });
+                localStorage.setItem('sidebarState', 'expanded');
+            }
+        }
+
+        // --- Modal Functions (Add Task) ---
+        function openAddModal() {
+            if (!addTaskModal.classList.contains('hidden') || 
+                document.activeElement.tagName === 'INPUT' || 
+                document.activeElement.tagName === 'SELECT' || 
+                document.activeElement.tagName === 'TEXTAREA') {
+                return;
+            }
+            addTaskModal.classList.remove('hidden');
+            setTimeout(() => {
+                modalDialogAdd.classList.remove('scale-95', 'opacity-0');
+                modalDialogAdd.classList.add('scale-100', 'opacity-100');
+            }, 10);
+            modalTaskInputAdd.focus();
+            modalTodoFormAdd.reset(); 
+            modalPriorityInputAdd.value = 'medium';
+            const today = new Date();
+            const year = today.getFullYear(); 
+            const mm = String(today.getMonth() + 1).padStart(2, '0'); 
+            const dd = String(today.getDate()).padStart(2, '0');
+            modalDueDateInputAdd.min = `${year}-${mm}-${dd}`;
+        }
+
+        function closeAddModal() {
+            modalDialogAdd.classList.add('scale-95', 'opacity-0');
+            modalDialogAdd.classList.remove('scale-100', 'opacity-100');
+            setTimeout(() => {
+                 addTaskModal.classList.add('hidden');
+            }, 200);
+        }
+
+        // --- Modal Functions (View/Edit Task) ---
+        function openViewEditModal(taskId) {
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            editingTaskId = taskId; 
+
+            modalViewEditTaskId.value = task.id;
+            modalTaskInputViewEdit.value = task.text;
+            modalDueDateInputViewEdit.value = task.dueDate || ''; 
+            modalPriorityInputViewEdit.value = task.priority;
+            modalNotesInputViewEdit.value = task.notes || ''; 
+            
+            const today = new Date();
+            const year = today.getFullYear(); 
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            modalDueDateInputViewEdit.min = `${year}-${mm}-${dd}`;
+
+
+            viewEditTaskModal.classList.remove('hidden');
+            setTimeout(() => {
+                modalDialogViewEdit.classList.remove('scale-95', 'opacity-0');
+                modalDialogViewEdit.classList.add('scale-100', 'opacity-100');
+            }, 10);
+            modalTaskInputViewEdit.focus();
+        }
+
+        function closeViewEditModal() {
+            modalDialogViewEdit.classList.add('scale-95', 'opacity-0');
+            modalDialogViewEdit.classList.remove('scale-100', 'opacity-100');
+            setTimeout(() => {
+                 viewEditTaskModal.classList.add('hidden');
+                 editingTaskId = null; 
+            }, 200);
+        }
+
+        // --- Modal Functions (View Task Details - Read-Only) ---
+        function openViewTaskDetailsModal(taskId) {
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            currentViewTaskId = taskId; 
+
+            viewTaskText.textContent = task.text;
+            viewTaskDueDate.textContent = task.dueDate ? formatDate(task.dueDate) : 'Not set';
+            viewTaskPriority.textContent = task.priority || 'Not set';
+            viewTaskStatus.textContent = task.completed ? 'Completed' : 'Active';
+            viewTaskNotes.textContent = task.notes || 'No notes added.'; 
+
+
+            viewTaskDetailsModal.classList.remove('hidden');
+            setTimeout(() => {
+                modalDialogViewDetails.classList.remove('scale-95', 'opacity-0');
+                modalDialogViewDetails.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function closeViewTaskDetailsModal() {
+            modalDialogViewDetails.classList.add('scale-95', 'opacity-0');
+            modalDialogViewDetails.classList.remove('scale-100', 'opacity-100');
+            setTimeout(() => {
+                 viewTaskDetailsModal.classList.add('hidden');
+                 currentViewTaskId = null; 
+            }, 200);
+        }
+
+
+        // --- Date Helper Functions ---
+        function getTodayDateString() { return new Date().toISOString().split('T')[0]; }
+        function getStartOfWeek(date) { const d = new Date(date); const day = d.getDay(); const diff = d.getDate() - day + (day === 0 ? -6 : 1); return new Date(d.setDate(diff)); }
+        function getEndOfWeek(date) { const d = new Date(date); const startOfWeek = getStartOfWeek(d); return new Date(startOfWeek.setDate(startOfWeek.getDate() + 6)); }
+        function getStartOfMonth(date) { return new Date(date.getFullYear(), date.getMonth(), 1); }
+        function getEndOfMonth(date) { return new Date(date.getFullYear(), date.getMonth() + 1, 0); }
+
+
+        // --- Core Functions ---
+        function showMessage(message, type = 'success') { messageBox.textContent = message; messageBox.className = 'message-box'; if (type === 'success') { messageBox.classList.add('bg-green-100', 'text-green-800', 'dark:bg-green-700', 'dark:text-green-100'); } else { messageBox.classList.add('bg-red-100', 'text-red-800', 'dark:bg-red-700', 'dark:text-red-100'); } messageBox.style.display = 'block'; messageBox.style.zIndex = '200'; setTimeout(() => { messageBox.style.display = 'none'; }, 3000); }
+        function saveTasks() { localStorage.setItem('todos_v2', JSON.stringify(tasks)); }
+        function getPriorityClass(priority) { switch (priority) { case 'high': return 'bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100'; case 'medium': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-600 dark:text-yellow-100'; case 'low': return 'bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100'; default: return 'bg-slate-100 text-slate-700 dark:bg-slate-600 dark:text-slate-200'; } }
+        function formatDate(dateString) { if (!dateString) return ''; const date = new Date(dateString); const userTimezoneOffset = date.getTimezoneOffset() * 60000; const correctedDate = new Date(date.getTime() + userTimezoneOffset); return correctedDate.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); }
+
+
+        function renderTasks() {
+            taskList.innerHTML = '';
+            let tasksToRender = [];
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            if (currentFilter === 'all') { tasksToRender = tasks; }
+            else if (currentFilter === 'active') { tasksToRender = tasks.filter(task => !task.completed); }
+            else if (currentFilter === 'completed') { tasksToRender = tasks.filter(task => task.completed); }
+            else if (currentFilter === 'dueToday') { const todayStr = getTodayDateString(); tasksToRender = tasks.filter(task => task.dueDate === todayStr && !task.completed); }
+            else if (currentFilter === 'dueThisWeek') {
+                const startOfWeek = getStartOfWeek(today); startOfWeek.setHours(0,0,0,0);
+                const endOfWeek = getEndOfWeek(today); endOfWeek.setHours(23,59,59,999);
+                tasksToRender = tasks.filter(task => {
+                    if (!task.dueDate) return false;
+                    const taskDueDate = new Date(task.dueDate); const userTimezoneOffset = taskDueDate.getTimezoneOffset() * 60000;
+                    const correctedTaskDueDate = new Date(taskDueDate.getTime() + userTimezoneOffset); correctedTaskDueDate.setHours(0,0,0,0);
+                    return correctedTaskDueDate >= startOfWeek && correctedTaskDueDate <= endOfWeek && !task.completed;
+                });
+            } else if (currentFilter === 'dueThisMonth') {
+                const startOfMonth = getStartOfMonth(today); startOfMonth.setHours(0,0,0,0);
+                const endOfMonth = getEndOfMonth(today); endOfMonth.setHours(23,59,59,999);
+                tasksToRender = tasks.filter(task => {
+                    if (!task.dueDate) return false;
+                    const taskDueDate = new Date(task.dueDate); const userTimezoneOffset = taskDueDate.getTimezoneOffset() * 60000;
+                    const correctedTaskDueDate = new Date(taskDueDate.getTime() + userTimezoneOffset); correctedTaskDueDate.setHours(0,0,0,0);
+                    return correctedTaskDueDate >= startOfMonth && correctedTaskDueDate <= endOfMonth && !task.completed;
+                });
+            }
+
+            emptyState.classList.toggle('hidden', tasks.length !== 0);
+            noMatchingTasks.classList.toggle('hidden', !(tasks.length > 0 && tasksToRender.length === 0));
+
+            tasksToRender.forEach((task) => {
+                const li = document.createElement('li');
+                li.className = `task-item flex items-start justify-between bg-slate-100 dark:bg-slate-700 p-3.5 rounded-lg shadow hover:shadow-md transition-shadow duration-300 ${task.completed ? 'opacity-60' : ''} overflow-hidden`;
+                li.dataset.taskId = task.id;
+
+                const mainContentClickableArea = document.createElement('div'); 
+                mainContentClickableArea.className = 'task-item-clickable-area flex items-start flex-grow min-w-0 mr-2 rounded-l-lg'; 
+                mainContentClickableArea.addEventListener('click', (event) => {
+                    if (event.target.type === 'checkbox' || event.target.closest('.delete-btn')) {
+                        return;
+                    }
+                    openViewTaskDetailsModal(task.id); 
+                });
+
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = task.completed;
+                checkbox.className = 'form-checkbox h-5 w-5 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 dark:focus:ring-sky-500 mt-0.5 mr-3 cursor-pointer flex-shrink-0';
+                checkbox.addEventListener('change', () => toggleComplete(task.id));
+
+                const textDetailsDiv = document.createElement('div');
+                textDetailsDiv.className = 'flex flex-col';
+
+                const span = document.createElement('span');
+                span.textContent = task.text;
+                let textColorClass = task.completed ? 'text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-200';
+                span.className = `break-all ${textColorClass} ${task.completed ? 'completed-text' : ''}`;
+                textDetailsDiv.appendChild(span);
+
+                if (task.dueDate || task.priority) {
+                    const detailsDiv = document.createElement('div');
+                    detailsDiv.className = 'flex items-center flex-wrap gap-x-2 gap-y-1 mt-1.5 text-xs';
+                    if (task.priority) { const priorityBadge = document.createElement('span'); priorityBadge.textContent = task.priority; priorityBadge.className = `priority-badge ${getPriorityClass(task.priority)}`; detailsDiv.appendChild(priorityBadge); }
+                    if (task.dueDate) { const dueDateSpan = document.createElement('span'); dueDateSpan.className = 'text-slate-500 dark:text-slate-400 flex items-center'; dueDateSpan.innerHTML = `<i class="far fa-calendar-alt mr-1"></i> ${formatDate(task.dueDate)}`; detailsDiv.appendChild(dueDateSpan); }
+                    textDetailsDiv.appendChild(detailsDiv);
+                }
+                
+                mainContentClickableArea.appendChild(checkbox);
+                mainContentClickableArea.appendChild(textDetailsDiv);
+
+                const deleteButton = document.createElement('button');
+                deleteButton.className = 'delete-btn text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-500 transition-colors duration-300 px-2 py-1 flex-shrink-0 self-start';
+                deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
+                deleteButton.setAttribute('aria-label', 'Delete task');
+                deleteButton.addEventListener('click', () => deleteTask(task.id));
+
+                li.appendChild(mainContentClickableArea); 
+                li.appendChild(deleteButton);
+                taskList.appendChild(li);
+            });
+            updateClearCompletedButton();
+        }
+
+        function handleAddTask(event) {
+            event.preventDefault();
+            const taskText = modalTaskInputAdd.value.trim();
+            const dueDate = modalDueDateInputAdd.value;
+            const priority = modalPriorityInputAdd.value;
+            const notes = modalNotesInputAdd.value.trim(); 
+
+            if (taskText === '') { showMessage('Task description cannot be empty!', 'error'); modalTaskInputAdd.focus(); return; }
+            const newTask = { 
+                id: Date.now(), 
+                text: taskText, 
+                completed: false, 
+                dueDate: dueDate || null, 
+                priority: priority,
+                notes: notes || '' 
+            };
+            tasks.unshift(newTask);
+            saveTasks();
+            if (currentFilter.startsWith('due') && dueDate) { setFilter(currentFilter); }
+            else if (currentFilter === 'completed') { setFilter('all'); }
+            else { renderTasks(); } 
+            closeAddModal(); 
+            showMessage('Task added successfully!', 'success');
+        }
+
+        function handleEditTask(event) {
+            event.preventDefault();
+            const taskId = parseInt(modalViewEditTaskId.value); 
+            const taskText = modalTaskInputViewEdit.value.trim();
+            const dueDate = modalDueDateInputViewEdit.value;
+            const priority = modalPriorityInputViewEdit.value;
+            const notes = modalNotesInputViewEdit.value.trim(); 
+
+            if (taskText === '') { showMessage('Task description cannot be empty!', 'error'); modalTaskInputViewEdit.focus(); return; }
+
+            tasks = tasks.map(task =>
+                task.id === taskId
+                    ? { ...task, text: taskText, dueDate: dueDate || null, priority: priority, notes: notes || '' } 
+                    : task
+            );
+            saveTasks();
+            renderTasks(); 
+            closeViewEditModal();
+            showMessage('Task updated successfully!', 'success');
+        }
+
+
+        function toggleComplete(taskId) { tasks = tasks.map(task => task.id === taskId ? { ...task, completed: !task.completed } : task); saveTasks(); renderTasks(); }
+        function deleteTask(taskId) { tasks = tasks.filter(task => task.id !== taskId); saveTasks(); renderTasks(); showMessage('Task deleted.', 'success'); }
+        function setFilter(filter) { currentFilter = filter; filterButtons.forEach(button => { const isActive = button.dataset.filter === filter; button.setAttribute('data-active', isActive.toString()); const baseInactive = ['bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600']; const iconInactive = ['text-slate-500', 'dark:text-slate-400']; const active = ['bg-sky-500', 'text-white', 'font-semibold']; const iconActive = ['text-sky-100']; button.classList.remove(...baseInactive, ...active); button.querySelector('i')?.classList.remove(...iconInactive, ...iconActive); if (isActive) { button.classList.add(...active); button.querySelector('i')?.classList.add(...iconActive); } else { button.classList.add(...baseInactive); button.querySelector('i')?.classList.add(...iconInactive); } }); renderTasks(); }
+        function updateClearCompletedButton() { clearCompletedBtn.disabled = !tasks.some(task => task.completed); }
+        function clearCompletedTasks() { const completedCount = tasks.filter(task => task.completed).length; if (completedCount === 0) { showMessage('No completed tasks to clear.', 'error'); return; } tasks = tasks.filter(task => !task.completed); saveTasks(); renderTasks(); showMessage(`${completedCount} completed task(s) cleared.`, 'success'); }
+
+        // --- Event Listeners ---
+        openAddModalButton.addEventListener('click', openAddModal); 
+        closeAddModalBtn.addEventListener('click', closeAddModal); 
+        cancelAddModalBtn.addEventListener('click', closeAddModal); 
+        modalTodoFormAdd.addEventListener('submit', handleAddTask); 
+        addTaskModal.addEventListener('click', (event) => { if (event.target === addTaskModal) closeAddModal(); }); 
+
+        // View/Edit Modal Listeners
+        closeViewEditModalBtn.addEventListener('click', closeViewEditModal);
+        cancelViewEditModalBtn.addEventListener('click', closeViewEditModal);
+        modalTodoFormViewEdit.addEventListener('submit', handleEditTask);
+        viewEditTaskModal.addEventListener('click', (event) => { if (event.target === viewEditTaskModal) closeViewEditModal(); });
+
+        // View Task Details Modal Listeners
+        closeViewDetailsModalBtn.addEventListener('click', closeViewTaskDetailsModal);
+        closeViewDetailsSecondaryBtn.addEventListener('click', closeViewTaskDetailsModal);
+        editFromViewModalBtn.addEventListener('click', () => {
+            if (currentViewTaskId !== null) {
+                closeViewTaskDetailsModal();
+                openViewEditModal(currentViewTaskId); 
+            }
+        });
+        viewTaskDetailsModal.addEventListener('click', (event) => { if (event.target === viewTaskDetailsModal) closeViewTaskDetailsModal(); });
+
+
+        filterButtons.forEach(button => button.addEventListener('click', () => setFilter(button.dataset.filter)));
+        clearCompletedBtn.addEventListener('click', clearCompletedTasks);
+
+        // Sidebar Toggle Listener
+        if (sidebarToggleBtn) {
+            sidebarToggleBtn.addEventListener('click', () => {
+                const isCurrentlyMinimized = taskSidebar.classList.contains('md:w-20');
+                setSidebarMinimized(!isCurrentlyMinimized);
+            });
+        }
+
+
+        document.addEventListener('keydown', (event) => {
+            const isAddModalOpen = !addTaskModal.classList.contains('hidden');
+            const isViewEditModalOpen = !viewEditTaskModal.classList.contains('hidden');
+            const isViewDetailsModalOpen = !viewTaskDetailsModal.classList.contains('hidden');
+            const isAnyModalOpen = isAddModalOpen || isViewEditModalOpen || isViewDetailsModalOpen;
+            const isInputFocused = document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT' || document.activeElement.tagName === 'TEXTAREA';
+
+            if ((event.key === '+' || event.key === '=') && !isAnyModalOpen && !isInputFocused) {
+                event.preventDefault();
+                openAddModal(); 
+            }
+            if (event.key === 'Escape') {
+                if (isAddModalOpen) closeAddModal(); 
+                if (isViewEditModalOpen) closeViewEditModal();
+                if (isViewDetailsModalOpen) closeViewTaskDetailsModal();
+            }
+        });
+
+        // --- Initial Setup ---
+        filterButtons.forEach(button => { button.classList.add('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600'); button.querySelector('i')?.classList.add('text-slate-500', 'dark:text-slate-400'); });
+        
+        // Load and apply sidebar state on page load
+        const savedSidebarState = localStorage.getItem('sidebarState');
+        if (savedSidebarState === 'minimized') {
+            setSidebarMinimized(true);
+        } else {
+            setSidebarMinimized(false); // Default to expanded
+        }
+        
+        setFilter('all'); // Set initial filter after sidebar state is potentially set
+        window.onload = () => { 
+            setFilter(currentFilter); 
+            // Re-apply sidebar state in case of complex interactions or if initial classes were not fully set
+             if (localStorage.getItem('sidebarState') === 'minimized') {
+                setSidebarMinimized(true);
+            } else {
+                setSidebarMinimized(false);
+            }
+        };
+    </script>
+</body>
+</html>
