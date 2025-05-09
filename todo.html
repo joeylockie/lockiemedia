@@ -34,32 +34,43 @@
         .sticky-sidebar {
             position: sticky; top: 2.5rem; align-self: flex-start;
             max-height: calc(100vh - 5rem); 
-            /* overflow-y: auto; Removed as per request */
-            /* Transition for width and padding changes */
             transition: width 0.3s ease-in-out, padding 0.3s ease-in-out; 
         }
         .priority-badge {
-            display: inline-block; padding: 0.15rem 0.5rem; font-size: 0.75rem; /* text-xs */
-            font-weight: 600; /* font-semibold */ border-radius: 0.375rem; /* rounded-md */
+            display: inline-block; padding: 0.15rem 0.5rem; font-size: 0.75rem; 
+            font-weight: 600; border-radius: 0.375rem; 
             text-transform: capitalize;
         }
         .filter-btn { min-height: 42px; }
-        /* Styling for headings in View Task Details Modal */
         .view-details-heading {
-            font-weight: 600; /* semibold */
-            font-size: 0.95rem; /* slightly larger than text-sm */
-            color: #374151; /* Tailwind gray-700 */
+            font-weight: 600; 
+            font-size: 0.95rem; 
+            color: #374151; 
         }
         .dark .view-details-heading {
-            color: #d1d5db; /* Tailwind gray-300 */
+            color: #d1d5db; 
         }
-
-        /* Sidebar minimized state specific styles for buttons to center icon */
         .sidebar-minimized .sidebar-button-icon-only {
             justify-content: center;
         }
         .sidebar-minimized .sidebar-button-icon-only i {
-            margin-right: 0 !important; /* Remove margin from icon when text is hidden */
+            margin-right: 0 !important; 
+        }
+        /* Tooltip Styling */
+        #iconTooltip {
+            position: absolute;
+            background-color: #1f2937; /* Tailwind gray-800 */
+            color: white;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem; /* rounded-md */
+            font-size: 0.875rem; /* text-sm */
+            z-index: 250; /* Ensure it's above other elements */
+            display: none; /* Hidden by default */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            white-space: nowrap; /* Prevent text wrapping */
+        }
+        .dark #iconTooltip {
+            background-color: #374151; /* Tailwind gray-700 */
         }
 
     </style>
@@ -67,6 +78,7 @@
 <body class="bg-gradient-to-br from-slate-900 to-slate-700 min-h-screen flex flex-col items-center justify-start pt-8 sm:pt-10 p-4 selection:bg-sky-400 selection:text-white dark:selection:bg-sky-600 dark:selection:text-white">
 
     <div id="messageBox" class="message-box"></div>
+    <div id="iconTooltip"></div> 
 
     <div id="addTaskModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-opacity-70 overflow-y-auto h-full w-full flex items-center justify-center hidden z-[150]">
         <div class="relative mx-auto p-5 sm:p-6 border w-full max-w-lg shadow-xl rounded-xl bg-white dark:bg-slate-800 transform transition-all duration-300 ease-in-out scale-95 opacity-0" id="modalDialogAdd">
@@ -78,8 +90,8 @@
             </div>
             <form id="modalTodoFormAdd">
                 <div>
-                    <label for="modalTaskInputAdd" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Task Description (you can include a date like 'tomorrow' or '12/25/2024')</label>
-                    <input type="text" id="modalTaskInputAdd" placeholder="e.g., Buy groceries for next Friday" class="w-full p-3 border-2 bg-white text-slate-900 placeholder-slate-400 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-shadow duration-300 dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-400 dark:border-slate-600" required>
+                    <label for="modalTaskInputAdd" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Task Description (e.g., 'Buy groceries for next Friday', 'Meeting on monday', 'Project due next month')</label>
+                    <input type="text" id="modalTaskInputAdd" placeholder="Enter task description..." class="w-full p-3 border-2 bg-white text-slate-900 placeholder-slate-400 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-shadow duration-300 dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-400 dark:border-slate-600" required>
                 </div>
                 <div class="mt-4">
                     <label for="modalDueDateInputAdd" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Due Date (optional, if not in description)</label>
@@ -197,6 +209,7 @@
                         <button
                             id="openAddModalButton"
                             type="button"
+                            title="Add New Task"
                             class="bg-sky-500 hover:bg-sky-600 text-white font-semibold p-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 ease-in-out transform hover:-translate-y-0.5 w-full flex items-center sidebar-button-icon-only justify-center md:justify-start"
                         >
                             <i class="fas fa-plus mr-0 md:mr-2"></i> <span class="sidebar-text-content">Add New Task</span>
@@ -206,23 +219,23 @@
                     <div>
                         <h2 class="sidebar-text-content text-xl font-semibold text-slate-700 dark:text-slate-200 mb-3">Filter Tasks</h2>
                         <div class="flex flex-col gap-2">
-                            <button id="filterAll" class="filter-btn w-full text-left px-4 py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center md:justify-start" data-filter="all">
+                            <button id="filterAll" title="All Tasks" class="filter-btn w-full text-left px-4 py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center md:justify-start" data-filter="all">
                                 <i class="fas fa-list-ul w-5 mr-0 md:mr-2.5"></i><span class="sidebar-text-content">All Tasks</span>
                             </button>
-                            <button id="filterActive" class="filter-btn w-full text-left px-4 py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center md:justify-start" data-filter="active">
+                            <button id="filterActive" title="Active Tasks" class="filter-btn w-full text-left px-4 py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center md:justify-start" data-filter="active">
                                 <i class="fas fa-bolt w-5 mr-0 md:mr-2.5"></i><span class="sidebar-text-content">Active</span>
                             </button>
-                            <button id="filterCompleted" class="filter-btn w-full text-left px-4 py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center md:justify-start" data-filter="completed">
+                            <button id="filterCompleted" title="Completed Tasks" class="filter-btn w-full text-left px-4 py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center md:justify-start" data-filter="completed">
                                 <i class="fas fa-check-circle w-5 mr-0 md:mr-2.5"></i><span class="sidebar-text-content">Completed</span>
                             </button>
                             <hr class="my-2 border-slate-200 dark:border-slate-700">
-                            <button id="filterDueToday" class="filter-btn w-full text-left px-4 py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center md:justify-start" data-filter="dueToday">
+                            <button id="filterDueToday" title="Due Today" class="filter-btn w-full text-left px-4 py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center md:justify-start" data-filter="dueToday">
                                 <i class="fas fa-calendar-day w-5 mr-0 md:mr-2.5"></i><span class="sidebar-text-content">Due Today</span>
                             </button>
-                            <button id="filterDueThisWeek" class="filter-btn w-full text-left px-4 py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center md:justify-start" data-filter="dueThisWeek">
+                            <button id="filterDueThisWeek" title="Due This Week" class="filter-btn w-full text-left px-4 py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center md:justify-start" data-filter="dueThisWeek">
                                 <i class="fas fa-calendar-week w-5 mr-0 md:mr-2.5"></i><span class="sidebar-text-content">Due This Week</span>
                             </button>
-                            <button id="filterDueThisMonth" class="filter-btn w-full text-left px-4 py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center md:justify-start" data-filter="dueThisMonth">
+                            <button id="filterDueThisMonth" title="Due This Month" class="filter-btn w-full text-left px-4 py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center md:justify-start" data-filter="dueThisMonth">
                                 <i class="far fa-calendar-alt w-5 mr-0 md:mr-2.5"></i><span class="sidebar-text-content">Due This Month</span>
                             </button>
                         </div>
@@ -232,6 +245,7 @@
                         <h2 class="sidebar-text-content text-xl font-semibold text-slate-700 dark:text-slate-200 mb-3">Manage</h2>
                         <button
                             id="clearCompletedBtn"
+                            title="Clear Completed Tasks"
                             class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2.5 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 ease-in-out transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed w-full flex items-center sidebar-button-icon-only justify-center md:justify-start"
                             disabled
                         >
@@ -262,6 +276,7 @@
         const sidebarToggleIcon = document.getElementById('sidebarToggleIcon');
         const sidebarTextElements = taskSidebar.querySelectorAll('.sidebar-text-content');
         const sidebarIconOnlyButtons = taskSidebar.querySelectorAll('.sidebar-button-icon-only');
+        const iconTooltip = document.getElementById('iconTooltip'); 
 
 
         const taskList = document.getElementById('taskList');
@@ -280,7 +295,7 @@
         const cancelAddModalBtn = document.getElementById('cancelAddModalBtn'); 
         const modalTodoFormAdd = document.getElementById('modalTodoFormAdd'); 
         const modalTaskInputAdd = document.getElementById('modalTaskInputAdd'); 
-        const modalDueDateInputAdd = document.getElementById('modalDueDateInputAdd'); // Re-added
+        const modalDueDateInputAdd = document.getElementById('modalDueDateInputAdd'); 
         const modalPriorityInputAdd = document.getElementById('modalPriorityInputAdd'); 
         const modalNotesInputAdd = document.getElementById('modalNotesInputAdd');
 
@@ -315,6 +330,7 @@
         let currentFilter = 'all';
         let editingTaskId = null; 
         let currentViewTaskId = null;
+        let tooltipTimeout = null; 
 
         // --- Theme Management ---
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
@@ -329,6 +345,7 @@
         
         // --- Sidebar Toggle Functionality ---
         function setSidebarMinimized(minimize) {
+            hideTooltip(); 
             if (minimize) {
                 taskSidebar.classList.remove('md:w-72', 'lg:w-80', 'p-5', 'sm:p-6');
                 taskSidebar.classList.add('md:w-20', 'lg:w-20', 'p-3', 'sm:p-3', 'sidebar-minimized');
@@ -353,11 +370,10 @@
                     btn.classList.add('md:justify-start');
                     const icon = btn.querySelector('i');
                     const textSpan = btn.querySelector('.sidebar-text-content');
-                    // Re-add margin if text is present
                     if(icon && textSpan && !textSpan.classList.contains('hidden')) {
                         if (btn.id === 'openAddModalButton' || btn.id === 'clearCompletedBtn') {
                              icon.classList.add('md:mr-2');
-                        } else { // For filter buttons
+                        } else { 
                              icon.classList.add('md:mr-2.5');
                         }
                     }
@@ -365,6 +381,39 @@
                 localStorage.setItem('sidebarState', 'expanded');
             }
         }
+
+        // --- Tooltip Functions ---
+        function showTooltip(element, text) {
+            if (!taskSidebar.classList.contains('sidebar-minimized')) return; 
+
+            iconTooltip.textContent = text;
+            const rect = element.getBoundingClientRect();
+            iconTooltip.style.left = `${rect.right + 10}px`; 
+            iconTooltip.style.top = `${rect.top + (rect.height / 2) - (iconTooltip.offsetHeight / 2)}px`;
+            iconTooltip.style.display = 'block';
+        }
+
+        function hideTooltip() {
+            clearTimeout(tooltipTimeout);
+            iconTooltip.style.display = 'none';
+        }
+
+        sidebarIconOnlyButtons.forEach(button => {
+            button.addEventListener('mouseenter', (event) => {
+                if (!taskSidebar.classList.contains('sidebar-minimized')) return;
+                clearTimeout(tooltipTimeout);
+                tooltipTimeout = setTimeout(() => {
+                    const tooltipText = button.title || button.querySelector('.sidebar-text-content')?.textContent.trim();
+                    if (tooltipText) {
+                        showTooltip(event.currentTarget, tooltipText);
+                    }
+                }, 5000); 
+            });
+            button.addEventListener('mouseleave', () => {
+                hideTooltip();
+            });
+        });
+
 
         // --- Modal Functions (Add Task) ---
         function openAddModal() {
@@ -386,7 +435,7 @@
             const year = today.getFullYear(); 
             const mm = String(today.getMonth() + 1).padStart(2, '0'); 
             const dd = String(today.getDate()).padStart(2, '0');
-            modalDueDateInputAdd.min = `${year}-${mm}-${dd}`; // Set min for re-added due date field
+            modalDueDateInputAdd.min = `${year}-${mm}-${dd}`; 
         }
 
         function closeAddModal() {
@@ -401,22 +450,17 @@
         function openViewEditModal(taskId) {
             const task = tasks.find(t => t.id === taskId);
             if (!task) return;
-
             editingTaskId = taskId; 
-
             modalViewEditTaskId.value = task.id;
             modalTaskInputViewEdit.value = task.text;
             modalDueDateInputViewEdit.value = task.dueDate || ''; 
             modalPriorityInputViewEdit.value = task.priority;
             modalNotesInputViewEdit.value = task.notes || ''; 
-            
             const today = new Date();
             const year = today.getFullYear(); 
             const mm = String(today.getMonth() + 1).padStart(2, '0');
             const dd = String(today.getDate()).padStart(2, '0');
             modalDueDateInputViewEdit.min = `${year}-${mm}-${dd}`;
-
-
             viewEditTaskModal.classList.remove('hidden');
             setTimeout(() => {
                 modalDialogViewEdit.classList.remove('scale-95', 'opacity-0');
@@ -438,16 +482,12 @@
         function openViewTaskDetailsModal(taskId) {
             const task = tasks.find(t => t.id === taskId);
             if (!task) return;
-
             currentViewTaskId = taskId; 
-
             viewTaskText.textContent = task.text;
             viewTaskDueDate.textContent = task.dueDate ? formatDate(task.dueDate) : 'Not set';
             viewTaskPriority.textContent = task.priority || 'Not set';
             viewTaskStatus.textContent = task.completed ? 'Completed' : 'Active';
             viewTaskNotes.textContent = task.notes || 'No notes added.'; 
-
-
             viewTaskDetailsModal.classList.remove('hidden');
             setTimeout(() => {
                 modalDialogViewDetails.classList.remove('scale-95', 'opacity-0');
@@ -483,7 +523,6 @@
         function renderTasks() {
             taskList.innerHTML = '';
             let tasksToRender = [];
-
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
@@ -518,7 +557,6 @@
                 const li = document.createElement('li');
                 li.className = `task-item flex items-start justify-between bg-slate-100 dark:bg-slate-700 p-3.5 rounded-lg shadow hover:shadow-md transition-shadow duration-300 ${task.completed ? 'opacity-60' : ''} overflow-hidden`;
                 li.dataset.taskId = task.id;
-
                 const mainContentClickableArea = document.createElement('div'); 
                 mainContentClickableArea.className = 'task-item-clickable-area flex items-start flex-grow min-w-0 mr-2 rounded-l-lg'; 
                 mainContentClickableArea.addEventListener('click', (event) => {
@@ -527,23 +565,18 @@
                     }
                     openViewTaskDetailsModal(task.id); 
                 });
-
-
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
                 checkbox.checked = task.completed;
                 checkbox.className = 'form-checkbox h-5 w-5 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 dark:focus:ring-sky-500 mt-0.5 mr-3 cursor-pointer flex-shrink-0';
                 checkbox.addEventListener('change', () => toggleComplete(task.id));
-
                 const textDetailsDiv = document.createElement('div');
                 textDetailsDiv.className = 'flex flex-col';
-
                 const span = document.createElement('span');
                 span.textContent = task.text;
                 let textColorClass = task.completed ? 'text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-200';
                 span.className = `break-all ${textColorClass} ${task.completed ? 'completed-text' : ''}`;
                 textDetailsDiv.appendChild(span);
-
                 if (task.dueDate || task.priority) {
                     const detailsDiv = document.createElement('div');
                     detailsDiv.className = 'flex items-center flex-wrap gap-x-2 gap-y-1 mt-1.5 text-xs';
@@ -551,16 +584,13 @@
                     if (task.dueDate) { const dueDateSpan = document.createElement('span'); dueDateSpan.className = 'text-slate-500 dark:text-slate-400 flex items-center'; dueDateSpan.innerHTML = `<i class="far fa-calendar-alt mr-1"></i> ${formatDate(task.dueDate)}`; detailsDiv.appendChild(dueDateSpan); }
                     textDetailsDiv.appendChild(detailsDiv);
                 }
-                
                 mainContentClickableArea.appendChild(checkbox);
                 mainContentClickableArea.appendChild(textDetailsDiv);
-
                 const deleteButton = document.createElement('button');
                 deleteButton.className = 'delete-btn text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-500 transition-colors duration-300 px-2 py-1 flex-shrink-0 self-start';
                 deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
                 deleteButton.setAttribute('aria-label', 'Delete task');
                 deleteButton.addEventListener('click', () => deleteTask(task.id));
-
                 li.appendChild(mainContentClickableArea); 
                 li.appendChild(deleteButton);
                 taskList.appendChild(li);
@@ -568,46 +598,94 @@
             updateClearCompletedButton();
         }
         
-        /**
-         * Parses a date string from various formats or keywords.
-         * @param {string} text - The text to parse for a date.
-         * @returns {{parsedDate: string|null, remainingText: string}}
-         */
         function parseDateFromText(text) {
             let parsedDate = null;
             let remainingText = text;
             const today = new Date();
-            today.setHours(0,0,0,0);
+            today.setHours(0, 0, 0, 0); // Normalize today to the start of the day
+
+            const daysOfWeek = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+            const shortDaysOfWeek = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
             const patterns = [
                 { regex: /\b(today)\b/i, handler: () => getTodayDateString() },
-                { regex: /\b(tomorrow)\b/i, handler: () => {
-                    const tomorrow = new Date(today);
-                    tomorrow.setDate(today.getDate() + 1);
-                    return tomorrow.toISOString().split('T')[0];
-                }},
-                // YYYY-MM-DD
-                { regex: /(\d{4}-\d{1,2}-\d{1,2})/g, handler: (match) => match[0] },
-                // MM/DD/YYYY or M/D/YY etc.
-                { regex: /(\d{1,2}\/\d{1,2}\/\d{2,4})/g, handler: (match) => {
+                { 
+                    regex: /\b(tomorrow)\b/i, 
+                    handler: () => {
+                        const tomorrow = new Date(today);
+                        tomorrow.setDate(today.getDate() + 1);
+                        return tomorrow.toISOString().split('T')[0];
+                    } 
+                },
+                { 
+                    regex: /\b(next week)\b/i, 
+                    handler: () => {
+                        const nextWeek = new Date(today);
+                        nextWeek.setDate(today.getDate() - today.getDay() + 1 + 7); // Go to next Monday
+                        return nextWeek.toISOString().split('T')[0];
+                    }
+                },
+                {
+                    regex: /\b(next month)\b/i,
+                    handler: () => {
+                        const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+                        return nextMonth.toISOString().split('T')[0];
+                    }
+                },
+                {
+                    regex: /\b(next year)\b/i,
+                    handler: () => {
+                        const nextYear = new Date(today.getFullYear() + 1, 0, 1); // Jan 1st of next year
+                        return nextYear.toISOString().split('T')[0];
+                    }
+                },
+                { // Specific days of the week (e.g., "Monday", "fri")
+                    regex: new RegExp(`\\b(on\\s+)?(${daysOfWeek.join('|')}|${shortDaysOfWeek.join('|')})\\b`, 'i'),
+                    handler: (match) => {
+                        const dayName = match[2].toLowerCase();
+                        let targetDayIndex = daysOfWeek.indexOf(dayName);
+                        if (targetDayIndex === -1) {
+                            targetDayIndex = shortDaysOfWeek.indexOf(dayName);
+                        }
+                        if (targetDayIndex === -1) return null; // Should not happen with regex
+
+                        const currentDayIndex = today.getDay();
+                        let daysToAdd = targetDayIndex - currentDayIndex;
+
+                        if (daysToAdd < 0 || (daysToAdd === 0 && new Date().getHours() > 0 )) { // If day has passed this week or is today but later
+                            daysToAdd += 7;
+                        }
+                         if (targetDayIndex === currentDayIndex && daysToAdd !== 7){ // if it's today and not set for next week
+                            daysToAdd = 0;
+                        }
+
+
+                        const targetDate = new Date(today);
+                        targetDate.setDate(today.getDate() + daysToAdd);
+                        return targetDate.toISOString().split('T')[0];
+                    }
+                },
+                { regex: /(\d{4}-\d{1,2}-\d{1,2})/g, handler: (match) => match[0] }, // YYYY-MM-DD
+                { regex: /(\d{1,2}\/\d{1,2}\/\d{2,4})/g, handler: (match) => { // MM/DD/YYYY or M/D/YY
                     const parts = match[0].split('/');
                     const year = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
                     const month = parts[0].padStart(2, '0');
                     const day = parts[1].padStart(2, '0');
                     return `${year}-${month}-${day}`;
                 }}
-                // Add more complex patterns like "next Monday", "July 15" if needed
             ];
 
             for (const pattern of patterns) {
                 const match = pattern.regex.exec(remainingText);
                 if (match) {
                     const potentialDate = pattern.handler(match);
-                    // Validate if the parsed string is a valid date
-                    if (!isNaN(new Date(potentialDate).getTime())) {
+                    if (potentialDate && !isNaN(new Date(potentialDate).getTime())) {
                         parsedDate = potentialDate;
-                        remainingText = remainingText.replace(match[0], '').trim();
-                        break; // Use the first valid date found
+                        // Remove the matched date string from the text
+                        // For "on monday", remove "on monday". For just "monday", remove "monday".
+                        const matchedString = match[0];
+                        remainingText = remainingText.replace(matchedString, '').replace(/\s\s+/g, ' ').trim(); // Clean up extra spaces
+                        break; 
                     }
                 }
             }
@@ -618,7 +696,7 @@
         function handleAddTask(event) {
             event.preventDefault();
             const rawTaskText = modalTaskInputAdd.value.trim();
-            const explicitDueDate = modalDueDateInputAdd.value; // Get value from the dedicated due date field
+            const explicitDueDate = modalDueDateInputAdd.value; 
             const priority = modalPriorityInputAdd.value;
             const notes = modalNotesInputAdd.value.trim(); 
 
@@ -635,11 +713,10 @@
 
             if (dateFromDescription) {
                 finalDueDate = dateFromDescription;
-                finalTaskText = textAfterDateRemoval || rawTaskText; // Use original if date parsing left empty string
+                finalTaskText = textAfterDateRemoval || rawTaskText; 
             } else if (explicitDueDate) {
                 finalDueDate = explicitDueDate;
             }
-            // If neither, finalDueDate remains null
 
             const newTask = { 
                 id: Date.now(), 
@@ -662,7 +739,7 @@
             event.preventDefault();
             const taskId = parseInt(modalViewEditTaskId.value); 
             const taskText = modalTaskInputViewEdit.value.trim();
-            const dueDate = modalDueDateInputViewEdit.value; // Edit modal still uses explicit date input
+            const dueDate = modalDueDateInputViewEdit.value; 
             const priority = modalPriorityInputViewEdit.value;
             const notes = modalNotesInputViewEdit.value.trim(); 
 
