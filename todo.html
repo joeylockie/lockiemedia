@@ -55,7 +55,7 @@
             background-color: #4f46e5; /* Tailwind indigo-600 */
             color: #e0e7ff; /* Tailwind indigo-200 */
         }
-        .smart-view-btn, .sort-btn { min-height: 42px; } /* Renamed filter-btn to smart-view-btn */
+        .smart-view-btn, .sort-btn { min-height: 42px; }
 
         .view-details-heading {
             font-weight: 600;
@@ -72,8 +72,8 @@
             margin-right: 0 !important;
         }
         .sidebar-minimized .sidebar-text-content,
-        .sidebar-minimized #taskSearchInputContainer, /* Hide search when minimized */
-        .sidebar-minimized .sidebar-section-title /* Hide section titles when minimized */
+        .sidebar-minimized #taskSearchInputContainer,
+        .sidebar-minimized .sidebar-section-title
          {
             display: none;
         }
@@ -99,20 +99,19 @@
         .dark .sort-btn-active {
              background-color: #0284c7 !important; /* Tailwind sky-600 */
         }
-        /* Styles for the new Settings Modal */
         .settings-modal-button {
             display: flex;
             align-items: center;
             width: 100%;
-            padding: 0.75rem 1rem; /* 12px 16px */
+            padding: 0.75rem 1rem;
             text-align: left;
-            font-weight: 500; /* medium */
-            border-radius: 0.5rem; /* 8px */
+            font-weight: 500;
+            border-radius: 0.5rem;
             transition: background-color 0.2s ease-in-out;
         }
         .settings-modal-button i {
-            margin-right: 0.75rem; /* 12px */
-            width: 1.25rem; /* 20px */
+            margin-right: 0.75rem;
+            width: 1.25rem;
             text-align: center;
         }
     </style>
@@ -418,24 +417,17 @@
                     <div>
                         <h2 class="sidebar-text-content sidebar-section-title text-lg md:text-xl font-semibold text-slate-700 dark:text-slate-200 mb-2 md:mb-3">Smart Views</h2>
                         <div class="flex flex-col gap-2" id="smartViewButtonsContainer">
-                            <button title="All Tasks" class="smart-view-btn w-full text-left px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center" data-filter="all">
-                                <i class="fas fa-list-ul w-5 mr-0"></i><span class="sidebar-text-content ml-2 md:ml-2.5">All Tasks</span>
+                            <button title="Inbox" class="smart-view-btn w-full text-left px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center" data-filter="inbox">
+                                <i class="fas fa-inbox w-5 mr-0"></i><span class="sidebar-text-content ml-2 md:ml-2.5">Inbox</span>
                             </button>
-                            <button title="Active Tasks" class="smart-view-btn w-full text-left px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center" data-filter="active">
-                                <i class="fas fa-bolt w-5 mr-0"></i><span class="sidebar-text-content ml-2 md:ml-2.5">Active</span>
+                            <button title="Today" class="smart-view-btn w-full text-left px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center" data-filter="today">
+                                <i class="fas fa-calendar-day w-5 mr-0"></i><span class="sidebar-text-content ml-2 md:ml-2.5">Today</span>
+                            </button>
+                            <button title="Upcoming" class="smart-view-btn w-full text-left px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center" data-filter="upcoming">
+                                <i class="fas fa-calendar-alt w-5 mr-0"></i><span class="sidebar-text-content ml-2 md:ml-2.5">Upcoming</span>
                             </button>
                             <button title="Completed Tasks" class="smart-view-btn w-full text-left px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center" data-filter="completed">
                                 <i class="fas fa-check-circle w-5 mr-0"></i><span class="sidebar-text-content ml-2 md:ml-2.5">Completed</span>
-                            </button>
-                            <hr class="my-1 border-slate-200 dark:border-slate-700 sidebar-text-content">
-                            <button title="Due Today" class="smart-view-btn w-full text-left px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center" data-filter="dueToday">
-                                <i class="fas fa-calendar-day w-5 mr-0"></i><span class="sidebar-text-content ml-2 md:ml-2.5">Due Today</span>
-                            </button>
-                            <button title="Due This Week" class="smart-view-btn w-full text-left px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center" data-filter="dueThisWeek">
-                                <i class="fas fa-calendar-week w-5 mr-0"></i><span class="sidebar-text-content ml-2 md:ml-2.5">Due This Week</span>
-                            </button>
-                            <button title="Due This Month" class="smart-view-btn w-full text-left px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center" data-filter="dueThisMonth">
-                                <i class="far fa-calendar-alt w-5 mr-0"></i><span class="sidebar-text-content ml-2 md:ml-2.5">Due This Month</span>
                             </button>
                         </div>
                     </div>
@@ -497,8 +489,8 @@
         const taskList = document.getElementById('taskList');
         const emptyState = document.getElementById('emptyState');
         const noMatchingTasks = document.getElementById('noMatchingTasks');
-        const smartViewButtonsContainer = document.getElementById('smartViewButtonsContainer'); // Container for smart view buttons
-        const smartViewButtons = smartViewButtonsContainer.querySelectorAll('.smart-view-btn'); // Query within the container
+        const smartViewButtonsContainer = document.getElementById('smartViewButtonsContainer');
+        const smartViewButtons = smartViewButtonsContainer.querySelectorAll('.smart-view-btn');
         const messageBox = document.getElementById('messageBox');
         document.getElementById('currentYear').textContent = new Date().getFullYear();
 
@@ -587,7 +579,7 @@
 
         // --- Application State ---
         let tasks = JSON.parse(localStorage.getItem('todos_v3')) || [];
-        let currentFilter = 'all';
+        let currentFilter = 'inbox'; // Default to inbox
         let currentSort = 'default';
         let currentSearchTerm = '';
         let editingTaskId = null;
@@ -615,7 +607,6 @@
                 sidebarToggleIcon.classList.remove('fa-chevron-left');
                 sidebarToggleIcon.classList.add('fa-chevron-right');
                 sidebarTextElements.forEach(el => el.classList.add('hidden'));
-                // Also hide elements specifically marked to be hidden when minimized
                 document.querySelectorAll('.sidebar-section-title, #taskSearchInputContainer').forEach(el => el.classList.add('hidden'));
                 sidebarIconOnlyButtons.forEach(btn => {
                     btn.classList.add('justify-center');
@@ -895,10 +886,11 @@
 
         // --- Date & Time Helper Functions ---
         function getTodayDateString() { return new Date().toISOString().split('T')[0]; }
-        function getStartOfWeek(date) { const d = new Date(date); const day = d.getDay(); const diff = d.getDate() - day + (day === 0 ? -6 : 1); return new Date(d.setDate(diff)); }
-        function getEndOfWeek(date) { const d = new Date(date); const startOfWeek = getStartOfWeek(d); return new Date(startOfWeek.setDate(startOfWeek.getDate() + 6)); }
-        function getStartOfMonth(date) { return new Date(date.getFullYear(), date.getMonth(), 1); }
-        function getEndOfMonth(date) { return new Date(date.getFullYear(), date.getMonth() + 1, 0); }
+        // Helper to get a date string for comparison (ignoring time)
+        function getDateString(date) {
+            return date.toISOString().split('T')[0];
+        }
+
         function formatDate(dateString) { if (!dateString) return ''; const date = new Date(dateString); const userTimezoneOffset = date.getTimezoneOffset() * 60000; const correctedDate = new Date(date.getTime() + userTimezoneOffset); return correctedDate.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); }
         function formatTime(timeString) { 
             if (!timeString) return '';
@@ -955,33 +947,29 @@
         function renderTasks() {
             taskList.innerHTML = '';
             let filteredTasks = [];
-            const today = new Date();
-            today.setHours(0, 0, 0, 0); 
+            const todayDate = new Date(); 
+            todayDate.setHours(0, 0, 0, 0); 
+            const todayStr = getDateString(todayDate);
 
             // 1. Apply Smart View Filter
-            if (currentFilter === 'all') { filteredTasks = [...tasks]; } 
-            else if (currentFilter === 'active') { filteredTasks = tasks.filter(task => !task.completed); }
-            else if (currentFilter === 'completed') { filteredTasks = tasks.filter(task => task.completed); }
-            else if (currentFilter === 'dueToday') { const todayStr = getTodayDateString(); filteredTasks = tasks.filter(task => task.dueDate === todayStr && !task.completed); }
-            else if (currentFilter === 'dueThisWeek') {
-                const startOfWeek = getStartOfWeek(today); startOfWeek.setHours(0,0,0,0);
-                const endOfWeek = getEndOfWeek(today); endOfWeek.setHours(23,59,59,999);
+            if (currentFilter === 'inbox') { 
+                filteredTasks = tasks.filter(task => !task.completed);
+            } else if (currentFilter === 'today') { 
+                filteredTasks = tasks.filter(task => task.dueDate === todayStr && !task.completed);
+            } else if (currentFilter === 'upcoming') {
                 filteredTasks = tasks.filter(task => {
-                    if (!task.dueDate) return false;
-                    const taskDueDate = new Date(task.dueDate); const userTimezoneOffset = taskDueDate.getTimezoneOffset() * 60000;
-                    const correctedTaskDueDate = new Date(taskDueDate.getTime() + userTimezoneOffset); correctedTaskDueDate.setHours(0,0,0,0); 
-                    return correctedTaskDueDate >= startOfWeek && correctedTaskDueDate <= endOfWeek && !task.completed;
+                    if (!task.dueDate || task.completed) return false;
+                    const taskDueDate = new Date(task.dueDate);
+                    // IMPORTANT: Adjust for timezone offset when creating date from string
+                    const userTimezoneOffset = taskDueDate.getTimezoneOffset() * 60000;
+                    const correctedTaskDueDate = new Date(taskDueDate.getTime() + userTimezoneOffset);
+                    correctedTaskDueDate.setHours(0,0,0,0);
+                    return correctedTaskDueDate > todayDate;
                 });
-            } else if (currentFilter === 'dueThisMonth') {
-                const startOfMonth = getStartOfMonth(today); startOfMonth.setHours(0,0,0,0);
-                const endOfMonth = getEndOfMonth(today); endOfMonth.setHours(23,59,59,999);
-                filteredTasks = tasks.filter(task => {
-                    if (!task.dueDate) return false;
-                    const taskDueDate = new Date(task.dueDate); const userTimezoneOffset = taskDueDate.getTimezoneOffset() * 60000;
-                    const correctedTaskDueDate = new Date(taskDueDate.getTime() + userTimezoneOffset); correctedTaskDueDate.setHours(0,0,0,0); 
-                    return correctedTaskDueDate >= startOfMonth && correctedTaskDueDate <= endOfMonth && !task.completed;
-                });
+            } else if (currentFilter === 'completed') {
+                filteredTasks = tasks.filter(task => task.completed);
             }
+
 
             // 2. Apply Search Filter
             if (currentSearchTerm) {
@@ -1016,7 +1004,6 @@
                     const labelB = (b.label || '').toLowerCase();
                     if (labelA < labelB) return -1;
                     if (labelA > labelB) return 1;
-                    // Secondary sort by due date if labels are the same or both empty
                     if (!a.dueDate && !b.dueDate) return 0;
                     if (!a.dueDate) return 1;
                     if (!b.dueDate) return -1;
@@ -1038,7 +1025,7 @@
                 const mainContentClickableArea = document.createElement('div');
                 mainContentClickableArea.className = 'task-item-clickable-area flex items-start flex-grow min-w-0 mr-2 rounded-l-lg'; 
                 mainContentClickableArea.addEventListener('click', (event) => {
-                    if (event.target.type === 'checkbox' || event.target.closest('.task-actions')) { // Check if click is on actions
+                    if (event.target.type === 'checkbox' || event.target.closest('.task-actions')) {
                         return;
                     }
                     openViewTaskDetailsModal(task.id);
@@ -1089,7 +1076,6 @@
                 mainContentClickableArea.appendChild(checkbox);
                 mainContentClickableArea.appendChild(textDetailsDiv);
 
-                // Action buttons container
                 const actionsDiv = document.createElement('div');
                 actionsDiv.className = 'task-actions flex-shrink-0 self-start';
 
@@ -1113,7 +1099,7 @@
                 li.appendChild(actionsDiv);
                 taskList.appendChild(li);
             });
-            updateClearCompletedButtonState(); // Updated name
+            updateClearCompletedButtonState();
         }
         
         function parseDateFromText(text) {
@@ -1202,8 +1188,7 @@
             const newTask = { id: Date.now(), text: finalTaskText, completed: false, dueDate: finalDueDate, time: time || null, priority: priority, label: label || '', notes: notes || '', isReminderSet: isReminderSet, reminderDate: isReminderSet ? reminderDate : null, reminderTime: isReminderSet ? reminderTime : null, reminderEmail: isReminderSet ? reminderEmail : null };
             tasks.unshift(newTask); 
             saveTasks(); 
-            if (currentFilter.startsWith('due') && finalDueDate) { setFilter(currentFilter); }
-            else if (currentFilter === 'completed') { setFilter('all'); }
+            if (currentFilter === 'completed') { setFilter('inbox'); } 
             else { renderTasks(); } 
             closeAddModal(); 
             showMessage('Task added successfully!', 'success');
@@ -1248,13 +1233,13 @@
 
         function setFilter(filter) { 
             currentFilter = filter; 
-            currentSort = 'default'; // Reset sort when filter changes
+            currentSort = 'default'; 
             updateSortButtonStates();
             smartViewButtons.forEach(button => { const isActive = button.dataset.filter === filter; button.setAttribute('data-active', isActive.toString()); const baseInactive = ['bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600']; const iconInactive = ['text-slate-500', 'dark:text-slate-400']; const active = ['bg-sky-500', 'text-white', 'font-semibold']; const iconActive = ['text-sky-100']; button.classList.remove(...baseInactive, ...active); button.querySelector('i')?.classList.remove(...iconInactive, ...iconActive); if (isActive) { button.classList.add(...active); button.querySelector('i')?.classList.add(...iconActive); } else { button.classList.add(...baseInactive); button.querySelector('i')?.classList.add(...iconInactive); } }); 
             renderTasks(); 
         }
         
-        function updateClearCompletedButtonState() { // Renamed for clarity
+        function updateClearCompletedButtonState() {
             const hasCompleted = tasks.some(task => task.completed);
             settingsClearCompletedBtn.disabled = !hasCompleted;
             if (hasCompleted) {
@@ -1263,7 +1248,7 @@
             } else {
                 settingsClearCompletedBtn.classList.add('opacity-50', 'cursor-not-allowed');
                  settingsClearCompletedBtn.classList.remove('bg-red-50', 'hover:bg-red-100', 'text-red-700', 'dark:bg-red-900/50', 'dark:hover:bg-red-800/70', 'dark:text-red-300');
-                 settingsClearCompletedBtn.classList.add('bg-slate-100', 'text-slate-400', 'dark:bg-slate-700', 'dark:text-slate-500'); // Neutral disabled style
+                 settingsClearCompletedBtn.classList.add('bg-slate-100', 'text-slate-400', 'dark:bg-slate-700', 'dark:text-slate-500');
             }
         }
 
@@ -1274,7 +1259,7 @@
             saveTasks(); 
             renderTasks(); 
             showMessage(`${completedCount} completed task(s) cleared.`, 'success'); 
-            closeSettingsModal(); // Close settings modal after action
+            closeSettingsModal();
         }
 
         function updateSortButtonStates() {
@@ -1326,13 +1311,11 @@
         });
         viewTaskDetailsModal.addEventListener('click', (event) => { if (event.target === viewTaskDetailsModal) closeViewTaskDetailsModal(); });
 
-        // Manage Labels Modal Listeners
         if (closeManageLabelsModalBtn) closeManageLabelsModalBtn.addEventListener('click', closeManageLabelsModal);
         if (closeManageLabelsSecondaryBtn) closeManageLabelsSecondaryBtn.addEventListener('click', closeManageLabelsModal);
         if (addNewLabelForm) addNewLabelForm.addEventListener('submit', handleAddNewLabel);
         if (manageLabelsModal) manageLabelsModal.addEventListener('click', (event) => { if (event.target === manageLabelsModal) closeManageLabelsModal(); });
 
-        // Settings Modal Listeners
         if (openSettingsModalButton) openSettingsModalButton.addEventListener('click', openSettingsModal);
         if (closeSettingsModalBtn) closeSettingsModalBtn.addEventListener('click', closeSettingsModal);
         if (closeSettingsSecondaryBtn) closeSettingsSecondaryBtn.addEventListener('click', closeSettingsModal);
@@ -1347,14 +1330,11 @@
         if (settingsManageRemindersBtn) {
             settingsManageRemindersBtn.addEventListener('click', () => {
                 showMessage('Reminders feature coming soon!', 'success'); 
-                // Optionally close settings modal: closeSettingsModal();
             });
         }
 
-        // Smart View Filter Buttons
         smartViewButtons.forEach(button => button.addEventListener('click', () => setFilter(button.dataset.filter)));
         
-        // Search Input Listener
         if (taskSearchInput) {
             taskSearchInput.addEventListener('input', (event) => {
                 currentSearchTerm = event.target.value.trim().toLowerCase();
@@ -1405,7 +1385,7 @@
             setSidebarMinimized(false); 
         }
         
-        setFilter('all'); 
+        setFilter(currentFilter); 
         window.onload = () => { 
             setFilter(currentFilter); 
              if (localStorage.getItem('sidebarState') === 'minimized') {
@@ -1414,7 +1394,7 @@
                 setSidebarMinimized(false);
             }
             updateSortButtonStates(); 
-            updateClearCompletedButtonState(); // Initial state for settings button
+            updateClearCompletedButtonState();
         };
     </script>
 </body>
