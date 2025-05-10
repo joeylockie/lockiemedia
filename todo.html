@@ -326,9 +326,16 @@
                         <button
                             id="manageLabelsBtn"
                             title="Manage Labels"
-                            class="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2.5 px-3 md:px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 ease-in-out transform hover:-translate-y-0.5 w-full flex items-center sidebar-button-icon-only justify-center"
+                            class="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2.5 px-3 md:px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 ease-in-out transform hover:-translate-y-0.5 w-full flex items-center sidebar-button-icon-only justify-center mb-2"
                         >
                             <i class="fas fa-tags mr-0"></i> <span class="sidebar-text-content ml-2">Labels</span>
+                        </button>
+                        <button
+                            id="manageRemindersBtn"
+                            title="Manage Reminders"
+                            class="bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2.5 px-3 md:px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 ease-in-out transform hover:-translate-y-0.5 w-full flex items-center sidebar-button-icon-only justify-center"
+                        >
+                            <i class="fas fa-bell mr-0"></i> <span class="sidebar-text-content ml-2">Reminders</span>
                         </button>
                     </div>
                 </div>
@@ -436,6 +443,8 @@
         const newLabelInput = document.getElementById('newLabelInput');
         const existingLabelsList = document.getElementById('existingLabelsList');
         const manageLabelsBtn = document.getElementById('manageLabelsBtn');
+        // Add Reminders Button DOM Element
+        const manageRemindersBtn = document.getElementById('manageRemindersBtn');
 
 
         // --- Application State ---
@@ -465,7 +474,7 @@
             if (minimize) {
                 // Minimize: Adjust classes for smaller sidebar
                 taskSidebar.classList.remove('md:w-72', 'lg:w-80', 'w-full', 'p-5', 'sm:p-6', 'md:p-5', 'sm:p-4');
-                taskSidebar.classList.add('w-16', 'p-3', 'sidebar-minimized'); // md:w-20 for slightly wider minimized on medium screens
+                taskSidebar.classList.add('w-16', 'p-3', 'sidebar-minimized'); 
                 
                 sidebarToggleIcon.classList.remove('fa-chevron-left');
                 sidebarToggleIcon.classList.add('fa-chevron-right');
@@ -474,12 +483,12 @@
                 sidebarIconOnlyButtons.forEach(btn => {
                     btn.classList.add('justify-center');
                     const icon = btn.querySelector('i');
-                    if(icon) icon.classList.remove('md:mr-2', 'md:mr-2.5', 'ml-2'); // Remove margins meant for expanded view
+                    if(icon) icon.classList.remove('md:mr-2', 'md:mr-2.5', 'ml-2'); 
                 });
                 localStorage.setItem('sidebarState', 'minimized');
             } else { // Expand
                 // Expand: Restore classes for full sidebar
-                taskSidebar.classList.remove('w-16', 'p-3', 'sidebar-minimized'); // md:w-20
+                taskSidebar.classList.remove('w-16', 'p-3', 'sidebar-minimized'); 
                 taskSidebar.classList.add('w-full', 'md:w-72', 'lg:w-80', 'p-3', 'sm:p-4', 'md:p-5');
 
                 sidebarToggleIcon.classList.remove('fa-chevron-right');
@@ -487,17 +496,17 @@
                 
                 sidebarTextElements.forEach(el => el.classList.remove('hidden'));
                  sidebarIconOnlyButtons.forEach(btn => {
-                    btn.classList.remove('justify-center'); // Text is visible, so not just icon
+                    btn.classList.remove('justify-center'); 
                     const icon = btn.querySelector('i');
                     const textSpan = btn.querySelector('.sidebar-text-content');
-                    if(icon && textSpan && !textSpan.classList.contains('hidden')) { // Ensure text is visible before adding margin
-                        // Add specific margins based on button type, if needed for alignment
-                        if (btn.id === 'openAddModalButton' || btn.id === 'clearCompletedBtn' || btn.id === 'manageLabelsBtn') { // Added manageLabelsBtn
-                             icon.classList.add('md:mr-2'); // Standard margin for action buttons
-                        } else { // Filter buttons
-                             icon.classList.add('md:mr-2.5'); // Slightly more margin for filter buttons
+                    if(icon && textSpan && !textSpan.classList.contains('hidden')) { 
+                        // Updated condition to include the new reminders button
+                        if (btn.id === 'openAddModalButton' || btn.id === 'clearCompletedBtn' || btn.id === 'manageLabelsBtn' || btn.id === 'manageRemindersBtn') { 
+                             icon.classList.add('md:mr-2'); 
+                        } else { 
+                             icon.classList.add('md:mr-2.5'); 
                         }
-                        textSpan.classList.add('ml-2'); // Ensure text has left margin from icon
+                        textSpan.classList.add('ml-2'); 
                     }
                 });
                 localStorage.setItem('sidebarState', 'expanded');
@@ -506,12 +515,11 @@
 
         // --- Tooltip Functions ---
         function showTooltip(element, text) {
-            if (!taskSidebar.classList.contains('sidebar-minimized')) return; // Only show tooltips when minimized
+            if (!taskSidebar.classList.contains('sidebar-minimized')) return; 
 
             iconTooltip.textContent = text;
             const rect = element.getBoundingClientRect();
-            // Position tooltip to the right of the icon, vertically centered
-            iconTooltip.style.left = `${rect.right + 10}px`; // 10px offset from the icon
+            iconTooltip.style.left = `${rect.right + 10}px`; 
             iconTooltip.style.top = `${rect.top + (rect.height / 2) - (iconTooltip.offsetHeight / 2)}px`;
             iconTooltip.style.display = 'block';
         }
@@ -521,17 +529,16 @@
             iconTooltip.style.display = 'none';
         }
 
-        // Add tooltip listeners to all icon-only buttons in the sidebar
         sidebarIconOnlyButtons.forEach(button => {
             button.addEventListener('mouseenter', (event) => {
                 if (!taskSidebar.classList.contains('sidebar-minimized')) return;
-                clearTimeout(tooltipTimeout); // Clear any existing timeout
-                tooltipTimeout = setTimeout(() => { // Show tooltip after a delay
+                clearTimeout(tooltipTimeout); 
+                tooltipTimeout = setTimeout(() => { 
                     const tooltipText = button.title || button.querySelector('.sidebar-text-content')?.textContent.trim();
                     if (tooltipText) {
                         showTooltip(event.currentTarget, tooltipText);
                     }
-                }, 500); // 500ms delay before showing tooltip
+                }, 500); 
             });
             button.addEventListener('mouseleave', () => {
                 hideTooltip();
@@ -541,7 +548,6 @@
 
         // --- Modal Functions (Add Task) ---
         function openAddModal() {
-            // Prevent opening if already open or if an input field is focused (to avoid conflicts with '+' key shortcut)
             if (!addTaskModal.classList.contains('hidden') || 
                 document.activeElement.tagName === 'INPUT' || 
                 document.activeElement.tagName === 'SELECT' || 
@@ -549,18 +555,17 @@
                 return;
             }
             addTaskModal.classList.remove('hidden');
-            setTimeout(() => { // For transition effect
+            setTimeout(() => { 
                 modalDialogAdd.classList.remove('scale-95', 'opacity-0');
                 modalDialogAdd.classList.add('scale-100', 'opacity-100');
             }, 10);
             modalTaskInputAdd.focus();
-            modalTodoFormAdd.reset(); // Clear previous input
-            modalPriorityInputAdd.value = 'medium'; // Default priority
-            populateDatalist(existingLabelsDatalist); // Populate label suggestions
-            // Set min date for due date input to today
+            modalTodoFormAdd.reset(); 
+            modalPriorityInputAdd.value = 'medium'; 
+            populateDatalist(existingLabelsDatalist); 
             const today = new Date();
             const year = today.getFullYear();
-            const mm = String(today.getMonth() + 1).padStart(2, '0'); // January is 0!
+            const mm = String(today.getMonth() + 1).padStart(2, '0'); 
             const dd = String(today.getDate()).padStart(2, '0');
             modalDueDateInputAdd.min = `${year}-${mm}-${dd}`;
         }
@@ -570,23 +575,22 @@
             modalDialogAdd.classList.remove('scale-100', 'opacity-100');
             setTimeout(() => {
                  addTaskModal.classList.add('hidden');
-            }, 200); // Match transition duration
+            }, 200); 
         }
 
         // --- Modal Functions (View/Edit Task) ---
         function openViewEditModal(taskId) {
             const task = tasks.find(t => t.id === taskId);
             if (!task) return;
-            editingTaskId = taskId; // Set the task ID being edited
-            modalViewEditTaskId.value = task.id; // Hidden input to store ID
+            editingTaskId = taskId; 
+            modalViewEditTaskId.value = task.id; 
             modalTaskInputViewEdit.value = task.text;
-            modalDueDateInputViewEdit.value = task.dueDate || ''; // Handle null dueDate
-            modalTimeInputViewEdit.value = task.time || ''; // Handle null time
+            modalDueDateInputViewEdit.value = task.dueDate || ''; 
+            modalTimeInputViewEdit.value = task.time || ''; 
             modalPriorityInputViewEdit.value = task.priority;
-            modalLabelInputViewEdit.value = task.label || ''; // Handle null label
-            populateDatalist(existingLabelsEditDatalist); // Populate label suggestions
-            modalNotesInputViewEdit.value = task.notes || ''; // Handle null notes
-            // Set min date for due date input to today
+            modalLabelInputViewEdit.value = task.label || ''; 
+            populateDatalist(existingLabelsEditDatalist); 
+            modalNotesInputViewEdit.value = task.notes || ''; 
             const today = new Date();
             const year = today.getFullYear();
             const mm = String(today.getMonth() + 1).padStart(2, '0');
@@ -605,7 +609,7 @@
             modalDialogViewEdit.classList.remove('scale-100', 'opacity-100');
             setTimeout(() => {
                  viewEditTaskModal.classList.add('hidden');
-                 editingTaskId = null; // Clear editing state
+                 editingTaskId = null; 
             }, 200);
         }
 
@@ -613,7 +617,7 @@
         function openViewTaskDetailsModal(taskId) {
             const task = tasks.find(t => t.id === taskId);
             if (!task) return;
-            currentViewTaskId = taskId; // Set the task ID being viewed
+            currentViewTaskId = taskId; 
             viewTaskText.textContent = task.text;
             viewTaskDueDate.textContent = task.dueDate ? formatDate(task.dueDate) : 'Not set';
             viewTaskTime.textContent = task.time ? formatTime(task.time) : 'Not set';
@@ -633,7 +637,7 @@
             modalDialogViewDetails.classList.remove('scale-100', 'opacity-100');
             setTimeout(() => {
                  viewTaskDetailsModal.classList.add('hidden');
-                 currentViewTaskId = null; // Clear viewing state
+                 currentViewTaskId = null; 
             }, 200);
         }
 
@@ -657,7 +661,7 @@
         }
 
         function populateManageLabelsList() {
-            existingLabelsList.innerHTML = ''; // Clear current list
+            existingLabelsList.innerHTML = ''; 
             uniqueLabels.forEach(label => {
                 const li = document.createElement('li');
                 li.className = 'flex justify-between items-center p-2 bg-slate-50 dark:bg-slate-700 rounded-md';
@@ -694,7 +698,7 @@
             }
             uniqueLabels.push(labelName);
             uniqueLabels.sort();
-            saveTasks(); // This calls updateUniqueLabels which sorts and updates datalists
+            saveTasks(); 
             populateManageLabelsList();
             populateDatalist(existingLabelsDatalist);
             populateDatalist(existingLabelsEditDatalist);
@@ -704,16 +708,15 @@
 
         function handleDeleteLabel(labelToDelete) {
             const normalizedLabelToDelete = labelToDelete.toLowerCase();
-            // Update tasks that use this label
             tasks = tasks.map(task => {
                 if (task.label && task.label.toLowerCase() === normalizedLabelToDelete) {
-                    return { ...task, label: '' }; // Set label to empty string or 'None' or remove it
+                    return { ...task, label: '' }; 
                 }
                 return task;
             });
-            saveTasks(); // This will also update uniqueLabels and datalists
-            populateManageLabelsList(); // Re-render the list in the manage labels modal
-            renderTasks(); // Re-render the main task list
+            saveTasks(); 
+            populateManageLabelsList(); 
+            renderTasks(); 
             showMessage(`Label "${labelToDelete}" deleted and removed from tasks.`, 'success');
         }
 
@@ -730,7 +733,7 @@
             const [hours, minutes] = timeString.split(':');
             const h = parseInt(hours, 10);
             const ampm = h >= 12 ? 'PM' : 'AM';
-            const formattedHours = h % 12 || 12; // Convert 0 to 12 for 12 AM, and 13-23 to 1-11 PM
+            const formattedHours = h % 12 || 12; 
             return `${formattedHours}:${minutes} ${ampm}`;
         }
 
@@ -738,19 +741,19 @@
         // --- Core Functions ---
         function showMessage(message, type = 'success') { 
             messageBox.textContent = message; 
-            messageBox.className = 'message-box'; // Reset classes
+            messageBox.className = 'message-box'; 
             if (type === 'success') { 
                 messageBox.classList.add('bg-green-100', 'text-green-800', 'dark:bg-green-700', 'dark:text-green-100'); 
             } else { 
                 messageBox.classList.add('bg-red-100', 'text-red-800', 'dark:bg-red-700', 'dark:text-red-100'); 
             } 
             messageBox.style.display = 'block'; 
-            messageBox.style.zIndex = '200'; // Ensure it's above modals if any are still fading out
+            messageBox.style.zIndex = '200'; 
             setTimeout(() => { messageBox.style.display = 'none'; }, 3000); 
         }
         function saveTasks() { 
             localStorage.setItem('todos_v3', JSON.stringify(tasks)); 
-            updateUniqueLabels(); // Update labels whenever tasks are saved
+            updateUniqueLabels(); 
         }
         function getPriorityClass(priority) { switch (priority) { case 'high': return 'bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100'; case 'medium': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-600 dark:text-yellow-100'; case 'low': return 'bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100'; default: return 'bg-slate-100 text-slate-700 dark:bg-slate-600 dark:text-slate-200'; } }
         
@@ -758,20 +761,20 @@
             const labels = new Set();
             tasks.forEach(task => {
                 if (task.label && task.label.trim() !== '') {
-                    labels.add(task.label.trim().toLowerCase()); // Store labels in lowercase for consistency
+                    labels.add(task.label.trim().toLowerCase()); 
                 }
             });
-            uniqueLabels = Array.from(labels).sort(); // Keep them sorted
-            populateDatalist(existingLabelsDatalist); // Update datalist for Add modal
-            populateDatalist(existingLabelsEditDatalist); // Update datalist for Edit modal
+            uniqueLabels = Array.from(labels).sort(); 
+            populateDatalist(existingLabelsDatalist); 
+            populateDatalist(existingLabelsEditDatalist); 
         }
 
         function populateDatalist(datalistElement) {
-            if (!datalistElement) return; // Guard against null element if IDs mismatch
-            datalistElement.innerHTML = ''; // Clear existing options
+            if (!datalistElement) return; 
+            datalistElement.innerHTML = ''; 
             uniqueLabels.forEach(label => {
                 const option = document.createElement('option');
-                option.value = label.charAt(0).toUpperCase() + label.slice(1); // Capitalize for display in datalist
+                option.value = label.charAt(0).toUpperCase() + label.slice(1); 
                 datalistElement.appendChild(option);
             });
         }
@@ -781,9 +784,8 @@
             taskList.innerHTML = '';
             let tasksToRender = [];
             const today = new Date();
-            today.setHours(0, 0, 0, 0); // Normalize today's date to start of day
+            today.setHours(0, 0, 0, 0); 
 
-            // Apply filters first
             if (currentFilter === 'all') { tasksToRender = [...tasks]; } 
             else if (currentFilter === 'active') { tasksToRender = tasks.filter(task => !task.completed); }
             else if (currentFilter === 'completed') { tasksToRender = tasks.filter(task => task.completed); }
@@ -794,7 +796,7 @@
                 tasksToRender = tasks.filter(task => {
                     if (!task.dueDate) return false;
                     const taskDueDate = new Date(task.dueDate); const userTimezoneOffset = taskDueDate.getTimezoneOffset() * 60000;
-                    const correctedTaskDueDate = new Date(taskDueDate.getTime() + userTimezoneOffset); correctedTaskDueDate.setHours(0,0,0,0); // Correct for timezone and normalize
+                    const correctedTaskDueDate = new Date(taskDueDate.getTime() + userTimezoneOffset); correctedTaskDueDate.setHours(0,0,0,0); 
                     return correctedTaskDueDate >= startOfWeek && correctedTaskDueDate <= endOfWeek && !task.completed;
                 });
             } else if (currentFilter === 'dueThisMonth') {
@@ -803,29 +805,25 @@
                 tasksToRender = tasks.filter(task => {
                     if (!task.dueDate) return false;
                     const taskDueDate = new Date(task.dueDate); const userTimezoneOffset = taskDueDate.getTimezoneOffset() * 60000;
-                    const correctedTaskDueDate = new Date(taskDueDate.getTime() + userTimezoneOffset); correctedTaskDueDate.setHours(0,0,0,0); // Correct for timezone and normalize
+                    const correctedTaskDueDate = new Date(taskDueDate.getTime() + userTimezoneOffset); correctedTaskDueDate.setHours(0,0,0,0); 
                     return correctedTaskDueDate >= startOfMonth && correctedTaskDueDate <= endOfMonth && !task.completed;
                 });
             }
 
-            // Apply sorting
             const priorityOrder = { high: 1, medium: 2, low: 3 };
             if (currentSort === 'dueDate') {
                 tasksToRender.sort((a, b) => {
-                    if (!a.dueDate && !b.dueDate) return 0; // Both no due date
-                    if (!a.dueDate) return 1;  // a has no due date, sort it after b
-                    if (!b.dueDate) return -1; // b has no due date, sort it after a
-                    // Compare dates, then times if dates are the same
+                    if (!a.dueDate && !b.dueDate) return 0; 
+                    if (!a.dueDate) return 1;  
+                    if (!b.dueDate) return -1; 
                     const dateA = new Date(a.dueDate + (a.time ? `T${a.time}` : 'T00:00:00'));
                     const dateB = new Date(b.dueDate + (b.time ? `T${b.time}` : 'T00:00:00'));
                     return dateA - dateB;
                 });
             } else if (currentSort === 'priority') {
                 tasksToRender.sort((a, b) => {
-                    // Sort by priority, then by due date if priorities are the same
                     const priorityDiff = (priorityOrder[a.priority] || 4) - (priorityOrder[b.priority] || 4);
                     if (priorityDiff !== 0) return priorityDiff;
-                    // If priorities are same, sort by due date (earlier first)
                     if (!a.dueDate && !b.dueDate) return 0;
                     if (!a.dueDate) return 1;
                     if (!b.dueDate) return -1;
@@ -839,7 +837,6 @@
                     const labelB = (b.label || '').toLowerCase();
                     if (labelA < labelB) return -1;
                     if (labelA > labelB) return 1;
-                    // If labels are same, sort by due date (earlier first)
                     if (!a.dueDate && !b.dueDate) return 0;
                     if (!a.dueDate) return 1;
                     if (!b.dueDate) return -1;
@@ -857,11 +854,9 @@
                 const li = document.createElement('li');
                 li.className = `task-item flex items-start justify-between bg-slate-100 dark:bg-slate-700 p-3 sm:p-3.5 rounded-lg shadow hover:shadow-md transition-shadow duration-300 ${task.completed ? 'opacity-60' : ''} overflow-hidden`;
                 li.dataset.taskId = task.id;
-                // Clickable area for viewing details (excluding checkbox and delete button)
                 const mainContentClickableArea = document.createElement('div');
-                mainContentClickableArea.className = 'task-item-clickable-area flex items-start flex-grow min-w-0 mr-2 rounded-l-lg'; // min-w-0 prevents text overflow issues
+                mainContentClickableArea.className = 'task-item-clickable-area flex items-start flex-grow min-w-0 mr-2 rounded-l-lg'; 
                 mainContentClickableArea.addEventListener('click', (event) => {
-                    // Only open details if the click was not on the checkbox or delete button
                     if (event.target.type === 'checkbox' || event.target.closest('.delete-btn')) {
                         return;
                     }
@@ -880,7 +875,6 @@
                 span.className = `text-sm sm:text-base break-all ${textColorClass} ${task.completed ? 'completed-text' : ''}`;
                 textDetailsDiv.appendChild(span);
                 
-                // Container for badges and due date
                 const detailsContainer = document.createElement('div');
                 detailsContainer.className = 'flex items-center flex-wrap gap-x-2 gap-y-1 mt-1 sm:mt-1.5 text-xs';
 
@@ -893,7 +887,7 @@
                 if (task.label) {
                     const labelBadge = document.createElement('span');
                     labelBadge.textContent = task.label;
-                    labelBadge.className = 'label-badge'; // Custom class for label-specific styling
+                    labelBadge.className = 'label-badge'; 
                     detailsContainer.appendChild(labelBadge);
                 }
                 if (task.dueDate) { 
@@ -924,18 +918,15 @@
             updateClearCompletedButton();
         }
         
-        // Natural Language Date Parsing
         function parseDateFromText(text) {
             let parsedDate = null;
             let remainingText = text;
             const today = new Date();
-            today.setHours(0, 0, 0, 0); // Normalize to start of day
+            today.setHours(0, 0, 0, 0); 
 
             const daysOfWeek = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
             const shortDaysOfWeek = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
-            // Define patterns and their handlers
-            // Order matters: more specific patterns should come first.
             const patterns = [
                 { regex: /\b(today)\b/i, handler: () => getTodayDateString() },
                 { 
@@ -950,8 +941,7 @@
                     regex: /\b(next week)\b/i, 
                     handler: () => {
                         const nextWeek = new Date(today);
-                        // Go to Monday of next week
-                        nextWeek.setDate(today.getDate() - today.getDay() + 1 + 7); // +1 for Monday, +7 for next week
+                        nextWeek.setDate(today.getDate() - today.getDay() + 1 + 7); 
                         return nextWeek.toISOString().split('T')[0];
                     }
                 },
@@ -965,29 +955,26 @@
                 {
                     regex: /\b(next year)\b/i,
                     handler: () => {
-                        const nextYear = new Date(today.getFullYear() + 1, 0, 1); // Jan 1st of next year
+                        const nextYear = new Date(today.getFullYear() + 1, 0, 1); 
                         return nextYear.toISOString().split('T')[0];
                     }
                 },
                 { 
-                    // Matches "on Monday", "Monday", "next Monday" (treats "next Monday" as upcoming Monday)
                     regex: new RegExp(`\\b(on\\s+)?(next\\s+)?(${daysOfWeek.join('|')}|${shortDaysOfWeek.join('|')})\\b`, 'i'),
                     handler: (match) => {
-                        const dayName = match[3].toLowerCase(); // Group 3 is the day name
+                        const dayName = match[3].toLowerCase(); 
                         let targetDayIndex = daysOfWeek.indexOf(dayName);
                         if (targetDayIndex === -1) {
                             targetDayIndex = shortDaysOfWeek.indexOf(dayName);
                         }
-                        if (targetDayIndex === -1) return null; // Should not happen with regex
+                        if (targetDayIndex === -1) return null; 
 
                         const currentDayIndex = today.getDay();
                         let daysToAdd = targetDayIndex - currentDayIndex;
 
-                        // If the day is in the past this week, or it's today and "next" was specified, move to next week's instance
-                        if (daysToAdd < 0 || (daysToAdd === 0 && (match[2] || new Date().getHours() > 0 /* if it's today but past working hours assume next week */))) { 
+                        if (daysToAdd < 0 || (daysToAdd === 0 && (match[2] || new Date().getHours() > 0 ))) { 
                             daysToAdd += 7;
                         }
-                         // If it's today and 'next' wasn't specified, and it's not past typical working hours, use today
                         if (targetDayIndex === currentDayIndex && !match[2] && daysToAdd !== 7){ 
                             daysToAdd = 0;
                         }
@@ -998,9 +985,7 @@
                         return targetDate.toISOString().split('T')[0];
                     }
                 },
-                // Matches YYYY-MM-DD or YYYY/MM/DD
                 { regex: /(\d{4}[-\/]\d{1,2}[-\/]\d{1,2})/g, handler: (match) => match[0].replace(/\//g, '-') }, 
-                // Matches MM/DD/YYYY or MM-DD-YYYY (assumes current century for YY)
                 { regex: /(\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})/g, handler: (match) => { 
                     const parts = match[0].replace(/-/g, '/').split('/');
                     const year = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
@@ -1014,13 +999,11 @@
                 const match = pattern.regex.exec(remainingText);
                 if (match) {
                     const potentialDate = pattern.handler(match);
-                    // Validate if the handler returned a valid date string format
                     if (potentialDate && !isNaN(new Date(potentialDate).getTime())) {
                         parsedDate = potentialDate;
                         const matchedString = match[0];
-                        // Remove the matched date string and any surrounding "for", "on", "by", "due" prepositions
                         remainingText = remainingText.replace(new RegExp(`\\b(for|on|by|due)?\\s*${matchedString.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*`, 'i'), '').replace(/\s\s+/g, ' ').trim();
-                        break; // Found a date, stop processing
+                        break; 
                     }
                 }
             }
@@ -1046,15 +1029,14 @@
             let finalDueDate = null;
             let finalTaskText = rawTaskText;
 
-            // Try to parse date from description ONLY if no explicit due date is set
             if (!explicitDueDate) {
                 const { parsedDate: dateFromDescription, remainingText: textAfterDateRemoval } = parseDateFromText(rawTaskText);
                 if (dateFromDescription) {
                     finalDueDate = dateFromDescription;
-                    finalTaskText = textAfterDateRemoval || rawTaskText; // Use remaining text or original if empty
+                    finalTaskText = textAfterDateRemoval || rawTaskText; 
                 }
             } else {
-                finalDueDate = explicitDueDate; // Use explicitly set due date
+                finalDueDate = explicitDueDate; 
             }
 
             const newTask = { 
@@ -1067,13 +1049,11 @@
                 label: label || '', 
                 notes: notes || '' 
             };
-            tasks.unshift(newTask); // Add to the beginning of the array
+            tasks.unshift(newTask); 
             saveTasks(); 
-            // Smartly update view: if a date filter is active and new task matches, keep filter.
-            // If 'completed' filter is active, switch to 'all' to show the new (active) task.
             if (currentFilter.startsWith('due') && finalDueDate) { setFilter(currentFilter); }
             else if (currentFilter === 'completed') { setFilter('all'); }
-            else { renderTasks(); } // Otherwise, just re-render with current filter
+            else { renderTasks(); } 
             closeAddModal(); 
             showMessage('Task added successfully!', 'success');
         }
@@ -1108,12 +1088,12 @@
             tasks = tasks.filter(task => task.id !== taskId); 
             saveTasks(); 
             renderTasks(); 
-            showMessage('Task deleted.', 'error'); // Using 'error' style for deletion message
+            showMessage('Task deleted.', 'error'); 
         }
 
         function setFilter(filter) { 
             currentFilter = filter; 
-            currentSort = 'default'; // Reset sort when filter changes
+            currentSort = 'default'; 
             updateSortButtonStates();
             filterButtons.forEach(button => { const isActive = button.dataset.filter === filter; button.setAttribute('data-active', isActive.toString()); const baseInactive = ['bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600']; const iconInactive = ['text-slate-500', 'dark:text-slate-400']; const active = ['bg-sky-500', 'text-white', 'font-semibold']; const iconActive = ['text-sky-100']; button.classList.remove(...baseInactive, ...active); button.querySelector('i')?.classList.remove(...iconInactive, ...iconActive); if (isActive) { button.classList.add(...active); button.querySelector('i')?.classList.add(...iconActive); } else { button.classList.add(...baseInactive); button.querySelector('i')?.classList.add(...iconInactive); } }); renderTasks(); 
         }
@@ -1133,44 +1113,44 @@
         modalTodoFormAdd.addEventListener('submit', handleAddTask); 
         addTaskModal.addEventListener('click', (event) => { if (event.target === addTaskModal) closeAddModal(); }); 
 
-        // View/Edit Modal Listeners
         closeViewEditModalBtn.addEventListener('click', closeViewEditModal);
         cancelViewEditModalBtn.addEventListener('click', closeViewEditModal);
         modalTodoFormViewEdit.addEventListener('submit', handleEditTask);
         viewEditTaskModal.addEventListener('click', (event) => { if (event.target === viewEditTaskModal) closeViewEditModal(); });
 
-        // View Task Details Modal Listeners
         closeViewDetailsModalBtn.addEventListener('click', closeViewTaskDetailsModal);
         closeViewDetailsSecondaryBtn.addEventListener('click', closeViewTaskDetailsModal);
         editFromViewModalBtn.addEventListener('click', () => {
             if (currentViewTaskId !== null) {
-                closeViewTaskDetailsModal(); // Close details modal first
-                openViewEditModal(currentViewTaskId); // Then open edit modal for the same task
+                closeViewTaskDetailsModal(); 
+                openViewEditModal(currentViewTaskId); 
             }
         });
         viewTaskDetailsModal.addEventListener('click', (event) => { if (event.target === viewTaskDetailsModal) closeViewTaskDetailsModal(); });
 
-        // Manage Labels Modal Listeners
         if (manageLabelsBtn) manageLabelsBtn.addEventListener('click', openManageLabelsModal);
         if (closeManageLabelsModalBtn) closeManageLabelsModalBtn.addEventListener('click', closeManageLabelsModal);
         if (closeManageLabelsSecondaryBtn) closeManageLabelsSecondaryBtn.addEventListener('click', closeManageLabelsModal);
         if (addNewLabelForm) addNewLabelForm.addEventListener('submit', handleAddNewLabel);
         if (manageLabelsModal) manageLabelsModal.addEventListener('click', (event) => { if (event.target === manageLabelsModal) closeManageLabelsModal(); });
+        // Event listener for the new Reminders button (placeholder)
+        if (manageRemindersBtn) {
+            manageRemindersBtn.addEventListener('click', () => {
+                showMessage('Reminders feature coming soon!', 'success'); // Placeholder action
+            });
+        }
 
 
         filterButtons.forEach(button => button.addEventListener('click', () => setFilter(button.dataset.filter)));
         clearCompletedBtn.addEventListener('click', clearCompletedTasks);
 
-        // Sidebar Toggle Listener
         if (sidebarToggleBtn) {
             sidebarToggleBtn.addEventListener('click', () => {
-                // Check based on a class that's definitely unique to minimized state
                 const isCurrentlyMinimized = taskSidebar.classList.contains('sidebar-minimized');
                 setSidebarMinimized(!isCurrentlyMinimized);
             });
         }
         
-        // Sort Button Listeners
         sortByDueDateBtn.addEventListener('click', () => {
             currentSort = currentSort === 'dueDate' ? 'default' : 'dueDate';
             updateSortButtonStates();
@@ -1198,12 +1178,10 @@
             const isAnyModalOpen = isAddModalOpen || isViewEditModalOpen || isViewDetailsModalOpen || isManageLabelsModalOpen;
             const isInputFocused = document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT' || document.activeElement.tagName === 'TEXTAREA';
 
-            // '+' key to open Add Task Modal (if no modal is open and no input is focused)
             if ((event.key === '+' || event.key === '=') && !isAnyModalOpen && !isInputFocused) {
-                event.preventDefault(); // Prevent typing '+' in any other input field by mistake
+                event.preventDefault(); 
                 openAddModal(); 
             }
-            // 'Escape' key to close any open modal
             if (event.key === 'Escape') {
                 if (isAddModalOpen) closeAddModal(); 
                 if (isViewEditModalOpen) closeViewEditModal();
@@ -1213,28 +1191,25 @@
         });
 
         // --- Initial Setup ---
-        updateUniqueLabels(); // Initialize unique labels from loaded tasks
-        // Set initial styles for filter buttons (all inactive)
+        updateUniqueLabels(); 
         filterButtons.forEach(button => { button.classList.add('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600'); button.querySelector('i')?.classList.add('text-slate-500', 'dark:text-slate-400'); });
         
-        // Restore sidebar state from localStorage
         const savedSidebarState = localStorage.getItem('sidebarState');
         if (savedSidebarState === 'minimized') {
             setSidebarMinimized(true);
         } else {
-            setSidebarMinimized(false); // Default to expanded
+            setSidebarMinimized(false); 
         }
         
-        setFilter('all'); // Set initial filter and render tasks
+        setFilter('all'); 
         window.onload = () => { 
-            // Re-apply filter and sidebar state on load, in case of race conditions or complex init
             setFilter(currentFilter); 
              if (localStorage.getItem('sidebarState') === 'minimized') {
                 setSidebarMinimized(true);
             } else {
                 setSidebarMinimized(false);
             }
-            updateSortButtonStates(); // Ensure sort buttons reflect currentSort
+            updateSortButtonStates(); 
         };
     </script>
 </body>
