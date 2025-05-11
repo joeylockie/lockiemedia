@@ -17,7 +17,8 @@ let featureFlags = {
     userAccounts: false,
     collaborationSharing: false,
     crossDeviceSync: false,
-    tooltipsGuide: false
+    tooltipsGuide: false,
+    subTasksFeature: false // Added subTasksFeature flag
 };
 let currentTaskTimerInterval = null;
 let tooltipTimeout = null; // Though used by UI, it's a simple state variable
@@ -45,6 +46,10 @@ async function loadFeatureFlags() {
         const response = await fetch('features.json?cachebust=' + new Date().getTime());
         if (!response.ok) {
             console.warn('Failed to load features.json, using default flags. Status:', response.status);
+            // Ensure subTasksFeature default is applied if not in fetched flags
+            if (typeof featureFlags.subTasksFeature === 'undefined') {
+                featureFlags.subTasksFeature = false; // Default from the object
+            }
             return;
         }
         const fetchedFlags = await response.json();
@@ -52,6 +57,10 @@ async function loadFeatureFlags() {
         console.log('Feature flags loaded successfully:', featureFlags);
     } catch (error) {
         console.error('Error loading or parsing features.json, using default flags:', error);
+        // Ensure subTasksFeature default is applied on error
+        if (typeof featureFlags.subTasksFeature === 'undefined') {
+            featureFlags.subTasksFeature = false; // Default from the object
+        }
     }
 }
 // applyActiveFeatures will be in ui_interactions.js as it directly manipulates many DOM elements
@@ -126,7 +135,8 @@ function initializeTasks() {
         timerIsPaused: task.timerIsPaused || false,
         actualDurationMs: task.actualDurationMs || 0,
         attachments: task.attachments || [],
-        completedDate: task.completedDate || null
+        completedDate: task.completedDate || null,
+        subTasks: task.subTasks || [] // Initialize subTasks array
     }));
 }
 
@@ -219,6 +229,60 @@ function parseDateFromText(text) {
 // For a cleaner split, ui_interactions.js will get the form values and then call simpler functions here.
 // For now, leaving them in ui_interactions.js for simplicity of this split.
 
+// --- Sub-task Logic ---
+function addSubTaskLogic(parentId, subTaskText) {
+    if (!featureFlags.subTasksFeature || !parentId || !subTaskText.trim()) return false;
+    const parentTaskIndex = tasks.findIndex(t => t.id === parentId);
+    if (parentTaskIndex === -1) return false;
+
+    const newSubTask = {
+        id: Date.now(),
+        text: subTaskText.trim(),
+        completed: false,
+        creationDate: Date.now()
+    };
+    tasks[parentTaskIndex].subTasks.push(newSubTask);
+    saveTasks();
+    return true;
+}
+
+function editSubTaskLogic(parentId, subTaskId, newText) {
+    if (!featureFlags.subTasksFeature || !parentId || !subTaskId || !newText.trim()) return false;
+    const parentTaskIndex = tasks.findIndex(t => t.id === parentId);
+    if (parentTaskIndex === -1) return false;
+
+    const subTaskIndex = tasks[parentTaskIndex].subTasks.findIndex(st => st.id === subTaskId);
+    if (subTaskIndex === -1) return false;
+
+    tasks[parentTaskIndex].subTasks[subTaskIndex].text = newText.trim();
+    saveTasks();
+    return true;
+}
+
+function toggleSubTaskCompleteLogic(parentId, subTaskId) {
+    if (!featureFlags.subTasksFeature || !parentId || !subTaskId) return false;
+    const parentTaskIndex = tasks.findIndex(t => t.id === parentId);
+    if (parentTaskIndex === -1) return false;
+
+    const subTaskIndex = tasks[parentTaskIndex].subTasks.findIndex(st => st.id === subTaskId);
+    if (subTaskIndex === -1) return false;
+
+    tasks[parentTaskIndex].subTasks[subTaskIndex].completed = !tasks[parentTaskIndex].subTasks[subTaskIndex].completed;
+    saveTasks();
+    return true;
+}
+
+function deleteSubTaskLogic(parentId, subTaskId) {
+    if (!featureFlags.subTasksFeature || !parentId || !subTaskId) return false;
+    const parentTaskIndex = tasks.findIndex(t => t.id === parentId);
+    if (parentTaskIndex === -1) return false;
+
+    tasks[parentTaskIndex].subTasks = tasks[parentTaskIndex].subTasks.filter(st => st.id !== subTaskId);
+    saveTasks();
+    return true;
+}
+
+
 // --- Timer Logic --- (excluding UI update)
 function updateLiveTimerDisplay(taskId) { // This is a bit of a hybrid, updates state and could be called by UI
     if (!featureFlags.taskTimerSystem) return;
@@ -277,6 +341,8 @@ function stopTimerLogic(taskId) {
     task.timerIsRunning = false;
     task.timerIsPaused = false;
     task.timerStartTime = null;
+    // Save tasks is called here because this function might be called independently
+    // and needs to persist the final timer state.
     saveTasks();
     return true;
 }
