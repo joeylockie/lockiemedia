@@ -210,6 +210,15 @@
                     </div>
                 </div>
 
+                <div id="subTasksSectionViewEdit" class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 sub-tasks-feature-element">
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Sub-tasks</label>
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="modalSubTaskInputViewEdit" placeholder="Add a sub-task..." class="flex-grow p-2.5 border-2 bg-white text-slate-900 placeholder-slate-400 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-400 dark:border-slate-600">
+                        <button type="button" id="modalAddSubTaskBtnViewEdit" class="px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors font-medium text-sm">Add</button>
+                    </div>
+                    <ul id="modalSubTasksListViewEdit" class="space-y-2 max-h-40 overflow-y-auto">
+                        </ul>
+                </div>
                 <div class="mt-4">
                     <label for="modalNotesInputViewEdit" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Notes</label>
                     <textarea id="modalNotesInputViewEdit" placeholder="Add any relevant notes..." rows="3" class="w-full p-3 border-2 bg-white text-slate-900 placeholder-slate-400 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-shadow duration-300 dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-400 dark:border-slate-600"></textarea>
@@ -288,6 +297,16 @@
                     <strong class="view-details-heading block mb-0.5">Label:</strong>
                     <p id="viewTaskLabel" class="capitalize"></p>
                 </div>
+
+                <div id="subTasksSectionViewDetails" class="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 sub-tasks-feature-element">
+                    <div class="flex justify-between items-center mb-1">
+                        <strong class="view-details-heading">Sub-tasks:</strong>
+                        <span id="viewSubTaskProgress" class="text-xs text-slate-500 dark:text-slate-400"></span>
+                    </div>
+                    <ul id="modalSubTasksListViewDetails" class="space-y-1.5 max-h-32 overflow-y-auto text-sm">
+                        </ul>
+                    <p id="noSubTasksMessageViewDetails" class="text-slate-500 dark:text-slate-400 text-xs hidden">No sub-tasks added.</p>
+                </div>
                 <div>
                     <strong class="view-details-heading block mb-0.5">Notes:</strong>
                     <p id="viewTaskNotes" class="mt-1 break-all whitespace-pre-wrap"></p>
@@ -317,7 +336,8 @@
             </div>
             <div class="mt-6 flex justify-end gap-3">
                 <button type="button" id="editFromViewModalBtn" class="px-5 py-2.5 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors font-semibold">Edit Task</button>
-                <button type="button" id="deleteFromViewModalBtn" class="px-5 py-2.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-semibold">Delete Task</button> <button type="button" id="closeViewDetailsSecondaryBtn" class="px-5 py-2.5 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500 transition-colors font-medium">Close</button>
+                <button type="button" id="deleteFromViewModalBtn" class="px-5 py-2.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-semibold">Delete Task</button>
+                <button type="button" id="closeViewDetailsSecondaryBtn" class="px-5 py-2.5 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500 transition-colors font-medium">Close</button>
             </div>
         </div>
     </div>
@@ -372,7 +392,6 @@
         </div>
     </div>
 
-
     <div id="manageLabelsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-opacity-70 overflow-y-auto h-full w-full flex items-center justify-center hidden z-[170]">
         <div class="relative mx-auto p-5 sm:p-6 border w-full max-w-md shadow-xl rounded-xl bg-white dark:bg-slate-800 transform transition-all duration-300 ease-in-out scale-95 opacity-0" id="modalDialogManageLabels">
             <div class="flex justify-between items-center pb-3 mb-4 border-b border-slate-200 dark:border-slate-700">
@@ -393,7 +412,7 @@
         </div>
     </div>
 
-  <div id="settingsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-opacity-70 overflow-y-auto h-full w-full flex items-center justify-center hidden z-[180]">
+    <div id="settingsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-opacity-70 overflow-y-auto h-full w-full flex items-center justify-center hidden z-[180]">
         <div class="relative mx-auto p-5 sm:p-6 border w-full max-w-md shadow-xl rounded-xl bg-white dark:bg-slate-800 transform transition-all duration-300 ease-in-out scale-95 opacity-0" id="modalDialogSettings">
             <div class="flex justify-between items-center pb-3 mb-4 border-b border-slate-200 dark:border-slate-700">
                 <h3 class="text-2xl font-semibold text-slate-800 dark:text-slate-100">Settings</h3>
@@ -436,6 +455,7 @@
             </div>
         </div>
     </div>
+
     <div id="featureFlagsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-opacity-70 overflow-y-auto h-full w-full flex items-center justify-center hidden z-[190]">
         <div class="relative mx-auto p-5 sm:p-6 border w-full max-w-md shadow-xl rounded-xl bg-white dark:bg-slate-800 transform transition-all duration-300 ease-in-out scale-95 opacity-0" id="modalDialogFeatureFlags">
             <div class="flex justify-between items-center pb-3 mb-4 border-b border-slate-200 dark:border-slate-700">
