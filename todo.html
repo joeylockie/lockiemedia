@@ -137,6 +137,17 @@
             width: 1.25rem; /* w-5 */
             text-align: center;
         }
+        .settings-modal-button.disabled-feature-button {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background-color: #e5e7eb; /* gray-200 */
+            color: #6b7280; /* gray-500 */
+        }
+        .dark .settings-modal-button.disabled-feature-button {
+            background-color: #4b5563; /* gray-600 */
+            color: #9ca3af; /* gray-400 */
+        }
+
 
         /* Styling for feature flag items */
         .feature-flag-item {
@@ -160,11 +171,16 @@
             color: #d1d5db; /* gray-300 */
         }
 
-        /* UI elements related to the reminder feature (can be hidden by feature flag) */
-        .reminder-feature-element { display: block; } /* Default, JS hides if feature off */
-        
-        /* Task Timer System elements (can be hidden by feature flag) */
-        .task-timer-system-element { display: block; } /* Default, JS hides if feature off */
+        /* UI elements related to features (can be hidden by feature flag) */
+        .reminder-feature-element,
+        .task-timer-system-element,
+        .advanced-recurrence-element, /* New */
+        .file-attachments-element, /* New */
+        .integrations-services-element, /* New */
+        .user-accounts-element, /* New */
+        .collaboration-sharing-element, /* New */
+        .cross-device-sync-element /* New */
+        { display: block; } /* Default, JS hides if feature off */
 
 
         /* Toggle Switch Styles */
@@ -215,6 +231,19 @@
         }
         .dark .toggle-checkbox:checked + .toggle-label::after {
             background-color: white !important;
+        }
+
+        /* Placeholder for file input */
+        .file-input-placeholder {
+            border: 2px dashed #cbd5e1; /* border-slate-300 */
+            padding: 1rem;
+            text-align: center;
+            border-radius: 0.375rem; /* rounded-md */
+            color: #64748b; /* slate-500 */
+        }
+        .dark .file-input-placeholder {
+            border-color: #475569; /* slate-600 */
+            color: #94a3b8; /* slate-400 */
         }
     </style>
     <script>
@@ -276,6 +305,14 @@
                         <option value="high">High</option>
                     </select>
                 </div>
+
+                <div class="mt-4 advanced-recurrence-element">
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Recurrence (Coming Soon)</label>
+                    <div class="p-3 bg-slate-100 dark:bg-slate-700 rounded-lg text-slate-500 dark:text-slate-400 text-center">
+                        Advanced scheduling options will appear here.
+                    </div>
+                </div>
+
                 <div class="mt-4">
                     <label for="modalLabelInputAdd" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Label (e.g., Work, Personal)</label>
                     <input type="text" id="modalLabelInputAdd" list="existingLabels" placeholder="Type or select a label" class="w-full p-3 border-2 bg-white text-slate-900 placeholder-slate-400 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-shadow duration-300 dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-400 dark:border-slate-600">
@@ -305,6 +342,14 @@
                         <input type="email" id="modalReminderEmailAdd" placeholder="Enter email for reminder" class="w-full p-3 border-2 bg-white text-slate-900 placeholder-slate-400 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-shadow duration-300 dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-400 dark:border-slate-600">
                     </div>
                 </div>
+
+                <div class="mt-4 file-attachments-element">
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Attachments (Coming Soon)</label>
+                    <div class="file-input-placeholder">
+                        <i class="fas fa-paperclip mr-2"></i> Click or drag files to attach.
+                    </div>
+                </div>
+
                 <div class="mt-4">
                     <label for="modalNotesInputAdd" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Notes</label>
                     <textarea id="modalNotesInputAdd" placeholder="Add any relevant notes..." rows="3" class="w-full p-3 border-2 bg-white text-slate-900 placeholder-slate-400 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-shadow duration-300 dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-400 dark:border-slate-600"></textarea>
@@ -359,6 +404,14 @@
                         <option value="high">High</option>
                     </select>
                 </div>
+
+                <div class="mt-4 advanced-recurrence-element">
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Recurrence (Coming Soon)</label>
+                    <div class="p-3 bg-slate-100 dark:bg-slate-700 rounded-lg text-slate-500 dark:text-slate-400 text-center">
+                        Advanced scheduling options will appear here.
+                    </div>
+                </div>
+
                 <div class="mt-4">
                     <label for="modalLabelInputViewEdit" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Label</label>
                     <input type="text" id="modalLabelInputViewEdit" list="existingLabelsEdit" placeholder="Type or select a label" class="w-full p-3 border-2 bg-white text-slate-900 placeholder-slate-400 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-shadow duration-300 dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-400 dark:border-slate-600">
@@ -388,6 +441,15 @@
                         <input type="email" id="modalReminderEmailViewEdit" placeholder="Enter email for reminder" class="w-full p-3 border-2 bg-white text-slate-900 placeholder-slate-400 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-shadow duration-300 dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-400 dark:border-slate-600">
                     </div>
                 </div>
+
+                <div class="mt-4 file-attachments-element">
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Attachments (Coming Soon)</label>
+                    <div class="file-input-placeholder">
+                        <i class="fas fa-paperclip mr-2"></i> Click or drag files to attach.
+                        <div id="existingAttachmentsViewEdit" class="mt-2 text-xs"></div>
+                    </div>
+                </div>
+
                 <div class="mt-4">
                     <label for="modalNotesInputViewEdit" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Notes</label>
                     <textarea id="modalNotesInputViewEdit" placeholder="Add any relevant notes..." rows="3" class="w-full p-3 border-2 bg-white text-slate-900 placeholder-slate-400 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-shadow duration-300 dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-400 dark:border-slate-600"></textarea>
@@ -444,7 +506,15 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+                <div id="viewTaskAttachmentsSection" class="mt-3 border-t border-slate-200 dark:border-slate-700 pt-3 file-attachments-element">
+                    <strong class="view-details-heading block mb-1">Attachments (Coming Soon):</strong>
+                    <div id="viewTaskAttachmentsList" class="text-slate-500 dark:text-slate-400">
+                        Attached files will be listed here.
+                    </div>
+                </div>
+
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
                     <div>
                         <strong class="view-details-heading block mb-0.5">Priority:</strong>
                         <p id="viewTaskPriority" class="capitalize"></p>
@@ -549,6 +619,20 @@
                 <button id="settingsManageRemindersBtn" type="button" class="settings-modal-button bg-teal-50 hover:bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:hover:bg-teal-800/70 dark:text-teal-300 reminder-feature-element">
                     <i class="fas fa-bell"></i> Manage Reminders
                 </button>
+
+                <button id="settingsIntegrationsBtn" type="button" class="settings-modal-button bg-orange-50 hover:bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:hover:bg-orange-800/70 dark:text-orange-300 integrations-services-element">
+                    <i class="fas fa-cogs"></i> Integrations (Soon)
+                </button>
+                <button id="settingsUserAccountsBtn" type="button" class="settings-modal-button bg-lime-50 hover:bg-lime-100 text-lime-700 dark:bg-lime-900/50 dark:hover:bg-lime-800/70 dark:text-lime-300 user-accounts-element">
+                    <i class="fas fa-users"></i> User Accounts (Soon)
+                </button>
+                <button id="settingsCollaborationBtn" type="button" class="settings-modal-button bg-fuchsia-50 hover:bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/50 dark:hover:bg-fuchsia-800/70 dark:text-fuchsia-300 collaboration-sharing-element">
+                    <i class="fas fa-share-alt"></i> Collaboration (Soon)
+                </button>
+                <button id="settingsSyncBackupBtn" type="button" class="settings-modal-button bg-sky-50 hover:bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:hover:bg-sky-800/70 dark:text-sky-300 cross-device-sync-element">
+                    <i class="fas fa-sync-alt"></i> Sync & Backup (Soon)
+                </button>
+
                 <button id="settingsFeatureFlagsBtn" type="button" class="settings-modal-button bg-purple-50 hover:bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:hover:bg-purple-800/70 dark:text-purple-300">
                     <i class="fas fa-flag"></i> Manage Feature Flags
                 </button>
@@ -740,6 +824,7 @@
         const modalReminderDateViewEdit = document.getElementById('modalReminderDateViewEdit');
         const modalReminderTimeViewEdit = document.getElementById('modalReminderTimeViewEdit');
         const modalReminderEmailViewEdit = document.getElementById('modalReminderEmailViewEdit');
+        const existingAttachmentsViewEdit = document.getElementById('existingAttachmentsViewEdit'); // For Edit Modal Attachments
 
         // View Task Details Modal elements
         const viewTaskDetailsModal = document.getElementById('viewTaskDetailsModal');
@@ -761,6 +846,9 @@
         const viewTaskReminderDate = document.getElementById('viewTaskReminderDate');
         const viewTaskReminderTime = document.getElementById('viewTaskReminderTime');
         const viewTaskReminderEmail = document.getElementById('viewTaskReminderEmail');
+        const viewTaskAttachmentsSection = document.getElementById('viewTaskAttachmentsSection'); // New
+        const viewTaskAttachmentsList = document.getElementById('viewTaskAttachmentsList'); // New
+
 
         // Timer elements in View Task Details Modal
         const taskTimerSection = document.getElementById('taskTimerSection'); // Container for timer related UI
@@ -790,10 +878,16 @@
         const settingsClearCompletedBtn = document.getElementById('settingsClearCompletedBtn');
         const settingsManageLabelsBtn = document.getElementById('settingsManageLabelsBtn');
         const settingsManageRemindersBtn = document.getElementById('settingsManageRemindersBtn');
+        const settingsTaskReviewBtn = document.getElementById('settingsTaskReviewBtn');
         const settingsFeatureFlagsBtn = document.getElementById('settingsFeatureFlagsBtn');
-        const settingsTaskReviewBtn = document.getElementById('settingsTaskReviewBtn'); // New button
+        // New Settings Buttons for Placeholder Features
+        const settingsIntegrationsBtn = document.getElementById('settingsIntegrationsBtn');
+        const settingsUserAccountsBtn = document.getElementById('settingsUserAccountsBtn');
+        const settingsCollaborationBtn = document.getElementById('settingsCollaborationBtn');
+        const settingsSyncBackupBtn = document.getElementById('settingsSyncBackupBtn');
 
-        // Task Review Modal elements (New)
+
+        // Task Review Modal elements
         const taskReviewModal = document.getElementById('taskReviewModal');
         const modalDialogTaskReview = document.getElementById('modalDialogTaskReview');
         const closeTaskReviewModalBtn = document.getElementById('closeTaskReviewModalBtn');
@@ -825,7 +919,13 @@
         let featureFlags = JSON.parse(localStorage.getItem('featureFlags_v1')) || {
             testButtonFeature: false,
             reminderFeature: false,
-            taskTimerSystem: false // New feature flag
+            taskTimerSystem: false,
+            advancedRecurrence: false, // New
+            fileAttachments: false,    // New
+            integrationsServices: false, // New
+            userAccounts: false,         // New
+            collaborationSharing: false, // New
+            crossDeviceSync: false      // New
         };
         let currentTaskTimerInterval = null; // Holds setInterval ID for the timer
 
@@ -999,6 +1099,11 @@
             modalLabelInputViewEdit.value = task.label || '';
             populateDatalist(existingLabelsEditDatalist);
             modalNotesInputViewEdit.value = task.notes || '';
+            // Placeholder for existing attachments in edit view (if feature becomes functional)
+             if (featureFlags.fileAttachments && existingAttachmentsViewEdit) {
+                existingAttachmentsViewEdit.textContent = task.attachments && task.attachments.length > 0 ? `${task.attachments.length} file(s) attached (management UI coming soon)` : 'No files attached yet.';
+            }
+
 
             // Populate reminder fields if reminder feature is active
             if (featureFlags.reminderFeature) {
@@ -1087,6 +1192,7 @@
             viewTaskText.textContent = task.text;
             viewTaskDueDate.textContent = task.dueDate ? formatDate(task.dueDate) : 'Not set';
             viewTaskTime.textContent = task.time ? formatTime(task.time) : 'Not set';
+
             if (featureFlags.taskTimerSystem) {
                 viewTaskEstDuration.textContent = formatDuration(task.estimatedHours, task.estimatedMinutes);
                 // Timer display and buttons setup
@@ -1103,6 +1209,11 @@
                 } else { // Default display if timer not used
                     viewTaskTimerDisplay.textContent = "00:00:00";
                 }
+            }
+
+            // Placeholder for viewing attachments
+            if (featureFlags.fileAttachments && viewTaskAttachmentsList) {
+                 viewTaskAttachmentsList.textContent = task.attachments && task.attachments.length > 0 ? `Contains ${task.attachments.length} attachment(s) (viewing UI coming soon).` : 'No attachments.';
             }
 
 
@@ -1384,7 +1495,7 @@
                 modalDialogSettings.classList.remove('scale-95', 'opacity-0');
                 modalDialogSettings.classList.add('scale-100', 'opacity-100');
             }, 10);
-            applyActiveFeatures();
+            applyActiveFeatures(); // Ensure button visibility is correct based on flags
         }
 
         function closeSettingsModal() {
@@ -1395,7 +1506,7 @@
             }, 200);
         }
 
-        // --- Modal Functions (Task Review - New) ---
+        // --- Modal Functions (Task Review) ---
         function openTaskReviewModal() {
             if (!featureFlags.taskTimerSystem) {
                 showMessage("Task Timer System feature is currently disabled. Enable it in Feature Flags to use Task Review.", "error");
@@ -1461,6 +1572,7 @@
                 modalDialogFeatureFlags.classList.add('scale-100', 'opacity-100');
             }, 10);
         }
+
         function closeFeatureFlagsModal() {
             modalDialogFeatureFlags.classList.add('scale-95', 'opacity-0');
             modalDialogFeatureFlags.classList.remove('scale-100', 'opacity-100');
@@ -1475,7 +1587,13 @@
             const flagDisplayNames = {
                 testButtonFeature: "Test Button Feature",
                 reminderFeature: "Reminder System",
-                taskTimerSystem: "Task Timer & Review System" // New feature flag
+                taskTimerSystem: "Task Timer & Review System",
+                advancedRecurrence: "Advanced Recurring Tasks", // New
+                fileAttachments: "File Attachments to Tasks",   // New
+                integrationsServices: "Integrations with Other Services", // New
+                userAccounts: "User Accounts & Authentication", // New
+                collaborationSharing: "Collaboration & Sharing Lists", // New
+                crossDeviceSync: "Cross-Device Sync & Cloud Backup" // New
             };
 
             Object.keys(featureFlags).forEach(flagKey => {
@@ -1525,7 +1643,13 @@
             const flagDisplayNames = {
                 testButtonFeature: "Test Button Feature",
                 reminderFeature: "Reminder System",
-                taskTimerSystem: "Task Timer & Review System"
+                taskTimerSystem: "Task Timer & Review System",
+                advancedRecurrence: "Advanced Recurring Tasks",
+                fileAttachments: "File Attachments to Tasks",
+                integrationsServices: "Integrations with Other Services",
+                userAccounts: "User Accounts & Authentication",
+                collaborationSharing: "Collaboration & Sharing Lists",
+                crossDeviceSync: "Cross-Device Sync & Cloud Backup"
             };
             const displayName = flagDisplayNames[flagName] || flagName.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
             showMessage(`Feature "${displayName}" ${isEnabled ? 'enabled' : 'disabled'}.`, 'success');
@@ -1541,18 +1665,24 @@
             if (storedFlags) {
                 featureFlags = JSON.parse(storedFlags);
             }
-            // Ensure default values for flags if they don't exist in storage
-            if (typeof featureFlags.testButtonFeature === 'undefined') {
-                featureFlags.testButtonFeature = false;
-                updated = true;
-            }
-            if (typeof featureFlags.reminderFeature === 'undefined') {
-                featureFlags.reminderFeature = false;
-                updated = true;
-            }
-            if (typeof featureFlags.taskTimerSystem === 'undefined') { // Check for the new flag
-                featureFlags.taskTimerSystem = false; // Default to off
-                updated = true;
+            // Ensure default values for ALL flags if they don't exist in storage
+            const defaultFlags = {
+                testButtonFeature: false,
+                reminderFeature: false,
+                taskTimerSystem: false,
+                advancedRecurrence: false,
+                fileAttachments: false,
+                integrationsServices: false,
+                userAccounts: false,
+                collaborationSharing: false,
+                crossDeviceSync: false
+            };
+
+            for (const flagKey in defaultFlags) {
+                if (typeof featureFlags[flagKey] === 'undefined') {
+                    featureFlags[flagKey] = defaultFlags[flagKey];
+                    updated = true;
+                }
             }
 
             if (updated) {
@@ -1562,53 +1692,49 @@
 
         // Applies UI changes based on the current state of feature flags
         function applyActiveFeatures() {
-            // Test Button Feature
-            if (testFeatureButtonContainer && testFeatureButton) {
-                testFeatureButtonContainer.classList.toggle('hidden', !featureFlags.testButtonFeature);
-                const textSpan = testFeatureButton.querySelector('.sidebar-text-content');
-                if (textSpan) {
-                    // Hide text if sidebar is minimized and feature is on
-                    textSpan.classList.toggle('hidden', taskSidebar.classList.contains('sidebar-minimized') && featureFlags.testButtonFeature);
-                }
-            }
+            // Helper function to toggle multiple elements
+            const toggleElements = (selector, isEnabled) => {
+                document.querySelectorAll(selector).forEach(el => el.classList.toggle('hidden', !isEnabled));
+            };
 
-            // Reminder Feature Elements
-            const reminderFeatureElements = document.querySelectorAll('.reminder-feature-element');
-            reminderFeatureElements.forEach(el => {
-                el.classList.toggle('hidden', !featureFlags.reminderFeature);
-            });
-
-            // Task Timer System Elements (New)
-            const taskTimerSystemElements = document.querySelectorAll('.task-timer-system-element');
-            taskTimerSystemElements.forEach(el => {
-                el.classList.toggle('hidden', !featureFlags.taskTimerSystem);
-            });
+            // Toggle visibility for each feature
+            toggleElements('.test-button-feature-element', featureFlags.testButtonFeature); // Assuming test button also gets a class
+            if (testFeatureButtonContainer) testFeatureButtonContainer.classList.toggle('hidden', !featureFlags.testButtonFeature); // Specific for sidebar button
+            toggleElements('.reminder-feature-element', featureFlags.reminderFeature);
+            toggleElements('.task-timer-system-element', featureFlags.taskTimerSystem);
+            toggleElements('.advanced-recurrence-element', featureFlags.advancedRecurrence);
+            toggleElements('.file-attachments-element', featureFlags.fileAttachments);
+            toggleElements('.integrations-services-element', featureFlags.integrationsServices);
+            toggleElements('.user-accounts-element', featureFlags.userAccounts);
+            toggleElements('.collaboration-sharing-element', featureFlags.collaborationSharing);
+            toggleElements('.cross-device-sync-element', featureFlags.crossDeviceSync);
 
 
-            // Specific handling for reminder options within modals
-            if (!featureFlags.reminderFeature) {
-                if (reminderOptionsAdd) reminderOptionsAdd.classList.add('hidden');
-                if (reminderOptionsViewEdit) reminderOptionsViewEdit.classList.add('hidden');
-            } else {
-                // Only adjust visibility if the respective modal is open
+            // Specific handling for reminder options within modals (if reminder feature is on)
+            if (featureFlags.reminderFeature) {
                 if (modalRemindMeAdd && addTaskModal && !addTaskModal.classList.contains('hidden')) {
                     reminderOptionsAdd.classList.toggle('hidden', !modalRemindMeAdd.checked);
                 }
                 if (modalRemindMeViewEdit && viewEditTaskModal && !viewEditTaskModal.classList.contains('hidden')) {
                     reminderOptionsViewEdit.classList.toggle('hidden', !modalRemindMeViewEdit.checked);
                 }
+            } else { // Hide options if main reminder feature is off
+                 if (reminderOptionsAdd) reminderOptionsAdd.classList.add('hidden');
+                 if (reminderOptionsViewEdit) reminderOptionsViewEdit.classList.add('hidden');
             }
 
-            // Re-render tasks if a feature affecting their display changes (e.g., timer info)
-            // This is a broad approach; could be refined if performance issues arise.
+            // Update visibility of settings buttons related to features
+            if (settingsTaskReviewBtn) settingsTaskReviewBtn.classList.toggle('hidden', !featureFlags.taskTimerSystem);
+            // For new non-functional features, just hide/show button. If they were to be disabled:
+            // settingsIntegrationsBtn.classList.toggle('disabled-feature-button', !featureFlags.integrationsServices);
+            // etc. for others if a "disabled" visual state is preferred over hiding. For now, hiding them.
+
+
+            // Re-render tasks if a feature affecting their display changes (e.g., timer info, attachments placeholder)
             renderTasks();
             // If view details modal is open, re-populate it to reflect feature changes
             if (currentViewTaskId && !viewTaskDetailsModal.classList.contains('hidden')) {
-                openViewTaskDetailsModal(currentViewTaskId); // This will re-evaluate visibility of timer elements
-            }
-             // Ensure settings modal buttons visibility is updated
-            if (settingsTaskReviewBtn) {
-                settingsTaskReviewBtn.classList.toggle('hidden', !featureFlags.taskTimerSystem);
+                openViewTaskDetailsModal(currentViewTaskId);
             }
         }
 
@@ -1759,6 +1885,15 @@
                 if (task.priority) { const priorityBadge = document.createElement('span'); priorityBadge.textContent = task.priority; priorityBadge.className = `priority-badge ${getPriorityClass(task.priority)}`; detailsContainer.appendChild(priorityBadge); }
                 if (task.label) { const labelBadge = document.createElement('span'); labelBadge.textContent = task.label; labelBadge.className = 'label-badge'; detailsContainer.appendChild(labelBadge); }
                 if (task.dueDate) { const dueDateSpan = document.createElement('span'); dueDateSpan.className = 'text-slate-500 dark:text-slate-400 flex items-center'; let dateDisplay = formatDate(task.dueDate); if (task.time) { dateDisplay += ` ${formatTime(task.time)}`; } dueDateSpan.innerHTML = `<i class="far fa-calendar-alt mr-1"></i> ${dateDisplay}`; detailsContainer.appendChild(dueDateSpan); }
+
+                // Placeholder for attachment count in task list item
+                if (featureFlags.fileAttachments && task.attachments && task.attachments.length > 0) {
+                    const attachmentSpan = document.createElement('span');
+                    attachmentSpan.className = 'text-slate-500 dark:text-slate-400 flex items-center file-attachments-element';
+                    attachmentSpan.innerHTML = `<i class="fas fa-paperclip mr-1"></i> ${task.attachments.length}`;
+                    detailsContainer.appendChild(attachmentSpan);
+                }
+
                 if (detailsContainer.hasChildNodes()) { textDetailsDiv.appendChild(detailsContainer); }
 
 
@@ -1855,6 +1990,7 @@
             }
             return { parsedDate, remainingText };
         }
+
         // Handles adding a new task
         function handleAddTask(event) {
             event.preventDefault();
@@ -1921,7 +2057,8 @@
                 timerAccumulatedTime: 0,
                 timerIsRunning: false,
                 timerIsPaused: false,
-                actualDurationMs: 0
+                actualDurationMs: 0,
+                attachments: [] // Initialize attachments array for new tasks
             };
             tasks.unshift(newTask); // Add new task to the beginning of the array
             saveTasks();
@@ -1981,7 +2118,8 @@
                 isReminderSet: featureFlags.reminderFeature ? isReminderSet : false,
                 reminderDate: featureFlags.reminderFeature && isReminderSet ? reminderDate : null,
                 reminderTime: featureFlags.reminderFeature && isReminderSet ? reminderTime : null,
-                reminderEmail: featureFlags.reminderFeature && isReminderSet ? reminderEmail : null
+                reminderEmail: featureFlags.reminderFeature && isReminderSet ? reminderEmail : null,
+                attachments: task.attachments || [] // Ensure attachments array exists
                 // Timer properties (actualDurationMs, timerIsRunning etc.) are not edited here, only through dedicated timer controls or toggleComplete
             } : task );
             saveTasks();
@@ -2153,21 +2291,31 @@
         if (closeSettingsSecondaryBtn) closeSettingsSecondaryBtn.addEventListener('click', closeSettingsModal);
         if (settingsModal) settingsModal.addEventListener('click', (event) => { if (event.target === settingsModal) closeSettingsModal(); }); // Close if backdrop clicked
         if (settingsClearCompletedBtn) settingsClearCompletedBtn.addEventListener('click', clearCompletedTasks);
-        if (settingsManageLabelsBtn) { settingsManageLabelsBtn.addEventListener('click', () => { closeSettingsModal(); openManageLabelsModal(); }); } // Open manage labels from settings
-        if (settingsManageRemindersBtn) { settingsManageRemindersBtn.addEventListener('click', () => { if(featureFlags.reminderFeature) showMessage('Reminders feature coming soon!', 'success'); }); } // Placeholder for manage reminders
-        if (settingsTaskReviewBtn) { settingsTaskReviewBtn.addEventListener('click', () => { closeSettingsModal(); openTaskReviewModal(); });} // New: Open Task Review Modal
+        if (settingsManageLabelsBtn) { settingsManageLabelsBtn.addEventListener('click', () => { closeSettingsModal(); openManageLabelsModal(); }); }
+        if (settingsManageRemindersBtn) { settingsManageRemindersBtn.addEventListener('click', () => { if(featureFlags.reminderFeature) showMessage('Manage Reminders - Coming soon!', 'success'); else showMessage('Enable Reminder System in Feature Flags.', 'error'); }); }
+        if (settingsTaskReviewBtn) { settingsTaskReviewBtn.addEventListener('click', () => { closeSettingsModal(); openTaskReviewModal(); });}
 
-        // Task Review Modal (New)
+        // Event listeners for new non-functional feature buttons in Settings
+        const nonFunctionalFeatureMessageHandler = (featureName) => {
+            showMessage(`${featureName} feature is not yet implemented.`, 'error');
+        };
+        if (settingsIntegrationsBtn) settingsIntegrationsBtn.addEventListener('click', () => nonFunctionalFeatureMessageHandler('Integrations'));
+        if (settingsUserAccountsBtn) settingsUserAccountsBtn.addEventListener('click', () => nonFunctionalFeatureMessageHandler('User Accounts'));
+        if (settingsCollaborationBtn) settingsCollaborationBtn.addEventListener('click', () => nonFunctionalFeatureMessageHandler('Collaboration'));
+        if (settingsSyncBackupBtn) settingsSyncBackupBtn.addEventListener('click', () => nonFunctionalFeatureMessageHandler('Sync & Backup'));
+
+
+        // Task Review Modal
         if (closeTaskReviewModalBtn) closeTaskReviewModalBtn.addEventListener('click', closeTaskReviewModal);
         if (closeTaskReviewSecondaryBtn) closeTaskReviewSecondaryBtn.addEventListener('click', closeTaskReviewModal);
         if (taskReviewModal) taskReviewModal.addEventListener('click', (event) => { if (event.target === taskReviewModal) closeTaskReviewModal(); });
 
 
         // Feature Flags Modal
-        if (settingsFeatureFlagsBtn) { settingsFeatureFlagsBtn.addEventListener('click', () => { closeSettingsModal(); openFeatureFlagsModal(); }); } // Open feature flags from settings
+        if (settingsFeatureFlagsBtn) { settingsFeatureFlagsBtn.addEventListener('click', () => { closeSettingsModal(); openFeatureFlagsModal(); }); }
         if (closeFeatureFlagsModalBtn) closeFeatureFlagsModalBtn.addEventListener('click', closeFeatureFlagsModal);
         if (closeFeatureFlagsSecondaryBtn) closeFeatureFlagsSecondaryBtn.addEventListener('click', closeFeatureFlagsModal);
-        if (featureFlagsModal) featureFlagsModal.addEventListener('click', (event) => { if (event.target === featureFlagsModal) closeFeatureFlagsModal(); }); // Close if backdrop clicked
+        if (featureFlagsModal) featureFlagsModal.addEventListener('click', (event) => { if (event.target === featureFlagsModal) closeFeatureFlagsModal(); });
 
         // Test Feature Button
         if (testFeatureButton) { testFeatureButton.addEventListener('click', () => { console.log('Test Button Clicked!'); showMessage('Test Button Clicked! Check console.', 'success'); }); }
@@ -2191,8 +2339,8 @@
             const isManageLabelsModalOpen = manageLabelsModal && !manageLabelsModal.classList.contains('hidden');
             const isSettingsModalOpen = settingsModal && !settingsModal.classList.contains('hidden');
             const isFeatureFlagsModalOpen = featureFlagsModal && !featureFlagsModal.classList.contains('hidden');
-            const isTaskReviewModalOpen = taskReviewModal && !taskReviewModal.classList.contains('hidden'); // New
-            const isAnyModalOpen = isAddModalOpen || isViewEditModalOpen || isViewDetailsModalOpen || isManageLabelsModalOpen || isSettingsModalOpen || isFeatureFlagsModalOpen || isTaskReviewModalOpen; // Updated
+            const isTaskReviewModalOpen = taskReviewModal && !taskReviewModal.classList.contains('hidden');
+            const isAnyModalOpen = isAddModalOpen || isViewEditModalOpen || isViewDetailsModalOpen || isManageLabelsModalOpen || isSettingsModalOpen || isFeatureFlagsModalOpen || isTaskReviewModalOpen;
             const isInputFocused = document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT' || document.activeElement.tagName === 'TEXTAREA';
 
             // '+' or '=' to open Add Task Modal (if no modal is open and no input is focused)
@@ -2205,16 +2353,28 @@
                 if (isManageLabelsModalOpen) closeManageLabelsModal();
                 if (isSettingsModalOpen) closeSettingsModal();
                 if (isFeatureFlagsModalOpen) closeFeatureFlagsModal();
-                if (isTaskReviewModalOpen) closeTaskReviewModal(); // New
+                if (isTaskReviewModalOpen) closeTaskReviewModal();
             }
         });
 
         // --- Initial Setup ---
-        // Ensures all tasks (especially from older localStorage) have timer properties
+        // Ensures all tasks (especially from older localStorage) have all necessary properties
         function initializeTasks() {
             tasks = tasks.map(task => ({
-                ...task,
-                // Ensure estimated time properties exist, default to 0 if not present
+                // Default existing properties or initialize if missing
+                id: task.id || Date.now(),
+                text: task.text || '',
+                completed: task.completed || false,
+                dueDate: task.dueDate || null,
+                time: task.time || null,
+                priority: task.priority || 'medium',
+                label: task.label || '',
+                notes: task.notes || '',
+                isReminderSet: task.isReminderSet || false,
+                reminderDate: task.reminderDate || null,
+                reminderTime: task.reminderTime || null,
+                reminderEmail: task.reminderEmail || null,
+                // Ensure estimated time properties exist, default to 0
                 estimatedHours: task.estimatedHours || 0,
                 estimatedMinutes: task.estimatedMinutes || 0,
                 // Ensure timer state properties exist
@@ -2222,13 +2382,14 @@
                 timerAccumulatedTime: task.timerAccumulatedTime || 0,
                 timerIsRunning: task.timerIsRunning || false,
                 timerIsPaused: task.timerIsPaused || false,
-                actualDurationMs: task.actualDurationMs || 0
+                actualDurationMs: task.actualDurationMs || 0,
+                attachments: task.attachments || [] // Ensure attachments array exists
             }));
         }
 
 
-        loadFeatureFlags(); // Load feature flags from localStorage
-        initializeTasks(); // Ensure all tasks have necessary properties (including new timer ones)
+        loadFeatureFlags(); // Load feature flags from localStorage first
+        initializeTasks(); // Then ensure all tasks have necessary properties
         updateUniqueLabels(); // Populate unique labels from tasks
         // Set initial styling for smart view buttons
         smartViewButtons.forEach(button => { button.classList.add('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600'); button.querySelector('i')?.classList.add('text-slate-500', 'dark:text-slate-400'); });
@@ -2244,7 +2405,7 @@
         // Actions to perform once the window is fully loaded
         window.onload = () => {
             loadFeatureFlags();
-            initializeTasks(); // Ensure tasks are initialized again in case of race conditions
+            initializeTasks();
             applyActiveFeatures(); // Apply feature flags *after* loading them and initializing tasks
             setFilter(currentFilter); // Re-apply filter to ensure UI consistency
             // Re-apply sidebar state
