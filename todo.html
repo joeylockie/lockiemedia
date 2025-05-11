@@ -180,8 +180,7 @@
         .user-accounts-element,
         .collaboration-sharing-element,
         .cross-device-sync-element,
-        .tooltips-guide-element,
-        .kanban-board-feature-element /* New for Kanban */
+        .tooltips-guide-element /* New */
         { display: block; } /* Default, JS hides if feature off */
 
 
@@ -255,101 +254,6 @@
         .dark .input-example-text {
             color: #94a3b8; /* slate-400 */
         }
-
-        /* Kanban Board Styles - START */
-        .kanban-board-container {
-            display: flex;
-            gap: 1rem; /* space between columns */
-            overflow-x: auto; /* for horizontal scrolling if too many columns */
-            padding: 1rem 0; /* padding around the board */
-            min-height: 400px;
-            border-radius: 0.75rem; /* rounded-xl */
-        }
-
-        .kanban-column {
-            flex: 1 0 300px; /* flex-grow, flex-shrink, flex-basis (min-width of column) */
-            max-width: 350px; /* max-width of column */
-            background-color: #f3f4f6; /* gray-100 */
-            border-radius: 0.5rem; /* rounded-lg */
-            padding: 0.75rem; /* p-3 */
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1); /* shadow-md */
-        }
-        .dark .kanban-column {
-            background-color: #374151; /* gray-700 */
-        }
-
-        .kanban-column-header {
-            font-size: 1.125rem; /* text-lg */
-            font-weight: 600; /* semibold */
-            color: #1f2937; /* gray-800 */
-            padding: 0.5rem 0.25rem; /* py-2 px-1 */
-            margin-bottom: 0.75rem; /* mb-3 */
-            border-bottom: 2px solid #e5e7eb; /* border-gray-200 */
-        }
-        .dark .kanban-column-header {
-            color: #f3f4f6; /* gray-100 */
-            border-bottom-color: #4b5563; /* border-gray-600 */
-        }
-        .kanban-column-header:focus {
-            outline: none;
-            border-bottom-color: #3b82f6; /* focus:border-blue-500 */
-        }
-
-        .kanban-column-tasks {
-            flex-grow: 1;
-            overflow-y: auto;
-            min-height: 100px;
-            padding: 0.25rem; /* p-1 */
-        }
-        .kanban-column-tasks.dragover-active { /* Style for when an item is dragged over a column */
-            background-color: #e0e7ff; /* Light indigo for light mode */
-        }
-        .dark .kanban-column-tasks.dragover-active {
-            background-color: #312e81; /* Darker indigo for dark mode */
-        }
-        .kanban-column-tasks::-webkit-scrollbar {
-            width: 6px;
-        }
-        .kanban-column-tasks::-webkit-scrollbar-thumb {
-            background-color: #9ca3af; /* gray-400 */
-            border-radius: 3px;
-        }
-        .dark .kanban-column-tasks::-webkit-scrollbar-thumb {
-            background-color: #6b7280; /* gray-500 */
-        }
-
-        .kanban-task-card {
-            background-color: #ffffff; /* white */
-            border-radius: 0.375rem; /* rounded-md */
-            padding: 0.75rem; /* p-3 */
-            margin-bottom: 0.75rem; /* mb-3 */
-            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
-            cursor: grab;
-            font-size: 0.875rem; /* text-sm */
-            color: #374151; /* gray-700 */
-        }
-        .dark .kanban-task-card {
-            background-color: #4b5563; /* gray-600 */
-            color: #e5e7eb; /* gray-200 */
-        }
-        .kanban-task-card p {
-            margin-bottom: 0.25rem; /* mb-1 */
-        }
-        .kanban-task-card .priority-badge, .kanban-task-card .label-badge {
-            margin-top: 0.25rem;
-            margin-right: 0.25rem;
-        }
-        .kanban-task-card.dragging { /* Style for the card being dragged */
-            opacity: 0.5;
-            transform: rotate(2deg);
-            background-color: #c7d2fe; /* Light indigo when dragging */
-        }
-        .dark .kanban-task-card.dragging {
-             background-color: #4338ca; /* Darker indigo when dragging */
-        }
-        /* Kanban Board Styles - END */
     </style>
     <script>
         // Apply theme on initial load
@@ -716,6 +620,7 @@
         </div>
     </div>
 
+
     <div id="manageLabelsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-opacity-70 overflow-y-auto h-full w-full flex items-center justify-center hidden z-[170]">
         <div class="relative mx-auto p-5 sm:p-6 border w-full max-w-md shadow-xl rounded-xl bg-white dark:bg-slate-800 transform transition-all duration-300 ease-in-out scale-95 opacity-0" id="modalDialogManageLabels">
             <div class="flex justify-between items-center pb-3 mb-4 border-b border-slate-200 dark:border-slate-700">
@@ -729,8 +634,7 @@
                 <button type="submit" class="bg-sky-500 hover:bg-sky-600 text-white font-semibold p-2.5 rounded-lg shadow-md">Add</button>
             </form>
             <h4 class="text-lg font-medium text-slate-700 dark:text-slate-200 mb-2">Existing Labels:</h4>
-            <ul id="existingLabelsList" class="max-h-60 overflow-y-auto space-y-1 pr-1">
-                 </ul>
+            <ul id="existingLabelsList" class="max-h-60 overflow-y-auto space-y-1 pr-1"></ul>
             <div class="mt-6 flex justify-end">
                 <button type="button" id="closeManageLabelsSecondaryBtn" class="px-5 py-2.5 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500 transition-colors font-medium">Close</button>
             </div>
@@ -784,7 +688,6 @@
             </div>
         </div>
     </div>
-
     <div id="featureFlagsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-opacity-70 overflow-y-auto h-full w-full flex items-center justify-center hidden z-[190]">
         <div class="relative mx-auto p-5 sm:p-6 border w-full max-w-md shadow-xl rounded-xl bg-white dark:bg-slate-800 transform transition-all duration-300 ease-in-out scale-95 opacity-0" id="modalDialogFeatureFlags">
             <div class="flex justify-between items-center pb-3 mb-4 border-b border-slate-200 dark:border-slate-700">
@@ -875,51 +778,23 @@
 
             <main class="w-full flex-grow bg-white dark:bg-slate-900 p-4 md:p-6 lg:p-8 rounded-xl shadow-2xl min-h-[300px] mt-4 md:mt-0">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 md:mb-6">
-                    <h2 id="mainContentTitle" class="text-xl sm:text-2xl md:text-3xl font-semibold text-slate-800 dark:text-slate-100">Your Tasks</h2>
-                    <div class="flex gap-2 mt-3 sm:mt-0 flex-wrap items-center">
-                        <div id="sortButtonsContainer" class="flex gap-2 flex-wrap">
-                            <button id="sortByDueDateBtn" title="Sort by Due Date" class="sort-btn bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-medium py-2 px-3 rounded-lg transition-colors duration-300 flex items-center">
-                                <i class="fas fa-sort-amount-down mr-1.5"></i> Due Date
-                            </button>
-                            <button id="sortByPriorityBtn" title="Sort by Priority" class="sort-btn bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-medium py-2 px-3 rounded-lg transition-colors duration-300 flex items-center">
-                                <i class="fas fa-exclamation-circle mr-1.5"></i> Priority
-                            </button>
-                            <button id="sortByLabelBtn" title="Sort by Label" class="sort-btn bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-medium py-2 px-3 rounded-lg transition-colors duration-300 flex items-center">
-                                <i class="fas fa-tags mr-1.5"></i> Label
-                            </button>
-                        </div>
-                        <button id="toggleKanbanViewBtn" title="Switch to Kanban Board" class="kanban-board-feature-element sort-btn bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-medium py-2 px-3 rounded-lg transition-colors duration-300 flex items-center ml-2 hidden">
-                            <i id="kanbanViewIcon" class="fas fa-columns mr-1.5"></i> <span id="kanbanViewText">Board</span>
+                    <h2 class="text-xl sm:text-2xl md:text-3xl font-semibold text-slate-800 dark:text-slate-100">Your Tasks</h2>
+                    <div class="flex gap-2 mt-3 sm:mt-0 flex-wrap">
+                        <button id="sortByDueDateBtn" title="Sort by Due Date" class="sort-btn bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-medium py-2 px-3 rounded-lg transition-colors duration-300 flex items-center">
+                            <i class="fas fa-sort-amount-down mr-1.5"></i> Due Date
                         </button>
-                        </div>
-                </div>
-
-                <div id="taskListContainer">
-                    <ul id="taskList" class="space-y-3 sm:space-y-3.5"></ul>
-                    <p id="emptyState" class="text-center text-slate-500 dark:text-slate-400 mt-8 py-5 hidden">No tasks yet. Add some!</p>
-                    <p id="noMatchingTasks" class="text-center text-slate-500 dark:text-slate-400 mt-8 py-5 hidden">No tasks match the current filter or search.</p>
-                </div>
-
-                <div id="kanbanBoardView" class="kanban-board-feature-element hidden">
-                    <div class="kanban-board-container">
-                        <div class="kanban-column" data-column-id="todo">
-                            <h3 class="kanban-column-header" contenteditable="true">To Do</h3>
-                            <div class="kanban-column-tasks" data-column-tasks-id="todo-tasks">
-                                </div>
-                        </div>
-                        <div class="kanban-column" data-column-id="inprogress">
-                            <h3 class="kanban-column-header" contenteditable="true">In Progress</h3>
-                            <div class="kanban-column-tasks" data-column-tasks-id="inprogress-tasks">
-                                </div>
-                        </div>
-                        <div class="kanban-column" data-column-id="done">
-                            <h3 class="kanban-column-header" contenteditable="true">Done</h3>
-                            <div class="kanban-column-tasks" data-column-tasks-id="done-tasks">
-                                </div>
-                        </div>
+                        <button id="sortByPriorityBtn" title="Sort by Priority" class="sort-btn bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-medium py-2 px-3 rounded-lg transition-colors duration-300 flex items-center">
+                            <i class="fas fa-exclamation-circle mr-1.5"></i> Priority
+                        </button>
+                        <button id="sortByLabelBtn" title="Sort by Label" class="sort-btn bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-medium py-2 px-3 rounded-lg transition-colors duration-300 flex items-center">
+                            <i class="fas fa-tags mr-1.5"></i> Label
+                        </button>
                     </div>
                 </div>
-                </main>
+                <ul id="taskList" class="space-y-3 sm:space-y-3.5"></ul>
+                <p id="emptyState" class="text-center text-slate-500 dark:text-slate-400 mt-8 py-5 hidden">No tasks yet. Add some!</p>
+                <p id="noMatchingTasks" class="text-center text-slate-500 dark:text-slate-400 mt-8 py-5 hidden">No tasks match the current filter or search.</p>
+            </main>
         </div>
     </div>
 
@@ -928,10 +803,7 @@
     </footer>
 
     <script>
-        // --- DOM Elements (Declared ONCE) ---
-        // Sidebar elements
-        const taskSidebar = document.getElementById('taskSidebar');
-// --- DOM Elements (Declared ONCE) ---
+        // --- DOM Elements ---
         // Sidebar elements
         const taskSidebar = document.getElementById('taskSidebar');
         const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
@@ -941,19 +813,17 @@
         const iconTooltip = document.getElementById('iconTooltip');
 
         // Main content elements
-        const mainContentTitle = document.getElementById('mainContentTitle');
-        const sortButtonsContainer = document.getElementById('sortButtonsContainer');
         const sortByDueDateBtn = document.getElementById('sortByDueDateBtn');
         const sortByPriorityBtn = document.getElementById('sortByPriorityBtn');
         const sortByLabelBtn = document.getElementById('sortByLabelBtn');
         const taskSearchInput = document.getElementById('taskSearchInput');
-        const taskListContainer = document.getElementById('taskListContainer');
         const taskList = document.getElementById('taskList');
         const emptyState = document.getElementById('emptyState');
         const noMatchingTasks = document.getElementById('noMatchingTasks');
         const smartViewButtonsContainer = document.getElementById('smartViewButtonsContainer');
         const smartViewButtons = smartViewButtonsContainer.querySelectorAll('.smart-view-btn');
         const messageBox = document.getElementById('messageBox');
+        // Removed currentYear span as footer text is now static for 2025
 
         // Add Task Modal elements
         const addTaskModal = document.getElementById('addTaskModal');
@@ -1008,7 +878,7 @@
         const closeViewDetailsModalBtn = document.getElementById('closeViewDetailsModalBtn');
         const closeViewDetailsSecondaryBtn = document.getElementById('closeViewDetailsSecondaryBtn');
         const editFromViewModalBtn = document.getElementById('editFromViewModalBtn');
-        const deleteFromViewModalBtn = document.getElementById('deleteFromViewModalBtn');
+        const deleteFromViewModalBtn = document.getElementById('deleteFromViewModalBtn'); // New
         const viewTaskText = document.getElementById('viewTaskText');
         const viewTaskDueDate = document.getElementById('viewTaskDueDate');
         const viewTaskTime = document.getElementById('viewTaskTime');
@@ -1026,6 +896,7 @@
         const viewTaskAttachmentsSection = document.getElementById('viewTaskAttachmentsSection');
         const viewTaskAttachmentsList = document.getElementById('viewTaskAttachmentsList');
 
+
         // Timer elements in View Task Details Modal
         const taskTimerSection = document.getElementById('taskTimerSection');
         const viewTaskTimerDisplay = document.getElementById('viewTaskTimerDisplay');
@@ -1034,6 +905,7 @@
         const viewTaskStopTimerBtn = document.getElementById('viewTaskStopTimerBtn');
         const viewTaskActualDuration = document.getElementById('viewTaskActualDuration');
         const timerButtonsContainer = document.getElementById('timerButtonsContainer');
+
 
         // Manage Labels Modal elements
         const manageLabelsModal = document.getElementById('manageLabelsModal');
@@ -1054,12 +926,13 @@
         const settingsManageLabelsBtn = document.getElementById('settingsManageLabelsBtn');
         const settingsManageRemindersBtn = document.getElementById('settingsManageRemindersBtn');
         const settingsTaskReviewBtn = document.getElementById('settingsTaskReviewBtn');
-        const settingsTooltipsGuideBtn = document.getElementById('settingsTooltipsGuideBtn');
+        const settingsTooltipsGuideBtn = document.getElementById('settingsTooltipsGuideBtn'); // New
         const settingsFeatureFlagsBtn = document.getElementById('settingsFeatureFlagsBtn');
         const settingsIntegrationsBtn = document.getElementById('settingsIntegrationsBtn');
         const settingsUserAccountsBtn = document.getElementById('settingsUserAccountsBtn');
         const settingsCollaborationBtn = document.getElementById('settingsCollaborationBtn');
         const settingsSyncBackupBtn = document.getElementById('settingsSyncBackupBtn');
+
 
         // Task Review Modal elements
         const taskReviewModal = document.getElementById('taskReviewModal');
@@ -1068,12 +941,13 @@
         const closeTaskReviewSecondaryBtn = document.getElementById('closeTaskReviewSecondaryBtn');
         const taskReviewContent = document.getElementById('taskReviewContent');
 
-        // Tooltips Guide Modal elements
+        // Tooltips Guide Modal elements (New)
         const tooltipsGuideModal = document.getElementById('tooltipsGuideModal');
         const modalDialogTooltipsGuide = document.getElementById('modalDialogTooltipsGuide');
         const closeTooltipsGuideModalBtn = document.getElementById('closeTooltipsGuideModalBtn');
         const closeTooltipsGuideSecondaryBtn = document.getElementById('closeTooltipsGuideSecondaryBtn');
         const tooltipsGuideContent = document.getElementById('tooltipsGuideContent');
+
 
         // Feature Flags Modal elements
         const featureFlagsModal = document.getElementById('featureFlagsModal');
@@ -1085,12 +959,6 @@
         // Test Feature Button elements
         const testFeatureButtonContainer = document.getElementById('testFeatureButtonContainer');
         const testFeatureButton = document.getElementById('testFeatureButton');
-
-        // Kanban Board Elements
-        const toggleKanbanViewBtn = document.getElementById('toggleKanbanViewBtn');
-        const kanbanViewIcon = document.getElementById('kanbanViewIcon');
-        const kanbanViewText = document.getElementById('kanbanViewText');
-        const kanbanBoardView = document.getElementById('kanbanBoardView');
 
 
         // --- Application State ---
@@ -1112,14 +980,9 @@
             userAccounts: false,
             collaborationSharing: false,
             crossDeviceSync: false,
-            tooltipsGuide: false,
-            kanbanBoard: false // New Kanban Feature Flag
+            tooltipsGuide: false // New
         };
         let currentTaskTimerInterval = null;
-        let isKanbanViewActive = false; // New state for Kanban view
-        let kanbanColumns = {}; // To store column header text (e.g., { todo: "To Do", inprogress: "In Progress", done: "Done" })
-        const KANBAN_COLUMNS_STORAGE_KEY = 'kanbanColumns_v1';
-        let draggedTask = null; // For drag and drop state
 
 
         // --- Theme Management ---
@@ -1173,7 +1036,7 @@
                 if (testFeatureButton) testFeatureButton.querySelector('.sidebar-text-content')?.classList.remove('hidden');
                 localStorage.setItem('sidebarState', 'expanded');
             }
-            applyActiveFeatures(); // Ensure UI elements related to features are correctly shown/hidden
+            applyActiveFeatures();
         }
 
         // --- Tooltip Functions ---
@@ -1406,17 +1269,18 @@
             }, 10);
             applyActiveFeatures();
         }
-
+        // Closes the "Task Information" modal
         function closeViewTaskDetailsModal() {
+            // Animate modal disappearance
             modalDialogViewDetails.classList.add('scale-95', 'opacity-0');
             modalDialogViewDetails.classList.remove('scale-100', 'opacity-100');
             setTimeout(() => {
-                viewTaskDetailsModal.classList.add('hidden');
-                if (featureFlags.taskTimerSystem && currentTaskTimerInterval) {
+                viewTaskDetailsModal.classList.add('hidden'); // Hide the modal
+                if (featureFlags.taskTimerSystem && currentTaskTimerInterval) { // Clear timer interval if it exists and feature is on
                     clearInterval(currentTaskTimerInterval);
                     currentTaskTimerInterval = null;
                 }
-                currentViewTaskId = null;
+                currentViewTaskId = null; // Clear the ID of the task being viewed
             }, 200);
         }
 
@@ -1590,7 +1454,7 @@
             if (uniqueLabels.includes(labelName)) { showMessage(`Label "${labelName}" already exists.`, 'error'); return; }
             uniqueLabels.push(labelName);
             uniqueLabels.sort();
-            saveTasks(); // This now calls updateUniqueLabels which populates datalists
+            saveTasks();
             populateManageLabelsList();
             newLabelInput.value = '';
             showMessage(`Label "${labelName}" added.`, 'success');
@@ -1604,14 +1468,9 @@
                 }
                 return task;
             });
-            saveTasks(); // This also updates uniqueLabels and datalists
+            saveTasks();
             populateManageLabelsList();
-            // Instead of just renderTasks(), decide based on current view
-            if (isKanbanViewActive && featureFlags.kanbanBoard) {
-                renderKanbanBoard();
-            } else {
-                renderTasks();
-            }
+            renderTasks();
             showMessage(`Label "${labelToDelete}" deleted and removed from tasks.`, 'success');
         }
 
@@ -1622,7 +1481,7 @@
                 modalDialogSettings.classList.remove('scale-95', 'opacity-0');
                 modalDialogSettings.classList.add('scale-100', 'opacity-100');
             }, 10);
-            applyActiveFeatures(); // To ensure button visibility is correct
+            applyActiveFeatures();
         }
 
         function closeSettingsModal() {
@@ -1736,8 +1595,7 @@
                 userAccounts: "User Accounts & Authentication",
                 collaborationSharing: "Collaboration & Sharing Lists",
                 crossDeviceSync: "Cross-Device Sync & Cloud Backup",
-                tooltipsGuide: "Tooltips Guide Popup",
-                kanbanBoard: "Kanban Board View" // New Kanban Display Name
+                tooltipsGuide: "Tooltips Guide Popup" // New
             };
 
             Object.keys(featureFlags).forEach(flagKey => {
@@ -1774,7 +1632,7 @@
         function toggleFeatureFlag(flagName, isEnabled) {
             featureFlags[flagName] = isEnabled;
             saveFeatureFlags();
-            applyActiveFeatures(); // This will now also handle the Kanban view toggle icon
+            applyActiveFeatures();
             const flagDisplayNames = {
                 testButtonFeature: "Test Button Feature",
                 reminderFeature: "Reminder System",
@@ -1785,17 +1643,10 @@
                 userAccounts: "User Accounts & Authentication",
                 collaborationSharing: "Collaboration & Sharing Lists",
                 crossDeviceSync: "Cross-Device Sync & Cloud Backup",
-                tooltipsGuide: "Tooltips Guide Popup",
-                kanbanBoard: "Kanban Board View"
+                tooltipsGuide: "Tooltips Guide Popup"
             };
             const displayName = flagDisplayNames[flagName] || flagName.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
             showMessage(`Feature "${displayName}" ${isEnabled ? 'enabled' : 'disabled'}.`, 'success');
-
-            // If Kanban board is disabled while active, switch back to list view
-            if (flagName === 'kanbanBoard' && !isEnabled && isKanbanViewActive) {
-                isKanbanViewActive = false; // Explicitly set before calling update
-                updateMainViewUI(); // Ensure it switches back
-            }
         }
 
         function saveFeatureFlags() {
@@ -1804,11 +1655,10 @@
 
         function loadFeatureFlags() {
             const storedFlags = localStorage.getItem('featureFlags_v1');
-            let updated = false; // To track if new default flags were added
+            let updated = false;
             if (storedFlags) {
                 featureFlags = JSON.parse(storedFlags);
             }
-            // Define all default flags to ensure new ones are added if not present
             const defaultFlags = {
                 testButtonFeature: false,
                 reminderFeature: false,
@@ -1819,17 +1669,16 @@
                 userAccounts: false,
                 collaborationSharing: false,
                 crossDeviceSync: false,
-                tooltipsGuide: false,
-                kanbanBoard: false // Default for Kanban
+                tooltipsGuide: false // New
             };
             for (const flagKey in defaultFlags) {
                 if (typeof featureFlags[flagKey] === 'undefined') {
                     featureFlags[flagKey] = defaultFlags[flagKey];
-                    updated = true; // Mark that an update to stored flags is needed
+                    updated = true;
                 }
             }
             if (updated) {
-                saveFeatureFlags(); // Save if new defaults were merged
+                saveFeatureFlags();
             }
         }
 
@@ -1849,8 +1698,7 @@
             toggleElements('.user-accounts-element', featureFlags.userAccounts);
             toggleElements('.collaboration-sharing-element', featureFlags.collaborationSharing);
             toggleElements('.cross-device-sync-element', featureFlags.crossDeviceSync);
-            toggleElements('.tooltips-guide-element', featureFlags.tooltipsGuide);
-            toggleElements('.kanban-board-feature-element', featureFlags.kanbanBoard); // Toggle Kanban elements
+            toggleElements('.tooltips-guide-element', featureFlags.tooltipsGuide); // New
 
 
             if (featureFlags.reminderFeature) {
@@ -1866,292 +1714,13 @@
             }
 
             if (settingsTaskReviewBtn) settingsTaskReviewBtn.classList.toggle('hidden', !featureFlags.taskTimerSystem);
-            if (settingsTooltipsGuideBtn) settingsTooltipsGuideBtn.classList.toggle('hidden', !featureFlags.tooltipsGuide);
+            if (settingsTooltipsGuideBtn) settingsTooltipsGuideBtn.classList.toggle('hidden', !featureFlags.tooltipsGuide); // New
 
-            // If Kanban view is active but the feature flag gets turned off, reset to list view.
-            if (isKanbanViewActive && !featureFlags.kanbanBoard) {
-                isKanbanViewActive = false; // Force it off before updating UI
-            }
-            // Always update the main view UI after applying feature flags,
-            // as it depends on both isKanbanViewActive and featureFlags.kanbanBoard
-            updateMainViewUI();
-
-
+            renderTasks();
             if (currentViewTaskId && !viewTaskDetailsModal.classList.contains('hidden')) {
-                 // Re-evaluate the visibility of sections within the view details modal
                 openViewTaskDetailsModal(currentViewTaskId);
             }
         }
-
-        // --- Kanban Board Functions --- START
-        function updateMainViewUI() {
-            if (!mainContentTitle || !taskListContainer || !kanbanBoardView || !sortButtonsContainer || !toggleKanbanViewBtn || !kanbanViewIcon || !kanbanViewText) {
-                console.error("A required UI element for view switching is missing.");
-                return;
-            }
-
-            if (isKanbanViewActive && featureFlags.kanbanBoard) {
-                mainContentTitle.textContent = "Kanban Board";
-                taskListContainer.classList.add('hidden');
-                kanbanBoardView.classList.remove('hidden');
-                sortButtonsContainer.classList.add('hidden'); // Hide sort buttons in Kanban view
-
-                kanbanViewIcon.classList.remove('fa-columns');
-                kanbanViewIcon.classList.add('fa-list');
-                kanbanViewText.textContent = "List";
-                toggleKanbanViewBtn.title = "Switch to List View";
-                renderKanbanBoard();
-            } else {
-                // Default to list view if Kanban is not active or not enabled
-                mainContentTitle.textContent = "Your Tasks"; // Or based on currentFilter for list view
-                taskListContainer.classList.remove('hidden');
-                kanbanBoardView.classList.add('hidden');
-                sortButtonsContainer.classList.remove('hidden'); // Show sort buttons in list view
-
-                kanbanViewIcon.classList.remove('fa-list');
-                kanbanViewIcon.classList.add('fa-columns');
-                kanbanViewText.textContent = "Board";
-                toggleKanbanViewBtn.title = "Switch to Kanban Board";
-                renderTasks(); // Render list view
-            }
-        }
-
-        function toggleKanbanListView() {
-            if (!featureFlags.kanbanBoard) {
-                showMessage("Kanban Board feature is disabled. Please enable it in settings.", "error");
-                isKanbanViewActive = false; // Ensure it's off
-                updateMainViewUI();
-                return;
-            }
-            isKanbanViewActive = !isKanbanViewActive;
-            updateMainViewUI();
-        }
-
-        function renderKanbanBoard() {
-            if (!kanbanBoardView || !featureFlags.kanbanBoard) return; // Do nothing if feature is off or view not ready
-
-            loadKanbanColumnNames();
-            document.querySelectorAll('.kanban-column').forEach(columnElem => {
-                const columnId = columnElem.dataset.columnId;
-                const headerElem = columnElem.querySelector('.kanban-column-header');
-
-                if (headerElem) {
-                    headerElem.textContent = kanbanColumns[columnId] || columnId.charAt(0).toUpperCase() + columnId.slice(1);
-                    headerElem.setAttribute('contenteditable', 'true');
-
-                    // Simplified listener attachment: Remove if exists, then add.
-                    // This is a pragmatic way to avoid duplicates without complex management,
-                    // assuming renderKanbanBoard() is the primary function setting these up.
-                    const newHeaderElem = headerElem.cloneNode(true); // Clone to remove old listeners
-                    headerElem.parentNode.replaceChild(newHeaderElem, headerElem);
-
-
-                    const blurHandler = (e) => {
-                        const newName = e.target.textContent.trim();
-                        if (newName && newName !== kanbanColumns[columnId]) {
-                            kanbanColumns[columnId] = newName;
-                            saveKanbanColumnNames();
-                            showMessage(`Column "${columnId}" renamed to "${newName}".`, 'success');
-                        } else {
-                            e.target.textContent = kanbanColumns[columnId];
-                        }
-                    };
-                    newHeaderElem.addEventListener('blur', blurHandler);
-
-                    const keydownHandler = (e) => {
-                        if (e.key === 'Enter') {
-                            e.preventDefault();
-                            e.target.blur();
-                        } else if (e.key === 'Escape') {
-                            e.target.textContent = kanbanColumns[columnId];
-                            e.target.blur();
-                        }
-                    };
-                    newHeaderElem.addEventListener('keydown', keydownHandler);
-                }
-
-                const tasksContainer = columnElem.querySelector('.kanban-column-tasks');
-                if (tasksContainer) {
-                    tasksContainer.innerHTML = ''; // Clear previous tasks
-                }
-            });
-
-            const todoTasksContainer = document.querySelector('[data-column-tasks-id="todo-tasks"]');
-            const inprogressTasksContainer = document.querySelector('[data-column-tasks-id="inprogress-tasks"]');
-            const doneTasksContainer = document.querySelector('[data-column-tasks-id="done-tasks"]');
-
-            if (!todoTasksContainer || !inprogressTasksContainer || !doneTasksContainer) {
-                console.error("One or more Kanban column task containers not found for rendering tasks.");
-                return;
-            }
-            
-            let filteredForKanban = tasks;
-            if (currentSearchTerm) {
-                 filteredForKanban = tasks.filter(task => task.text.toLowerCase().includes(currentSearchTerm));
-            }
-
-            filteredForKanban.forEach(task => {
-                if (!task.hasOwnProperty('kanbanColumnId') || !['todo', 'inprogress', 'done'].includes(task.kanbanColumnId)) {
-                    task.kanbanColumnId = task.completed ? 'done' : 'todo';
-                }
-                const taskCard = createTaskCard(task); // createTaskCard also adds its own click listener
-                if (task.kanbanColumnId === 'todo') {
-                    todoTasksContainer.appendChild(taskCard);
-                } else if (task.kanbanColumnId === 'inprogress') {
-                    inprogressTasksContainer.appendChild(taskCard);
-                } else if (task.kanbanColumnId === 'done') {
-                    doneTasksContainer.appendChild(taskCard);
-                }
-            });
-
-            addDragAndDropListeners();
-        }
-
-        function createTaskCard(task) {
-            const card = document.createElement('div');
-            card.className = 'kanban-task-card';
-            card.dataset.taskId = task.id;
-            card.draggable = true;
-
-            const textP = document.createElement('p');
-            textP.textContent = task.text;
-            card.appendChild(textP);
-
-            if (task.priority || task.label || task.dueDate) {
-                const detailsDiv = document.createElement('div');
-                detailsDiv.className = 'flex items-center flex-wrap gap-x-2 gap-y-1 mt-1 text-xs';
-                if (task.priority) {
-                    const priorityBadge = document.createElement('span');
-                    priorityBadge.textContent = task.priority;
-                    priorityBadge.className = `priority-badge ${getPriorityClass(task.priority)}`;
-                    detailsDiv.appendChild(priorityBadge);
-                }
-                if (task.label) {
-                    const labelBadge = document.createElement('span');
-                    labelBadge.textContent = task.label;
-                    labelBadge.className = 'label-badge';
-                    detailsDiv.appendChild(labelBadge);
-                }
-                if (task.dueDate) {
-                    const dueDateSpan = document.createElement('span');
-                    dueDateSpan.className = 'text-slate-500 dark:text-slate-400 flex items-center';
-                    let dateDisplay = formatDate(task.dueDate);
-                    if (task.time) { dateDisplay += ` ${formatTime(task.time)}`; }
-                    dueDateSpan.innerHTML = `<i class="far fa-calendar-alt mr-1"></i> ${dateDisplay}`;
-                    detailsDiv.appendChild(dueDateSpan);
-                }
-                card.appendChild(detailsDiv);
-            }
-
-            // Add click listener to open modal
-            card.addEventListener('click', (event) => {
-                if (event.target.closest('button')) return; // Ignore clicks on buttons within the card if any
-                openViewEditModal(parseInt(task.id));
-            });
-            return card;
-        }
-
-
-        function saveKanbanColumnNames() {
-            localStorage.setItem(KANBAN_COLUMNS_STORAGE_KEY, JSON.stringify(kanbanColumns));
-        }
-
-        function loadKanbanColumnNames() {
-            const storedNames = localStorage.getItem(KANBAN_COLUMNS_STORAGE_KEY);
-            if (storedNames) {
-                const parsedNames = JSON.parse(storedNames);
-                kanbanColumns = {
-                    todo: parsedNames.todo || "To Do",
-                    inprogress: parsedNames.inprogress || "In Progress",
-                    done: parsedNames.done || "Done"
-                };
-            } else {
-                kanbanColumns = { todo: "To Do", inprogress: "In Progress", done: "Done" };
-                saveKanbanColumnNames();
-            }
-        }
-
-        function addDragAndDropListeners() {
-            const taskCards = document.querySelectorAll('.kanban-task-card');
-            const columnTaskAreas = document.querySelectorAll('.kanban-column-tasks');
-
-            taskCards.forEach(card => {
-                // If we re-render cards often, cloning to remove listeners might be needed here too,
-                // or ensure listeners are added only once per card's lifecycle.
-                // For simplicity, assuming renderKanbanBoard creates fresh cards, so direct attachment is okay.
-                // But if cards were merely updated, one might need the cloneNode strategy.
-                const newCard = card.cloneNode(true); // Clone to effectively remove listeners
-                card.parentNode.replaceChild(newCard, card); // Replace old card with new one
-
-                newCard.addEventListener('dragstart', (e) => {
-                    draggedTask = newCard;
-                    e.dataTransfer.setData('text/plain', newCard.dataset.taskId);
-                    setTimeout(() => newCard.classList.add('dragging'), 0);
-                });
-
-                newCard.addEventListener('dragend', () => {
-                    newCard.classList.remove('dragging');
-                    draggedTask = null;
-                });
-
-                 // Re-add click listener to the new card
-                const taskId = parseInt(newCard.dataset.taskId);
-                const task = tasks.find(t => t.id === taskId); // Find task data
-                if (task) { // Make sure task exists
-                    newCard.addEventListener('click', (event) => {
-                        if (event.target.closest('button')) return;
-                        openViewEditModal(task.id);
-                    });
-                }
-            });
-
-            columnTaskAreas.forEach(area => {
-                // Similar to cards, if areas are stable, attach once. If re-created, this is fine.
-                // Cloning column areas frequently could be disruptive to their children.
-                // Let's assume the column areas themselves are stable and only their children (tasks) are re-rendered.
-                // If listeners stack up, this needs refinement (e.g., cloneNode(false) and re-append tasks, or flag)
-                // For now, using a flag to prevent re-attachment on the same identified element.
-                if (area._dropListenersAttached) return; // Prevent re-attaching to the same DOM element instance
-                area._dropListenersAttached = true;
-
-                area.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                    area.classList.add('dragover-active');
-                });
-
-                area.addEventListener('dragleave', () => {
-                    area.classList.remove('dragover-active');
-                });
-
-                area.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    area.classList.remove('dragover-active');
-                    if (draggedTask) {
-                        const targetColumnId = area.dataset.columnTasksId.replace('-tasks', '');
-                        const taskId = parseInt(draggedTask.dataset.taskId);
-
-                        const taskIndex = tasks.findIndex(t => t.id === taskId);
-                        if (taskIndex > -1) {
-                            tasks[taskIndex].kanbanColumnId = targetColumnId;
-                            if (targetColumnId === 'done' && !tasks[taskIndex].completed) {
-                                tasks[taskIndex].completed = true;
-                                if (featureFlags.taskTimerSystem && (tasks[taskIndex].timerIsRunning || tasks[taskIndex].timerIsPaused)) {
-                                    handleStopTimer(taskId);
-                                }
-                            } else if (targetColumnId !== 'done' && tasks[taskIndex].completed) {
-                                tasks[taskIndex].completed = false;
-                            }
-                            saveTasks();
-                            renderKanbanBoard();
-                            showMessage(`Task moved to "${kanbanColumns[targetColumnId] || targetColumnId}".`, 'success');
-                        }
-                        draggedTask = null;
-                    }
-                });
-            });
-        }
-
-        // --- Kanban Board Functions --- END
 
 
         // --- Date & Time Helper Functions ---
@@ -2162,10 +1731,7 @@
 
         // --- Core Functions ---
         function showMessage(message, type = 'success') { messageBox.textContent = message; messageBox.className = 'message-box'; if (type === 'success') { messageBox.classList.add('bg-green-100', 'text-green-800', 'dark:bg-green-700', 'dark:text-green-100'); } else { messageBox.classList.add('bg-red-100', 'text-red-800', 'dark:bg-red-700', 'dark:text-red-100'); } messageBox.style.display = 'block'; messageBox.style.zIndex = '200'; setTimeout(() => { messageBox.style.display = 'none'; }, 3000); }
-        function saveTasks() {
-            localStorage.setItem('todos_v3', JSON.stringify(tasks));
-            updateUniqueLabels();
-        }
+        function saveTasks() { localStorage.setItem('todos_v3', JSON.stringify(tasks)); updateUniqueLabels(); }
         function getPriorityClass(priority) { switch (priority) { case 'high': return 'bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100'; case 'medium': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-600 dark:text-yellow-100'; case 'low': return 'bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100'; default: return 'bg-slate-100 text-slate-700 dark:bg-slate-600 dark:text-slate-200'; } }
 
         function updateUniqueLabels() {
@@ -2191,11 +1757,6 @@
         }
 
         function renderTasks() {
-            if (isKanbanViewActive && featureFlags.kanbanBoard) {
-                // updateMainViewUI will call renderKanbanBoard if needed, so just return
-                return;
-            }
-
             taskList.innerHTML = '';
             let filteredTasks = [];
             const todayDate = new Date();
@@ -2421,18 +1982,12 @@
                 reminderTime: featureFlags.reminderFeature && isReminderSet ? reminderTime : null,
                 reminderEmail: featureFlags.reminderFeature && isReminderSet ? reminderEmail : null,
                 timerStartTime: null, timerAccumulatedTime: 0, timerIsRunning: false, timerIsPaused: false, actualDurationMs: 0,
-                attachments: [],
-                kanbanColumnId: 'todo' // Default new tasks to 'todo' column
+                attachments: [] // Initialize attachments
             };
             tasks.unshift(newTask);
             saveTasks();
-            if (isKanbanViewActive && featureFlags.kanbanBoard) {
-                renderKanbanBoard();
-            } else if (currentFilter === 'completed') {
-                setFilter('inbox'); // This calls renderTasks
-            } else {
-                renderTasks();
-            }
+            if (currentFilter === 'completed') { setFilter('inbox'); }
+            else { renderTasks(); }
             closeAddModal();
             showMessage('Task added successfully!', 'success');
         }
@@ -2474,15 +2029,10 @@
                 reminderDate: featureFlags.reminderFeature && isReminderSet ? reminderDate : null,
                 reminderTime: featureFlags.reminderFeature && isReminderSet ? reminderTime : null,
                 reminderEmail: featureFlags.reminderFeature && isReminderSet ? reminderEmail : null,
-                attachments: task.attachments || [],
-                kanbanColumnId: task.kanbanColumnId || (task.completed ? 'done' : 'todo')
+                attachments: task.attachments || [] // Ensure attachments array exists
             } : task );
             saveTasks();
-            if (isKanbanViewActive && featureFlags.kanbanBoard) {
-                renderKanbanBoard();
-            } else {
-                renderTasks();
-            }
+            renderTasks();
             closeViewEditModal();
             showMessage('Task updated successfully!', 'success');
         }
@@ -2491,23 +2041,12 @@
             const taskIndex = tasks.findIndex(t => t.id === taskId);
             if (taskIndex === -1) return;
             tasks[taskIndex].completed = !tasks[taskIndex].completed;
-
-            if (featureFlags.kanbanBoard) {
-                tasks[taskIndex].kanbanColumnId = tasks[taskIndex].completed ? 'done' : (tasks[taskIndex].kanbanColumnId === 'done' ? 'todo' : tasks[taskIndex].kanbanColumnId);
-                if (tasks[taskIndex].completed && featureFlags.taskTimerSystem && (tasks[taskIndex].timerIsRunning || tasks[taskIndex].timerIsPaused)) {
-                     handleStopTimer(taskId);
-                }
-            } else if (tasks[taskIndex].completed && featureFlags.taskTimerSystem && (tasks[taskIndex].timerIsRunning || tasks[taskIndex].timerIsPaused)) {
-                 handleStopTimer(taskId);
-            }
-            saveTasks();
-
-            if (isKanbanViewActive && featureFlags.kanbanBoard) {
-                renderKanbanBoard();
+            if (featureFlags.taskTimerSystem && tasks[taskIndex].completed && (tasks[taskIndex].timerIsRunning || tasks[taskIndex].timerIsPaused)) {
+                handleStopTimer(taskId);
             } else {
-                renderTasks();
+                saveTasks();
             }
-
+            renderTasks();
             if (featureFlags.taskTimerSystem && currentViewTaskId === taskId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) {
                 updateTimerControlsUI(tasks[taskIndex]);
             }
@@ -2519,11 +2058,7 @@
             }
             tasks = tasks.filter(task => task.id !== taskId);
             saveTasks();
-            if (isKanbanViewActive && featureFlags.kanbanBoard) {
-                renderKanbanBoard();
-            } else {
-                renderTasks();
-            }
+            renderTasks();
             showMessage('Task deleted.', 'error');
         }
         function setFilter(filter) {
@@ -2535,23 +2070,19 @@
                 button.setAttribute('data-active', isActive.toString());
                 const baseInactive = ['bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600'];
                 const iconInactive = ['text-slate-500', 'dark:text-slate-400'];
-                const activeClasses = ['bg-sky-500', 'text-white', 'font-semibold'];
-                const iconActiveClasses = ['text-sky-100'];
-                button.classList.remove(...baseInactive, ...activeClasses);
-                button.querySelector('i')?.classList.remove(...iconInactive, ...iconActiveClasses);
+                const active = ['bg-sky-500', 'text-white', 'font-semibold'];
+                const iconActive = ['text-sky-100'];
+                button.classList.remove(...baseInactive, ...active);
+                button.querySelector('i')?.classList.remove(...iconInactive, ...iconActive);
                 if (isActive) {
-                    button.classList.add(...activeClasses);
-                    button.querySelector('i')?.classList.add(...iconActiveClasses);
+                    button.classList.add(...active);
+                    button.querySelector('i')?.classList.add(...iconActive);
                 } else {
                     button.classList.add(...baseInactive);
                     button.querySelector('i')?.classList.add(...iconInactive);
                 }
             });
-            if (isKanbanViewActive && featureFlags.kanbanBoard) {
-                renderKanbanBoard();
-            } else {
-                renderTasks();
-            }
+            renderTasks();
         }
 
         function updateClearCompletedButtonState() {
@@ -2572,11 +2103,7 @@
             if (completedCount === 0) { showMessage('No completed tasks to clear.', 'error'); return; }
             tasks = tasks.filter(task => !task.completed);
             saveTasks();
-            if (isKanbanViewActive && featureFlags.kanbanBoard) {
-                renderKanbanBoard();
-            } else {
-                renderTasks();
-            }
+            renderTasks();
             showMessage(`${completedCount} completed task(s) cleared.`, 'success');
             closeSettingsModal();
         }
@@ -2629,11 +2156,12 @@
         closeViewDetailsModalBtn.addEventListener('click', closeViewTaskDetailsModal);
         closeViewDetailsSecondaryBtn.addEventListener('click', closeViewTaskDetailsModal);
         editFromViewModalBtn.addEventListener('click', () => { if (currentViewTaskId !== null) { closeViewTaskDetailsModal(); openViewEditModal(currentViewTaskId); } });
+        // New Delete button in View Task Details Modal
         if(deleteFromViewModalBtn) {
             deleteFromViewModalBtn.addEventListener('click', () => {
                 if (currentViewTaskId !== null) {
                     deleteTask(currentViewTaskId);
-                    closeViewTaskDetailsModal();
+                    closeViewTaskDetailsModal(); // Close modal after deletion
                 }
             });
         }
@@ -2656,7 +2184,7 @@
         if (settingsManageLabelsBtn) { settingsManageLabelsBtn.addEventListener('click', () => { closeSettingsModal(); openManageLabelsModal(); }); }
         if (settingsManageRemindersBtn) { settingsManageRemindersBtn.addEventListener('click', () => { if(featureFlags.reminderFeature) showMessage('Manage Reminders - Coming soon!', 'success'); else showMessage('Enable Reminder System in Feature Flags.', 'error'); }); }
         if (settingsTaskReviewBtn) { settingsTaskReviewBtn.addEventListener('click', () => { closeSettingsModal(); openTaskReviewModal(); });}
-        if (settingsTooltipsGuideBtn) { settingsTooltipsGuideBtn.addEventListener('click', () => {closeSettingsModal(); openTooltipsGuideModal(); }); }
+        if (settingsTooltipsGuideBtn) { settingsTooltipsGuideBtn.addEventListener('click', () => {closeSettingsModal(); openTooltipsGuideModal(); }); } // New
 
         const nonFunctionalFeatureMessageHandler = (featureName) => {
             showMessage(`${featureName} feature is not yet implemented.`, 'error');
@@ -2670,6 +2198,7 @@
         if (closeTaskReviewSecondaryBtn) closeTaskReviewSecondaryBtn.addEventListener('click', closeTaskReviewModal);
         if (taskReviewModal) taskReviewModal.addEventListener('click', (event) => { if (event.target === taskReviewModal) closeTaskReviewModal(); });
 
+        // Tooltips Guide Modal Listeners (New)
         if (closeTooltipsGuideModalBtn) closeTooltipsGuideModalBtn.addEventListener('click', closeTooltipsGuideModal);
         if (closeTooltipsGuideSecondaryBtn) closeTooltipsGuideSecondaryBtn.addEventListener('click', closeTooltipsGuideModal);
         if (tooltipsGuideModal) tooltipsGuideModal.addEventListener('click', (event) => { if (event.target === tooltipsGuideModal) closeTooltipsGuideModal(); });
@@ -2682,27 +2211,12 @@
 
         if (testFeatureButton) { testFeatureButton.addEventListener('click', () => { console.log('Test Button Clicked!'); showMessage('Test Button Clicked! Check console.', 'success'); }); }
 
-        // Kanban toggle button listener
-        if (toggleKanbanViewBtn) {
-            toggleKanbanViewBtn.addEventListener('click', toggleKanbanListView);
-        }
-
-
         smartViewButtons.forEach(button => button.addEventListener('click', () => setFilter(button.dataset.filter)));
-        if (taskSearchInput) {
-             taskSearchInput.addEventListener('input', (event) => {
-                currentSearchTerm = event.target.value.trim().toLowerCase();
-                if (isKanbanViewActive && featureFlags.kanbanBoard) {
-                    renderKanbanBoard();
-                } else {
-                    renderTasks();
-                }
-            });
-        }
+        if (taskSearchInput) { taskSearchInput.addEventListener('input', (event) => { currentSearchTerm = event.target.value.trim().toLowerCase(); renderTasks(); }); }
         if (sidebarToggleBtn) { sidebarToggleBtn.addEventListener('click', () => { const isCurrentlyMinimized = taskSidebar.classList.contains('sidebar-minimized'); setSidebarMinimized(!isCurrentlyMinimized); }); }
-        sortByDueDateBtn.addEventListener('click', () => { currentSort = currentSort === 'dueDate' ? 'default' : 'dueDate'; updateSortButtonStates(); if (!isKanbanViewActive) renderTasks(); });
-        sortByPriorityBtn.addEventListener('click', () => { currentSort = currentSort === 'priority' ? 'default' : 'priority'; updateSortButtonStates(); if (!isKanbanViewActive) renderTasks(); });
-        sortByLabelBtn.addEventListener('click', () => { currentSort = currentSort === 'label' ? 'default' : 'label'; updateSortButtonStates(); if (!isKanbanViewActive) renderTasks(); });
+        sortByDueDateBtn.addEventListener('click', () => { currentSort = currentSort === 'dueDate' ? 'default' : 'dueDate'; updateSortButtonStates(); renderTasks(); });
+        sortByPriorityBtn.addEventListener('click', () => { currentSort = currentSort === 'priority' ? 'default' : 'priority'; updateSortButtonStates(); renderTasks(); });
+        sortByLabelBtn.addEventListener('click', () => { currentSort = currentSort === 'label' ? 'default' : 'label'; updateSortButtonStates(); renderTasks(); });
 
         document.addEventListener('keydown', (event) => {
             const isAddModalOpen = !addTaskModal.classList.contains('hidden');
@@ -2712,10 +2226,9 @@
             const isSettingsModalOpen = settingsModal && !settingsModal.classList.contains('hidden');
             const isFeatureFlagsModalOpen = featureFlagsModal && !featureFlagsModal.classList.contains('hidden');
             const isTaskReviewModalOpen = taskReviewModal && !taskReviewModal.classList.contains('hidden');
-            const isTooltipsGuideModalOpen = tooltipsGuideModal && !tooltipsGuideModal.classList.contains('hidden');
-            const isAnyModalOpen = isAddModalOpen || isViewEditModalOpen || isViewDetailsModalOpen || isManageLabelsModalOpen || isSettingsModalOpen || isFeatureFlagsModalOpen || isTaskReviewModalOpen || isTooltipsGuideModalOpen;
-            const isInputFocused = document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.isContentEditable;
-
+            const isTooltipsGuideModalOpen = tooltipsGuideModal && !tooltipsGuideModal.classList.contains('hidden'); // New
+            const isAnyModalOpen = isAddModalOpen || isViewEditModalOpen || isViewDetailsModalOpen || isManageLabelsModalOpen || isSettingsModalOpen || isFeatureFlagsModalOpen || isTaskReviewModalOpen || isTooltipsGuideModalOpen; // Updated
+            const isInputFocused = document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT' || document.activeElement.tagName === 'TEXTAREA';
 
             if ((event.key === '+' || event.key === '=') && !isAnyModalOpen && !isInputFocused) { event.preventDefault(); openAddModal(); }
             if (event.key === 'Escape') {
@@ -2726,7 +2239,7 @@
                 if (isSettingsModalOpen) closeSettingsModal();
                 if (isFeatureFlagsModalOpen) closeFeatureFlagsModal();
                 if (isTaskReviewModalOpen) closeTaskReviewModal();
-                if (isTooltipsGuideModalOpen) closeTooltipsGuideModal();
+                if (isTooltipsGuideModalOpen) closeTooltipsGuideModal(); // New
             }
         });
 
@@ -2752,14 +2265,12 @@
                 timerIsRunning: task.timerIsRunning || false,
                 timerIsPaused: task.timerIsPaused || false,
                 actualDurationMs: task.actualDurationMs || 0,
-                attachments: task.attachments || [],
-                kanbanColumnId: task.kanbanColumnId || (task.completed ? 'done' : 'todo')
+                attachments: task.attachments || [] // Ensure attachments array exists
             }));
         }
 
 
         loadFeatureFlags();
-        loadKanbanColumnNames();
         initializeTasks();
         updateUniqueLabels();
         smartViewButtons.forEach(button => { button.classList.add('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600'); button.querySelector('i')?.classList.add('text-slate-500', 'dark:text-slate-400'); });
@@ -2773,7 +2284,6 @@
 
         window.onload = () => {
             loadFeatureFlags();
-            loadKanbanColumnNames();
             initializeTasks();
             applyActiveFeatures();
             setFilter(currentFilter);
