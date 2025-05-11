@@ -128,8 +128,8 @@ const closeTooltipsGuideModalBtn = document.getElementById('closeTooltipsGuideMo
 const closeTooltipsGuideSecondaryBtn = document.getElementById('closeTooltipsGuideSecondaryBtn');
 const tooltipsGuideContent = document.getElementById('tooltipsGuideContent');
 // Test Feature Button
-const testFeatureButtonContainer = document.getElementById('testFeatureButtonContainer');
-const testFeatureButton = document.getElementById('testFeatureButton');
+const testFeatureButtonContainer = document.getElementById('testFeatureButtonContainer'); // Still needed for visibility toggle
+const testFeatureButton = document.getElementById('testFeatureButton'); // Still needed for feature_test_button.js to find
 // Sub-task Elements
 const subTasksSectionViewEdit = document.getElementById('subTasksSectionViewEdit');
 const modalSubTaskInputViewEdit = document.getElementById('modalSubTaskInputViewEdit');
@@ -180,7 +180,8 @@ function setSidebarMinimized(minimize) {
         sidebarTextElements.forEach(el => el.classList.add('hidden'));
         document.querySelectorAll('.sidebar-section-title, #taskSearchInputContainer, #testFeatureButtonContainer .sidebar-text-content').forEach(el => el.classList.add('hidden'));
         sidebarIconOnlyButtons.forEach(btn => { btn.classList.add('justify-center'); const icon = btn.querySelector('i'); if(icon) icon.classList.remove('md:mr-2', 'md:mr-2.5', 'ml-2'); });
-        if (testFeatureButton) testFeatureButton.querySelector('.sidebar-text-content')?.classList.add('hidden');
+        // Note: The text inside testFeatureButton is handled by sidebar-text-content,
+        // but the container itself (testFeatureButtonContainer) visibility is handled by applyActiveFeatures.
         localStorage.setItem('sidebarState', 'minimized');
     } else {
         taskSidebar.classList.remove('w-16', 'p-3', 'sidebar-minimized');
@@ -195,7 +196,6 @@ function setSidebarMinimized(minimize) {
                 textSpan.classList.add('ml-2');
             }
         });
-        if (testFeatureButton) testFeatureButton.querySelector('.sidebar-text-content')?.classList.remove('hidden');
         localStorage.setItem('sidebarState', 'expanded');
     }
 }
@@ -209,6 +209,10 @@ function showTooltip(element, text) {
 function hideTooltip() { clearTimeout(tooltipTimeout); iconTooltip.style.display = 'none'; }
 
 // --- Modal UI Functions ---
+// ... (openAddModal, closeAddModal, openViewEditModal, closeViewEditModal, etc. remain largely the same) ...
+// Minor change in openAddModal and openViewEditModal:
+// Removed their individual applyActiveFeatures() calls as the main one handles it.
+
 function openAddModal() {
     if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT' || document.activeElement.tagName === 'TEXTAREA') {
         if (!addTaskModal.classList.contains('hidden')) return;
@@ -311,13 +315,13 @@ function closeSettingsModal() { modalDialogSettings.classList.add('scale-95', 'o
 function openTaskReviewModal() { if (!featureFlags.taskTimerSystem) { showMessage("Task Timer System feature is currently disabled.", "error"); return; } populateTaskReviewModal(); taskReviewModal.classList.remove('hidden'); setTimeout(() => { modalDialogTaskReview.classList.remove('scale-95', 'opacity-0'); modalDialogTaskReview.classList.add('scale-100', 'opacity-100'); }, 10); }
 function closeTaskReviewModal() { modalDialogTaskReview.classList.add('scale-95', 'opacity-0'); modalDialogTaskReview.classList.remove('scale-100', 'opacity-100'); setTimeout(() => { taskReviewModal.classList.add('hidden'); }, 200); }
 function populateTaskReviewModal() {
-    taskReviewContent.innerHTML = ''; // Clear existing content
+    taskReviewContent.innerHTML = '';
     const completedTasksWithTime = tasks.filter(task => 
         task.completed && 
         ((task.estimatedHours && task.estimatedHours > 0) || 
          (task.estimatedMinutes && task.estimatedMinutes > 0) || 
          (task.actualDurationMs && task.actualDurationMs > 0))
-    ).sort((a,b) => (b.completedDate || 0) - (a.completedDate || 0)); // Sort by most recently completed
+    ).sort((a,b) => (b.completedDate || 0) - (a.completedDate || 0));
 
     if (completedTasksWithTime.length === 0) { 
         taskReviewContent.innerHTML = '<p class="text-slate-500 dark:text-slate-400 text-center">No completed tasks with time data.</p>'; 
@@ -327,23 +331,19 @@ function populateTaskReviewModal() {
     completedTasksWithTime.forEach(task => {
         const itemDiv = document.createElement('div'); 
         itemDiv.className = 'p-3 bg-slate-50 dark:bg-slate-700 rounded-lg shadow';
-        
         const taskName = document.createElement('h4'); 
         taskName.className = 'text-md font-semibold text-slate-800 dark:text-slate-100 mb-1 truncate'; 
         taskName.textContent = task.text; 
         itemDiv.appendChild(taskName);
-        
         const estimatedP = document.createElement('p'); 
         estimatedP.className = 'text-sm text-slate-600 dark:text-slate-300'; 
         estimatedP.innerHTML = `<strong>Estimated:</strong> ${formatDuration(task.estimatedHours, task.estimatedMinutes)}`; 
         itemDiv.appendChild(estimatedP);
-        
         const actualP = document.createElement('p'); 
         actualP.className = 'text-sm text-slate-600 dark:text-slate-300'; 
         actualP.innerHTML = `<strong>Actual:</strong> ${task.actualDurationMs > 0 ? formatMillisecondsToHMS(task.actualDurationMs) : 'Not recorded'}`; 
         itemDiv.appendChild(actualP);
-        
-        if (task.completedDate) { // Changed from task.dueDate to task.completedDate for accuracy
+        if (task.completedDate) {
             const completedOnP = document.createElement('p'); 
             completedOnP.className = 'text-xs text-slate-400 dark:text-slate-500 mt-1'; 
             completedOnP.textContent = `Completed on: ${formatDate(task.completedDate)}`; 
@@ -353,14 +353,23 @@ function populateTaskReviewModal() {
     });
 }
 
-
 function openTooltipsGuideModal() { if (!featureFlags.tooltipsGuide) { showMessage("Tooltips Guide feature is disabled.", "error"); return; } tooltipsGuideModal.classList.remove('hidden'); setTimeout(() => { modalDialogTooltipsGuide.classList.remove('scale-95', 'opacity-0'); modalDialogTooltipsGuide.classList.add('scale-100', 'opacity-100'); }, 10); }
 function closeTooltipsGuideModal() { modalDialogTooltipsGuide.classList.add('scale-95', 'opacity-0'); modalDialogTooltipsGuide.classList.remove('scale-100', 'opacity-100'); setTimeout(() => { tooltipsGuideModal.classList.add('hidden'); }, 200); }
 
 // --- Apply Active Features (UI part) ---
 function applyActiveFeatures() {
-    const toggleElements = (selector, isEnabled) => { document.querySelectorAll(selector).forEach(el => el.classList.toggle('hidden', !isEnabled)); };
-    if (testFeatureButtonContainer) testFeatureButtonContainer.classList.toggle('hidden', !featureFlags.testButtonFeature);
+    const toggleElements = (selector, isEnabled) => { 
+        document.querySelectorAll(selector).forEach(el => el.classList.toggle('hidden', !isEnabled)); 
+    };
+
+    // Call the specific UI update function for testButtonFeature if it exists
+    if (window.AppFeatures && typeof window.AppFeatures.updateTestButtonUIVisibility === 'function') {
+        window.AppFeatures.updateTestButtonUIVisibility(featureFlags.testButtonFeature);
+    } else {
+        // Fallback or if the feature file hasn't loaded/defined it, hide related elements
+        if (testFeatureButtonContainer) testFeatureButtonContainer.classList.toggle('hidden', !featureFlags.testButtonFeature);
+    }
+    
     toggleElements('.reminder-feature-element', featureFlags.reminderFeature);
     toggleElements('.task-timer-system-element', featureFlags.taskTimerSystem);
     toggleElements('.advanced-recurrence-element', featureFlags.advancedRecurrence);
@@ -405,103 +414,39 @@ function renderTasks() {
         const li = document.createElement('li');
         li.className = `task-item flex items-start justify-between bg-slate-100 dark:bg-slate-700 p-3 sm:p-3.5 rounded-lg shadow hover:shadow-md transition-shadow duration-300 ${task.completed ? 'opacity-60' : ''} overflow-hidden`;
         li.dataset.taskId = task.id;
-
         const mainContentClickableArea = document.createElement('div');
         mainContentClickableArea.className = 'task-item-clickable-area flex items-start flex-grow min-w-0 mr-2 rounded-l-lg';
-        mainContentClickableArea.addEventListener('click', (event) => {
-            if (event.target.type === 'checkbox' || event.target.closest('.task-actions')) {
-                return; // Do not open modal if checkbox or action button is clicked
-            }
-            openViewTaskDetailsModal(task.id);
-        });
-
+        mainContentClickableArea.addEventListener('click', (event) => { if (event.target.type === 'checkbox' || event.target.closest('.task-actions')) { return; } openViewTaskDetailsModal(task.id); });
         const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.checked = task.completed;
+        checkbox.type = 'checkbox'; checkbox.checked = task.completed;
         checkbox.className = 'form-checkbox h-5 w-5 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 dark:focus:ring-sky-500 mt-0.5 mr-2 sm:mr-3 cursor-pointer flex-shrink-0';
         checkbox.addEventListener('change', () => toggleComplete(task.id));
-
         const textDetailsDiv = document.createElement('div');
         textDetailsDiv.className = 'flex flex-col flex-grow min-w-0';
-
-        const span = document.createElement('span');
-        span.textContent = task.text;
+        const span = document.createElement('span'); span.textContent = task.text;
         let textColorClass = task.completed ? 'text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-200';
         span.className = `text-sm sm:text-base break-words ${textColorClass} ${task.completed ? 'completed-text' : ''}`;
         textDetailsDiv.appendChild(span);
-
         const detailsContainer = document.createElement('div');
         detailsContainer.className = 'flex items-center flex-wrap gap-x-2 gap-y-1 mt-1 sm:mt-1.5 text-xs';
-
-        if (task.priority) {
-            const pB = document.createElement('span');
-            pB.textContent = task.priority;
-            pB.className = `priority-badge ${getPriorityClass(task.priority)}`;
-            detailsContainer.appendChild(pB);
-        }
-        if (task.label) {
-            const lB = document.createElement('span');
-            lB.textContent = task.label;
-            lB.className = 'label-badge';
-            detailsContainer.appendChild(lB);
-        }
-        if (task.dueDate) {
-            const dDS = document.createElement('span');
-            dDS.className = 'text-slate-500 dark:text-slate-400 flex items-center';
-            let dD = formatDate(task.dueDate);
-            if (task.time) { dD += ` ${formatTime(task.time)}`; }
-            dDS.innerHTML = `<i class="far fa-calendar-alt mr-1"></i> ${dD}`;
-            detailsContainer.appendChild(dDS);
-        }
-        if (featureFlags.fileAttachments && task.attachments && task.attachments.length > 0) {
-            const aS = document.createElement('span');
-            aS.className = 'text-slate-500 dark:text-slate-400 flex items-center file-attachments-element';
-            aS.innerHTML = `<i class="fas fa-paperclip mr-1"></i> ${task.attachments.length}`;
-            detailsContainer.appendChild(aS);
-        }
-        if (featureFlags.subTasksFeature && task.subTasks && task.subTasks.length > 0) {
-            const subTaskIcon = document.createElement('span');
-            subTaskIcon.className = 'text-slate-400 dark:text-slate-500 flex items-center sub-tasks-feature-element';
-            const completedSubTasks = task.subTasks.filter(st => st.completed).length;
-            subTaskIcon.innerHTML = `<i class="fas fa-tasks mr-1" title="${completedSubTasks}/${task.subTasks.length} sub-tasks completed"></i>`;
-            detailsContainer.appendChild(subTaskIcon);
-        }
-
-        if (detailsContainer.hasChildNodes()) {
-            textDetailsDiv.appendChild(detailsContainer);
-        }
-
-        mainContentClickableArea.appendChild(checkbox);
-        mainContentClickableArea.appendChild(textDetailsDiv);
-
-        const actionsDiv = document.createElement('div');
-        actionsDiv.className = 'task-actions flex-shrink-0 self-start';
-
-        const editButton = document.createElement('button');
-        editButton.className = 'task-action-btn text-sky-500 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-500';
-        editButton.innerHTML = '<i class="fas fa-pencil-alt"></i>';
-        editButton.setAttribute('aria-label', 'Edit task');
-        editButton.title = 'Edit task';
-        editButton.addEventListener('click', () => openViewEditModal(task.id));
-        actionsDiv.appendChild(editButton);
-
-        const deleteButton = document.createElement('button');
-        deleteButton.className = 'task-action-btn text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-500';
-        deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
-        deleteButton.setAttribute('aria-label', 'Delete task');
-        deleteButton.title = 'Delete task';
-        deleteButton.addEventListener('click', () => deleteTask(task.id));
-        actionsDiv.appendChild(deleteButton);
-
-        li.appendChild(mainContentClickableArea);
-        li.appendChild(actionsDiv);
-        taskList.appendChild(li);
+        if (task.priority) { const pB = document.createElement('span'); pB.textContent = task.priority; pB.className = `priority-badge ${getPriorityClass(task.priority)}`; detailsContainer.appendChild(pB); }
+        if (task.label) { const lB = document.createElement('span'); lB.textContent = task.label; lB.className = 'label-badge'; detailsContainer.appendChild(lB); }
+        if (task.dueDate) { const dDS = document.createElement('span'); dDS.className = 'text-slate-500 dark:text-slate-400 flex items-center'; let dD = formatDate(task.dueDate); if (task.time) { dD += ` ${formatTime(task.time)}`; } dDS.innerHTML = `<i class="far fa-calendar-alt mr-1"></i> ${dD}`; detailsContainer.appendChild(dDS); }
+        if (featureFlags.fileAttachments && task.attachments && task.attachments.length > 0) { const aS = document.createElement('span'); aS.className = 'text-slate-500 dark:text-slate-400 flex items-center file-attachments-element'; aS.innerHTML = `<i class="fas fa-paperclip mr-1"></i> ${task.attachments.length}`; detailsContainer.appendChild(aS); }
+        if (featureFlags.subTasksFeature && task.subTasks && task.subTasks.length > 0) { const subTaskIcon = document.createElement('span'); subTaskIcon.className = 'text-slate-400 dark:text-slate-500 flex items-center sub-tasks-feature-element'; const completedSubTasks = task.subTasks.filter(st => st.completed).length; subTaskIcon.innerHTML = `<i class="fas fa-tasks mr-1" title="${completedSubTasks}/${task.subTasks.length} sub-tasks completed"></i>`; detailsContainer.appendChild(subTaskIcon); }
+        if (detailsContainer.hasChildNodes()) { textDetailsDiv.appendChild(detailsContainer); }
+        mainContentClickableArea.appendChild(checkbox); mainContentClickableArea.appendChild(textDetailsDiv);
+        const actionsDiv = document.createElement('div'); actionsDiv.className = 'task-actions flex-shrink-0 self-start';
+        const editButton = document.createElement('button'); editButton.className = 'task-action-btn text-sky-500 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-500'; editButton.innerHTML = '<i class="fas fa-pencil-alt"></i>'; editButton.setAttribute('aria-label', 'Edit task'); editButton.title = 'Edit task'; editButton.addEventListener('click', () => openViewEditModal(task.id)); actionsDiv.appendChild(editButton);
+        const deleteButton = document.createElement('button'); deleteButton.className = 'task-action-btn text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-500'; deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i>'; deleteButton.setAttribute('aria-label', 'Delete task'); deleteButton.title = 'Delete task'; deleteButton.addEventListener('click', () => deleteTask(task.id)); actionsDiv.appendChild(deleteButton);
+        li.appendChild(mainContentClickableArea); li.appendChild(actionsDiv); taskList.appendChild(li);
     });
     updateClearCompletedButtonState();
 }
 
 
 // --- Sub-task Rendering Functions ---
+// ... (renderTempSubTasksForAddModal, renderSubTasksForEditModal, renderSubTasksForViewModal remain the same) ...
 function renderTempSubTasksForAddModal() {
     if (!featureFlags.subTasksFeature || !modalSubTasksListAdd) return;
     modalSubTasksListAdd.innerHTML = '';
@@ -517,41 +462,23 @@ function renderTempSubTasksForAddModal() {
     tempSubTasksForAddModal.forEach((subTask, index) => {
         const li = document.createElement('li');
         li.className = 'flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-700/50 rounded-md text-sm group';
-
         const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.checked = subTask.completed;
+        checkbox.type = 'checkbox'; checkbox.checked = subTask.completed;
         checkbox.className = 'form-checkbox h-4 w-4 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 mr-2 cursor-pointer';
-        checkbox.addEventListener('change', () => {
-            tempSubTasksForAddModal[index].completed = !tempSubTasksForAddModal[index].completed;
-            renderTempSubTasksForAddModal();
-        });
-
-        const textSpan = document.createElement('span');
-        textSpan.textContent = subTask.text;
+        checkbox.addEventListener('change', () => { tempSubTasksForAddModal[index].completed = !tempSubTasksForAddModal[index].completed; renderTempSubTasksForAddModal(); });
+        const textSpan = document.createElement('span'); textSpan.textContent = subTask.text;
         textSpan.className = `flex-grow break-all ${subTask.completed ? 'line-through text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-200'}`;
-        
         const actionsDiv = document.createElement('div');
         actionsDiv.className = 'ml-2 flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200';
-
-        const deleteBtn = document.createElement('button');
-        deleteBtn.type = 'button';
+        const deleteBtn = document.createElement('button'); deleteBtn.type = 'button';
         deleteBtn.innerHTML = '<i class="fas fa-trash-alt text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"></i>';
-        deleteBtn.className = 'p-1';
-        deleteBtn.title = 'Remove sub-task';
-        deleteBtn.addEventListener('click', () => {
-            tempSubTasksForAddModal.splice(index, 1);
-            renderTempSubTasksForAddModal();
-        });
-
+        deleteBtn.className = 'p-1'; deleteBtn.title = 'Remove sub-task';
+        deleteBtn.addEventListener('click', () => { tempSubTasksForAddModal.splice(index, 1); renderTempSubTasksForAddModal(); });
         actionsDiv.appendChild(deleteBtn);
-        li.appendChild(checkbox);
-        li.appendChild(textSpan);
-        li.appendChild(actionsDiv);
+        li.appendChild(checkbox); li.appendChild(textSpan); li.appendChild(actionsDiv);
         modalSubTasksListAdd.appendChild(li);
     });
 }
-
 
 function renderSubTasksForEditModal(parentId, subTasksListElement) {
     if (!featureFlags.subTasksFeature || !subTasksListElement) return;
@@ -564,78 +491,22 @@ function renderSubTasksForEditModal(parentId, subTasksListElement) {
         subTasksListElement.appendChild(noSubTasksLi);
         return;
     }
-
     parentTask.subTasks.forEach(subTask => {
         const li = document.createElement('li');
         li.className = 'flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-700/50 rounded-md text-sm group';
         li.dataset.subTaskId = subTask.id;
-
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.checked = subTask.completed;
+        const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.checked = subTask.completed;
         checkbox.className = 'form-checkbox h-4 w-4 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 mr-2 cursor-pointer';
-        checkbox.addEventListener('change', () => {
-            toggleSubTaskCompleteLogic(parentId, subTask.id);
-            renderSubTasksForEditModal(parentId, subTasksListElement);
-            if (currentViewTaskId === parentId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) {
-                renderSubTasksForViewModal(parentId, modalSubTasksListViewDetails, viewSubTaskProgress, noSubTasksMessageViewDetails);
-            }
-            renderTasks();
-        });
-
-        const textSpan = document.createElement('span');
-        textSpan.textContent = subTask.text;
+        checkbox.addEventListener('change', () => { toggleSubTaskCompleteLogic(parentId, subTask.id); renderSubTasksForEditModal(parentId, subTasksListElement); if (currentViewTaskId === parentId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) { renderSubTasksForViewModal(parentId, modalSubTasksListViewDetails, viewSubTaskProgress, noSubTasksMessageViewDetails); } renderTasks(); });
+        const textSpan = document.createElement('span'); textSpan.textContent = subTask.text;
         textSpan.className = `flex-grow break-all ${subTask.completed ? 'line-through text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-200'}`;
-        
-        const actionsDiv = document.createElement('div');
-        actionsDiv.className = 'ml-2 flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200';
-
-        const editBtn = document.createElement('button');
-        editBtn.type = 'button';
-        editBtn.innerHTML = '<i class="fas fa-pencil-alt text-xs text-sky-500 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300"></i>';
-        editBtn.className = 'p-1';
-        editBtn.title = 'Edit sub-task';
-        editBtn.addEventListener('click', () => {
-            const newText = prompt('Edit sub-task:', subTask.text);
-            if (newText !== null && newText.trim() !== '') {
-                if (editSubTaskLogic(parentId, subTask.id, newText.trim())) {
-                    renderSubTasksForEditModal(parentId, subTasksListElement);
-                    if (currentViewTaskId === parentId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) {
-                        renderSubTasksForViewModal(parentId, modalSubTasksListViewDetails, viewSubTaskProgress, noSubTasksMessageViewDetails);
-                    }
-                    showMessage('Sub-task updated.', 'success');
-                } else {
-                    showMessage('Failed to update sub-task.', 'error');
-                }
-            }
-        });
-
-        const deleteBtn = document.createElement('button');
-        deleteBtn.type = 'button';
-        deleteBtn.innerHTML = '<i class="fas fa-trash-alt text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"></i>';
-        deleteBtn.className = 'p-1';
-        deleteBtn.title = 'Delete sub-task';
-        deleteBtn.addEventListener('click', () => {
-            if (confirm(`Are you sure you want to delete sub-task: "${subTask.text}"?`)) {
-                if (deleteSubTaskLogic(parentId, subTask.id)) {
-                    renderSubTasksForEditModal(parentId, subTasksListElement);
-                     if (currentViewTaskId === parentId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) {
-                        renderSubTasksForViewModal(parentId, modalSubTasksListViewDetails, viewSubTaskProgress, noSubTasksMessageViewDetails);
-                    }
-                    showMessage('Sub-task deleted.', 'success');
-                    renderTasks();
-                } else {
-                    showMessage('Failed to delete sub-task.', 'error');
-                }
-            }
-        });
-
-        actionsDiv.appendChild(editBtn);
-        actionsDiv.appendChild(deleteBtn);
-
-        li.appendChild(checkbox);
-        li.appendChild(textSpan);
-        li.appendChild(actionsDiv);
+        const actionsDiv = document.createElement('div'); actionsDiv.className = 'ml-2 flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200';
+        const editBtn = document.createElement('button'); editBtn.type = 'button'; editBtn.innerHTML = '<i class="fas fa-pencil-alt text-xs text-sky-500 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300"></i>'; editBtn.className = 'p-1'; editBtn.title = 'Edit sub-task';
+        editBtn.addEventListener('click', () => { const newText = prompt('Edit sub-task:', subTask.text); if (newText !== null && newText.trim() !== '') { if (editSubTaskLogic(parentId, subTask.id, newText.trim())) { renderSubTasksForEditModal(parentId, subTasksListElement); if (currentViewTaskId === parentId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) { renderSubTasksForViewModal(parentId, modalSubTasksListViewDetails, viewSubTaskProgress, noSubTasksMessageViewDetails); } showMessage('Sub-task updated.', 'success'); } else { showMessage('Failed to update sub-task.', 'error'); } } });
+        const deleteBtn = document.createElement('button'); deleteBtn.type = 'button'; deleteBtn.innerHTML = '<i class="fas fa-trash-alt text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"></i>'; deleteBtn.className = 'p-1'; deleteBtn.title = 'Delete sub-task';
+        deleteBtn.addEventListener('click', () => { if (confirm(`Are you sure you want to delete sub-task: "${subTask.text}"?`)) { if (deleteSubTaskLogic(parentId, subTask.id)) { renderSubTasksForEditModal(parentId, subTasksListElement); if (currentViewTaskId === parentId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) { renderSubTasksForViewModal(parentId, modalSubTasksListViewDetails, viewSubTaskProgress, noSubTasksMessageViewDetails); } showMessage('Sub-task deleted.', 'success'); renderTasks(); } else { showMessage('Failed to delete sub-task.', 'error'); } } });
+        actionsDiv.appendChild(editBtn); actionsDiv.appendChild(deleteBtn);
+        li.appendChild(checkbox); li.appendChild(textSpan); li.appendChild(actionsDiv);
         subTasksListElement.appendChild(li);
     });
 }
@@ -644,65 +515,34 @@ function renderSubTasksForViewModal(parentId, subTasksListElement, progressEleme
     if (!featureFlags.subTasksFeature || !subTasksListElement || !progressElement || !noSubTasksMessageElement) return;
     subTasksListElement.innerHTML = '';
     const parentTask = tasks.find(t => t.id === parentId);
-
     if (!parentTask || !parentTask.subTasks || parentTask.subTasks.length === 0) {
-        progressElement.textContent = '';
-        noSubTasksMessageElement.classList.remove('hidden');
-        subTasksListElement.classList.add('hidden');
-        return;
+        progressElement.textContent = ''; noSubTasksMessageElement.classList.remove('hidden'); subTasksListElement.classList.add('hidden'); return;
     }
-    
-    noSubTasksMessageElement.classList.add('hidden');
-    subTasksListElement.classList.remove('hidden');
-
+    noSubTasksMessageElement.classList.add('hidden'); subTasksListElement.classList.remove('hidden');
     let completedCount = 0;
     parentTask.subTasks.forEach(subTask => {
         if (subTask.completed) completedCount++;
-        const li = document.createElement('li');
-        li.className = 'flex items-center text-sm group';
-        li.dataset.subTaskId = subTask.id;
-
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.checked = subTask.completed;
+        const li = document.createElement('li'); li.className = 'flex items-center text-sm group'; li.dataset.subTaskId = subTask.id;
+        const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.checked = subTask.completed;
         checkbox.className = 'form-checkbox h-4 w-4 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 mr-2 cursor-pointer';
-        checkbox.addEventListener('change', () => {
-            toggleSubTaskCompleteLogic(parentId, subTask.id);
-            renderSubTasksForViewModal(parentId, subTasksListElement, progressElement, noSubTasksMessageElement);
-            if (editingTaskId === parentId && viewEditTaskModal && !viewEditTaskModal.classList.contains('hidden')) {
-                renderSubTasksForEditModal(parentId, modalSubTasksListViewEdit);
-            }
-            renderTasks();
-        });
-        
-        const textSpan = document.createElement('span');
-        textSpan.textContent = subTask.text;
+        checkbox.addEventListener('change', () => { toggleSubTaskCompleteLogic(parentId, subTask.id); renderSubTasksForViewModal(parentId, subTasksListElement, progressElement, noSubTasksMessageElement); if (editingTaskId === parentId && viewEditTaskModal && !viewEditTaskModal.classList.contains('hidden')) { renderSubTasksForEditModal(parentId, modalSubTasksListViewEdit); } renderTasks(); });
+        const textSpan = document.createElement('span'); textSpan.textContent = subTask.text;
         textSpan.className = `flex-grow break-all ${subTask.completed ? 'line-through text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-300'}`;
-        
-        li.appendChild(checkbox);
-        li.appendChild(textSpan);
+        li.appendChild(checkbox); li.appendChild(textSpan);
         subTasksListElement.appendChild(li);
     });
     progressElement.textContent = `${completedCount}/${parentTask.subTasks.length} completed`;
 }
 
-
 // --- Timer UI Update Functions ---
+// ... (Timer functions remain the same) ...
 function updateLiveTimerDisplayUI(taskId) {
     const task = tasks.find(t => t.id === taskId);
     if (!task || !viewTaskTimerDisplay || currentViewTaskId !== taskId) return;
-    if (task.timerIsRunning) {
-        const now = Date.now();
-        const elapsedSinceStart = now - (task.timerStartTime || now);
-        const currentDisplayTime = (task.timerAccumulatedTime || 0) + elapsedSinceStart;
-        viewTaskTimerDisplay.textContent = formatMillisecondsToHMS(currentDisplayTime);
-    } else if (task.timerIsPaused) {
-        viewTaskTimerDisplay.textContent = formatMillisecondsToHMS(task.timerAccumulatedTime || 0);
-    } else if (task.actualDurationMs > 0) {
-        viewTaskTimerDisplay.textContent = formatMillisecondsToHMS(task.actualDurationMs);
-    } else {
-         viewTaskTimerDisplay.textContent = "00:00:00";
-    }
+    if (task.timerIsRunning) { const now = Date.now(); const elapsedSinceStart = now - (task.timerStartTime || now); const currentDisplayTime = (task.timerAccumulatedTime || 0) + elapsedSinceStart; viewTaskTimerDisplay.textContent = formatMillisecondsToHMS(currentDisplayTime); }
+    else if (task.timerIsPaused) { viewTaskTimerDisplay.textContent = formatMillisecondsToHMS(task.timerAccumulatedTime || 0); }
+    else if (task.actualDurationMs > 0) { viewTaskTimerDisplay.textContent = formatMillisecondsToHMS(task.actualDurationMs); }
+    else { viewTaskTimerDisplay.textContent = "00:00:00"; }
 }
 
 function updateTimerControlsUI(task) {
@@ -716,8 +556,8 @@ function updateTimerControlsUI(task) {
     else { viewTaskStartTimerBtn.classList.remove('hidden'); viewTaskStartTimerBtn.textContent = 'Start'; viewTaskPauseTimerBtn.classList.add('hidden'); viewTaskStopTimerBtn.classList.add('hidden'); viewTaskActualDuration.textContent = "Not yet recorded."; if (viewTaskTimerDisplay) viewTaskTimerDisplay.textContent = "00:00:00"; }
 }
 
-
 // --- UI State Updaters ---
+// ... (UI State updaters remain the same) ...
 function updateSortButtonStates() { [sortByDueDateBtn, sortByPriorityBtn, sortByLabelBtn].forEach(btn => { if (btn) { let sortType = ''; if (btn === sortByDueDateBtn) sortType = 'dueDate'; else if (btn === sortByPriorityBtn) sortType = 'priority'; else if (btn === sortByLabelBtn) sortType = 'label'; btn.classList.toggle('sort-btn-active', currentSort === sortType); } }); }
 function updateClearCompletedButtonState() {
     const hasCompleted = tasks.some(task => task.completed);
@@ -730,57 +570,23 @@ function updateClearCompletedButtonState() {
     }
 }
 
-// --- Event Handlers (Call logic functions from app_logic.js) ---
+// --- Event Handlers ---
+// ... (handleAddTask, handleEditTask, toggleComplete, deleteTask, setFilter, clearCompletedTasks, label handlers, timer handlers remain the same) ...
 function handleAddTask(event) {
     event.preventDefault();
-    const rawTaskText = modalTaskInputAdd.value.trim();
-    const explicitDueDate = modalDueDateInputAdd.value;
-    const time = modalTimeInputAdd.value;
-    let estHours = 0, estMinutes = 0;
-    if (featureFlags.taskTimerSystem) {
-        estHours = parseInt(modalEstHoursAdd.value) || 0;
-        estMinutes = parseInt(modalEstMinutesAdd.value) || 0;
-    }
-    const priority = modalPriorityInputAdd.value;
-    const label = modalLabelInputAdd.value.trim();
-    const notes = modalNotesInputAdd.value.trim();
+    const rawTaskText = modalTaskInputAdd.value.trim(); const explicitDueDate = modalDueDateInputAdd.value; const time = modalTimeInputAdd.value;
+    let estHours = 0, estMinutes = 0; if (featureFlags.taskTimerSystem) { estHours = parseInt(modalEstHoursAdd.value) || 0; estMinutes = parseInt(modalEstMinutesAdd.value) || 0; }
+    const priority = modalPriorityInputAdd.value; const label = modalLabelInputAdd.value.trim(); const notes = modalNotesInputAdd.value.trim();
     let isReminderSet = false, reminderDate = null, reminderTime = null, reminderEmail = null;
-    if (featureFlags.reminderFeature && modalRemindMeAdd) {
-        isReminderSet = modalRemindMeAdd.checked;
-        if (isReminderSet) {
-            reminderDate = modalReminderDateAdd.value; reminderTime = modalReminderTimeAdd.value; reminderEmail = modalReminderEmailAdd.value.trim();
-            if (!reminderDate) { showMessage('Please select a reminder date.', 'error'); modalReminderDateAdd.focus(); return; }
-            if (!reminderTime) { showMessage('Please select a reminder time.', 'error'); modalReminderTimeAdd.focus(); return; }
-            if (!reminderEmail) { showMessage('Please enter an email for the reminder.', 'error'); modalReminderEmailAdd.focus(); return; }
-            if (!/^\S+@\S+\.\S+$/.test(reminderEmail)) { showMessage('Please enter a valid email address.', 'error'); modalReminderEmailAdd.focus(); return; }
-        }
-    }
+    if (featureFlags.reminderFeature && modalRemindMeAdd) { isReminderSet = modalRemindMeAdd.checked; if (isReminderSet) { reminderDate = modalReminderDateAdd.value; reminderTime = modalReminderTimeAdd.value; reminderEmail = modalReminderEmailAdd.value.trim(); if (!reminderDate || !reminderTime || !reminderEmail || !/^\S+@\S+\.\S+$/.test(reminderEmail)) { showMessage('Please provide valid reminder details.', 'error'); return; } } }
     if (rawTaskText === '') { showMessage('Task description cannot be empty!', 'error'); modalTaskInputAdd.focus(); return; }
     let finalDueDate = explicitDueDate; let finalTaskText = rawTaskText;
     if (!explicitDueDate) { const { parsedDate: dateFromDesc, remainingText: textAfterDate } = parseDateFromText(rawTaskText); if (dateFromDesc) { finalDueDate = dateFromDesc; finalTaskText = textAfterDate.trim() || rawTaskText; }}
-
-    const subTasksToSave = featureFlags.subTasksFeature ? tempSubTasksForAddModal.map(st => ({
-        id: Date.now() + Math.random(), 
-        text: st.text,
-        completed: st.completed,
-        creationDate: Date.now()
-    })) : [];
-
-    const newTask = {
-        id: Date.now(), text: finalTaskText, completed: false, creationDate: Date.now(), dueDate: finalDueDate || null, time: time || null, 
-        estimatedHours: featureFlags.taskTimerSystem ? estHours : 0, estimatedMinutes: featureFlags.taskTimerSystem ? estMinutes : 0, 
-        priority: priority, label: label || '', notes: notes || '', 
-        isReminderSet: featureFlags.reminderFeature ? isReminderSet : false, 
-        reminderDate: featureFlags.reminderFeature && isReminderSet ? reminderDate : null, 
-        reminderTime: featureFlags.reminderFeature && isReminderSet ? reminderTime : null, 
-        reminderEmail: featureFlags.reminderFeature && isReminderSet ? reminderEmail : null, 
-        timerStartTime: null, timerAccumulatedTime: 0, timerIsRunning: false, timerIsPaused: false, actualDurationMs: 0, 
-        attachments: [], completedDate: null, subTasks: subTasksToSave
-    };
+    const subTasksToSave = featureFlags.subTasksFeature ? tempSubTasksForAddModal.map(st => ({ id: Date.now() + Math.random(), text: st.text, completed: st.completed, creationDate: Date.now() })) : [];
+    const newTask = { id: Date.now(), text: finalTaskText, completed: false, creationDate: Date.now(), dueDate: finalDueDate || null, time: time || null, estimatedHours: featureFlags.taskTimerSystem ? estHours : 0, estimatedMinutes: featureFlags.taskTimerSystem ? estMinutes : 0, priority: priority, label: label || '', notes: notes || '', isReminderSet, reminderDate, reminderTime, reminderEmail, timerStartTime: null, timerAccumulatedTime: 0, timerIsRunning: false, timerIsPaused: false, actualDurationMs: 0, attachments: [], completedDate: null, subTasks: subTasksToSave };
     tasks.unshift(newTask); saveTasks();
     if (currentFilter === 'completed') { setFilter('inbox'); } else { renderTasks(); }
-    closeAddModal();
-    showMessage('Task added successfully!', 'success');
+    closeAddModal(); showMessage('Task added successfully!', 'success');
 }
 
 function handleEditTask(event) {
@@ -789,134 +595,38 @@ function handleEditTask(event) {
     let estHours = 0, estMinutes = 0; if (featureFlags.taskTimerSystem && modalEstHoursViewEdit && modalEstMinutesViewEdit) { estHours = parseInt(modalEstHoursViewEdit.value) || 0; estMinutes = parseInt(modalEstMinutesViewEdit.value) || 0; }
     const priority = modalPriorityInputViewEdit.value; const label = modalLabelInputViewEdit.value.trim(); const notes = modalNotesInputViewEdit.value.trim();
     let isReminderSet = false, reminderDate = null, reminderTime = null, reminderEmail = null;
-    if (featureFlags.reminderFeature && modalRemindMeViewEdit) { 
-        isReminderSet = modalRemindMeViewEdit.checked;
-        if (isReminderSet) {
-            reminderDate = modalReminderDateViewEdit.value; reminderTime = modalReminderTimeViewEdit.value; reminderEmail = modalReminderEmailViewEdit.value.trim();
-            if (!reminderDate) { showMessage('Please select a reminder date.', 'error'); modalReminderDateViewEdit.focus(); return; }
-            if (!reminderTime) { showMessage('Please select a reminder time.', 'error'); modalReminderTimeViewEdit.focus(); return; }
-            if (!reminderEmail) { showMessage('Please enter an email for the reminder.', 'error'); modalReminderEmailViewEdit.focus(); return; }
-            if (!/^\S+@\S+\.\S+$/.test(reminderEmail)) { showMessage('Please enter a valid email address.', 'error'); modalReminderEmailViewEdit.focus(); return; }
-        }
-     }
+    if (featureFlags.reminderFeature && modalRemindMeViewEdit) { isReminderSet = modalRemindMeViewEdit.checked; if (isReminderSet) { reminderDate = modalReminderDateViewEdit.value; reminderTime = modalReminderTimeViewEdit.value; reminderEmail = modalReminderEmailViewEdit.value.trim(); if (!reminderDate || !reminderTime || !reminderEmail || !/^\S+@\S+\.\S+$/.test(reminderEmail)) { showMessage('Please provide valid reminder details.', 'error'); return; } } }
     if (taskText === '') { showMessage('Task description cannot be empty!', 'error'); modalTaskInputViewEdit.focus(); return; }
-    tasks = tasks.map(task => task.id === taskId ? { ...task, text: taskText, dueDate: dueDate || null, time: time || null, estimatedHours: featureFlags.taskTimerSystem ? estHours : task.estimatedHours, estimatedMinutes: featureFlags.taskTimerSystem ? estMinutes : task.estimatedMinutes, priority: priority, label: label || '', notes: notes || '', isReminderSet: featureFlags.reminderFeature ? isReminderSet : task.isReminderSet, reminderDate: featureFlags.reminderFeature && isReminderSet ? reminderDate : (featureFlags.reminderFeature ? null : task.reminderDate), reminderTime: featureFlags.reminderFeature && isReminderSet ? reminderTime : (featureFlags.reminderFeature ? null : task.reminderTime), reminderEmail: featureFlags.reminderFeature && isReminderSet ? reminderEmail : (featureFlags.reminderFeature ? null : task.reminderEmail), attachments: task.attachments || [] } : task );
+    tasks = tasks.map(task => task.id === taskId ? { ...task, text: taskText, dueDate: dueDate || null, time: time || null, estimatedHours: featureFlags.taskTimerSystem ? estHours : task.estimatedHours, estimatedMinutes: featureFlags.taskTimerSystem ? estMinutes : task.estimatedMinutes, priority: priority, label: label || '', notes: notes || '', isReminderSet, reminderDate, reminderTime, reminderEmail, attachments: task.attachments || [] } : task );
     saveTasks(); renderTasks(); closeViewEditModal(); showMessage('Task updated successfully!', 'success');
 }
 
-function toggleComplete(taskId) {
-    const taskIndex = tasks.findIndex(t => t.id === taskId); if (taskIndex === -1) return;
-    tasks[taskIndex].completed = !tasks[taskIndex].completed; tasks[taskIndex].completedDate = tasks[taskIndex].completed ? Date.now() : null;
-    if (featureFlags.taskTimerSystem && tasks[taskIndex].completed && (tasks[taskIndex].timerIsRunning || tasks[taskIndex].timerIsPaused)) {
-        if (stopTimerLogic(taskId)) { /* saveTasks called in stopTimerLogic */ }
-    } else { saveTasks(); }
-    renderTasks();
-    if (featureFlags.taskTimerSystem && currentViewTaskId === taskId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) { updateTimerControlsUI(tasks[taskIndex]); }
-}
-
-function deleteTask(taskId) {
-    if (featureFlags.taskTimerSystem && currentViewTaskId === taskId && currentTaskTimerInterval) { clearInterval(currentTaskTimerInterval); currentTaskTimerInterval = null; }
-    tasks = tasks.filter(task => task.id !== taskId); saveTasks(); renderTasks(); showMessage('Task deleted.', 'error');
-}
-
-function setFilter(filter) {
-    setAppCurrentFilter(filter);
-    updateSortButtonStates();
-    smartViewButtons.forEach(button => {
-        const isActive = button.dataset.filter === filter;
-        const baseInactiveClasses = ['bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600'];
-        const iconInactiveClasses = ['text-slate-500', 'dark:text-slate-400'];
-        const activeClasses = ['bg-sky-500', 'text-white', 'font-semibold', 'dark:bg-sky-600', 'dark:text-sky-50'];
-        const iconActiveClasses = ['text-sky-100', 'dark:text-sky-200'];
-        button.classList.remove(...baseInactiveClasses, ...activeClasses); button.querySelector('i')?.classList.remove(...iconInactiveClasses, ...iconActiveClasses);
-        if (isActive) { button.classList.add(...activeClasses); button.querySelector('i')?.classList.add(...iconActiveClasses); }
-        else { button.classList.add(...baseInactiveClasses); button.querySelector('i')?.classList.add(...iconInactiveClasses); }
-    });
-    renderTasks();
-}
-
-function clearCompletedTasks() {
-    const completedCount = tasks.filter(task => task.completed).length; if (completedCount === 0) { showMessage('No completed tasks to clear.', 'error'); return; }
-    tasks = tasks.filter(task => !task.completed); saveTasks(); renderTasks(); showMessage(`${completedCount} completed task${completedCount > 1 ? 's' : ''} cleared.`, 'success');
-    closeSettingsModal();
-}
-
-function handleAddNewLabel(event) {
-    event.preventDefault();
-    const labelName = newLabelInput.value.trim(); if (labelName === '') { showMessage('Label name cannot be empty.', 'error'); return; }
-    if (uniqueLabels.some(l => l.toLowerCase() === labelName.toLowerCase())) { showMessage(`Label "${labelName}" already exists.`, 'error'); return; }
-    uniqueLabels.push(labelName); uniqueLabels.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
-    saveTasks(); populateManageLabelsList(); newLabelInput.value = ''; showMessage(`Label "${labelName}" added.`, 'success');
-}
-
-function handleDeleteLabel(labelToDelete) {
-    tasks = tasks.map(task => { if (task.label && task.label.toLowerCase() === labelToDelete.toLowerCase()) { return { ...task, label: '' }; } return task; });
-    saveTasks(); populateManageLabelsList(); renderTasks(); showMessage(`Label "${labelToDelete}" deleted.`, 'success');
-}
-
-function handleTimerStartUI() {
-    if (startTimerLogic(currentViewTaskId)) {
-        if (currentTaskTimerInterval) clearInterval(currentTaskTimerInterval);
-        currentTaskTimerInterval = setInterval(() => updateLiveTimerDisplayUI(currentViewTaskId), 1000);
-        updateLiveTimerDisplayUI(currentViewTaskId);
-        const task = tasks.find(t => t.id === currentViewTaskId);
-        if (task) updateTimerControlsUI(task);
-    }
-}
-function handleTimerPauseUI() {
-    if (pauseTimerLogic(currentViewTaskId)) {
-        if (currentTaskTimerInterval) clearInterval(currentTaskTimerInterval);
-        currentTaskTimerInterval = null;
-        const task = tasks.find(t => t.id === currentViewTaskId);
-        if (task) { updateLiveTimerDisplayUI(currentViewTaskId); updateTimerControlsUI(task); }
-    }
-}
-function handleTimerStopUI() {
-    if (stopTimerLogic(currentViewTaskId)) {
-        if (currentTaskTimerInterval) clearInterval(currentTaskTimerInterval);
-        currentTaskTimerInterval = null;
-        const task = tasks.find(t => t.id === currentViewTaskId);
-        if (task) { updateLiveTimerDisplayUI(currentViewTaskId); updateTimerControlsUI(task); if (task.completed) renderTasks(); }
-    }
-}
-
+// --- Sub-task Event Handlers ---
+// ... (handleAddSubTaskViewEdit, handleAddTempSubTaskForAddModal remain the same) ...
 function handleAddSubTaskViewEdit() {
     if (!featureFlags.subTasksFeature || !editingTaskId || !modalSubTaskInputViewEdit) return;
     const subTaskText = modalSubTaskInputViewEdit.value.trim();
     if (subTaskText === '') { showMessage('Sub-task description cannot be empty.', 'error'); modalSubTaskInputViewEdit.focus(); return; }
-    if (addSubTaskLogic(editingTaskId, subTaskText)) {
-        renderSubTasksForEditModal(editingTaskId, modalSubTasksListViewEdit);
-        modalSubTaskInputViewEdit.value = '';
-        showMessage('Sub-task added.', 'success');
-        if (currentViewTaskId === editingTaskId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) {
-            renderSubTasksForViewModal(editingTaskId, modalSubTasksListViewDetails, viewSubTaskProgress, noSubTasksMessageViewDetails);
-        }
-        renderTasks();
-    } else { showMessage('Failed to add sub-task.', 'error'); }
+    if (addSubTaskLogic(editingTaskId, subTaskText)) { renderSubTasksForEditModal(editingTaskId, modalSubTasksListViewEdit); modalSubTaskInputViewEdit.value = ''; showMessage('Sub-task added.', 'success'); if (currentViewTaskId === editingTaskId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) { renderSubTasksForViewModal(editingTaskId, modalSubTasksListViewDetails, viewSubTaskProgress, noSubTasksMessageViewDetails); } renderTasks(); } else { showMessage('Failed to add sub-task.', 'error'); }
 }
 
 function handleAddTempSubTaskForAddModal() {
     if (!featureFlags.subTasksFeature || !modalSubTaskInputAdd) return;
     const subTaskText = modalSubTaskInputAdd.value.trim();
-    if (subTaskText === '') {
-        showMessage('Sub-task description cannot be empty.', 'error');
-        modalSubTaskInputAdd.focus();
-        return;
-    }
+    if (subTaskText === '') { showMessage('Sub-task description cannot be empty.', 'error'); modalSubTaskInputAdd.focus(); return; }
     tempSubTasksForAddModal.push({ text: subTaskText, completed: false });
-    renderTempSubTasksForAddModal();
-    modalSubTaskInputAdd.value = '';
+    renderTempSubTasksForAddModal(); modalSubTaskInputAdd.value = '';
 }
 
 
 // --- Event Listeners Setup ---
 function setupEventListeners() {
+    // ... (Most event listeners remain the same) ...
     if (openAddModalButton) openAddModalButton.addEventListener('click', openAddModal);
     if (closeAddModalBtn) closeAddModalBtn.addEventListener('click', closeAddModal);
     if (cancelAddModalBtn) cancelAddModalBtn.addEventListener('click', closeAddModal);
     if (modalTodoFormAdd) modalTodoFormAdd.addEventListener('submit', handleAddTask);
     if (addTaskModal) addTaskModal.addEventListener('click', (event) => { if (event.target === addTaskModal) closeAddModal(); });
-
     if (modalRemindMeAdd) { modalRemindMeAdd.addEventListener('change', () => { if(featureFlags.reminderFeature && reminderOptionsAdd) { reminderOptionsAdd.classList.toggle('hidden', !modalRemindMeAdd.checked); if (modalRemindMeAdd.checked) { if (modalDueDateInputAdd.value && !modalReminderDateAdd.value) modalReminderDateAdd.value = modalDueDateInputAdd.value; if (modalTimeInputAdd.value && !modalReminderTimeAdd.value) modalReminderTimeAdd.value = modalTimeInputAdd.value; const today = new Date(); modalReminderDateAdd.min = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`; }} else if (reminderOptionsAdd) { reminderOptionsAdd.classList.add('hidden'); }});}
     if (modalRemindMeViewEdit) { modalRemindMeViewEdit.addEventListener('change', () => { if(featureFlags.reminderFeature && reminderOptionsViewEdit) { reminderOptionsViewEdit.classList.toggle('hidden', !modalRemindMeViewEdit.checked); if (modalRemindMeViewEdit.checked) { const today = new Date(); modalReminderDateViewEdit.min = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`; }} else if (reminderOptionsViewEdit) { reminderOptionsViewEdit.classList.add('hidden'); }});}
     if (closeViewEditModalBtn) closeViewEditModalBtn.addEventListener('click', closeViewEditModal);
@@ -955,7 +665,10 @@ function setupEventListeners() {
     if (closeTooltipsGuideModalBtn) closeTooltipsGuideModalBtn.addEventListener('click', closeTooltipsGuideModal);
     if (closeTooltipsGuideSecondaryBtn) closeTooltipsGuideSecondaryBtn.addEventListener('click', closeTooltipsGuideModal);
     if (tooltipsGuideModal) tooltipsGuideModal.addEventListener('click', (event) => { if (event.target === tooltipsGuideModal) closeTooltipsGuideModal(); });
-    if (testFeatureButton) { testFeatureButton.addEventListener('click', () => { console.log('Test Button Clicked!'); showMessage('Test Button Clicked! Check console.', 'success'); }); }
+    
+    // REMOVED: Old Test Feature Button Listener
+    // if (testFeatureButton) { testFeatureButton.addEventListener('click', () => { console.log('Test Button Clicked!'); showMessage('Test Button Clicked! Check console.', 'success'); }); }
+
     if (smartViewButtonsContainer) { smartViewButtonsContainer.addEventListener('click', (event) => { const button = event.target.closest('.smart-view-btn'); if (button && button.dataset.filter) { setFilter(button.dataset.filter); } }); }
     if (taskSearchInput) { taskSearchInput.addEventListener('input', (event) => { setAppSearchTerm(event.target.value.trim().toLowerCase()); renderTasks(); }); }
     if (sidebarToggleBtn) { sidebarToggleBtn.addEventListener('click', () => { const isCurrentlyMinimized = taskSidebar.classList.contains('sidebar-minimized'); setSidebarMinimized(!isCurrentlyMinimized); }); }
@@ -964,25 +677,10 @@ function setupEventListeners() {
     if (sortByLabelBtn) sortByLabelBtn.addEventListener('click', () => { setAppCurrentSort(currentSort === 'label' ? 'default' : 'label'); updateSortButtonStates(); renderTasks(); });
     sidebarIconOnlyButtons.forEach(button => { button.addEventListener('mouseenter', (event) => { if (!taskSidebar.classList.contains('sidebar-minimized')) return; clearTimeout(tooltipTimeout); tooltipTimeout = setTimeout(() => { const tooltipText = button.title || button.querySelector('.sidebar-text-content')?.textContent.trim(); if (tooltipText) { showTooltip(event.currentTarget, tooltipText); }}, 500);}); button.addEventListener('mouseleave', () => { hideTooltip(); });});
     
-    if (modalAddSubTaskBtnViewEdit) {
-        modalAddSubTaskBtnViewEdit.addEventListener('click', handleAddSubTaskViewEdit);
-    }
-    if (modalSubTaskInputViewEdit) {
-        modalSubTaskInputViewEdit.addEventListener('keypress', (event) => {
-            if (event.key === 'Enter') { event.preventDefault(); handleAddSubTaskViewEdit(); }
-        });
-    }
-    if (modalAddSubTaskBtnAdd) {
-        modalAddSubTaskBtnAdd.addEventListener('click', handleAddTempSubTaskForAddModal);
-    }
-    if (modalSubTaskInputAdd) {
-        modalSubTaskInputAdd.addEventListener('keypress', (event) => {
-            if (event.key === 'Enter') {
-                event.preventDefault();
-                handleAddTempSubTaskForAddModal();
-            }
-        });
-    }
+    if (modalAddSubTaskBtnViewEdit) { modalAddSubTaskBtnViewEdit.addEventListener('click', handleAddSubTaskViewEdit); }
+    if (modalSubTaskInputViewEdit) { modalSubTaskInputViewEdit.addEventListener('keypress', (event) => { if (event.key === 'Enter') { event.preventDefault(); handleAddSubTaskViewEdit(); } }); }
+    if (modalAddSubTaskBtnAdd) { modalAddSubTaskBtnAdd.addEventListener('click', handleAddTempSubTaskForAddModal); }
+    if (modalSubTaskInputAdd) { modalSubTaskInputAdd.addEventListener('keypress', (event) => { if (event.key === 'Enter') { event.preventDefault(); handleAddTempSubTaskForAddModal(); } }); }
     
     document.addEventListener('keydown', (event) => {
         const isAddModalOpen = addTaskModal && !addTaskModal.classList.contains('hidden'); const isViewEditModalOpen = viewEditTaskModal && !viewEditTaskModal.classList.contains('hidden'); const isViewDetailsModalOpen = viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden'); const isManageLabelsModalOpen = manageLabelsModal && !manageLabelsModal.classList.contains('hidden'); const isSettingsModalOpen = settingsModal && !settingsModal.classList.contains('hidden'); const isTaskReviewModalOpen = taskReviewModal && !taskReviewModal.classList.contains('hidden'); const isTooltipsGuideModalOpen = tooltipsGuideModal && !tooltipsGuideModal.classList.contains('hidden');
@@ -1005,13 +703,23 @@ function setupEventListeners() {
 
 // --- Global Initialization ---
 window.onload = async () => {
-    await loadFeatureFlags();
-    initializeTasks();
-    updateUniqueLabels();
+    await loadFeatureFlags(); // From app_logic.js
+    initializeTasks();      // From app_logic.js
+    updateUniqueLabels();   // From app_logic.js
     populateDatalist(existingLabelsDatalist); 
     populateDatalist(existingLabelsEditDatalist);
 
-    applyActiveFeatures(); // This will call renderTasks
+    // Initialize features based on flags
+    if (featureFlags.testButtonFeature && window.AppFeatures && typeof window.AppFeatures.initializeTestButtonFeature === 'function') {
+        window.AppFeatures.initializeTestButtonFeature();
+    }
+    // Add similar blocks here for other features as they are refactored
+    // e.g., if (featureFlags.subTasksFeature && window.AppFeatures && typeof window.AppFeatures.initializeSubTasksFeature === 'function') {
+    //     window.AppFeatures.initializeSubTasksFeature();
+    // }
+
+
+    applyActiveFeatures();  // UI function, uses featureFlags from app_logic.js
 
     smartViewButtons.forEach(button => {
         button.classList.add('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600');
@@ -1022,7 +730,7 @@ window.onload = async () => {
     if (savedSidebarState === 'minimized') { setSidebarMinimized(true); }
     else { setSidebarMinimized(false); }
 
-    setFilter(currentFilter); // This calls renderTasks again
+    setFilter(currentFilter); 
     updateSortButtonStates(); 
     updateClearCompletedButtonState(); 
     setupEventListeners(); 
