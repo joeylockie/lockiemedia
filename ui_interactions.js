@@ -128,8 +128,8 @@ const closeTooltipsGuideModalBtn = document.getElementById('closeTooltipsGuideMo
 const closeTooltipsGuideSecondaryBtn = document.getElementById('closeTooltipsGuideSecondaryBtn');
 const tooltipsGuideContent = document.getElementById('tooltipsGuideContent');
 // Test Feature Button
-const testFeatureButtonContainer = document.getElementById('testFeatureButtonContainer'); // Still needed for visibility toggle
-const testFeatureButton = document.getElementById('testFeatureButton'); // Still needed for feature_test_button.js to find
+const testFeatureButtonContainer = document.getElementById('testFeatureButtonContainer'); 
+const testFeatureButton = document.getElementById('testFeatureButton'); 
 // Sub-task Elements
 const subTasksSectionViewEdit = document.getElementById('subTasksSectionViewEdit');
 const modalSubTaskInputViewEdit = document.getElementById('modalSubTaskInputViewEdit');
@@ -180,8 +180,6 @@ function setSidebarMinimized(minimize) {
         sidebarTextElements.forEach(el => el.classList.add('hidden'));
         document.querySelectorAll('.sidebar-section-title, #taskSearchInputContainer, #testFeatureButtonContainer .sidebar-text-content').forEach(el => el.classList.add('hidden'));
         sidebarIconOnlyButtons.forEach(btn => { btn.classList.add('justify-center'); const icon = btn.querySelector('i'); if(icon) icon.classList.remove('md:mr-2', 'md:mr-2.5', 'ml-2'); });
-        // Note: The text inside testFeatureButton is handled by sidebar-text-content,
-        // but the container itself (testFeatureButtonContainer) visibility is handled by applyActiveFeatures.
         localStorage.setItem('sidebarState', 'minimized');
     } else {
         taskSidebar.classList.remove('w-16', 'p-3', 'sidebar-minimized');
@@ -209,10 +207,6 @@ function showTooltip(element, text) {
 function hideTooltip() { clearTimeout(tooltipTimeout); iconTooltip.style.display = 'none'; }
 
 // --- Modal UI Functions ---
-// ... (openAddModal, closeAddModal, openViewEditModal, closeViewEditModal, etc. remain largely the same) ...
-// Minor change in openAddModal and openViewEditModal:
-// Removed their individual applyActiveFeatures() calls as the main one handles it.
-
 function openAddModal() {
     if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT' || document.activeElement.tagName === 'TEXTAREA') {
         if (!addTaskModal.classList.contains('hidden')) return;
@@ -362,11 +356,9 @@ function applyActiveFeatures() {
         document.querySelectorAll(selector).forEach(el => el.classList.toggle('hidden', !isEnabled)); 
     };
 
-    // Call the specific UI update function for testButtonFeature if it exists
     if (window.AppFeatures && typeof window.AppFeatures.updateTestButtonUIVisibility === 'function') {
         window.AppFeatures.updateTestButtonUIVisibility(featureFlags.testButtonFeature);
     } else {
-        // Fallback or if the feature file hasn't loaded/defined it, hide related elements
         if (testFeatureButtonContainer) testFeatureButtonContainer.classList.toggle('hidden', !featureFlags.testButtonFeature);
     }
     
@@ -446,7 +438,6 @@ function renderTasks() {
 
 
 // --- Sub-task Rendering Functions ---
-// ... (renderTempSubTasksForAddModal, renderSubTasksForEditModal, renderSubTasksForViewModal remain the same) ...
 function renderTempSubTasksForAddModal() {
     if (!featureFlags.subTasksFeature || !modalSubTasksListAdd) return;
     modalSubTasksListAdd.innerHTML = '';
@@ -535,7 +526,6 @@ function renderSubTasksForViewModal(parentId, subTasksListElement, progressEleme
 }
 
 // --- Timer UI Update Functions ---
-// ... (Timer functions remain the same) ...
 function updateLiveTimerDisplayUI(taskId) {
     const task = tasks.find(t => t.id === taskId);
     if (!task || !viewTaskTimerDisplay || currentViewTaskId !== taskId) return;
@@ -557,7 +547,6 @@ function updateTimerControlsUI(task) {
 }
 
 // --- UI State Updaters ---
-// ... (UI State updaters remain the same) ...
 function updateSortButtonStates() { [sortByDueDateBtn, sortByPriorityBtn, sortByLabelBtn].forEach(btn => { if (btn) { let sortType = ''; if (btn === sortByDueDateBtn) sortType = 'dueDate'; else if (btn === sortByPriorityBtn) sortType = 'priority'; else if (btn === sortByLabelBtn) sortType = 'label'; btn.classList.toggle('sort-btn-active', currentSort === sortType); } }); }
 function updateClearCompletedButtonState() {
     const hasCompleted = tasks.some(task => task.completed);
@@ -571,7 +560,6 @@ function updateClearCompletedButtonState() {
 }
 
 // --- Event Handlers ---
-// ... (handleAddTask, handleEditTask, toggleComplete, deleteTask, setFilter, clearCompletedTasks, label handlers, timer handlers remain the same) ...
 function handleAddTask(event) {
     event.preventDefault();
     const rawTaskText = modalTaskInputAdd.value.trim(); const explicitDueDate = modalDueDateInputAdd.value; const time = modalTimeInputAdd.value;
@@ -601,8 +589,83 @@ function handleEditTask(event) {
     saveTasks(); renderTasks(); closeViewEditModal(); showMessage('Task updated successfully!', 'success');
 }
 
-// --- Sub-task Event Handlers ---
-// ... (handleAddSubTaskViewEdit, handleAddTempSubTaskForAddModal remain the same) ...
+function toggleComplete(taskId) {
+    const taskIndex = tasks.findIndex(t => t.id === taskId); if (taskIndex === -1) return;
+    tasks[taskIndex].completed = !tasks[taskIndex].completed; tasks[taskIndex].completedDate = tasks[taskIndex].completed ? Date.now() : null;
+    if (featureFlags.taskTimerSystem && tasks[taskIndex].completed && (tasks[taskIndex].timerIsRunning || tasks[taskIndex].timerIsPaused)) {
+        if (stopTimerLogic(taskId)) { /* saveTasks called in stopTimerLogic */ }
+    } else { saveTasks(); }
+    renderTasks();
+    if (featureFlags.taskTimerSystem && currentViewTaskId === taskId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) { updateTimerControlsUI(tasks[taskIndex]); }
+}
+
+function deleteTask(taskId) {
+    if (featureFlags.taskTimerSystem && currentViewTaskId === taskId && currentTaskTimerInterval) { clearInterval(currentTaskTimerInterval); currentTaskTimerInterval = null; }
+    tasks = tasks.filter(task => task.id !== taskId); saveTasks(); renderTasks(); showMessage('Task deleted.', 'error');
+}
+
+function setFilter(filter) {
+    setAppCurrentFilter(filter); // Calls a function in app_logic.js
+    updateSortButtonStates();
+    smartViewButtons.forEach(button => {
+        const isActive = button.dataset.filter === filter;
+        const baseInactiveClasses = ['bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600'];
+        const iconInactiveClasses = ['text-slate-500', 'dark:text-slate-400'];
+        const activeClasses = ['bg-sky-500', 'text-white', 'font-semibold', 'dark:bg-sky-600', 'dark:text-sky-50'];
+        const iconActiveClasses = ['text-sky-100', 'dark:text-sky-200'];
+        button.classList.remove(...baseInactiveClasses, ...activeClasses); button.querySelector('i')?.classList.remove(...iconInactiveClasses, ...iconActiveClasses);
+        if (isActive) { button.classList.add(...activeClasses); button.querySelector('i')?.classList.add(...iconActiveClasses); }
+        else { button.classList.add(...baseInactiveClasses); button.querySelector('i')?.classList.add(...iconInactiveClasses); }
+    });
+    renderTasks();
+}
+console.log("ui_interactions.js: setFilter function defined."); // DEBUG LOG
+
+function clearCompletedTasks() {
+    const completedCount = tasks.filter(task => task.completed).length; if (completedCount === 0) { showMessage('No completed tasks to clear.', 'error'); return; }
+    tasks = tasks.filter(task => !task.completed); saveTasks(); renderTasks(); showMessage(`${completedCount} completed task${completedCount > 1 ? 's' : ''} cleared.`, 'success');
+    closeSettingsModal();
+}
+
+function handleAddNewLabel(event) {
+    event.preventDefault();
+    const labelName = newLabelInput.value.trim(); if (labelName === '') { showMessage('Label name cannot be empty.', 'error'); return; }
+    if (uniqueLabels.some(l => l.toLowerCase() === labelName.toLowerCase())) { showMessage(`Label "${labelName}" already exists.`, 'error'); return; }
+    uniqueLabels.push(labelName); uniqueLabels.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+    saveTasks(); populateManageLabelsList(); newLabelInput.value = ''; showMessage(`Label "${labelName}" added.`, 'success');
+}
+
+function handleDeleteLabel(labelToDelete) {
+    tasks = tasks.map(task => { if (task.label && task.label.toLowerCase() === labelToDelete.toLowerCase()) { return { ...task, label: '' }; } return task; });
+    saveTasks(); populateManageLabelsList(); renderTasks(); showMessage(`Label "${labelToDelete}" deleted.`, 'success');
+}
+
+function handleTimerStartUI() {
+    if (startTimerLogic(currentViewTaskId)) {
+        if (currentTaskTimerInterval) clearInterval(currentTaskTimerInterval);
+        currentTaskTimerInterval = setInterval(() => updateLiveTimerDisplayUI(currentViewTaskId), 1000);
+        updateLiveTimerDisplayUI(currentViewTaskId);
+        const task = tasks.find(t => t.id === currentViewTaskId);
+        if (task) updateTimerControlsUI(task);
+    }
+}
+function handleTimerPauseUI() {
+    if (pauseTimerLogic(currentViewTaskId)) {
+        if (currentTaskTimerInterval) clearInterval(currentTaskTimerInterval);
+        currentTaskTimerInterval = null;
+        const task = tasks.find(t => t.id === currentViewTaskId);
+        if (task) { updateLiveTimerDisplayUI(currentViewTaskId); updateTimerControlsUI(task); }
+    }
+}
+function handleTimerStopUI() {
+    if (stopTimerLogic(currentViewTaskId)) {
+        if (currentTaskTimerInterval) clearInterval(currentTaskTimerInterval);
+        currentTaskTimerInterval = null;
+        const task = tasks.find(t => t.id === currentViewTaskId);
+        if (task) { updateLiveTimerDisplayUI(currentViewTaskId); updateTimerControlsUI(task); if (task.completed) renderTasks(); }
+    }
+}
+
 function handleAddSubTaskViewEdit() {
     if (!featureFlags.subTasksFeature || !editingTaskId || !modalSubTaskInputViewEdit) return;
     const subTaskText = modalSubTaskInputViewEdit.value.trim();
@@ -621,7 +684,6 @@ function handleAddTempSubTaskForAddModal() {
 
 // --- Event Listeners Setup ---
 function setupEventListeners() {
-    // ... (Most event listeners remain the same) ...
     if (openAddModalButton) openAddModalButton.addEventListener('click', openAddModal);
     if (closeAddModalBtn) closeAddModalBtn.addEventListener('click', closeAddModal);
     if (cancelAddModalBtn) cancelAddModalBtn.addEventListener('click', closeAddModal);
@@ -666,9 +728,6 @@ function setupEventListeners() {
     if (closeTooltipsGuideSecondaryBtn) closeTooltipsGuideSecondaryBtn.addEventListener('click', closeTooltipsGuideModal);
     if (tooltipsGuideModal) tooltipsGuideModal.addEventListener('click', (event) => { if (event.target === tooltipsGuideModal) closeTooltipsGuideModal(); });
     
-    // REMOVED: Old Test Feature Button Listener
-    // if (testFeatureButton) { testFeatureButton.addEventListener('click', () => { console.log('Test Button Clicked!'); showMessage('Test Button Clicked! Check console.', 'success'); }); }
-
     if (smartViewButtonsContainer) { smartViewButtonsContainer.addEventListener('click', (event) => { const button = event.target.closest('.smart-view-btn'); if (button && button.dataset.filter) { setFilter(button.dataset.filter); } }); }
     if (taskSearchInput) { taskSearchInput.addEventListener('input', (event) => { setAppSearchTerm(event.target.value.trim().toLowerCase()); renderTasks(); }); }
     if (sidebarToggleBtn) { sidebarToggleBtn.addEventListener('click', () => { const isCurrentlyMinimized = taskSidebar.classList.contains('sidebar-minimized'); setSidebarMinimized(!isCurrentlyMinimized); }); }
@@ -703,23 +762,18 @@ function setupEventListeners() {
 
 // --- Global Initialization ---
 window.onload = async () => {
-    await loadFeatureFlags(); // From app_logic.js
-    initializeTasks();      // From app_logic.js
-    updateUniqueLabels();   // From app_logic.js
+    console.log("window.onload in ui_interactions.js starting"); // DEBUG LOG
+    await loadFeatureFlags();
+    initializeTasks();
+    updateUniqueLabels();
     populateDatalist(existingLabelsDatalist); 
     populateDatalist(existingLabelsEditDatalist);
 
-    // Initialize features based on flags
     if (featureFlags.testButtonFeature && window.AppFeatures && typeof window.AppFeatures.initializeTestButtonFeature === 'function') {
         window.AppFeatures.initializeTestButtonFeature();
     }
-    // Add similar blocks here for other features as they are refactored
-    // e.g., if (featureFlags.subTasksFeature && window.AppFeatures && typeof window.AppFeatures.initializeSubTasksFeature === 'function') {
-    //     window.AppFeatures.initializeSubTasksFeature();
-    // }
-
-
-    applyActiveFeatures();  // UI function, uses featureFlags from app_logic.js
+    
+    applyActiveFeatures();
 
     smartViewButtons.forEach(button => {
         button.classList.add('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600');
@@ -730,7 +784,11 @@ window.onload = async () => {
     if (savedSidebarState === 'minimized') { setSidebarMinimized(true); }
     else { setSidebarMinimized(false); }
 
-    setFilter(currentFilter); 
+    if (typeof setFilter === 'function') { // Check if setFilter is defined before calling
+        setFilter(currentFilter); 
+    } else {
+        console.error("setFilter function is not defined when called in window.onload!");
+    }
     updateSortButtonStates(); 
     updateClearCompletedButtonState(); 
     setupEventListeners(); 
