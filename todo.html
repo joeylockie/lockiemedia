@@ -95,7 +95,6 @@
             background-color: #374151; /* Tailwind gray-700 */
         }
         .feature-flag-label {
-            /* font-medium: 500; Tailwind font-medium - this is not a valid CSS property, use font-weight */
             font-weight: 500;
             color: #374151; /* Tailwind gray-700 */
         }
@@ -105,11 +104,57 @@
         /* Reminder UI elements that can be hidden by feature flag */
         .reminder-feature-element { display: block; /* Default state, JS will hide if feature is off */ }
 
-        /* Toggle Switch Styles (reused from feature flags) */
-        .toggle-checkbox:checked { right: 0; border-color: #0ea5e9; background-color: #0ea5e9 !important; } /* sky-500 */
-        .dark .toggle-checkbox:checked { border-color: #0284c7; background-color: #0284c7 !important; } /* sky-600 */
-        .toggle-checkbox:checked + .toggle-label { background-color: #0ea5e9 !important; } /* sky-500 */
-        .dark .toggle-checkbox:checked + .toggle-label { background-color: #0284c7 !important; } /* sky-600 */
+        /* Toggle Switch Styles */
+        .toggle-checkbox { 
+            opacity: 0;
+            width: 0;
+            height: 0;
+            position: absolute;
+        }
+        .toggle-checkbox + .toggle-label { 
+            display: block;
+            position: relative;
+            width: 2.5rem; 
+            height: 1.5rem; 
+            background-color: #d1d5db; 
+            border-radius: 9999px; 
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .dark .toggle-checkbox + .toggle-label {
+            background-color: #4b5563; 
+        }
+        .toggle-checkbox + .toggle-label::after { 
+            content: '';
+            position: absolute;
+            top: 0.125rem; 
+            left: 0.125rem;
+            width: 1.25rem; 
+            height: 1.25rem;
+            background-color: white;
+            border-radius: 9999px; 
+            border: 1px solid #e5e7eb; 
+            transition: transform 0.2s ease-in-out;
+        }
+        .dark .toggle-checkbox + .toggle-label::after {
+            background-color: #e5e7eb; 
+            border-color: #374151; 
+        }
+
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #0ea5e9 !important; 
+        }
+        .dark .toggle-checkbox:checked + .toggle-label {
+            background-color: #0284c7 !important; 
+        }
+        .toggle-checkbox:checked + .toggle-label::after {
+            transform: translateX(1rem); 
+             background-color: white !important; 
+        }
+        .dark .toggle-checkbox:checked + .toggle-label::after {
+             background-color: white !important; 
+        }
+
     </style>
 </head>
 <body class="bg-gradient-to-br from-slate-900 to-slate-700 min-h-screen flex flex-col items-center justify-start pt-8 sm:pt-10 p-2 sm:p-4 selection:bg-sky-400 selection:text-white dark:selection:bg-sky-600 dark:selection:text-white">
@@ -127,7 +172,7 @@
             </div>
             <form id="modalTodoFormAdd">
                 <div>
-                    <label for="modalTaskInputAdd" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Task Description (e.g., 'Buy groceries for next Friday', 'Meeting on monday', 'Project due next month')</label>
+                    <label for="modalTaskInputAdd" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Task Description</label>
                     <input type="text" id="modalTaskInputAdd" placeholder="Enter task description..." class="w-full p-3 border-2 bg-white text-slate-900 placeholder-slate-400 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-shadow duration-300 dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-400 dark:border-slate-600" required>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
@@ -138,6 +183,16 @@
                     <div>
                         <label for="modalTimeInputAdd" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Time (optional)</label>
                         <input type="time" id="modalTimeInputAdd" class="w-full p-3 border-2 bg-white text-slate-900 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 dark:[color-scheme:dark]">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                    <div>
+                        <label for="modalEstHoursAdd" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Est. Hours (optional)</label>
+                        <input type="number" id="modalEstHoursAdd" min="0" placeholder="0" class="w-full p-3 border-2 bg-white text-slate-900 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600">
+                    </div>
+                    <div>
+                        <label for="modalEstMinutesAdd" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Est. Minutes (optional)</label>
+                        <input type="number" id="modalEstMinutesAdd" min="0" max="59" step="1" placeholder="0" class="w-full p-3 border-2 bg-white text-slate-900 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600">
                     </div>
                 </div>
                 <div class="mt-4">
@@ -156,9 +211,9 @@
 
                 <div class="mt-4 flex items-center space-x-3 reminder-feature-element" id="modalRemindMeAddContainer">
                     <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Remind Me</span>
-                    <div class="relative inline-block w-10 align-middle select-none transition duration-200 ease-in">
-                        <input type="checkbox" id="modalRemindMeAdd" name="modalRemindMeAddToggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer dark:bg-slate-400 dark:border-slate-500"/>
-                        <label for="modalRemindMeAdd" class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-300 dark:bg-slate-600 cursor-pointer"></label>
+                    <div class="relative">
+                        <input type="checkbox" id="modalRemindMeAdd" name="modalRemindMeAddToggle" class="toggle-checkbox"/>
+                        <label for="modalRemindMeAdd" class="toggle-label"></label>
                     </div>
                 </div>
                 <div id="reminderOptionsAdd" class="hidden mt-3 space-y-3 border-t border-slate-200 dark:border-slate-700 pt-3 reminder-feature-element">
@@ -213,6 +268,16 @@
                         <input type="time" id="modalTimeInputViewEdit" class="w-full p-3 border-2 bg-white text-slate-900 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 dark:[color-scheme:dark]">
                     </div>
                 </div>
+                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                    <div>
+                        <label for="modalEstHoursViewEdit" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Est. Hours (optional)</label>
+                        <input type="number" id="modalEstHoursViewEdit" min="0" placeholder="0" class="w-full p-3 border-2 bg-white text-slate-900 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600">
+                    </div>
+                    <div>
+                        <label for="modalEstMinutesViewEdit" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Est. Minutes (optional)</label>
+                        <input type="number" id="modalEstMinutesViewEdit" min="0" max="59" step="1" placeholder="0" class="w-full p-3 border-2 bg-white text-slate-900 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600">
+                    </div>
+                </div>
                 <div class="mt-4">
                     <label for="modalPriorityInputViewEdit" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Priority</label>
                     <select id="modalPriorityInputViewEdit" class="w-full p-3 border-2 bg-white text-slate-900 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600">
@@ -229,9 +294,9 @@
 
                 <div class="mt-4 flex items-center space-x-3 reminder-feature-element" id="modalRemindMeViewEditContainer">
                     <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Remind Me</span>
-                    <div class="relative inline-block w-10 align-middle select-none transition duration-200 ease-in">
-                        <input type="checkbox" id="modalRemindMeViewEdit" name="modalRemindMeViewEditToggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer dark:bg-slate-400 dark:border-slate-500"/>
-                        <label for="modalRemindMeViewEdit" class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-300 dark:bg-slate-600 cursor-pointer"></label>
+                     <div class="relative">
+                        <input type="checkbox" id="modalRemindMeViewEdit" name="modalRemindMeViewEditToggle" class="toggle-checkbox"/>
+                        <label for="modalRemindMeViewEdit" class="toggle-label"></label>
                     </div>
                 </div>
                 <div id="reminderOptionsViewEdit" class="hidden mt-3 space-y-3 border-t border-slate-200 dark:border-slate-700 pt-3 reminder-feature-element">
@@ -285,7 +350,11 @@
                         <p id="viewTaskTime"></p>
                     </div>
                 </div>
-                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+                <div>
+                    <strong class="view-details-heading block mb-0.5">Estimated Duration:</strong>
+                    <p id="viewTaskEstDuration"></p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
                     <div>
                         <strong class="view-details-heading block mb-0.5">Priority:</strong>
                         <p id="viewTaskPriority" class="capitalize"></p>
@@ -526,12 +595,14 @@
         const modalTaskInputAdd = document.getElementById('modalTaskInputAdd');
         const modalDueDateInputAdd = document.getElementById('modalDueDateInputAdd');
         const modalTimeInputAdd = document.getElementById('modalTimeInputAdd');
+        const modalEstHoursAdd = document.getElementById('modalEstHoursAdd'); // New
+        const modalEstMinutesAdd = document.getElementById('modalEstMinutesAdd'); // New
         const modalPriorityInputAdd = document.getElementById('modalPriorityInputAdd');
         const modalLabelInputAdd = document.getElementById('modalLabelInputAdd');
         const existingLabelsDatalist = document.getElementById('existingLabels');
         const modalNotesInputAdd = document.getElementById('modalNotesInputAdd');
         const modalRemindMeAddContainer = document.getElementById('modalRemindMeAddContainer'); 
-        const modalRemindMeAdd = document.getElementById('modalRemindMeAdd'); // This is the checkbox/toggle input
+        const modalRemindMeAdd = document.getElementById('modalRemindMeAdd'); 
         const reminderOptionsAdd = document.getElementById('reminderOptionsAdd');
         const modalReminderDateAdd = document.getElementById('modalReminderDateAdd');
         const modalReminderTimeAdd = document.getElementById('modalReminderTimeAdd');
@@ -547,12 +618,14 @@
         const modalTaskInputViewEdit = document.getElementById('modalTaskInputViewEdit');
         const modalDueDateInputViewEdit = document.getElementById('modalDueDateInputViewEdit');
         const modalTimeInputViewEdit = document.getElementById('modalTimeInputViewEdit');
+        const modalEstHoursViewEdit = document.getElementById('modalEstHoursViewEdit'); // New
+        const modalEstMinutesViewEdit = document.getElementById('modalEstMinutesViewEdit'); // New
         const modalPriorityInputViewEdit = document.getElementById('modalPriorityInputViewEdit');
         const modalLabelInputViewEdit = document.getElementById('modalLabelInputViewEdit');
         const existingLabelsEditDatalist = document.getElementById('existingLabelsEdit');
         const modalNotesInputViewEdit = document.getElementById('modalNotesInputViewEdit');
         const modalRemindMeViewEditContainer = document.getElementById('modalRemindMeViewEditContainer'); 
-        const modalRemindMeViewEdit = document.getElementById('modalRemindMeViewEdit'); // This is the checkbox/toggle input
+        const modalRemindMeViewEdit = document.getElementById('modalRemindMeViewEdit'); 
         const reminderOptionsViewEdit = document.getElementById('reminderOptionsViewEdit');
         const modalReminderDateViewEdit = document.getElementById('modalReminderDateViewEdit');
         const modalReminderTimeViewEdit = document.getElementById('modalReminderTimeViewEdit');
@@ -567,6 +640,7 @@
         const viewTaskText = document.getElementById('viewTaskText');
         const viewTaskDueDate = document.getElementById('viewTaskDueDate');
         const viewTaskTime = document.getElementById('viewTaskTime');
+        const viewTaskEstDuration = document.getElementById('viewTaskEstDuration'); // New
         const viewTaskPriority = document.getElementById('viewTaskPriority');
         const viewTaskStatus = document.getElementById('viewTaskStatus');
         const viewTaskLabel = document.getElementById('viewTaskLabel');
@@ -729,16 +803,19 @@
             modalPriorityInputAdd.value = 'medium'; 
             populateDatalist(existingLabelsDatalist); 
 
-            modalRemindMeAdd.checked = false; // Reset toggle
+            // Reset duration fields
+            modalEstHoursAdd.value = '';
+            modalEstMinutesAdd.value = '';
+
+            modalRemindMeAdd.checked = false; 
             modalReminderDateAdd.value = '';
             modalReminderTimeAdd.value = '';
             modalReminderEmailAdd.value = '';
 
-            // Control visibility of reminder options based on feature flag AND toggle state
             if (featureFlags.reminderFeature && modalRemindMeAdd.checked) {
                 reminderOptionsAdd.classList.remove('hidden');
             } else {
-                reminderOptionsAdd.classList.add('hidden'); // Ensure hidden if feature off OR toggle off
+                reminderOptionsAdd.classList.add('hidden'); 
             }
             
             const today = new Date();
@@ -748,7 +825,7 @@
             const todayStr = `${year}-${mm}-${dd}`;
             modalDueDateInputAdd.min = todayStr;
             modalReminderDateAdd.min = todayStr;
-            applyActiveFeatures(); // Ensures the main toggle container visibility is correct
+            applyActiveFeatures(); 
         }
 
         function closeAddModal() {
@@ -769,6 +846,8 @@
             modalTaskInputViewEdit.value = task.text;
             modalDueDateInputViewEdit.value = task.dueDate || '';
             modalTimeInputViewEdit.value = task.time || '';
+            modalEstHoursViewEdit.value = task.estimatedHours || ''; // Populate duration
+            modalEstMinutesViewEdit.value = task.estimatedMinutes || ''; // Populate duration
             modalPriorityInputViewEdit.value = task.priority;
             modalLabelInputViewEdit.value = task.label || '';
             populateDatalist(existingLabelsEditDatalist);
@@ -776,11 +855,15 @@
             
             if (featureFlags.reminderFeature) {
                 modalRemindMeViewEdit.checked = task.isReminderSet || false;
-                reminderOptionsViewEdit.classList.toggle('hidden', !modalRemindMeViewEdit.checked); // Show/hide based on toggle
+                reminderOptionsViewEdit.classList.toggle('hidden', !modalRemindMeViewEdit.checked); 
                 if (modalRemindMeViewEdit.checked) {
                     modalReminderDateViewEdit.value = task.reminderDate || '';
                     modalReminderTimeViewEdit.value = task.reminderTime || '';
                     modalReminderEmailViewEdit.value = task.reminderEmail || '';
+                } else { 
+                    modalReminderDateViewEdit.value = '';
+                    modalReminderTimeViewEdit.value = '';
+                    modalReminderEmailViewEdit.value = '';
                 }
             } else {
                  modalRemindMeViewEdit.checked = false; 
@@ -801,7 +884,7 @@
                 modalDialogViewEdit.classList.add('scale-100', 'opacity-100');
             }, 10);
             modalTaskInputViewEdit.focus();
-            applyActiveFeatures(); // Ensures the main toggle container visibility is correct
+            applyActiveFeatures(); 
         }
 
         function closeViewEditModal() {
@@ -811,6 +894,21 @@
                 viewEditTaskModal.classList.add('hidden');
                 editingTaskId = null; 
             }, 200);
+        }
+        
+        // --- Helper function to format duration ---
+        function formatDuration(hours, minutes) {
+            if ((!hours || hours === 0) && (!minutes || minutes === 0)) {
+                return 'Not set';
+            }
+            let parts = [];
+            if (hours && hours > 0) {
+                parts.push(`${hours} hr${hours > 1 ? 's' : ''}`);
+            }
+            if (minutes && minutes > 0) {
+                parts.push(`${minutes} min${minutes > 1 ? 's' : ''}`);
+            }
+            return parts.join(' ');
         }
 
         // --- Modal Functions (View Task Details) ---
@@ -822,6 +920,7 @@
             viewTaskText.textContent = task.text;
             viewTaskDueDate.textContent = task.dueDate ? formatDate(task.dueDate) : 'Not set';
             viewTaskTime.textContent = task.time ? formatTime(task.time) : 'Not set';
+            viewTaskEstDuration.textContent = formatDuration(task.estimatedHours, task.estimatedMinutes); // Display formatted duration
             viewTaskPriority.textContent = task.priority || 'Not set';
             viewTaskStatus.textContent = task.completed ? 'Completed' : 'Active';
             viewTaskLabel.textContent = task.label || 'None';
@@ -833,14 +932,14 @@
                 viewTaskReminderTime.textContent = task.reminderTime ? formatTime(task.reminderTime) : 'Not set';
                 viewTaskReminderEmail.textContent = task.reminderEmail || 'Not set';
                 viewTaskReminderDetails.classList.remove('hidden');
-                viewTaskReminderSection.classList.remove('hidden'); // Ensure section is visible
+                viewTaskReminderSection.classList.remove('hidden'); 
             } else {
                 viewTaskReminderStatus.textContent = 'Not set';
                 viewTaskReminderDetails.classList.add('hidden');
                 if (featureFlags.reminderFeature) { 
-                     viewTaskReminderSection.classList.remove('hidden'); // Section visible, but details hidden
+                     viewTaskReminderSection.classList.remove('hidden'); 
                 } else { 
-                     viewTaskReminderSection.classList.add('hidden'); // Section hidden if feature off
+                     viewTaskReminderSection.classList.add('hidden'); 
                 }
             }
             
@@ -988,18 +1087,18 @@
                 label.className = 'feature-flag-label mr-4';
 
                 const toggleContainer = document.createElement('div');
-                toggleContainer.className = 'relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in';
+                toggleContainer.className = 'relative'; 
 
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
                 checkbox.id = `flag-${flagKey}`;
                 checkbox.name = flagKey;
                 checkbox.checked = featureFlags[flagKey];
-                checkbox.className = 'toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer dark:bg-slate-400 dark:border-slate-500';
+                checkbox.className = 'toggle-checkbox'; 
 
                 const toggleTrack = document.createElement('label');
                 toggleTrack.htmlFor = `flag-${flagKey}`;
-                toggleTrack.className = 'toggle-label block overflow-hidden h-6 rounded-full bg-slate-300 dark:bg-slate-600 cursor-pointer';
+                toggleTrack.className = 'toggle-label'; 
 
                 toggleContainer.appendChild(checkbox);
                 toggleContainer.appendChild(toggleTrack);
@@ -1012,20 +1111,6 @@
                 flagItem.appendChild(toggleContainer);
                 featureFlagsListContainer.appendChild(flagItem);
             });
-
-            // Check if the style element for toggles already exists to avoid duplication
-            if (!document.getElementById('toggleSwitchStyles')) {
-                const style = document.createElement('style');
-                style.id = 'toggleSwitchStyles'; // Add an ID to check for existence
-                style.textContent = `
-                    .toggle-checkbox:checked { right: 0; border-color: #0ea5e9; background-color: #0ea5e9 !important; } /* sky-500 */
-                    .dark .toggle-checkbox:checked { border-color: #0284c7; background-color: #0284c7 !important; } /* sky-600 */
-                    .toggle-checkbox:checked + .toggle-label { background-color: #0ea5e9 !important; } /* sky-500 */
-                    .dark .toggle-checkbox:checked + .toggle-label { background-color: #0284c7 !important; } /* sky-600 */
-                `;
-                // Prepending to head to ensure styles are loaded, though appendChild to container is also fine.
-                document.head.appendChild(style);
-            }
         }
 
 
@@ -1069,22 +1154,15 @@
                 }
             }
 
-            // Reminder Feature UI Elements (Containers for toggles and options divs)
             const reminderFeatureElements = document.querySelectorAll('.reminder-feature-element');
             reminderFeatureElements.forEach(el => {
                 el.classList.toggle('hidden', !featureFlags.reminderFeature);
             });
 
-            // If reminder feature is globally off, ensure the detailed options are hidden,
-            // regardless of individual toggle states (which might be persisted from when the feature was on).
             if (!featureFlags.reminderFeature) {
                 if (reminderOptionsAdd) reminderOptionsAdd.classList.add('hidden');
                 if (reminderOptionsViewEdit) reminderOptionsViewEdit.classList.add('hidden');
             } else {
-                // If feature is ON, the visibility of options is controlled by the toggle's state.
-                // This is handled in openAddModal/openViewEditModal and the toggle's change event listener.
-                // We might need to re-evaluate visibility here if a modal is already open when a flag changes.
-                // For now, this is primarily for initial setup and when modals are opened/toggles change.
                 if (modalRemindMeAdd && addTaskModal && !addTaskModal.classList.contains('hidden')) {
                      reminderOptionsAdd.classList.toggle('hidden', !modalRemindMeAdd.checked);
                 }
@@ -1227,7 +1305,15 @@
                 if (task.priority) { const priorityBadge = document.createElement('span'); priorityBadge.textContent = task.priority; priorityBadge.className = `priority-badge ${getPriorityClass(task.priority)}`; detailsContainer.appendChild(priorityBadge); }
                 if (task.label) { const labelBadge = document.createElement('span'); labelBadge.textContent = task.label; labelBadge.className = 'label-badge'; detailsContainer.appendChild(labelBadge); }
                 if (task.dueDate) { const dueDateSpan = document.createElement('span'); dueDateSpan.className = 'text-slate-500 dark:text-slate-400 flex items-center'; let dateDisplay = formatDate(task.dueDate); if (task.time) { dateDisplay += ` ${formatTime(task.time)}`; } dueDateSpan.innerHTML = `<i class="far fa-calendar-alt mr-1"></i> ${dateDisplay}`; detailsContainer.appendChild(dueDateSpan); }
+                // Optionally display estimated duration on task item - for now, keeping it in details view only
+                // if (task.estimatedHours || task.estimatedMinutes) {
+                //     const estDurationSpan = document.createElement('span');
+                //     estDurationSpan.className = 'text-slate-500 dark:text-slate-400 flex items-center';
+                //     estDurationSpan.innerHTML = `<i class="far fa-clock mr-1"></i> ${formatDuration(task.estimatedHours, task.estimatedMinutes)}`;
+                //     detailsContainer.appendChild(estDurationSpan);
+                // }
                 if (detailsContainer.hasChildNodes()) { textDetailsDiv.appendChild(detailsContainer); }
+
 
                 mainContentClickableArea.appendChild(checkbox);
                 mainContentClickableArea.appendChild(textDetailsDiv);
@@ -1321,6 +1407,8 @@
             const rawTaskText = modalTaskInputAdd.value.trim();
             const explicitDueDate = modalDueDateInputAdd.value; 
             const time = modalTimeInputAdd.value; 
+            const estHours = parseInt(modalEstHoursAdd.value) || 0; // New
+            const estMinutes = parseInt(modalEstMinutesAdd.value) || 0; // New
             const priority = modalPriorityInputAdd.value;
             const label = modalLabelInputAdd.value.trim(); 
             const notes = modalNotesInputAdd.value.trim(); 
@@ -1358,7 +1446,9 @@
             }
             const newTask = { 
                 id: Date.now(), text: finalTaskText, completed: false, 
-                dueDate: finalDueDate, time: time || null, priority: priority, label: label || '', notes: notes || '', 
+                dueDate: finalDueDate, time: time || null, 
+                estimatedHours: estHours, estimatedMinutes: estMinutes, // New
+                priority: priority, label: label || '', notes: notes || '', 
                 isReminderSet: featureFlags.reminderFeature ? isReminderSet : false, 
                 reminderDate: featureFlags.reminderFeature && isReminderSet ? reminderDate : null, 
                 reminderTime: featureFlags.reminderFeature && isReminderSet ? reminderTime : null, 
@@ -1378,6 +1468,8 @@
             const taskText = modalTaskInputViewEdit.value.trim();
             const dueDate = modalDueDateInputViewEdit.value; 
             const time = modalTimeInputViewEdit.value; 
+            const estHours = parseInt(modalEstHoursViewEdit.value) || 0; // New
+            const estMinutes = parseInt(modalEstMinutesViewEdit.value) || 0; // New
             const priority = modalPriorityInputViewEdit.value;
             const label = modalLabelInputViewEdit.value.trim(); 
             const notes = modalNotesInputViewEdit.value.trim(); 
@@ -1404,6 +1496,7 @@
             
             tasks = tasks.map(task => task.id === taskId ? { 
                 ...task, text: taskText, dueDate: dueDate || null, time: time || null, 
+                estimatedHours: estHours, estimatedMinutes: estMinutes, // New
                 priority: priority, label: label || '', notes: notes || '', 
                 isReminderSet: featureFlags.reminderFeature ? isReminderSet : false, 
                 reminderDate: featureFlags.reminderFeature && isReminderSet ? reminderDate : null, 
