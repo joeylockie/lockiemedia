@@ -3847,6 +3847,1539 @@
             updateClearCompletedButtonState();
             if (featureFlags.projectsFeature) populateProjectFilterButtons(); // Populate project filters if feature is enabled
         };
+// --- Rendering Logic ---
+        function renderContent() { // Master render function
+            if (currentView === 'list') {
+                renderTasksList();
+            } else if (currentView === 'kanban' && featureFlags.kanbanBoard) {
+                renderKanbanBoard();
+            } else if (currentView === 'calendar' && featureFlags.calendarViewFeature) {
+                renderCalendarView();
+            } else { // Default or if feature disabled
+                switchToListView();
+            }
+            updateClearCompletedButtonState(); // Update this after any render
+        }
+
+
+        function renderTasksList() {
+            if (!taskList) return;
+            taskList.innerHTML = '';
+            let filteredTasks = getFilteredAndSortedTasks();
+
+            emptyState.classList.toggle('hidden', tasks.length !== 0 && filteredTasks.length === 0 && currentView === 'list' && !currentSearchTerm);
+            noMatchingTasks.classList.toggle('hidden', !(tasks.length > 0 && filteredTasks.length === 0 && (currentSearchTerm || currentFilter !== 'inbox')));
+
+
+            filteredTasks.forEach((task) => {
+                const li = document.createElement('li');
+                const isBlocked = featureFlags.taskDependenciesFeature && task.dependsOn && task.dependsOn.some(depId => {
+                    const depTask = tasks.find(t => t.id === depId);
+                    return depTask && !depTask.completed;
+                });
+
+                li.className = `task-item flex items-start justify-between bg-slate-100 dark:bg-slate-700 p-3 sm:p-3.5 rounded-lg shadow hover:shadow-md transition-shadow duration-300 ${task.completed ? 'opacity-60' : ''} ${isBlocked && !task.completed ? 'opacity-70 border-l-4 border-amber-500' : ''} overflow-hidden`;
+                li.dataset.taskId = task.id;
+                if (isBlocked && !task.completed) {
+                    li.title = "This task is blocked by one or more incomplete dependencies.";
+                }
+
+
+                const mainContentClickableArea = document.createElement('div');
+                mainContentClickableArea.className = 'task-item-clickable-area flex items-start flex-grow min-w-0 mr-2 rounded-l-lg';
+                mainContentClickableArea.addEventListener('click', (event) => {
+                    if (event.target.type === 'checkbox' || event.target.closest('.task-actions')) { return; }
+                    openViewTaskDetailsModal(task.id);
+                });
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = task.completed;
+                checkbox.className = 'form-checkbox h-5 w-5 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 dark:focus:ring-sky-500 mt-0.5 mr-2 sm:mr-3 cursor-pointer flex-shrink-0';
+                checkbox.disabled = isBlocked && !task.completed;
+                if (isBlocked && !task.completed) {
+                    checkbox.title = "This task is blocked by an incomplete dependency.";
+                }
+                checkbox.addEventListener('change', () => toggleComplete(task.id));
+
+                const textDetailsDiv = document.createElement('div');
+                textDetailsDiv.className = 'flex flex-col';
+                const span = document.createElement('span');
+                span.textContent = task.text;
+                let textColorClass = task.completed ? 'text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-200';
+                if (isBlocked && !task.completed) textColorClass = 'text-amber-700 dark:text-amber-400';
+                span.className = `text-sm sm:text-base break-all ${textColorClass} ${task.completed ? 'completed-text' : ''}`;
+                textDetailsDiv.appendChild(span);
+
+                const detailsContainer = document.createElement('div');
+                detailsContainer.className = 'flex items-center flex-wrap gap-x-2 gap-y-1 mt-1 sm:mt-1.5 text-xs';
+                if (task.priority) { const priorityBadge = document.createElement('span'); priorityBadge.textContent = task.priority; priorityBadge.className = `priority-badge ${getPriorityClass(task.priority)}`; detailsContainer.appendChild(priorityBadge); }
+                if (task.label) { const labelBadge = document.createElement('span'); labelBadge.textContent = task.label; labelBadge.className = 'label-badge'; detailsContainer.appendChild(labelBadge); }
+                if (task.dueDate) { const dueDateSpan = document.createElement('span'); dueDateSpan.className = 'text-slate-500 dark:text-slate-400 flex items-center'; let dateDisplay = formatDate(task.dueDate); if (task.time) { dateDisplay += ` ${formatTime(task.time)}`; } dueDateSpan.innerHTML = `<i class="far fa-calendar-alt mr-1"></i> ${dateDisplay}`; detailsContainer.appendChild(dueDateSpan); }
+                if (featureFlags.fileAttachments && task.attachments && task.attachments.length > 0) {
+                    const attachmentSpan = document.createElement('span');
+                    attachmentSpan.className = 'text-slate-500 dark:text-slate-400 flex items-center file-attachments-element';
+                    attachmentSpan.innerHTML = `<i class="fas fa-paperclip mr-1"></i> ${task.attachments.length}`;
+                    detailsContainer.appendChild(attachmentSpan);
+                }
+                if (featureFlags.projectsFeature && task.projectId) {
+                    const project = projects.find(p => p.id === task.projectId);
+                    if (project) {
+                        const projectBadge = document.createElement('span');
+                        projectBadge.className = 'bg-purple-100 text-purple-700 dark:bg-purple-700 dark:text-purple-100 priority-badge projects-feature-element'; // Re-use priority badge style
+                        projectBadge.innerHTML = `<i class="fas fa-project-diagram mr-1"></i>${project.name}`;
+                        detailsContainer.appendChild(projectBadge);
+                    }
+                }
+                if (featureFlags.subtasksFeature && task.subtasks && task.subtasks.length > 0) {
+                    const completedSubtasks = task.subtasks.filter(st => st.completed).length;
+                    const subtaskSpan = document.createElement('span');
+                    subtaskSpan.className = 'text-slate-500 dark:text-slate-400 flex items-center subtasks-feature-element';
+                    subtaskSpan.innerHTML = `<i class="fas fa-stream mr-1"></i> ${completedSubtasks}/${task.subtasks.length}`;
+                    detailsContainer.appendChild(subtaskSpan);
+                }
+
+
+                if (detailsContainer.hasChildNodes()) { textDetailsDiv.appendChild(detailsContainer); }
+                mainContentClickableArea.appendChild(checkbox);
+                mainContentClickableArea.appendChild(textDetailsDiv);
+
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'task-actions flex-shrink-0 self-start';
+                const editButton = document.createElement('button');
+                editButton.className = 'task-action-btn text-sky-500 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-500';
+                editButton.innerHTML = '<i class="fas fa-pencil-alt"></i>';
+                editButton.setAttribute('aria-label', 'Edit task');
+                editButton.title = 'Edit task (E)';
+                editButton.addEventListener('click', () => openViewEditModal(task.id));
+                actionsDiv.appendChild(editButton);
+
+                const deleteButton = document.createElement('button');
+                deleteButton.className = 'task-action-btn text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-500';
+                deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
+                deleteButton.setAttribute('aria-label', 'Delete task');
+                deleteButton.title = 'Delete task (Del)';
+                deleteButton.addEventListener('click', () => deleteTask(task.id));
+                actionsDiv.appendChild(deleteButton);
+
+                li.appendChild(mainContentClickableArea);
+                li.appendChild(actionsDiv);
+                taskList.appendChild(li);
+            });
+        }
+
+
+        function getFilteredAndSortedTasks() {
+            let currentFilteredTasks = []; // Use a local variable to avoid modifying global `tasks`
+            const todayDate = new Date();
+            todayDate.setHours(0, 0, 0, 0);
+            const todayStr = getDateString(todayDate);
+
+            // Apply Smart View or Project Filter first
+            if (currentFilter === 'inbox') {
+                currentFilteredTasks = tasks.filter(task => !task.completed);
+            } else if (currentFilter === 'today') {
+                currentFilteredTasks = tasks.filter(task => task.dueDate === todayStr && !task.completed);
+            } else if (currentFilter === 'upcoming') {
+                currentFilteredTasks = tasks.filter(task => {
+                    if (!task.dueDate || task.completed) return false;
+                    const taskDueDate = new Date(task.dueDate);
+                    const userTimezoneOffset = taskDueDate.getTimezoneOffset() * 60000;
+                    const correctedTaskDueDate = new Date(taskDueDate.getTime() + userTimezoneOffset);
+                    correctedTaskDueDate.setHours(0,0,0,0); // Normalize to start of day in user's timezone
+                    return correctedTaskDueDate > todayDate;
+                });
+            } else if (currentFilter === 'completed') {
+                currentFilteredTasks = tasks.filter(task => task.completed);
+            } else if (featureFlags.projectsFeature && currentFilter !== 'all' && projects.some(p => p.id === parseInt(currentFilter))) {
+                currentFilteredTasks = tasks.filter(task => task.projectId === parseInt(currentFilter)); // Show all tasks for project, completed or not
+            } else if (featureFlags.projectsFeature && currentFilter === 'all') {
+                 currentFilteredTasks = [...tasks]; // Show all tasks if "All Projects" is selected
+            } else { // Default to inbox if filter is unrecognized or no specific project filter
+                currentFilteredTasks = tasks.filter(task => !task.completed);
+            }
+
+
+            // Apply Search Term
+            if (currentSearchTerm) {
+                if (featureFlags.advancedSearchFiltersFeature && currentSearchTerm.includes(':')) {
+                    const parts = currentSearchTerm.toLowerCase().split(' ');
+                    let searchTextParts = [];
+                    let searchFilters = {};
+                    parts.forEach(part => {
+                        if(part.includes(':')) {
+                            const [key, value] = part.split(':', 2);
+                            if (key && value) searchFilters[key.trim()] = value.trim();
+                        } else {
+                            searchTextParts.push(part);
+                        }
+                    });
+                    const finalSearchText = searchTextParts.join(' ');
+
+                    currentFilteredTasks = currentFilteredTasks.filter(task => {
+                        let matchesText = true;
+                        if (finalSearchText) {
+                            matchesText = task.text.toLowerCase().includes(finalSearchText) ||
+                                          (task.notes && task.notes.toLowerCase().includes(finalSearchText));
+                        }
+
+                        let matchesFilters = true;
+                        for (const key in searchFilters) {
+                            const val = searchFilters[key];
+                            if (key === 'priority' && task.priority !== val) matchesFilters = false;
+                            if (key === 'label' && (!task.label || task.label.toLowerCase() !== val)) matchesFilters = false;
+                            if (key === 'project') {
+                                const project = projects.find(p => p.name.toLowerCase() === val);
+                                if (!project || task.projectId !== project.id) matchesFilters = false;
+                            }
+                            if (key === 'due') {
+                                if (val === 'today' && task.dueDate !== todayStr) matchesFilters = false;
+                                else if (val === 'upcoming') {
+                                    if (!task.dueDate) { matchesFilters = false; }
+                                    else {
+                                        const taskDueDate = new Date(task.dueDate);
+                                        const userTimezoneOffset = taskDueDate.getTimezoneOffset() * 60000;
+                                        const correctedTaskDueDate = new Date(taskDueDate.getTime() + userTimezoneOffset);
+                                        correctedTaskDueDate.setHours(0,0,0,0);
+                                        if (correctedTaskDueDate <= todayDate) matchesFilters = false;
+                                    }
+                                }
+                                else if (val !== 'today' && val !== 'upcoming' && task.dueDate !== val) { // expecting YYYY-MM-DD
+                                    matchesFilters = false;
+                                }
+                            }
+                            if (key === 'is' && val === 'completed' && !task.completed) matchesFilters = false;
+                            if (key === 'is' && val === 'active' && task.completed) matchesFilters = false;
+                            if (key === 'is' && val === 'blocked' && featureFlags.taskDependenciesFeature) {
+                                const isBlocked = task.dependsOn && task.dependsOn.some(depId => {
+                                    const depTask = tasks.find(t => t.id === depId);
+                                    return depTask && !depTask.completed;
+                                });
+                                if (!isBlocked) matchesFilters = false;
+                            }
+                        }
+                        return matchesText && matchesFilters;
+                    });
+
+                } else { // Simple text search
+                    currentFilteredTasks = currentFilteredTasks.filter(task =>
+                        task.text.toLowerCase().includes(currentSearchTerm) ||
+                        (task.notes && task.notes.toLowerCase().includes(currentSearchTerm)) ||
+                        (task.label && task.label.toLowerCase().includes(currentSearchTerm))
+                    );
+                }
+            }
+
+            // Apply Sorting (only for list view)
+            if (currentView === 'list') {
+                const priorityOrder = { high: 1, medium: 2, low: 3 };
+                if (currentSort === 'dueDate') {
+                    currentFilteredTasks.sort((a, b) => {
+                        if (!a.dueDate && !b.dueDate) return 0;
+                        if (!a.dueDate) return 1;
+                        if (!b.dueDate) return -1;
+                        const dateA = new Date(a.dueDate + (a.time ? `T${a.time}` : 'T00:00:00'));
+                        const dateB = new Date(b.dueDate + (b.time ? `T${b.time}` : 'T00:00:00'));
+                        return dateA - dateB;
+                    });
+                } else if (currentSort === 'priority') {
+                    currentFilteredTasks.sort((a, b) => {
+                        const priorityDiff = (priorityOrder[a.priority] || 4) - (priorityOrder[b.priority] || 4);
+                        if (priorityDiff !== 0) return priorityDiff;
+                        if (!a.dueDate && !b.dueDate) return 0;
+                        if (!a.dueDate) return 1;
+                        if (!b.dueDate) return -1;
+                        const dateA = new Date(a.dueDate + (a.time ? `T${a.time}` : 'T00:00:00'));
+                        const dateB = new Date(b.dueDate + (b.time ? `T${b.time}` : 'T00:00:00'));
+                        return dateA - dateB;
+                    });
+                } else if (currentSort === 'label') {
+                    currentFilteredTasks.sort((a,b) => {
+                        const labelA = (a.label || '').toLowerCase();
+                        const labelB = (b.label || '').toLowerCase();
+                        if (labelA < labelB) return -1;
+                        if (labelA > labelB) return 1;
+                        if (!a.dueDate && !b.dueDate) return 0;
+                        if (!a.dueDate) return 1;
+                        if (!b.dueDate) return -1;
+                        const dateA = new Date(a.dueDate + (a.time ? `T${a.time}` : 'T00:00:00'));
+                        const dateB = new Date(b.dueDate + (b.time ? `T${b.time}` : 'T00:00:00'));
+                        return dateA - dateB;
+                    });
+                }
+            }
+
+
+            return currentFilteredTasks;
+        }
+
+        function renderKanbanBoard() {
+            if (!featureFlags.kanbanBoard || !kanbanBoard) return;
+            kanbanBoard.innerHTML = '';
+
+            const globallyFilteredTaskIds = new Set(getFilteredAndSortedTasks().map(t => t.id));
+
+
+            kanbanBoardData.columnOrder.forEach(columnId => {
+                const columnData = kanbanBoardData.columns.find(col => col.id === columnId);
+                if (!columnData) return;
+
+                const columnDiv = document.createElement('div');
+                columnDiv.className = 'kanban-column';
+                columnDiv.dataset.columnId = columnData.id;
+
+                const header = document.createElement('h3');
+                header.className = 'kanban-column-header group relative'; // Added group for edit icon
+                header.textContent = columnData.title;
+
+                const editIcon = document.createElement('i');
+                editIcon.className = 'fas fa-pencil-alt text-xs text-slate-400 dark:text-slate-500 absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer';
+                editIcon.title = "Edit column name";
+                editIcon.onclick = (e) => {
+                    e.stopPropagation(); // Prevent card click if task behind
+                    header.contentEditable = "true";
+                    header.focus();
+                    // Select all text in header for easy editing
+                    const selection = window.getSelection();
+                    const range = document.createRange();
+                    range.selectNodeContents(header);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                };
+                header.appendChild(editIcon);
+
+
+                header.addEventListener('focus', () => {
+                     header.dataset.originalTitle = header.textContent.replace(editIcon.outerHTML, '').trim(); // Store original title excluding icon HTML
+                });
+                header.addEventListener('blur', (e) => {
+                    header.contentEditable = "false";
+                    const newTitle = header.textContent.replace(editIcon.outerHTML, '').trim(); // Exclude icon HTML before trimming
+
+                    if (newTitle && columnData.title !== newTitle) {
+                        columnData.title = newTitle;
+                        saveKanbanBoardData();
+                        showMessage(`Column renamed to "${newTitle}"`, 'success');
+                    } else {
+                        header.textContent = columnData.title; // Reset if empty or unchanged
+                        header.appendChild(editIcon); // Re-append icon if textContent was reset
+                    }
+                });
+                header.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        e.target.blur();
+                    } else if (e.key === 'Escape') {
+                        header.textContent = header.dataset.originalTitle || columnData.title; // Revert on escape
+                        header.appendChild(editIcon); // Re-append icon
+                        header.blur();
+                    }
+                });
+
+                columnDiv.appendChild(header);
+
+                const tasksContainer = document.createElement('div');
+                tasksContainer.className = 'kanban-tasks min-h-[100px]'; // Ensure droppable area
+                tasksContainer.dataset.columnId = columnData.id;
+
+                // Get tasks for this column from the globally filtered set
+                const tasksInThisColumn = tasks.filter(task =>
+                    task.status === columnData.id &&
+                    globallyFilteredTaskIds.has(task.id) && // Must match global filters
+                    !task.completed // Typically, completed tasks are not shown on active boards or are in a "Done" column
+                );
+
+                // If this is a "Done" column, show completed tasks instead
+                const doneColumnPattern = /done/i; // Simple pattern for "Done"
+                if (doneColumnPattern.test(columnData.title)) {
+                    const completedTasksInThisColumn = tasks.filter(task =>
+                        task.status === columnData.id &&
+                        globallyFilteredTaskIds.has(task.id) &&
+                        task.completed
+                    );
+                    completedTasksInThisColumn.forEach(task => {
+                        const taskCard = createKanbanTaskCard(task);
+                        tasksContainer.appendChild(taskCard);
+                    });
+                } else {
+                     tasksInThisColumn.forEach(task => {
+                        const taskCard = createKanbanTaskCard(task);
+                        tasksContainer.appendChild(taskCard);
+                    });
+                }
+
+
+                columnDiv.appendChild(tasksContainer);
+                kanbanBoard.appendChild(columnDiv);
+            });
+
+            emptyState.classList.add('hidden');
+            const totalKanbanCards = kanbanBoard.querySelectorAll('.kanban-task-card').length;
+            noMatchingTasks.classList.toggle('hidden', !(tasks.length > 0 && totalKanbanCards === 0));
+
+
+            addKanbanDragDropListeners();
+        }
+
+        function createKanbanTaskCard(task) {
+            const card = document.createElement('div');
+            card.className = 'kanban-task-card bg-white dark:bg-slate-700 rounded-md p-3 shadow-sm hover:shadow-md transition-shadow cursor-grab';
+            card.dataset.taskId = task.id;
+            card.draggable = true; // Make it draggable
+
+            const isBlocked = featureFlags.taskDependenciesFeature && task.dependsOn && task.dependsOn.some(depId => {
+                const depTask = tasks.find(t => t.id === depId);
+                return depTask && !depTask.completed;
+            });
+            if (isBlocked && !task.completed) { // Only apply visual block if not completed
+                 card.classList.add('opacity-70', 'border-l-4', 'border-amber-500', 'cursor-not-allowed');
+                 card.title = "This task is blocked by one or more incomplete dependencies.";
+                 card.draggable = false; // Cannot drag blocked tasks
+            }
+
+
+            const text = document.createElement('p');
+            text.textContent = task.text;
+            text.className = 'text-sm font-medium mb-2 truncate text-slate-800 dark:text-slate-100';
+            card.appendChild(text);
+
+            const details = document.createElement('div');
+            details.className = 'flex items-center flex-wrap gap-x-2 gap-y-1 text-xs text-slate-500 dark:text-slate-400';
+
+            if (task.priority) {
+                const priorityBadge = document.createElement('span');
+                priorityBadge.textContent = task.priority;
+                priorityBadge.className = `priority-badge ${getPriorityClass(task.priority)}`;
+                details.appendChild(priorityBadge);
+            }
+            if (task.label) {
+                const labelBadge = document.createElement('span');
+                labelBadge.textContent = task.label;
+                labelBadge.className = 'label-badge';
+                details.appendChild(labelBadge);
+            }
+            if (task.dueDate) {
+                const dueDateSpan = document.createElement('span');
+                dueDateSpan.innerHTML = `<i class="far fa-calendar-alt mr-1"></i> ${formatDate(task.dueDate).split(',')[0]}`;
+                details.appendChild(dueDateSpan);
+            }
+            if (featureFlags.projectsFeature && task.projectId) {
+                const project = projects.find(p => p.id === task.projectId);
+                if (project) {
+                    const projectIcon = document.createElement('span');
+                    projectIcon.title = project.name;
+                    projectIcon.innerHTML = `<i class="fas fa-project-diagram projects-feature-element"></i>`;
+                    details.appendChild(projectIcon);
+                }
+            }
+             if (featureFlags.subtasksFeature && task.subtasks && task.subtasks.length > 0) {
+                const completedSubtasks = task.subtasks.filter(st => st.completed).length;
+                const subtaskSpan = document.createElement('span');
+                subtaskSpan.className = 'flex items-center subtasks-feature-element';
+                subtaskSpan.innerHTML = `<i class="fas fa-stream mr-1"></i> ${completedSubtasks}/${task.subtasks.length}`;
+                details.appendChild(subtaskSpan);
+            }
+
+
+            if (details.hasChildNodes()) {
+                card.appendChild(details);
+            }
+
+            card.addEventListener('click', (e) => {
+                // Prevent opening modal if an icon inside the card was clicked (e.g., future action icons on card)
+                if (e.target.closest('button') || e.target.closest('a')) return;
+                openViewTaskDetailsModal(task.id);
+            });
+            return card;
+        }
+
+        function addKanbanDragDropListeners() {
+            const taskCards = kanbanBoard.querySelectorAll('.kanban-task-card[draggable="true"]'); // Only draggable cards
+            const columns = kanbanBoard.querySelectorAll('.kanban-tasks');
+
+            taskCards.forEach(card => {
+                card.addEventListener('dragstart', (e) => {
+                    if (!card.draggable) { e.preventDefault(); return; } // Double check
+                    currentlyDraggingTask = card.dataset.taskId;
+                    card.classList.add('dragging', 'opacity-50', 'rotate-1');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', card.dataset.taskId);
+                });
+                card.addEventListener('dragend', () => {
+                    card.classList.remove('dragging', 'opacity-50', 'rotate-1');
+                    currentlyDraggingTask = null;
+                    // Clear any dragover styling from columns
+                    columns.forEach(c => c.closest('.kanban-column').classList.remove('bg-sky-100', 'dark:bg-sky-900/50', 'border-sky-500', 'border-2', 'border-dashed'));
+                });
+            });
+
+            columns.forEach(columnZone => { // columnZone is the .kanban-tasks div
+                const columnElement = columnZone.closest('.kanban-column');
+                columnElement.addEventListener('dragenter', (e) => { // Use columnElement for visual feedback
+                    e.preventDefault();
+                    if (currentlyDraggingTask) { // Only highlight if a task is being dragged
+                        columnElement.classList.add('bg-sky-100', 'dark:bg-sky-900/50', 'border-sky-500', 'border-2', 'border-dashed');
+                    }
+                });
+                columnElement.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    if (currentlyDraggingTask) e.dataTransfer.dropEffect = 'move';
+                });
+                columnElement.addEventListener('dragleave', () => {
+                     columnElement.classList.remove('bg-sky-100', 'dark:bg-sky-900/50', 'border-sky-500', 'border-2', 'border-dashed');
+                });
+                columnElement.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    columnElement.classList.remove('bg-sky-100', 'dark:bg-sky-900/50', 'border-sky-500', 'border-2', 'border-dashed');
+                    const taskId = currentlyDraggingTask || e.dataTransfer.getData('text/plain');
+                    const targetColumnId = columnElement.dataset.columnId; // Get ID from the .kanban-column element
+
+                    if (taskId && targetColumnId) {
+                        const taskToMove = tasks.find(t => t.id === parseInt(taskId));
+                        if (taskToMove && taskToMove.status !== targetColumnId) { // Only update if status changed
+                            updateTaskStatusOnKanban(parseInt(taskId), targetColumnId);
+                        }
+                    }
+                    currentlyDraggingTask = null; // Reset
+                });
+            });
+        }
+
+        function updateTaskStatusOnKanban(taskId, newColumnId) {
+            const taskIndex = tasks.findIndex(t => t.id === taskId);
+            if (taskIndex === -1) return;
+
+            const task = tasks[taskIndex];
+            const oldColumnId = task.status;
+            task.status = newColumnId;
+
+            // Update kanbanBoardData (remove from old, add to new)
+            if (oldColumnId && oldColumnId !== newColumnId) {
+                const oldColData = kanbanBoardData.columns.find(c => c.id === oldColumnId);
+                if (oldColData) oldColData.taskIds = oldColData.taskIds.filter(id => id !== taskId);
+            }
+            const newColData = kanbanBoardData.columns.find(c => c.id === newColumnId);
+            if (newColData && !newColData.taskIds.includes(taskId)) {
+                // Add to new column, trying to maintain some order or just append
+                // For simplicity, just append. More complex logic could place it based on drag position.
+                newColData.taskIds.push(taskId);
+            }
+
+            // Auto-complete/uncomplete if moved to/from a "Done" column
+            const doneColumnPattern = /done/i;
+            const isNewColDone = newColData && doneColumnPattern.test(newColData.title);
+            const isOldColDone = oldColumnId && kanbanBoardData.columns.find(c=>c.id === oldColumnId && doneColumnPattern.test(c.title));
+
+            if (isNewColDone && !task.completed) {
+                task.completed = true;
+                if (featureFlags.taskTimerSystem && (task.timerIsRunning || task.timerIsPaused)) {
+                    handleStopTimer(taskId);
+                }
+            } else if (!isNewColDone && task.completed && isOldColDone) {
+                // If moved out of a "Done" column and it was completed, mark as not completed
+                task.completed = false;
+            }
+
+
+            saveTasks();
+            saveKanbanBoardData();
+            renderKanbanBoard(); // Re-render the board to reflect changes
+            showMessage(`Task moved to "${newColData ? newColData.title : newColumnId}"`, 'success');
+        }
+
+
+        function initializeKanbanTasks() {
+            if (!featureFlags.kanbanBoard) return;
+            let changed = false;
+            const defaultColumnId = kanbanBoardData.columns[0]?.id || 'col1';
+
+            tasks.forEach(task => {
+                const currentTaskStatusIsValidColumn = kanbanBoardData.columns.some(col => col.id === task.status);
+                if (!task.status || !currentTaskStatusIsValidColumn) {
+                    task.status = defaultColumnId;
+                    changed = true;
+                }
+                // Ensure task is in its designated column's taskIds array and not in others
+                kanbanBoardData.columns.forEach(column => {
+                    const isInThisColumnArray = column.taskIds.includes(task.id);
+                    if (column.id === task.status && !isInThisColumnArray) {
+                        column.taskIds.push(task.id); // Add if should be here but isn't
+                        changed = true;
+                    } else if (column.id !== task.status && isInThisColumnArray) {
+                        column.taskIds = column.taskIds.filter(id => id !== task.id); // Remove if here but shouldn't be
+                        changed = true;
+                    }
+                });
+            });
+
+            // Clean up taskIds in kanbanBoardData: remove IDs of tasks that no longer exist
+            kanbanBoardData.columns.forEach(column => {
+                const originalLength = column.taskIds.length;
+                column.taskIds = column.taskIds.filter(taskId => tasks.some(task => task.id === taskId));
+                if (column.taskIds.length !== originalLength) changed = true;
+            });
+
+
+            if (changed) {
+                saveTasks();
+                saveKanbanBoardData();
+            }
+        }
+
+
+        function renderCalendarView() {
+            if (!featureFlags.calendarViewFeature || !calendarView) return;
+            calendarView.innerHTML = ''; // Clear existing calendar
+
+            // Basic Calendar Header (Month/Year and Prev/Next buttons)
+            const calendarHeader = document.createElement('div');
+            calendarHeader.className = 'flex justify-between items-center mb-4 p-2 bg-slate-100 dark:bg-slate-800 rounded-md';
+
+            const prevMonthBtn = document.createElement('button');
+            prevMonthBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
+            prevMonthBtn.className = 'px-3 py-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded';
+            prevMonthBtn.onclick = () => { currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1); renderCalendarView(); };
+
+            const monthYearDisplay = document.createElement('h3');
+            monthYearDisplay.className = 'text-lg font-semibold text-slate-700 dark:text-slate-200';
+            monthYearDisplay.textContent = `${currentCalendarDate.toLocaleString('default', { month: 'long' })} ${currentCalendarDate.getFullYear()}`;
+
+            const nextMonthBtn = document.createElement('button');
+            nextMonthBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
+            nextMonthBtn.className = 'px-3 py-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded';
+            nextMonthBtn.onclick = () => { currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1); renderCalendarView(); };
+
+            calendarHeader.appendChild(prevMonthBtn);
+            calendarHeader.appendChild(monthYearDisplay);
+            calendarHeader.appendChild(nextMonthBtn);
+            calendarView.appendChild(calendarHeader);
+
+            // Calendar Grid
+            const calendarGrid = document.createElement('div');
+            calendarGrid.className = 'grid grid-cols-7 gap-px bg-slate-300 dark:bg-slate-600 border border-slate-300 dark:border-slate-600 rounded-md overflow-hidden';
+
+            // Day Headers (Sun, Mon, ...)
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            days.forEach(day => {
+                const dayHeaderCell = document.createElement('div');
+                dayHeaderCell.className = 'text-center font-medium p-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-sm';
+                dayHeaderCell.textContent = day;
+                calendarGrid.appendChild(dayHeaderCell);
+            });
+
+            // Days of the month
+            const year = currentCalendarDate.getFullYear();
+            const month = currentCalendarDate.getMonth(); // 0-indexed
+
+            const firstDayOfMonth = new Date(year, month, 1);
+            const lastDayOfMonth = new Date(year, month + 1, 0);
+            const daysInMonth = lastDayOfMonth.getDate();
+            const startDayOfWeek = firstDayOfMonth.getDay(); // 0 for Sunday, 1 for Monday, ...
+
+            // Add empty cells for days before the first of the month
+            for (let i = 0; i < startDayOfWeek; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'bg-slate-50 dark:bg-slate-700/50 p-1 min-h-[80px]'; // Ensure consistent height
+                calendarGrid.appendChild(emptyCell);
+            }
+
+            // Add cells for each day of the month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayCell = document.createElement('div');
+                dayCell.className = 'bg-white dark:bg-slate-700 p-1.5 min-h-[100px] relative hover:bg-slate-50 dark:hover:bg-slate-600/50 transition-colors';
+                const dayNumber = document.createElement('span');
+                dayNumber.className = 'text-xs font-semibold text-slate-700 dark:text-slate-200';
+                dayNumber.textContent = day;
+                dayCell.appendChild(dayNumber);
+
+                const currentDate = new Date(year, month, day);
+                const currentDateStr = getDateString(currentDate);
+
+                // Add tasks for this day
+                const tasksForDay = tasks.filter(task => task.dueDate === currentDateStr && !task.completed);
+                const tasksListDiv = document.createElement('div');
+                tasksListDiv.className = 'mt-1 space-y-0.5 overflow-y-auto max-h-[70px] text-xs'; // Max height for tasks in a cell
+                tasksForDay.forEach(task => {
+                    const taskDiv = document.createElement('div');
+                    taskDiv.className = `p-0.5 rounded-sm truncate ${getPriorityClass(task.priority).replace('text-xs', '')} opacity-90`; // Use priority for bg
+                    taskDiv.textContent = task.text;
+                    taskDiv.title = task.text;
+                    taskDiv.onclick = () => openViewTaskDetailsModal(task.id);
+                    tasksListDiv.appendChild(taskDiv);
+                });
+                dayCell.appendChild(tasksListDiv);
+
+
+                // Highlight today
+                const today = new Date();
+                if (year === today.getFullYear() && month === today.getMonth() && day === today.getDate()) {
+                    dayNumber.classList.add('bg-sky-500', 'text-white', 'rounded-full', 'px-1.5', 'py-0.5');
+                }
+                calendarGrid.appendChild(dayCell);
+            }
+            calendarView.appendChild(calendarGrid);
+            emptyState.classList.add('hidden');
+            noMatchingTasks.classList.add('hidden');
+        }
+
+        let currentCalendarDate = new Date(); // For calendar view navigation
+
+        function parseDateFromText(text) {
+            // ... (keep existing parseDateFromText function) ...
+            // (no changes from previous snippet for this function)
+            let parsedDate = null;
+            let remainingText = text;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const daysOfWeek = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+            const shortDaysOfWeek = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+            const patterns = [
+                { regex: /\b(today)\b/i, handler: () => getTodayDateString() },
+                { regex: /\b(tomorrow)\b/i, handler: () => { const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1); return tomorrow.toISOString().split('T')[0]; }},
+                { regex: /\b(next week)\b/i, handler: () => { const nextWeek = new Date(today); nextWeek.setDate(today.getDate() - today.getDay() + 1 + 7); return nextWeek.toISOString().split('T')[0]; }},
+                { regex: /\b(next month)\b/i, handler: () => { const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1); return nextMonth.toISOString().split('T')[0]; }},
+                { regex: /\b(next year)\b/i, handler: () => { const nextYear = new Date(today.getFullYear() + 1, 0, 1); return nextYear.toISOString().split('T')[0]; }},
+                { regex: new RegExp(`\\b(on\\s+)?(next\\s+)?(${daysOfWeek.join('|')}|${shortDaysOfWeek.join('|')})\\b`, 'i'),
+                    handler: (match) => {
+                        const dayName = match[3].toLowerCase();
+                        let targetDayIndex = daysOfWeek.indexOf(dayName);
+                        if (targetDayIndex === -1) targetDayIndex = shortDaysOfWeek.indexOf(dayName);
+                        if (targetDayIndex === -1) return null;
+                        const currentDayIndex = today.getDay();
+                        let daysToAdd = targetDayIndex - currentDayIndex;
+                        if (match[2] || daysToAdd < 0 || (daysToAdd === 0 && new Date().getHours() > 0 )) daysToAdd += 7;
+                        if (targetDayIndex === currentDayIndex && !match[2] && daysToAdd !== 7) daysToAdd = 0;
+                        const targetDate = new Date(today);
+                        targetDate.setDate(today.getDate() + daysToAdd);
+                        return targetDate.toISOString().split('T')[0];
+                    }
+                },
+                { regex: /(\d{4}[-\/]\d{1,2}[-\/]\d{1,2})/g, handler: (match) => match[0].replace(/\//g, '-') },
+                { regex: /(\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})/g, handler: (match) => {
+                    const parts = match[0].replace(/-/g, '/').split('/');
+                    const year = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
+                    const month = parts[0].padStart(2, '0');
+                    const day = parts[1].padStart(2, '0');
+                    try {
+                        const d = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                        if (d.getFullYear() === parseInt(year) && d.getMonth() === parseInt(month) - 1 && d.getDate() === parseInt(day)) {
+                           return `${year}-${month}-${day}`;
+                        }
+                        return null;
+                    } catch (e) { return null; }
+                }}
+            ];
+            for (const pattern of patterns) {
+                const match = pattern.regex.exec(remainingText);
+                if (match) {
+                    const potentialDate = pattern.handler(match);
+                    if (potentialDate && !isNaN(new Date(potentialDate).getTime())) {
+                        parsedDate = potentialDate;
+                        const removalRegex = new RegExp(`\\b(due|on|by|for|at)\\s*${match[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b|\\b${match[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+                        remainingText = remainingText.replace(removalRegex, '').replace(/\s\s+/g, ' ').trim();
+                        break;
+                    }
+                }
+            }
+            return { parsedDate, remainingText };
+        }
+
+
+        function handleAddTask(event) {
+            // ... (keep existing handleAddTask, it was updated in previous snippet)
+            event.preventDefault();
+            const rawTaskText = modalTaskInputAdd.value.trim();
+            const explicitDueDate = modalDueDateInputAdd.value;
+            const time = modalTimeInputAdd.value;
+            let estHours = 0, estMinutes = 0;
+            if (featureFlags.taskTimerSystem) {
+                estHours = parseInt(modalEstHoursAdd.value) || 0;
+                estMinutes = parseInt(modalEstMinutesAdd.value) || 0;
+            }
+            const priority = modalPriorityInputAdd.value;
+            const label = modalLabelInputAdd.value.trim();
+            const notes = modalNotesInputAdd.value.trim();
+            let projectId = null;
+            if (featureFlags.projectsFeature && modalProjectInputAdd) {
+                projectId = modalProjectInputAdd.value ? parseInt(modalProjectInputAdd.value) : null;
+            }
+            let subtasksArray = [];
+            if (featureFlags.subtasksFeature && modalSubtaskListAdd) {
+                modalSubtaskListAdd.querySelectorAll('.subtask-item-modal').forEach(item => {
+                    const textInput = item.querySelector('input[type="text"]');
+                    const checkbox = item.querySelector('input[type="checkbox"]');
+                    if (textInput && textInput.value.trim() !== '') {
+                        subtasksArray.push({ id: Date.now() + Math.random(), text: textInput.value.trim(), completed: checkbox.checked });
+                    }
+                });
+            }
+            let dependsOnArray = [];
+            if (featureFlags.taskDependenciesFeature && modalDependsOnSelectAdd) {
+                Array.from(modalDependsOnSelectAdd.selectedOptions).forEach(option => {
+                    dependsOnArray.push(parseInt(option.value));
+                });
+            }
+
+
+            let isReminderSet = false, reminderDate = null, reminderTime = null, reminderEmail = null;
+            if (featureFlags.reminderFeature) {
+                isReminderSet = modalRemindMeAdd.checked;
+                reminderDate = modalReminderDateAdd.value;
+                reminderTime = modalReminderTimeAdd.value;
+                reminderEmail = modalReminderEmailAdd.value.trim();
+                if (isReminderSet) {
+                    if (!reminderDate) { showMessage('Please select a reminder date.', 'error'); modalReminderDateAdd.focus(); return; }
+                    if (!reminderTime) { showMessage('Please select a reminder time.', 'error'); modalReminderTimeAdd.focus(); return; }
+                    if (!reminderEmail) { showMessage('Please enter an email for the reminder.', 'error'); modalReminderEmailAdd.focus(); return; }
+                    if (!/^\S+@\S+\.\S+$/.test(reminderEmail)) { showMessage('Please enter a valid email address.', 'error'); modalReminderEmailAdd.focus(); return; }
+                }
+            }
+            if (rawTaskText === '') { showMessage('Task description cannot be empty!', 'error'); modalTaskInputAdd.focus(); return; }
+            let finalDueDate = null, finalTaskText = rawTaskText;
+            if (!explicitDueDate) {
+                const { parsedDate: dateFromDescription, remainingText: textAfterDateRemoval } = parseDateFromText(rawTaskText);
+                if (dateFromDescription) {
+                    finalDueDate = dateFromDescription;
+                    finalTaskText = textAfterDateRemoval || rawTaskText;
+                }
+            } else {
+                finalDueDate = explicitDueDate;
+            }
+
+            const defaultStatus = featureFlags.kanbanBoard && kanbanBoardData.columns.length > 0 ? kanbanBoardData.columns[0].id : 'col1';
+
+            const newTask = {
+                id: Date.now(), text: finalTaskText, completed: false,
+                dueDate: finalDueDate, time: time || null,
+                estimatedHours: featureFlags.taskTimerSystem ? estHours : 0,
+                estimatedMinutes: featureFlags.taskTimerSystem ? estMinutes : 0,
+                priority: priority, label: label || '', notes: notes || '',
+                projectId: projectId,
+                subtasks: subtasksArray,
+                dependsOn: dependsOnArray,
+                status: defaultStatus,
+                isReminderSet: featureFlags.reminderFeature ? isReminderSet : false,
+                reminderDate: featureFlags.reminderFeature && isReminderSet ? reminderDate : null,
+                reminderTime: featureFlags.reminderFeature && isReminderSet ? reminderTime : null,
+                reminderEmail: featureFlags.reminderFeature && isReminderSet ? reminderEmail : null,
+                timerStartTime: null, timerAccumulatedTime: 0, timerIsRunning: false, timerIsPaused: false, actualDurationMs: 0,
+                attachments: []
+            };
+            tasks.unshift(newTask);
+
+            if (featureFlags.kanbanBoard) {
+                const defaultColumn = kanbanBoardData.columns.find(col => col.id === defaultStatus);
+                if (defaultColumn && !defaultColumn.taskIds.includes(newTask.id)) {
+                    defaultColumn.taskIds.unshift(newTask.id); // Add to beginning for visibility
+                }
+                saveKanbanBoardData();
+            }
+
+            saveTasks();
+            if (currentFilter === 'completed') { setFilter('inbox'); }
+            else { renderContent(); }
+            closeAddModal();
+            showMessage('Task added successfully!', 'success');
+        }
+
+        function handleEditTask(event) {
+            // ... (keep existing handleEditTask, it was updated in previous snippet) ...
+            event.preventDefault();
+            const taskId = parseInt(modalViewEditTaskId.value);
+            const taskText = modalTaskInputViewEdit.value.trim();
+            const dueDate = modalDueDateInputViewEdit.value;
+            const time = modalTimeInputViewEdit.value;
+            let estHours = 0, estMinutes = 0;
+            if (featureFlags.taskTimerSystem) {
+                estHours = parseInt(modalEstHoursViewEdit.value) || 0;
+                estMinutes = parseInt(modalEstMinutesViewEdit.value) || 0;
+            }
+            const priority = modalPriorityInputViewEdit.value;
+            const label = modalLabelInputViewEdit.value.trim();
+            const notes = modalNotesInputViewEdit.value.trim();
+            let projectId = null;
+            if (featureFlags.projectsFeature && modalProjectInputEdit) {
+                projectId = modalProjectInputEdit.value ? parseInt(modalProjectInputEdit.value) : null;
+            }
+            let subtasksArray = [];
+            if (featureFlags.subtasksFeature && modalSubtaskListEdit) {
+                 modalSubtaskListEdit.querySelectorAll('.subtask-item-modal').forEach(item => {
+                    const textInput = item.querySelector('input[type="text"]');
+                    const checkbox = item.querySelector('input[type="checkbox"]');
+                    const subtaskId = parseInt(item.dataset.subtaskId);
+                    if (textInput && textInput.value.trim() !== '') {
+                        subtasksArray.push({ id: subtaskId || Date.now() + Math.random(), text: textInput.value.trim(), completed: checkbox.checked });
+                    }
+                });
+            }
+            let dependsOnArray = [];
+            if (featureFlags.taskDependenciesFeature && modalDependsOnSelectEdit) {
+                Array.from(modalDependsOnSelectEdit.selectedOptions).forEach(option => {
+                    dependsOnArray.push(parseInt(option.value));
+                });
+            }
+
+            let isReminderSet = false, reminderDate = null, reminderTime = null, reminderEmail = null;
+            if (featureFlags.reminderFeature) {
+                isReminderSet = modalRemindMeViewEdit.checked;
+                reminderDate = modalReminderDateViewEdit.value;
+                reminderTime = modalReminderTimeViewEdit.value;
+                reminderEmail = modalReminderEmailViewEdit.value.trim();
+                if (isReminderSet) {
+                    if (!reminderDate) { showMessage('Please select a reminder date.', 'error'); modalReminderDateViewEdit.focus(); return; }
+                    if (!reminderTime) { showMessage('Please select a reminder time.', 'error'); modalReminderTimeViewEdit.focus(); return; }
+                    if (!reminderEmail) { showMessage('Please enter an email for the reminder.', 'error'); modalReminderEmailViewEdit.focus(); return; }
+                    if (!/^\S+@\S+\.\S+$/.test(reminderEmail)) { showMessage('Please enter a valid email address.', 'error'); modalReminderEmailViewEdit.focus(); return; }
+                }
+            }
+            if (taskText === '') { showMessage('Task description cannot be empty!', 'error'); modalTaskInputViewEdit.focus(); return; }
+
+            const taskIndex = tasks.findIndex(t => t.id === taskId);
+            if (taskIndex === -1) return;
+
+            const currentStatus = tasks[taskIndex].status || (featureFlags.kanbanBoard && kanbanBoardData.columns.length > 0 ? kanbanBoardData.columns[0].id : 'col1');
+
+            tasks = tasks.map(task => task.id === taskId ? {
+                ...task, text: taskText, dueDate: dueDate || null, time: time || null,
+                estimatedHours: featureFlags.taskTimerSystem ? estHours : task.estimatedHours,
+                estimatedMinutes: featureFlags.taskTimerSystem ? estMinutes : task.estimatedMinutes,
+                priority: priority, label: label || '', notes: notes || '',
+                projectId: projectId,
+                subtasks: featureFlags.subtasksFeature ? subtasksArray : (task.subtasks || []),
+                dependsOn: featureFlags.taskDependenciesFeature ? dependsOnArray : (task.dependsOn || []),
+                status: currentStatus,
+                isReminderSet: featureFlags.reminderFeature ? isReminderSet : task.isReminderSet,
+                reminderDate: featureFlags.reminderFeature && isReminderSet ? reminderDate : task.reminderDate,
+                reminderTime: featureFlags.reminderFeature && isReminderSet ? reminderTime : task.reminderTime,
+                reminderEmail: featureFlags.reminderFeature && isReminderSet ? reminderEmail : task.reminderEmail,
+                attachments: task.attachments || []
+            } : task );
+            saveTasks();
+            renderContent();
+            closeViewEditModal();
+            showMessage('Task updated successfully!', 'success');
+        }
+
+        function toggleComplete(taskId) {
+            // ... (keep existing toggleComplete, it was updated in previous snippet) ...
+            const taskIndex = tasks.findIndex(t => t.id === taskId);
+            if (taskIndex === -1) return;
+
+            const task = tasks[taskIndex];
+            if (featureFlags.taskDependenciesFeature && !task.completed) {
+                const hasIncompleteDependencies = task.dependsOn && task.dependsOn.some(depId => {
+                    const depTask = tasks.find(t => t.id === depId);
+                    return depTask && !depTask.completed;
+                });
+                if (hasIncompleteDependencies) {
+                    showMessage('Cannot complete task: Incomplete dependencies.', 'error');
+                    renderContent();
+                    return;
+                }
+            }
+            task.completed = !task.completed;
+
+            if (featureFlags.taskTimerSystem && task.completed && (task.timerIsRunning || task.timerIsPaused)) {
+                handleStopTimer(taskId);
+            }
+
+            if (featureFlags.kanbanBoard) {
+                const doneColumn = kanbanBoardData.columns.find(col => /done/i.test(col.title)) || kanbanBoardData.columns[kanbanBoardData.columns.length - 1];
+                const currentColumnId = task.status;
+
+                if (task.completed && doneColumn && task.status !== doneColumn.id) {
+                    task.status = doneColumn.id;
+                    if (currentColumnId) {
+                        const oldCol = kanbanBoardData.columns.find(c => c.id === currentColumnId);
+                        if (oldCol) oldCol.taskIds = oldCol.taskIds.filter(id => id !== taskId);
+                    }
+                    if (!doneColumn.taskIds.includes(taskId)) {
+                        doneColumn.taskIds.push(taskId);
+                    }
+                } else if (!task.completed && task.status === doneColumn?.id) {
+                    const todoColumn = kanbanBoardData.columns[0];
+                    if (todoColumn) {
+                        task.status = todoColumn.id;
+                        if (doneColumn) doneColumn.taskIds = doneColumn.taskIds.filter(id => id !== taskId);
+                        if (!todoColumn.taskIds.includes(taskId)) {
+                            todoColumn.taskIds.unshift(taskId); // Add to beginning of todo
+                        }
+                    }
+                }
+                saveKanbanBoardData();
+            }
+            saveTasks();
+            renderContent();
+
+            if (featureFlags.taskTimerSystem && currentViewTaskId === taskId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) {
+                updateTimerControlsUI(task);
+            }
+        }
+        function deleteTask(taskId) {
+            // ... (keep existing deleteTask, it was updated in previous snippet) ...
+            if (featureFlags.taskTimerSystem && currentViewTaskId === taskId && currentTaskTimerInterval) {
+                clearInterval(currentTaskTimerInterval);
+                currentTaskTimerInterval = null;
+            }
+            tasks = tasks.filter(task => task.id !== taskId);
+
+            if (featureFlags.kanbanBoard) {
+                kanbanBoardData.columns.forEach(column => {
+                    column.taskIds = column.taskIds.filter(id => id !== taskId);
+                });
+                saveKanbanBoardData();
+            }
+            if (featureFlags.taskDependenciesFeature) {
+                tasks.forEach(t => {
+                    if (t.dependsOn && t.dependsOn.includes(taskId)) {
+                        t.dependsOn = t.dependsOn.filter(depId => depId !== taskId);
+                    }
+                });
+            }
+
+            saveTasks();
+            renderContent();
+            showMessage('Task deleted.', 'error');
+        }
+        function setFilter(filter) {
+            // ... (keep existing setFilter, it was updated in previous snippet) ...
+            currentFilter = filter;
+            currentSort = 'default';
+            updateSortButtonStates();
+            smartViewButtons.forEach(button => {
+                const isActive = button.dataset.filter === filter;
+                 updateSmartViewButtonStyles(button, isActive);
+            });
+            if(featureFlags.projectsFeature) {
+                updateProjectFilterButtonStates();
+            }
+            renderContent();
+        }
+
+        function updateSmartViewButtonStyles(buttonElement, isActive) {
+            // ... (keep existing updateSmartViewButtonStyles, it was updated in previous snippet) ...
+            if (!buttonElement) return;
+            const baseInactive = ['bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600'];
+            const iconInactive = ['text-slate-500', 'dark:text-slate-400'];
+            const active = ['bg-sky-500', 'text-white', 'font-semibold'];
+            const iconActive = ['text-sky-100'];
+
+            buttonElement.classList.remove(...baseInactive, ...active);
+            buttonElement.querySelector('i')?.classList.remove(...iconInactive, ...iconActive);
+
+            if (isActive) {
+                buttonElement.classList.add(...active);
+                buttonElement.querySelector('i')?.classList.add(...iconActive);
+            } else {
+                buttonElement.classList.add(...baseInactive);
+                buttonElement.querySelector('i')?.classList.add(...iconInactive);
+            }
+        }
+
+
+        function updateClearCompletedButtonState() {
+            // ... (keep existing updateClearCompletedButtonState, it was updated in previous snippet) ...
+            if (!settingsClearCompletedBtn) return;
+            const hasCompleted = tasks.some(task => task.completed);
+            settingsClearCompletedBtn.disabled = !hasCompleted;
+            if (hasCompleted) {
+                settingsClearCompletedBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-100', 'text-slate-400', 'dark:bg-slate-700', 'dark:text-slate-500');
+                settingsClearCompletedBtn.classList.add('bg-red-50', 'hover:bg-red-100', 'text-red-700', 'dark:bg-red-900/50', 'dark:hover:bg-red-800/70', 'dark:text-red-300');
+            } else {
+                settingsClearCompletedBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                settingsClearCompletedBtn.classList.remove('bg-red-50', 'hover:bg-red-100', 'text-red-700', 'dark:bg-red-900/50', 'dark:hover:bg-red-800/70', 'dark:text-red-300');
+                settingsClearCompletedBtn.classList.add('bg-slate-100', 'text-slate-400', 'dark:bg-slate-700', 'dark:text-slate-500');
+            }
+        }
+
+        function clearCompletedTasks() {
+            // ... (keep existing clearCompletedTasks, it was updated in previous snippet) ...
+            const completedCount = tasks.filter(task => task.completed).length;
+            if (completedCount === 0) { showMessage('No completed tasks to clear.', 'error'); return; }
+            const completedTaskIdsForDepClear = tasks.filter(t => t.completed).map(t => t.id); // Get IDs before filtering tasks array
+            tasks = tasks.filter(task => !task.completed);
+
+            if (featureFlags.kanbanBoard) {
+                kanbanBoardData.columns.forEach(column => {
+                    column.taskIds = column.taskIds.filter(taskId => {
+                        const taskExists = tasks.some(t => t.id === taskId);
+                        return taskExists;
+                    });
+                });
+                saveKanbanBoardData();
+            }
+            if (featureFlags.taskDependenciesFeature) {
+                tasks.forEach(t => { // Iterate over remaining (non-completed) tasks
+                    if (t.dependsOn) {
+                        t.dependsOn = t.dependsOn.filter(depId => !completedTaskIdsForDepClear.includes(depId));
+                    }
+                });
+            }
+
+            saveTasks();
+            renderContent();
+            showMessage(`${completedCount} completed task(s) cleared.`, 'success');
+            closeSettingsModal();
+        }
+        function updateSortButtonStates() {
+            // ... (keep existing updateSortButtonStates, it was updated in previous snippet) ...
+            sortByDueDateBtn.classList.toggle('sort-btn-active', currentSort === 'dueDate');
+            sortByPriorityBtn.classList.toggle('sort-btn-active', currentSort === 'priority');
+            sortByLabelBtn.classList.toggle('sort-btn-active', currentSort === 'label');
+        }
+
+        // --- Subtask Management in Modals (New) ---
+        function addModalSubtaskRow(listElement, subtask = { id: Date.now() + Math.random(), text: '', completed: false }, mode = 'add') {
+            // ... (keep existing addModalSubtaskRow, it was updated in previous snippet) ...
+             if (!featureFlags.subtasksFeature || !listElement) return;
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'subtask-item-modal flex items-center gap-2 py-1';
+            itemDiv.dataset.subtaskId = subtask.id;
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = subtask.completed;
+            checkbox.className = 'form-checkbox h-4 w-4 text-sky-500 rounded border-slate-300 dark:border-slate-500 focus:ring-sky-400 flex-shrink-0';
+            if (mode === 'view') checkbox.disabled = true;
+
+            const textInput = document.createElement('input');
+            textInput.type = 'text';
+            textInput.value = subtask.text;
+            textInput.placeholder = "New subtask...";
+            textInput.className = 'flex-grow p-1 border border-slate-300 rounded dark:bg-slate-600 dark:border-slate-500 dark:text-slate-100 text-sm';
+
+            if (mode === 'view') {
+                textInput.readOnly = true;
+                textInput.classList.add('border-none', 'bg-transparent', 'dark:bg-transparent', 'p-0', 'pl-1'); // Slight padding for view
+                if (subtask.completed) textInput.classList.add('line-through', 'text-slate-500', 'dark:text-slate-400');
+                 checkbox.classList.add('cursor-default');
+            }
+
+
+            itemDiv.appendChild(checkbox);
+            itemDiv.appendChild(textInput);
+
+            if (mode !== 'view') {
+                const deleteBtn = document.createElement('button');
+                deleteBtn.type = 'button';
+                deleteBtn.innerHTML = '<i class="fas fa-times text-red-500 hover:text-red-700 text-xs"></i>';
+                deleteBtn.className = 'p-1 flex-shrink-0';
+                deleteBtn.onclick = () => itemDiv.remove();
+                itemDiv.appendChild(deleteBtn);
+            }
+            listElement.appendChild(itemDiv);
+            if (mode !== 'view') textInput.focus();
+        }
+
+        function renderSubtasksInModal(listElement, subtasks = [], mode = 'add') {
+            // ... (keep existing renderSubtasksInModal, it was updated in previous snippet) ...
+            if (!featureFlags.subtasksFeature || !listElement) return;
+            listElement.innerHTML = '';
+            if (subtasks && subtasks.length > 0) {
+                subtasks.forEach(st => addModalSubtaskRow(listElement, st, mode));
+            } else if (mode === 'view') {
+                listElement.innerHTML = '<p class="text-xs text-slate-500 dark:text-slate-400">No subtasks.</p>';
+            }
+        }
+
+        // --- Dependency Management in Modals (New) ---
+        function populateTaskDependenciesSelect(selectElement, currentTaskId = null, existingDeps = []) {
+            // ... (keep existing populateTaskDependenciesSelect, it was updated in previous snippet) ...
+             if (!featureFlags.taskDependenciesFeature || !selectElement) return;
+            selectElement.innerHTML = '';
+            tasks.forEach(task => {
+                if (task.id === currentTaskId) return;
+
+                const option = document.createElement('option');
+                option.value = task.id;
+                option.textContent = task.text.substring(0, 50) + (task.text.length > 50 ? '...' : '');
+                if (existingDeps.includes(task.id)) {
+                    option.selected = true;
+                }
+                selectElement.appendChild(option);
+            });
+        }
+        function renderTaskDependenciesInView(task) {
+            // ... (keep existing renderTaskDependenciesInView, it was updated in previous snippet) ...
+            if (!featureFlags.taskDependenciesFeature || !viewTaskDependsOnList || !viewTaskBlockedByList) return;
+
+            viewTaskDependsOnList.innerHTML = '';
+            if (task.dependsOn && task.dependsOn.length > 0) {
+                task.dependsOn.forEach(depId => {
+                    const depTask = tasks.find(t => t.id === depId);
+                    if (depTask) {
+                        const li = document.createElement('li');
+                        li.textContent = depTask.text + (depTask.completed ? ' (Completed)' : ' (Active)');
+                        if (!depTask.completed) li.classList.add('text-amber-600', 'dark:text-amber-400');
+                        viewTaskDependsOnList.appendChild(li);
+                    } else { // Dependency task might have been deleted
+                        const li = document.createElement('li');
+                        li.textContent = `Dependency (ID: ${depId}) not found.`;
+                        li.className = 'text-red-500 italic';
+                        viewTaskDependsOnList.appendChild(li);
+                    }
+                });
+            } else {
+                viewTaskDependsOnList.innerHTML = '<li class="text-slate-500 dark:text-slate-400">None</li>';
+            }
+
+            viewTaskBlockedByList.innerHTML = '';
+            const blockingTasks = tasks.filter(t => t.dependsOn && t.dependsOn.includes(task.id));
+            if (blockingTasks.length > 0) {
+                 blockingTasks.forEach(bt => {
+                    const li = document.createElement('li');
+                    li.textContent = bt.text;
+                    viewTaskBlockedByList.appendChild(li);
+                });
+            } else {
+                viewTaskBlockedByList.innerHTML = '<li class="text-slate-500 dark:text-slate-400">None</li>';
+            }
+        }
+
+
+        // --- Event Listeners ---
+        // ... (Keep all existing event listeners, no changes needed in this specific block for this snippet unless directly related to D&D, which is handled in addKanbanDragDropListeners)
+        openAddModalButton.addEventListener('click', openAddModal);
+        closeAddModalBtn.addEventListener('click', closeAddModal);
+        cancelAddModalBtn.addEventListener('click', closeAddModal);
+        modalTodoFormAdd.addEventListener('submit', handleAddTask);
+        addTaskModal.addEventListener('click', (event) => { if (event.target === addTaskModal) closeAddModal(); });
+        if (addModalSubtaskBtn) addModalSubtaskBtn.addEventListener('click', () => addModalSubtaskRow(modalSubtaskListAdd, undefined, 'add'));
+
+
+        if (modalRemindMeAdd) {
+            modalRemindMeAdd.addEventListener('change', () => {
+                if(featureFlags.reminderFeature) {
+                    reminderOptionsAdd.classList.toggle('hidden', !modalRemindMeAdd.checked);
+                    if (modalRemindMeAdd.checked) {
+                        if (modalDueDateInputAdd.value && !modalReminderDateAdd.value) modalReminderDateAdd.value = modalDueDateInputAdd.value;
+                        if (modalTimeInputAdd.value && !modalReminderTimeAdd.value) modalReminderTimeAdd.value = modalTimeInputAdd.value;
+                        const today = new Date();
+                        modalReminderDateAdd.min = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                    }
+                } else {
+                    reminderOptionsAdd.classList.add('hidden');
+                }
+            });
+        }
+        if (modalRemindMeViewEdit) {
+            modalRemindMeViewEdit.addEventListener('change', () => {
+                if(featureFlags.reminderFeature) {
+                    reminderOptionsViewEdit.classList.toggle('hidden', !modalRemindMeViewEdit.checked);
+                    if (modalRemindMeViewEdit.checked) {
+                        const today = new Date();
+                        modalReminderDateViewEdit.min = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                    }
+                } else {
+                    reminderOptionsViewEdit.classList.add('hidden');
+                }
+            });
+        }
+        closeViewEditModalBtn.addEventListener('click', closeViewEditModal);
+        cancelViewEditModalBtn.addEventListener('click', closeViewEditModal);
+        modalTodoFormViewEdit.addEventListener('submit', handleEditTask);
+        viewEditTaskModal.addEventListener('click', (event) => { if (event.target === viewEditTaskModal) closeViewEditModal(); });
+        if (editModalSubtaskBtn) editModalSubtaskBtn.addEventListener('click', () => addModalSubtaskRow(modalSubtaskListEdit, undefined, 'edit'));
+
+
+        closeViewDetailsModalBtn.addEventListener('click', closeViewTaskDetailsModal);
+        closeViewDetailsSecondaryBtn.addEventListener('click', closeViewTaskDetailsModal);
+        editFromViewModalBtn.addEventListener('click', () => { if (currentViewTaskId !== null) { closeViewTaskDetailsModal(); openViewEditModal(currentViewTaskId); } });
+        if(deleteFromViewModalBtn) {
+            deleteFromViewModalBtn.addEventListener('click', () => {
+                if (currentViewTaskId !== null) {
+                    deleteTask(currentViewTaskId);
+                    closeViewTaskDetailsModal();
+                }
+            });
+        }
+        viewTaskDetailsModal.addEventListener('click', (event) => { if (event.target === viewTaskDetailsModal) closeViewTaskDetailsModal(); });
+
+        if(viewTaskStartTimerBtn) viewTaskStartTimerBtn.addEventListener('click', () => { if(featureFlags.taskTimerSystem) handleStartTimer(); });
+        if(viewTaskPauseTimerBtn) viewTaskPauseTimerBtn.addEventListener('click', () => { if(featureFlags.taskTimerSystem) handlePauseTimer(); });
+        if(viewTaskStopTimerBtn) viewTaskStopTimerBtn.addEventListener('click', () => { if(featureFlags.taskTimerSystem) handleStopTimer(); });
+
+        if (closeManageLabelsModalBtn) closeManageLabelsModalBtn.addEventListener('click', closeManageLabelsModal);
+        if (closeManageLabelsSecondaryBtn) closeManageLabelsSecondaryBtn.addEventListener('click', closeManageLabelsModal);
+        if (addNewLabelForm) addNewLabelForm.addEventListener('submit', handleAddNewLabel);
+        if (manageLabelsModal) manageLabelsModal.addEventListener('click', (event) => { if (event.target === manageLabelsModal) closeManageLabelsModal(); });
+
+        if (closeManageProjectsModalBtn) closeManageProjectsModalBtn.addEventListener('click', closeManageProjectsModal);
+        if (closeManageProjectsSecondaryBtn) closeManageProjectsSecondaryBtn.addEventListener('click', closeManageProjectsModal);
+        if (addNewProjectForm) addNewProjectForm.addEventListener('submit', handleAddNewProject);
+        if (manageProjectsModal) manageProjectsModal.addEventListener('click', (event) => { if (event.target === manageProjectsModal) closeManageProjectsModal(); });
+
+
+        if (openSettingsModalButton) openSettingsModalButton.addEventListener('click', openSettingsModal);
+        if (closeSettingsModalBtn) closeSettingsModalBtn.addEventListener('click', closeSettingsModal);
+        if (closeSettingsSecondaryBtn) closeSettingsSecondaryBtn.addEventListener('click', closeSettingsModal);
+        if (settingsModal) settingsModal.addEventListener('click', (event) => { if (event.target === settingsModal) closeSettingsModal(); });
+        if (settingsClearCompletedBtn) settingsClearCompletedBtn.addEventListener('click', clearCompletedTasks);
+        if (settingsManageLabelsBtn) { settingsManageLabelsBtn.addEventListener('click', () => { closeSettingsModal(); openManageLabelsModal(); }); }
+        if (settingsManageProjectsBtn) { settingsManageProjectsBtn.addEventListener('click', () => { if(featureFlags.projectsFeature) { closeSettingsModal(); openManageProjectsModal(); } else { showMessage('Enable Projects feature in Feature Flags.', 'error'); } }); }
+        if (settingsManageRemindersBtn) { settingsManageRemindersBtn.addEventListener('click', () => { if(featureFlags.reminderFeature) showMessage('Manage Reminders - Coming soon!', 'success'); else showMessage('Enable Reminder System in Feature Flags.', 'error'); }); }
+        if (settingsTaskReviewBtn) { settingsTaskReviewBtn.addEventListener('click', () => { closeSettingsModal(); openTaskReviewModal(); });}
+        if (settingsTooltipsGuideBtn) { settingsTooltipsGuideBtn.addEventListener('click', () => {closeSettingsModal(); openTooltipsGuideModal(); }); }
+
+        const nonFunctionalFeatureMessageHandler = (featureName) => {
+            showMessage(`${featureName} feature is not yet implemented or is planned.`, 'error');
+        };
+        if (settingsIntegrationsBtn) settingsIntegrationsBtn.addEventListener('click', () => nonFunctionalFeatureMessageHandler('Integrations'));
+        if (settingsUserAccountsBtn) settingsUserAccountsBtn.addEventListener('click', () => nonFunctionalFeatureMessageHandler('User Accounts'));
+        if (settingsCollaborationBtn) settingsCollaborationBtn.addEventListener('click', () => nonFunctionalFeatureMessageHandler('Collaboration'));
+        if (settingsSyncBackupBtn) settingsSyncBackupBtn.addEventListener('click', () => nonFunctionalFeatureMessageHandler('Sync & Backup'));
+
+        if (settingsExportDataBtn) {
+            settingsExportDataBtn.addEventListener('click', () => {
+                if (!featureFlags.dataExportImportFeature) { showMessage('Data Export/Import feature disabled.', 'error'); return; }
+                exportData();
+            });
+        }
+        if (settingsImportDataBtn) {
+            settingsImportDataBtn.addEventListener('click', () => {
+                if (!featureFlags.dataExportImportFeature) { showMessage('Data Export/Import feature disabled.', 'error'); return; }
+                importFilePicker.click();
+            });
+        }
+        if (importFilePicker) {
+            importFilePicker.addEventListener('change', (event) => {
+                if (!featureFlags.dataExportImportFeature) return;
+                const file = event.target.files[0];
+                if (file) {
+                    importData(file);
+                }
+                importFilePicker.value = '';
+            });
+        }
+
+
+        if (closeTaskReviewModalBtn) closeTaskReviewModalBtn.addEventListener('click', closeTaskReviewModal);
+        if (closeTaskReviewSecondaryBtn) closeTaskReviewSecondaryBtn.addEventListener('click', closeTaskReviewModal);
+        if (taskReviewModal) taskReviewModal.addEventListener('click', (event) => { if (event.target === taskReviewModal) closeTaskReviewModal(); });
+
+        if (closeTooltipsGuideModalBtn) closeTooltipsGuideModalBtn.addEventListener('click', closeTooltipsGuideModal);
+        if (closeTooltipsGuideSecondaryBtn) closeTooltipsGuideSecondaryBtn.addEventListener('click', closeTooltipsGuideModal);
+        if (tooltipsGuideModal) tooltipsGuideModal.addEventListener('click', (event) => { if (event.target === tooltipsGuideModal) closeTooltipsGuideModal(); });
+
+
+        if (settingsFeatureFlagsBtn) { settingsFeatureFlagsBtn.addEventListener('click', () => { closeSettingsModal(); openFeatureFlagsModal(); }); }
+        if (closeFeatureFlagsModalBtn) closeFeatureFlagsModalBtn.addEventListener('click', closeFeatureFlagsModal);
+        if (closeFeatureFlagsSecondaryBtn) closeFeatureFlagsSecondaryBtn.addEventListener('click', closeFeatureFlagsModal);
+        if (featureFlagsModal) featureFlagsModal.addEventListener('click', (event) => { if (event.target === featureFlagsModal) closeFeatureFlagsModal(); });
+
+        if (testFeatureButton) { testFeatureButton.addEventListener('click', () => { console.log('Test Button Clicked!'); showMessage('Test Button Clicked! Check console.', 'success'); }); }
+
+        smartViewButtons.forEach(button => button.addEventListener('click', () => setFilter(button.dataset.filter)));
+        if (taskSearchInput) { taskSearchInput.addEventListener('input', (event) => { currentSearchTerm = event.target.value.trim().toLowerCase(); renderContent(); }); }
+        if (sidebarToggleBtn) { sidebarToggleBtn.addEventListener('click', () => { const isCurrentlyMinimized = taskSidebar.classList.contains('sidebar-minimized'); setSidebarMinimized(!isCurrentlyMinimized); }); }
+        sortByDueDateBtn.addEventListener('click', () => { currentSort = currentSort === 'dueDate' ? 'default' : 'dueDate'; updateSortButtonStates(); renderContent(); });
+        sortByPriorityBtn.addEventListener('click', () => { currentSort = currentSort === 'priority' ? 'default' : 'priority'; updateSortButtonStates(); renderContent(); });
+        sortByLabelBtn.addEventListener('click', () => { currentSort = currentSort === 'label' ? 'default' : 'label'; updateSortButtonStates(); renderContent(); });
+
+        if (kanbanViewToggleBtn) {
+            kanbanViewToggleBtn.addEventListener('click', () => {
+                if (!featureFlags.kanbanBoard) { showMessage('Kanban board feature is disabled.', 'error'); return; }
+                if (currentView === 'kanban') switchToListView();
+                else switchToKanbanView();
+            });
+        }
+        if (calendarViewToggleBtn) {
+            calendarViewToggleBtn.addEventListener('click', () => {
+                if (!featureFlags.calendarViewFeature) { showMessage('Calendar view feature is disabled.', 'error'); return; }
+                if (currentView === 'calendar') switchToListView();
+                else switchToCalendarView();
+            });
+        }
+
+
+        document.addEventListener('keydown', (event) => {
+            const activeEl = document.activeElement;
+            const isInputFocused = activeEl.tagName === 'INPUT' || activeEl.tagName === 'SELECT' || activeEl.tagName === 'TEXTAREA' || activeEl.contentEditable === 'true';
+            const isAnyModalOpen = [addTaskModal, viewEditTaskModal, viewTaskDetailsModal, manageLabelsModal, manageProjectsModal, settingsModal, featureFlagsModal, taskReviewModal, tooltipsGuideModal]
+                                  .some(modal => modal && !modal.classList.contains('hidden'));
+
+
+            if ((event.key === '+' || event.key === '=') && !isAnyModalOpen && !isInputFocused) { event.preventDefault(); openAddModal(); }
+            if (event.key === 'Escape') {
+                // Close modals in reverse order of typical Z-index to ensure top-most is closed first
+                if (featureFlagsModal && !featureFlagsModal.classList.contains('hidden')) closeFeatureFlagsModal();
+                else if (settingsModal && !settingsModal.classList.contains('hidden')) closeSettingsModal();
+                else if (manageProjectsModal && !manageProjectsModal.classList.contains('hidden')) closeManageProjectsModal();
+                else if (manageLabelsModal && !manageLabelsModal.classList.contains('hidden')) closeManageLabelsModal();
+                else if (tooltipsGuideModal && !tooltipsGuideModal.classList.contains('hidden')) closeTooltipsGuideModal();
+                else if (taskReviewModal && !taskReviewModal.classList.contains('hidden')) closeTaskReviewModal();
+                else if (viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) closeViewTaskDetailsModal();
+                else if (viewEditTaskModal && !viewEditTaskModal.classList.contains('hidden')) closeViewEditModal();
+                else if (addTaskModal && !addTaskModal.classList.contains('hidden')) closeAddModal();
+                else if (iconTooltip.style.display === 'block') hideTooltip(); // Hide tooltip if escape is pressed
+            }
+
+            // Keyboard shortcuts that should not trigger if an input/textarea/modal is active
+            if (featureFlags.keyboardShortcutsFeature && !isInputFocused && !isAnyModalOpen) {
+                if (event.key.toLowerCase() === 's') {
+                    event.preventDefault();
+                    taskSearchInput.focus();
+                }
+                // For task-specific shortcuts, we'd need a way to know which task is "focused" or "selected" in the list/board.
+                // This is not implemented yet. For now, these are placeholders.
+                // Example: if (event.key.toLowerCase() === 'e' && focusedTaskId) { openViewEditModal(focusedTaskId); }
+                // Example: if (event.key.toLowerCase() === 'c' && focusedTaskId) { toggleComplete(focusedTaskId); }
+                // Example: if (event.key.toLowerCase() === 'delete' && focusedTaskId) { deleteTask(focusedTaskId); }
+            }
+        });
+
+        // --- Data Export/Import Functions (New) ---
+        function exportData() {
+            // ... (Keep existing, updated in previous snippet) ...
+            if (!featureFlags.dataExportImportFeature) { showMessage('Data Export/Import feature is disabled.', 'error'); return; }
+            try {
+                const dataToExport = {
+                    tasks: tasks,
+                    projects: featureFlags.projectsFeature ? projects : undefined,
+                    labels: uniqueLabels,
+                    kanbanBoardData: featureFlags.kanbanBoard ? kanbanBoardData : undefined,
+                    featureFlags: featureFlags,
+                    version: 'todo_app_data_v1.1' // Updated version
+                };
+                const dataStr = JSON.stringify(dataToExport, null, 2);
+                const blob = new Blob([dataStr], {type: "application/json"});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const date = new Date();
+                const dateStr = `${date.getFullYear()}${(date.getMonth()+1).toString().padStart(2,'0')}${date.getDate().toString().padStart(2,'0')}`;
+                a.download = `todo_app_backup_${dateStr}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showMessage('Data exported successfully!', 'success');
+                closeSettingsModal();
+            } catch (error) {
+                console.error("Error exporting data:", error);
+                showMessage('Failed to export data. Check console.', 'error');
+            }
+        }
+
+        function importData(file) {
+            // ... (Keep existing, updated in previous snippet) ...
+            if (!featureFlags.dataExportImportFeature) { showMessage('Data Export/Import feature is disabled.', 'error'); return; }
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const importedData = JSON.parse(event.target.result);
+                    if (!importedData || typeof importedData !== 'object') {
+                         showMessage('Invalid import file format (not an object).', 'error'); return;
+                    }
+                     if (!Array.isArray(importedData.tasks)) { // Basic check for tasks array
+                        showMessage('Invalid import file format (missing tasks array).', 'error'); return;
+                    }
+
+                    if (!confirm("This will overwrite your current tasks and settings. Are you sure you want to import?")) {
+                        return;
+                    }
+
+                    tasks = importedData.tasks || [];
+
+                    if (importedData.projects && Array.isArray(importedData.projects)) {
+                        projects = importedData.projects;
+                    } else {
+                        projects = [];
+                    }
+
+                    if (importedData.kanbanBoardData && typeof importedData.kanbanBoardData === 'object') {
+                        kanbanBoardData = importedData.kanbanBoardData;
+                    } else {
+                        kanbanBoardData = { columns: [{ id: 'col1', title: 'To Do', taskIds: [] }, { id: 'col2', title: 'In Progress', taskIds: [] }, { id: 'col3', title: 'Done', taskIds: [] }], columnOrder: ['col1', 'col2', 'col3']};
+                    }
+
+                    if (importedData.featureFlags && typeof importedData.featureFlags === 'object') {
+                        const currentImportFlagState = featureFlags.dataExportImportFeature;
+                        featureFlags = { ...defaultFlags, ...importedData.featureFlags };
+                        featureFlags.dataExportImportFeature = currentImportFlagState;
+                    } else {
+                        // Keep current flags if not present in import or invalid
+                    }
+
+
+                    saveTasks(); // This also calls updateUniqueLabels
+                    saveProjects();
+                    saveKanbanBoardData();
+                    saveFeatureFlags();
+
+
+                    applyInitialTheme();
+                    loadAllDataAndInitializeUI(); // Centralized function to refresh everything
+
+                    showMessage('Data imported successfully! UI has been updated.', 'success');
+                    closeSettingsModal();
+
+
+                } catch (error) {
+                    console.error("Error importing data:", error);
+                    showMessage('Failed to import data. Invalid file or format. Check console.', 'error');
+                }
+            };
+            reader.onerror = () => {
+                showMessage('Error reading file.', 'error');
+            };
+            reader.readAsText(file);
+        }
+
+        function loadAllDataAndInitializeUI() {
+            loadFeatureFlags();
+            if(featureFlags.projectsFeature) loadProjects();
+            if(featureFlags.kanbanBoard) loadKanbanBoardData();
+
+            initializeTasks(); // Ensures tasks have all fields
+            if(featureFlags.kanbanBoard) initializeKanbanTasks(); // Sync tasks with Kanban structure
+
+            applyActiveFeatures(); // Applies flag-based UI changes, calls renderContent
+            setFilter(currentFilter || 'inbox');
+            setSidebarMinimized(localStorage.getItem('sidebarState') === 'minimized');
+            updateSortButtonStates();
+            updateClearCompletedButtonState();
+            if (featureFlags.projectsFeature) populateProjectFilterButtons();
+        }
+
+
+        // --- Initial Setup ---
+        function initializeTasks() {
+            // ... (keep existing, updated in previous snippet) ...
+            const defaultStatusForKanban = featureFlags.kanbanBoard && kanbanBoardData.columns.length > 0 ? kanbanBoardData.columns[0].id : 'col1';
+            tasks = tasks.map(task => ({
+                id: task.id || Date.now(),
+                text: task.text || '',
+                completed: task.completed || false,
+                dueDate: task.dueDate || null,
+                time: task.time || null,
+                priority: task.priority || 'medium',
+                label: task.label || '',
+                notes: task.notes || '',
+                isReminderSet: task.isReminderSet || false,
+                reminderDate: task.reminderDate || null,
+                reminderTime: task.reminderTime || null,
+                reminderEmail: task.reminderEmail || null,
+                estimatedHours: task.estimatedHours || 0,
+                estimatedMinutes: task.estimatedMinutes || 0,
+                timerStartTime: task.timerStartTime || null,
+                timerAccumulatedTime: task.timerAccumulatedTime || 0,
+                timerIsRunning: task.timerIsRunning || false,
+                timerIsPaused: task.timerIsPaused || false,
+                actualDurationMs: task.actualDurationMs || 0,
+                attachments: task.attachments || [],
+                status: task.status || defaultStatusForKanban,
+                projectId: task.projectId || null,
+                subtasks: task.subtasks || [],
+                dependsOn: task.dependsOn || []
+            }));
+        }
+
+        // Initial load sequence, now more consolidated
+        loadAllDataAndInitializeUI();
+
+        window.onload = () => { // Re-run on load to catch everything
+            loadAllDataAndInitializeUI();
+        };
     </script>
 </body>
 </html>
