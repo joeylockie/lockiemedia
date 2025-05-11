@@ -7,7 +7,7 @@
 // - Rendering functions from ui_rendering.js (e.g., renderTasks, showMessage).
 // - Modal interaction functions from modal_interactions.js (e.g., openAddModal, closeAddModal).
 // - Core logic functions from app_logic.js (e.g., saveTasks, tasks array, featureFlags).
-// - Feature-specific modules (e.g., window.AppFeatures.TaskTimerSystem).
+// - Feature-specific modules (e.g., window.AppFeatures.TaskTimerSystem, window.AppFeatures.FileAttachments).
 
 // --- Temporary State for UI Interactions (scoped to this file) ---
 let tempSubTasksForAddModal = []; // Used by handleAddTask and handleAddTempSubTaskForAddModal
@@ -66,8 +66,14 @@ function applyActiveFeatures() {
         toggleElements('.advanced-recurrence-element', featureFlags.advancedRecurrence);
     }
 
-    // Other features
-    toggleElements('.file-attachments-element', featureFlags.fileAttachments);
+    // File Attachments Feature
+    if (window.AppFeatures && window.AppFeatures.FileAttachments && typeof window.AppFeatures.FileAttachments.updateUIVisibility === 'function') {
+        window.AppFeatures.FileAttachments.updateUIVisibility(featureFlags.fileAttachments);
+    } else {
+        toggleElements('.file-attachments-element', featureFlags.fileAttachments);
+    }
+
+    // Other features (direct DOM manipulation as fallback)
     toggleElements('.integrations-services-element', featureFlags.integrationsServices);
     toggleElements('.user-accounts-element', featureFlags.userAccounts);
     toggleElements('.collaboration-sharing-element', featureFlags.collaborationSharing);
@@ -171,7 +177,7 @@ function handleAddTask(event) {
         timerIsRunning: false,
         timerIsPaused: false,
         actualDurationMs: 0,
-        attachments: [], // Placeholder for future
+        attachments: [], // Placeholder for file attachments feature
         completedDate: null,
         subTasks: subTasksToSave,
         recurrenceRule: null, // Placeholder
@@ -671,6 +677,9 @@ window.onload = async () => {
         }
         if (window.AppFeatures.initializeAdvancedRecurrenceFeature) {
             window.AppFeatures.initializeAdvancedRecurrenceFeature();
+        }
+        if (window.AppFeatures.FileAttachments && typeof window.AppFeatures.FileAttachments.initialize === 'function') {
+            window.AppFeatures.FileAttachments.initialize(); // Initialize File Attachments
         }
         // Add other feature initializations here as they are created
     }
