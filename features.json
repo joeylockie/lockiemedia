@@ -8,5 +8,6 @@
   "userAccounts": false,
   "collaborationSharing": false,
   "crossDeviceSync": false,
-  "tooltipsGuide": true
+  "tooltipsGuide": true,
+  "subTasksFeature": true
 }
