@@ -8,8 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     <script>
-        // Apply theme on initial load - keep this small script here for immediate effect
-        // to prevent Flash of Unstyled Content (FOUC) for the theme.
+        // Apply theme on initial load
         function applyInitialTheme() {
             if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                 document.documentElement.classList.add('dark');
@@ -131,7 +130,7 @@
                         <input type="time" id="modalTimeInputViewEdit" class="w-full p-3 border-2 bg-white text-slate-900 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 dark:[color-scheme:dark]">
                     </div>
                 </div>
-                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                     <div>
                         <label for="modalEstHoursViewEdit" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Est. Hours (optional)</label>
                         <input type="number" id="modalEstHoursViewEdit" min="0" placeholder="0" class="w-full p-3 border-2 bg-white text-slate-900 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600">
@@ -157,7 +156,7 @@
 
                 <div class="mt-4 flex items-center space-x-3 reminder-feature-element" id="modalRemindMeViewEditContainer">
                     <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Remind Me</span>
-                     <div class="relative">
+                    <div class="relative">
                         <input type="checkbox" id="modalRemindMeViewEdit" name="modalRemindMeViewEditToggle" class="toggle-checkbox"/>
                         <label for="modalRemindMeViewEdit" class="toggle-label"></label>
                     </div>
@@ -235,13 +234,13 @@
                     <strong class="view-details-heading block mb-0.5">Notes:</strong>
                     <p id="viewTaskNotes" class="mt-1 break-all whitespace-pre-wrap"></p>
                 </div>
-                 <div id="viewTaskReminderSection" class="border-t border-slate-200 dark:border-slate-700 pt-3 mt-3 space-y-2 reminder-feature-element">
+                <div id="viewTaskReminderSection" class="border-t border-slate-200 dark:border-slate-700 pt-3 mt-3 space-y-2 reminder-feature-element">
                     <div>
                         <strong class="view-details-heading block mb-0.5">Reminder:</strong>
                         <p id="viewTaskReminderStatus"></p>
                     </div>
                     <div id="viewTaskReminderDetails" class="hidden space-y-2">
-                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
                             <div>
                                 <strong class="view-details-heading block mb-0.5">Reminder Date:</strong>
                                 <p id="viewTaskReminderDate"></p>
@@ -257,7 +256,7 @@
                         </div>
                     </div>
                 </div>
-                </div>
+            </div>
             <div class="mt-6 flex justify-end gap-3">
                 <button type="button" id="editFromViewModalBtn" class="px-5 py-2.5 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors font-semibold">Edit Task</button>
                 <button type="button" id="closeViewDetailsSecondaryBtn" class="px-5 py-2.5 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500 transition-colors font-medium">Close</button>
@@ -279,7 +278,7 @@
             </form>
             <h4 class="text-lg font-medium text-slate-700 dark:text-slate-200 mb-2">Existing Labels:</h4>
             <ul id="existingLabelsList" class="max-h-60 overflow-y-auto space-y-1 pr-1"></ul>
-             <div class="mt-6 flex justify-end">
+            <div class="mt-6 flex justify-end">
                 <button type="button" id="closeManageLabelsSecondaryBtn" class="px-5 py-2.5 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500 transition-colors font-medium">Close</button>
             </div>
         </div>
@@ -328,7 +327,6 @@
             </div>
         </div>
     </div>
-
 
     <div class="w-full max-w-6xl mx-auto">
         <h1 class="text-4xl sm:text-5xl font-bold text-center text-white mb-8 sm:mb-10">My Todo List</h1>
@@ -381,7 +379,7 @@
                     </div>
 
                     <div>
-                         <h2 class="sidebar-text-content sidebar-section-title text-lg md:text-xl font-semibold text-slate-700 dark:text-slate-200 mb-2 md:mb-3 mt-4">Settings</h2>
+                        <h2 class="sidebar-text-content sidebar-section-title text-lg md:text-xl font-semibold text-slate-700 dark:text-slate-200 mb-2 md:mb-3 mt-4">Settings</h2>
                         <button
                             id="openSettingsModalButton"
                             title="Open Settings"
@@ -391,7 +389,7 @@
                         </button>
                     </div>
                     <div id="testFeatureButtonContainer" class="hidden mt-2">
-                         <button
+                        <button
                             id="testFeatureButton"
                             title="Test Feature Button"
                             class="bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2.5 px-3 md:px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 ease-in-out transform hover:-translate-y-0.5 w-full flex items-center sidebar-button-icon-only justify-center"
