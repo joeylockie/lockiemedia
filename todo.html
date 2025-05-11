@@ -641,7 +641,39 @@
         </div>
     </div>
 
-    <div id="settingsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-opacity-70 overflow-y-auto h-full w-full flex items-center justify-center hidden z-[180]">
+        <div id="settingsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-opacity-70 overflow-y-auto h-full w-full flex items-center justify-center hidden z-[180]">
+    <div class="relative mx-auto p-5 sm:p-6 border w-full max-w-md shadow-xl rounded-xl bg-white dark:bg-slate-800 transform transition-all duration-300 ease-in-out scale-95 opacity-0" id="modalDialogSettings">
+        <div class="flex justify-between items-center pb-3 mb-4 border-b border-slate-200 dark:border-slate-700">
+            <h3 class="text-2xl font-semibold text-slate-800 dark:text-slate-100">Settings</h3>
+            <button id="closeSettingsModalBtn" type="button" class="text-slate-400 hover:text-slate-600 dark:text-slate-300 dark:hover:text-slate-100 transition-colors p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700" aria-label="Close modal">
+                <i class="fas fa-times fa-lg"></i>
+            </button>
+        </div>
+        <div class="space-y-3">
+            <button id="settingsTooltipsGuideBtn" type="button" class="settings-modal-button ...">
+                <i class="fas fa-question-circle"></i> Tooltips Guide
+            </button>
+            <button id="settingsTaskReviewBtn" type="button" class="settings-modal-button ...">
+                <i class="fas fa-history"></i> Task Review
+            </button>
+            <button id="settingsClearCompletedBtn" type="button" class="settings-modal-button ...">
+                <i class="fas fa-eraser"></i> Clear Completed Tasks
+            </button>
+            <button id="settingsManageLabelsBtn" type="button" class="settings-modal-button ...">
+                <i class="fas fa-tags"></i> Manage Labels
+            </button>
+            <button id="settingsManageRemindersBtn" type="button" class="settings-modal-button ...">
+                <i class="fas fa-bell"></i> Manage Reminders
+            </button>
+            <button id="settingsIntegrationsBtn" type="button" class="settings-modal-button ...">
+                <i class="fas fa-cogs"></i> Integrations (Soon)
+            </button>
+            </div>
+        <div class="mt-6 flex justify-end">
+            <button type="button" id="closeSettingsSecondaryBtn" class="px-5 py-2.5 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500 transition-colors font-medium">Close</button>
+        </div>
+    </div>
+</div>
     </div>
 
     <div class="w-full max-w-6xl mx-auto">
