@@ -1,0 +1,247 @@
+/* General body and font styling */
+body { font-family: 'Inter', sans-serif; }
+
+/* Styling for the clickable area of a task item */
+.task-item-clickable-area:hover {
+    cursor: pointer;
+}
+
+/* Show task actions (edit, delete buttons) on hover */
+.task-item:hover .task-actions { opacity: 1; }
+
+/* Styling for task action buttons container */
+.task-actions {
+    opacity: 0; /* Hidden by default, shown on hover */
+    transition: opacity 0.3s ease;
+    display: flex;
+    align-items: center;
+}
+
+/* Styling for individual task action buttons (edit, delete) */
+.task-action-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem; /* text-sm */
+}
+
+/* Styling for completed task text (line-through) */
+.completed-text { text-decoration: line-through; }
+
+/* Styling for the message box (notifications) */
+.message-box {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 1rem 1.5rem; /* py-4 px-6 */
+    border-radius: 0.375rem; /* rounded-md */
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); /* shadow-md */
+    z-index: 200; /* Ensure it's above other content */
+    display: none; /* Hidden by default */
+}
+
+/* Styling for the sticky sidebar */
+.sticky-sidebar {
+    position: sticky;
+    top: 2.5rem; /* top-10 */
+    align-self: flex-start; /* Keep sidebar at the top when scrolling */
+    max-height: calc(100vh - 5rem); /* Prevent sidebar from being too tall */
+    transition: width 0.3s ease-in-out, padding 0.3s ease-in-out; /* Smooth transition for minimization */
+}
+
+/* Styling for priority and label badges */
+.priority-badge, .label-badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem; /* Adjusted for smaller look */
+    font-size: 0.75rem; /* text-xs */
+    font-weight: 600; /* semibold */
+    border-radius: 0.375rem; /* rounded-md */
+    text-transform: capitalize;
+}
+
+/* Specific styling for label badges */
+.label-badge {
+    background-color: #e0e7ff; /* indigo-100 */
+    color: #4338ca; /* indigo-700 */
+}
+.dark .label-badge {
+    background-color: #4f46e5; /* indigo-600 */
+    color: #e0e7ff; /* indigo-100 */
+}
+
+/* Ensure consistent height for smart view and sort buttons */
+.smart-view-btn, .sort-btn { min-height: 42px; }
+
+/* Styling for headings within the view details modal */
+.view-details-heading {
+    font-weight: 600; /* semibold */
+    font-size: 0.95rem; /* Slightly larger than default text-sm */
+    color: #374151; /* gray-700 */
+}
+.dark .view-details-heading { color: #d1d5db; /* gray-300 */ }
+
+/* Styles for when the sidebar is minimized */
+.sidebar-minimized .sidebar-button-icon-only { justify-content: center; }
+.sidebar-minimized .sidebar-button-icon-only i { margin-right: 0 !important; }
+.sidebar-minimized .sidebar-text-content,
+.sidebar-minimized #taskSearchInputContainer,
+.sidebar-minimized .sidebar-section-title,
+.sidebar-minimized #testFeatureButtonContainer { display: none; }
+
+/* Styling for the icon tooltip (shown when sidebar is minimized) */
+#iconTooltip {
+    position: absolute;
+    background-color: #1f2937; /* gray-800 */
+    color: white;
+    padding: 0.5rem 0.75rem; /* py-2 px-3 */
+    border-radius: 0.375rem; /* rounded-md */
+    font-size: 0.875rem; /* text-sm */
+    z-index: 250; /* Above other elements */
+    display: none; /* Hidden by default */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    white-space: nowrap; /* Prevent tooltip text from wrapping */
+}
+.dark #iconTooltip { background-color: #374151; /* gray-700 */ }
+
+/* Styling for active sort buttons */
+.sort-btn-active {
+    background-color: #0ea5e9 !important; /* sky-500 */
+    color: white !important;
+}
+.dark .sort-btn-active { background-color: #0284c7 !important; /* sky-600 */ }
+
+/* Styling for buttons within the settings modal and feature flag items */
+.settings-modal-button, .feature-flag-item button {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 0.75rem 1rem; /* py-3 px-4 */
+    text-align: left;
+    font-weight: 500; /* medium */
+    border-radius: 0.5rem; /* rounded-lg */
+    transition: background-color 0.2s ease-in-out;
+}
+.settings-modal-button i {
+    margin-right: 0.75rem; /* mr-3 */
+    width: 1.25rem; /* w-5 */
+    text-align: center;
+}
+.settings-modal-button.disabled-feature-button {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: #e5e7eb; /* gray-200 */
+    color: #6b7280; /* gray-500 */
+}
+.dark .settings-modal-button.disabled-feature-button {
+    background-color: #4b5563; /* gray-600 */
+    color: #9ca3af; /* gray-400 */
+}
+
+
+/* Styling for feature flag items */
+.feature-flag-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0.5rem; /* py-3 px-2 */
+    border-radius: 0.5rem; /* rounded-lg */
+}
+.feature-flag-item:hover {
+    background-color: #f3f4f6; /* gray-100 */
+}
+.dark .feature-flag-item:hover {
+    background-color: #374151; /* gray-700 */
+}
+.feature-flag-label {
+    font-weight: 500; /* medium */
+    color: #374151; /* gray-700 */
+}
+.dark .feature-flag-label {
+    color: #d1d5db; /* gray-300 */
+}
+
+/* UI elements related to features (can be hidden by feature flag) */
+.reminder-feature-element,
+.task-timer-system-element,
+.advanced-recurrence-element,
+.file-attachments-element,
+.integrations-services-element,
+.user-accounts-element,
+.collaboration-sharing-element,
+.cross-device-sync-element,
+.tooltips-guide-element /* New */
+{ display: block; } /* Default, JS hides if feature off */
+
+
+/* Toggle Switch Styles */
+.toggle-checkbox {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+}
+.toggle-checkbox + .toggle-label {
+    display: block;
+    position: relative;
+    width: 2.5rem; /* w-10 */
+    height: 1.5rem; /* h-6 */
+    background-color: #d1d5db; /* gray-300 */
+    border-radius: 9999px; /* rounded-full */
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+}
+.dark .toggle-checkbox + .toggle-label {
+    background-color: #4b5563; /* gray-600 */
+}
+.toggle-checkbox + .toggle-label::after { /* The sliding circle */
+    content: '';
+    position: absolute;
+    top: 0.125rem; /* top-0.5 */
+    left: 0.125rem; /* left-0.5 */
+    width: 1.25rem; /* w-5 */
+    height: 1.25rem; /* h-5 */
+    background-color: white;
+    border-radius: 9999px; /* rounded-full */
+    border: 1px solid #e5e7eb; /* border-gray-200 */
+    transition: transform 0.2s ease-in-out;
+}
+.dark .toggle-checkbox + .toggle-label::after {
+    background-color: #e5e7eb; /* gray-200 */
+    border-color: #374151; /* gray-700 */
+}
+.toggle-checkbox:checked + .toggle-label {
+    background-color: #0ea5e9 !important; /* sky-500 */
+}
+.dark .toggle-checkbox:checked + .toggle-label {
+    background-color: #0284c7 !important; /* sky-600 */
+}
+.toggle-checkbox:checked + .toggle-label::after {
+    transform: translateX(1rem); /* Moves the circle to the right */
+    background-color: white !important;
+}
+.dark .toggle-checkbox:checked + .toggle-label::after {
+    background-color: white !important;
+}
+
+/* Placeholder for file input */
+.file-input-placeholder {
+    border: 2px dashed #cbd5e1; /* border-slate-300 */
+    padding: 1rem;
+    text-align: center;
+    border-radius: 0.375rem; /* rounded-md */
+    color: #64748b; /* slate-500 */
+}
+.dark .file-input-placeholder {
+    border-color: #475569; /* slate-600 */
+    color: #94a3b8; /* slate-400 */
+}
+.input-example-text {
+    font-size: 0.75rem; /* text-xs */
+    color: #64748b; /* slate-500 */
+    margin-left: 0.25rem; /* ml-1 */
+}
+.dark .input-example-text {
+    color: #94a3b8; /* slate-400 */
+}
