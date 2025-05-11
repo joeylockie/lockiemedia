@@ -1,9 +1,9 @@
 {
-  "testButtonFeature": true,
-  "reminderFeature": true,
+  "testButtonFeature": false,
+  "reminderFeature": false,
   "taskTimerSystem": false,
   "advancedRecurrence": false,
-  "fileAttachments": true,
+  "fileAttachments": false,
   "integrationsServices": false,
   "userAccounts": false,
   "collaborationSharing": false,
