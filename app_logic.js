@@ -1,3 +1,5 @@
+// app_logic.js
+
 // --- Application State ---
 let tasks = JSON.parse(localStorage.getItem('todos_v3')) || [];
 let currentFilter = 'inbox';
@@ -6,12 +8,13 @@ let currentSearchTerm = '';
 let editingTaskId = null;
 let currentViewTaskId = null; // Also used by UI, but primarily managed by logic flow
 let uniqueLabels = [];
+
 // Default feature flags, will be overridden by the JSON file if successfully loaded
 let featureFlags = {
     testButtonFeature: false,
     reminderFeature: false,
     taskTimerSystem: false,
-    advancedRecurrence: false,
+    advancedRecurrence: false, // This flag is for the Advanced Recurrence feature
     fileAttachments: false,
     integrationsServices: false,
     userAccounts: false,
@@ -19,8 +22,11 @@ let featureFlags = {
     crossDeviceSync: false,
     tooltipsGuide: false,
     subTasksFeature: false
+    // NOTE: No specific functions for 'advancedRecurrence' were in app_logic.js to be moved.
+    // Its UI visibility is handled in ui_interactions.js based on this flag,
+    // and will be updated to use the new feature_advanced_recurrence.js module.
 };
-// Removed: let currentTaskTimerInterval = null; // Moved to task_timer_system.js
+
 let tooltipTimeout = null;
 
 // --- Theme Management ---
@@ -45,6 +51,7 @@ async function loadFeatureFlags() {
             // Ensure all flags have a default
             if (typeof featureFlags.subTasksFeature === 'undefined') { featureFlags.subTasksFeature = false; }
             if (typeof featureFlags.taskTimerSystem === 'undefined') { featureFlags.taskTimerSystem = false; }
+            if (typeof featureFlags.advancedRecurrence === 'undefined') { featureFlags.advancedRecurrence = false; } // Ensure default
             // Add similar checks for other feature flags if necessary
             return;
         }
@@ -56,6 +63,7 @@ async function loadFeatureFlags() {
         // Ensure default on error
         if (typeof featureFlags.subTasksFeature === 'undefined') { featureFlags.subTasksFeature = false; }
         if (typeof featureFlags.taskTimerSystem === 'undefined') { featureFlags.taskTimerSystem = false; }
+        if (typeof featureFlags.advancedRecurrence === 'undefined') { featureFlags.advancedRecurrence = false; } // Ensure default
         // Add similar checks for other feature flags if necessary
     }
 }
@@ -101,6 +109,7 @@ function formatMillisecondsToHMS(ms) {
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
+
 // --- Core Task Data Functions ---
 function saveTasks() {
     localStorage.setItem('todos_v3', JSON.stringify(tasks));
@@ -122,7 +131,7 @@ function initializeTasks() {
         reminderDate: task.reminderDate || null,
         reminderTime: task.reminderTime || null,
         reminderEmail: task.reminderEmail || null,
-        // Timer related properties remain as they define the task data structure
+        // Timer related properties
         estimatedHours: task.estimatedHours || 0,
         estimatedMinutes: task.estimatedMinutes || 0,
         timerStartTime: task.timerStartTime || null,
@@ -132,7 +141,13 @@ function initializeTasks() {
         actualDurationMs: task.actualDurationMs || 0,
         attachments: task.attachments || [],
         completedDate: task.completedDate || null,
-        subTasks: task.subTasks || []
+        subTasks: task.subTasks || [],
+        // Advanced Recurrence properties
+        recurrenceRule: task.recurrenceRule || null, // Example: 'RRULE:FREQ=WEEKLY;BYDAY=MO'
+        recurrenceEndDate: task.recurrenceEndDate || null,
+        // nextDueDate might be used to store the upcoming instance of a recurring task.
+        // It could default to the regular dueDate if the task is not recurring or for the first instance.
+        nextDueDate: task.nextDueDate || task.dueDate
     }));
 }
 
@@ -154,7 +169,6 @@ function updateUniqueLabels() {
     });
     uniqueLabels = Array.from(labels).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
     // The actual population of datalists will be handled in ui_interactions.js
-    // as it needs access to the DOM elements.
 }
 
 function parseDateFromText(text) {
@@ -227,13 +241,14 @@ function parseDateFromText(text) {
             return getDateString(nextYearDate);
         }},
         // Standalone dates YYYY-MM-DD or YYYY/MM/DD (as a fallback if not prefixed by "on", "due", "by")
-        { regex: /\b(\d{4}[-\/]\d{1,2}[-\/]\d{1,2})\b/g, handler: (match) => {
+        { regex: /\b(\d{4}[-\/]\d{1,2}[-\/]\d{1,2})\b/g, handler: (match) => { // Added 'g' flag for exec loop, but use non-global for single match logic
             const pd = match[0].replace(/\//g, '-');
-            if (!isNaN(new Date(pd).getTime())) return pd; // Basic validation
+            // Basic validation: check if it forms a valid date
+            if (!isNaN(new Date(pd).getTime())) return pd;
             return null;
         }},
         // Standalone dates MM/DD/YYYY or MM-DD-YY (as a fallback)
-        { regex: /\b(\d{1,2}[-\/]\d{1,2}(?:[-\/]\d{2,4})?)\b/g, handler: (match) => {
+        { regex: /\b(\d{1,2}[-\/]\d{1,2}(?:[-\/]\d{2,4})?)\b/g, handler: (match) => { // Added 'g' flag for exec loop
             const ds = match[0]; const pts = ds.replace(/-/g, '/').split('/');
             let y, m, d;
             if (pts.length === 2) { y = today.getFullYear(); m = parseInt(pts[0]); d = parseInt(pts[1]); }
@@ -246,21 +261,25 @@ function parseDateFromText(text) {
     ];
 
     for (const pattern of patterns) {
+        // Use a non-global regex for exec to find the first match in the current remainingText
         const regex = new RegExp(pattern.regex.source, pattern.regex.flags.replace('g', ''));
         const match = regex.exec(remainingText);
         if (match) {
             const potentialDate = pattern.handler(match);
             if (potentialDate && !isNaN(new Date(potentialDate).getTime())) { // Validate date string
                 const matchedString = match[0];
+                // Ensure the match is a whole word or followed by punctuation/end of string
+                // This helps avoid partial matches within words (e.g., "plan" shouldn't match "an")
                 const tempRemainingText = remainingText.replace(new RegExp(matchedString.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*', 'i'), '').trim();
 
+                // Check character after the match to ensure it's a delimiter or end of string
                 const afterMatchIndex = match.index + matchedString.length;
                 const charAfterMatch = remainingText[afterMatchIndex];
 
                 if (afterMatchIndex === remainingText.length || /[\s,.?!]/.test(charAfterMatch || '')) {
                     parsedDate = potentialDate;
                     remainingText = tempRemainingText.replace(/\s\s+/g, ' ').trim(); // Clean up multiple spaces
-                    break;
+                    break; // Found a valid date, stop searching
                 }
             }
         }
@@ -275,7 +294,7 @@ function addSubTaskLogic(parentId, subTaskText) {
     if (parentTaskIndex === -1) return false;
 
     const newSubTask = {
-        id: Date.now() + Math.random(),
+        id: Date.now() + Math.random(), // Simple unique ID for subtask
         text: subTaskText.trim(),
         completed: false,
         creationDate: Date.now()
@@ -322,15 +341,6 @@ function deleteSubTaskLogic(parentId, subTaskId) {
 }
 
 
-// --- Timer Logic (REMOVED) ---
-// The following functions have been moved to task_timer_system.js:
-// - updateLiveTimerDisplay(taskId)
-// - startTimerLogic(taskId)
-// - pauseTimerLogic(taskId)
-// - stopTimerLogic(taskId)
-// Their functionality will be accessed via window.AppFeatures.TaskTimerSystem
-
-
 // --- Filtering and sorting state management ---
 function setAppCurrentFilter(filter) {
     currentFilter = filter;
@@ -344,3 +354,11 @@ function setAppCurrentSort(sortType) {
 function setAppSearchTerm(term) {
     currentSearchTerm = term;
 }
+
+// --- Advanced Recurrence Logic (Placeholder) ---
+// The core logic for creating/managing recurring tasks (e.g., calculating next due dates)
+// would eventually reside here or be called from the feature_advanced_recurrence.js module
+// if it involves complex modifications to the main 'tasks' array or requires access to rrule.js or similar.
+// For now, the feature flag (featureFlags.advancedRecurrence) primarily controls UI visibility
+// handled by the feature_advanced_recurrence.js module and ui_interactions.js.
+// The task properties (recurrenceRule, recurrenceEndDate, nextDueDate) are defined in initializeTasks.
