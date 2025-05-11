@@ -162,6 +162,10 @@
 
         /* UI elements related to the reminder feature (can be hidden by feature flag) */
         .reminder-feature-element { display: block; } /* Default, JS hides if feature off */
+        
+        /* Task Timer System elements (can be hidden by feature flag) */
+        .task-timer-system-element { display: block; } /* Default, JS hides if feature off */
+
 
         /* Toggle Switch Styles */
         .toggle-checkbox {
@@ -254,7 +258,7 @@
                         <input type="time" id="modalTimeInputAdd" class="w-full p-3 border-2 bg-white text-slate-900 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 dark:[color-scheme:dark]">
                     </div>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 task-timer-system-element">
                     <div>
                         <label for="modalEstHoursAdd" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Est. Hours (optional)</label>
                         <input type="number" id="modalEstHoursAdd" min="0" placeholder="0" class="w-full p-3 border-2 bg-white text-slate-900 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600">
@@ -337,7 +341,7 @@
                         <input type="time" id="modalTimeInputViewEdit" class="w-full p-3 border-2 bg-white text-slate-900 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 dark:[color-scheme:dark]">
                     </div>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 task-timer-system-element">
                     <div>
                         <label for="modalEstHoursViewEdit" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Est. Hours (optional)</label>
                         <input type="number" id="modalEstHoursViewEdit" min="0" placeholder="0" class="w-full p-3 border-2 bg-white text-slate-900 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600">
@@ -419,12 +423,12 @@
                         <p id="viewTaskTime"></p>
                     </div>
                 </div>
-                <div>
+                <div class="task-timer-system-element">
                     <strong class="view-details-heading block mb-0.5">Estimated Duration:</strong>
                     <p id="viewTaskEstDuration"></p>
                 </div>
 
-                <div id="taskTimerSection" class="mt-3 border-t border-slate-200 dark:border-slate-700 pt-3">
+                <div id="taskTimerSection" class="mt-3 border-t border-slate-200 dark:border-slate-700 pt-3 task-timer-system-element">
                     <strong class="view-details-heading block mb-1">Track Time:</strong>
                     <div class="flex items-center justify-between mb-2">
                         <span id="viewTaskTimerDisplay" class="text-xl font-mono text-slate-700 dark:text-slate-200">00:00:00</span>
@@ -488,6 +492,22 @@
         </div>
     </div>
 
+    <div id="taskReviewModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-opacity-70 overflow-y-auto h-full w-full flex items-center justify-center hidden z-[185]">
+        <div class="relative mx-auto p-5 sm:p-6 border w-full max-w-lg shadow-xl rounded-xl bg-white dark:bg-slate-800 transform transition-all duration-300 ease-in-out scale-95 opacity-0" id="modalDialogTaskReview">
+            <div class="flex justify-between items-center pb-3 mb-4 border-b border-slate-200 dark:border-slate-700">
+                <h3 class="text-2xl font-semibold text-slate-800 dark:text-slate-100">Task Review</h3>
+                <button id="closeTaskReviewModalBtn" type="button" class="text-slate-400 hover:text-slate-600 dark:text-slate-300 dark:hover:text-slate-100 transition-colors p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700" aria-label="Close modal">
+                    <i class="fas fa-times fa-lg"></i>
+                </button>
+            </div>
+            <div id="taskReviewContent" class="space-y-3 max-h-96 overflow-y-auto">
+                </div>
+            <div class="mt-6 flex justify-end">
+                <button type="button" id="closeTaskReviewSecondaryBtn" class="px-5 py-2.5 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500 transition-colors font-medium">Close</button>
+            </div>
+        </div>
+    </div>
+
     <div id="manageLabelsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-opacity-70 overflow-y-auto h-full w-full flex items-center justify-center hidden z-[170]">
         <div class="relative mx-auto p-5 sm:p-6 border w-full max-w-md shadow-xl rounded-xl bg-white dark:bg-slate-800 transform transition-all duration-300 ease-in-out scale-95 opacity-0" id="modalDialogManageLabels">
             <div class="flex justify-between items-center pb-3 mb-4 border-b border-slate-200 dark:border-slate-700">
@@ -517,6 +537,9 @@
                 </button>
             </div>
             <div class="space-y-3">
+                 <button id="settingsTaskReviewBtn" type="button" class="settings-modal-button bg-cyan-50 hover:bg-cyan-100 text-cyan-700 dark:bg-cyan-900/50 dark:hover:bg-cyan-800/70 dark:text-cyan-300 task-timer-system-element">
+                    <i class="fas fa-history"></i> Task Review
+                </button>
                 <button id="settingsClearCompletedBtn" type="button" class="settings-modal-button bg-red-50 hover:bg-red-100 text-red-700 dark:bg-red-900/50 dark:hover:bg-red-800/70 dark:text-red-300">
                     <i class="fas fa-eraser"></i> Clear Completed Tasks
                 </button>
@@ -535,7 +558,6 @@
             </div>
         </div>
     </div>
-
     <div id="featureFlagsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-opacity-70 overflow-y-auto h-full w-full flex items-center justify-center hidden z-[190]">
         <div class="relative mx-auto p-5 sm:p-6 border w-full max-w-md shadow-xl rounded-xl bg-white dark:bg-slate-800 transform transition-all duration-300 ease-in-out scale-95 opacity-0" id="modalDialogFeatureFlags">
             <div class="flex justify-between items-center pb-3 mb-4 border-b border-slate-200 dark:border-slate-700">
@@ -741,6 +763,7 @@
         const viewTaskReminderEmail = document.getElementById('viewTaskReminderEmail');
 
         // Timer elements in View Task Details Modal
+        const taskTimerSection = document.getElementById('taskTimerSection'); // Container for timer related UI
         const viewTaskTimerDisplay = document.getElementById('viewTaskTimerDisplay');
         const viewTaskStartTimerBtn = document.getElementById('viewTaskStartTimerBtn');
         const viewTaskPauseTimerBtn = document.getElementById('viewTaskPauseTimerBtn');
@@ -768,6 +791,15 @@
         const settingsManageLabelsBtn = document.getElementById('settingsManageLabelsBtn');
         const settingsManageRemindersBtn = document.getElementById('settingsManageRemindersBtn');
         const settingsFeatureFlagsBtn = document.getElementById('settingsFeatureFlagsBtn');
+        const settingsTaskReviewBtn = document.getElementById('settingsTaskReviewBtn'); // New button
+
+        // Task Review Modal elements (New)
+        const taskReviewModal = document.getElementById('taskReviewModal');
+        const modalDialogTaskReview = document.getElementById('modalDialogTaskReview');
+        const closeTaskReviewModalBtn = document.getElementById('closeTaskReviewModalBtn');
+        const closeTaskReviewSecondaryBtn = document.getElementById('closeTaskReviewSecondaryBtn');
+        const taskReviewContent = document.getElementById('taskReviewContent');
+
 
         // Feature Flags Modal elements
         const featureFlagsModal = document.getElementById('featureFlagsModal');
@@ -792,7 +824,8 @@
         let uniqueLabels = [];
         let featureFlags = JSON.parse(localStorage.getItem('featureFlags_v1')) || {
             testButtonFeature: false,
-            reminderFeature: false
+            reminderFeature: false,
+            taskTimerSystem: false // New feature flag
         };
         let currentTaskTimerInterval = null; // Holds setInterval ID for the timer
 
@@ -1027,7 +1060,7 @@
             if (minutes && minutes > 0) {
                 parts.push(`${minutes} min${minutes > 1 ? 's' : ''}`);
             }
-            return parts.join(' ');
+            return parts.join(' ') || 'Not set'; // Added fallback for 0h 0m
         }
 
         // --- Milliseconds to HH:MM:SS formatter ---
@@ -1054,27 +1087,29 @@
             viewTaskText.textContent = task.text;
             viewTaskDueDate.textContent = task.dueDate ? formatDate(task.dueDate) : 'Not set';
             viewTaskTime.textContent = task.time ? formatTime(task.time) : 'Not set';
-            viewTaskEstDuration.textContent = formatDuration(task.estimatedHours, task.estimatedMinutes);
+            if (featureFlags.taskTimerSystem) {
+                viewTaskEstDuration.textContent = formatDuration(task.estimatedHours, task.estimatedMinutes);
+                // Timer display and buttons setup
+                updateTimerControlsUI(task); // Update button visibility and text
+                if (task.timerIsRunning && !task.completed) {
+                    if (currentTaskTimerInterval) clearInterval(currentTaskTimerInterval); // Clear any existing interval
+                    // Start new interval to update live timer display
+                    currentTaskTimerInterval = setInterval(() => updateLiveTimerDisplay(task.id), 1000);
+                    updateLiveTimerDisplay(task.id); // Initial display update
+                } else if (task.timerIsPaused) { // If paused, show accumulated time
+                    viewTaskTimerDisplay.textContent = formatMillisecondsToHMS(task.timerAccumulatedTime || 0);
+                } else if (task.actualDurationMs > 0) { // If timer was run and stopped, show recorded duration
+                    viewTaskTimerDisplay.textContent = formatMillisecondsToHMS(task.actualDurationMs);
+                } else { // Default display if timer not used
+                    viewTaskTimerDisplay.textContent = "00:00:00";
+                }
+            }
+
+
             viewTaskPriority.textContent = task.priority || 'Not set';
             viewTaskStatus.textContent = task.completed ? 'Completed' : 'Active';
             viewTaskLabel.textContent = task.label || 'None';
             viewTaskNotes.textContent = task.notes || 'No notes added.';
-
-            // Timer display and buttons setup
-            updateTimerControlsUI(task); // Update button visibility and text
-            if (task.timerIsRunning && !task.completed) {
-                if (currentTaskTimerInterval) clearInterval(currentTaskTimerInterval); // Clear any existing interval
-                // Start new interval to update live timer display
-                currentTaskTimerInterval = setInterval(() => updateLiveTimerDisplay(task.id), 1000);
-                updateLiveTimerDisplay(task.id); // Initial display update
-            } else if (task.timerIsPaused) { // If paused, show accumulated time
-                viewTaskTimerDisplay.textContent = formatMillisecondsToHMS(task.timerAccumulatedTime || 0);
-            } else if (task.actualDurationMs > 0) { // If timer was run and stopped, show recorded duration
-                viewTaskTimerDisplay.textContent = formatMillisecondsToHMS(task.actualDurationMs);
-            } else { // Default display if timer not used
-                viewTaskTimerDisplay.textContent = "00:00:00";
-            }
-
 
             // Populate reminder section if feature is active
             if (featureFlags.reminderFeature && task.isReminderSet) {
@@ -1102,7 +1137,6 @@
             }, 10);
             applyActiveFeatures(); // Apply UI changes based on active feature flags
         }
-
         // Closes the "Task Information" modal
         function closeViewTaskDetailsModal() {
             // Animate modal disappearance
@@ -1110,7 +1144,7 @@
             modalDialogViewDetails.classList.remove('scale-100', 'opacity-100');
             setTimeout(() => {
                 viewTaskDetailsModal.classList.add('hidden'); // Hide the modal
-                if (currentTaskTimerInterval) { // Clear timer interval if it exists
+                if (featureFlags.taskTimerSystem && currentTaskTimerInterval) { // Clear timer interval if it exists and feature is on
                     clearInterval(currentTaskTimerInterval);
                     currentTaskTimerInterval = null;
                 }
@@ -1118,16 +1152,18 @@
             }, 200);
         }
 
-        // --- Timer Control Functions ---
+        // --- Timer Control Functions (conditionally active based on taskTimerSystem feature flag) ---
         // Updates the live timer display in the modal every second
         function updateLiveTimerDisplay(taskId) {
+            if (!featureFlags.taskTimerSystem) return; // Only run if feature is enabled
+
             const task = tasks.find(t => t.id === taskId);
             // Stop updating if task not found, not running, or completed
             if (!task || !task.timerIsRunning || task.completed) {
                 if (currentTaskTimerInterval) clearInterval(currentTaskTimerInterval);
                 currentTaskTimerInterval = null;
                 // If task is completed while timer was running, ensure display shows final accumulated time
-                if (task && task.completed && task.actualDurationMs) {
+                if (task && task.completed && task.actualDurationMs && viewTaskTimerDisplay) {
                     viewTaskTimerDisplay.textContent = formatMillisecondsToHMS(task.actualDurationMs);
                 }
                 return;
@@ -1135,19 +1171,20 @@
             const now = Date.now();
             const elapsedSinceStart = now - (task.timerStartTime || now); // Time elapsed in current segment
             const currentDisplayTime = (task.timerAccumulatedTime || 0) + elapsedSinceStart; // Total time
-            viewTaskTimerDisplay.textContent = formatMillisecondsToHMS(currentDisplayTime);
+            if (viewTaskTimerDisplay) viewTaskTimerDisplay.textContent = formatMillisecondsToHMS(currentDisplayTime);
         }
 
 
         // Handles the "Start" or "Resume" button click for the timer
         function handleStartTimer() {
-            if (!currentViewTaskId) return;
+            if (!featureFlags.taskTimerSystem || !currentViewTaskId) return;
             const taskIndex = tasks.findIndex(t => t.id === currentViewTaskId);
             if (taskIndex === -1) return;
             const task = tasks[taskIndex];
 
             // Don't start if task is completed or timer has already been run and stopped
-            if (task.completed || task.actualDurationMs > 0) return;
+            if (task.completed || (task.actualDurationMs && task.actualDurationMs > 0 && !task.timerIsPaused)) return;
+
 
             task.timerIsRunning = true;
             task.timerIsPaused = false;
@@ -1163,7 +1200,7 @@
 
         // Handles the "Pause" button click for the timer
         function handlePauseTimer() {
-            if (!currentViewTaskId) return;
+            if (!featureFlags.taskTimerSystem || !currentViewTaskId) return;
             const taskIndex = tasks.findIndex(t => t.id === currentViewTaskId);
             if (taskIndex === -1 || !tasks[taskIndex].timerIsRunning) return; // Only pause if running
             const task = tasks[taskIndex];
@@ -1177,34 +1214,41 @@
             task.timerIsPaused = true;
             task.timerStartTime = null; // Clear start time for segment
 
-            viewTaskTimerDisplay.textContent = formatMillisecondsToHMS(task.timerAccumulatedTime); // Show paused time
+            if (viewTaskTimerDisplay) viewTaskTimerDisplay.textContent = formatMillisecondsToHMS(task.timerAccumulatedTime); // Show paused time
             saveTasks(); // Save updated task state
             updateTimerControlsUI(task); // Update timer button visibility/text
         }
 
         // Handles the "Stop" button click for the timer or when a task is completed
         function handleStopTimer(taskIdToStop) {
+            if (!featureFlags.taskTimerSystem) return;
             const id = taskIdToStop || currentViewTaskId; // Use provided ID or current viewed task ID
             if (!id) return;
             const taskIndex = tasks.findIndex(t => t.id === id);
             if (taskIndex === -1) return;
             const task = tasks[taskIndex];
 
-            if (currentTaskTimerInterval) clearInterval(currentTaskTimerInterval); // Stop live updates
-            currentTaskTimerInterval = null;
+            // If timer was not running and not paused (i.e., already stopped or never started), do nothing.
+            if (!task.timerIsRunning && !task.timerIsPaused && task.actualDurationMs > 0) {
+                 // To prevent resetting actualDurationMs if stop is clicked again after already stopped.
+            } else {
+                if (currentTaskTimerInterval) clearInterval(currentTaskTimerInterval); // Stop live updates
+                currentTaskTimerInterval = null;
 
-            if (task.timerIsRunning) { // If timer was running when stopped
-                const elapsed = Date.now() - (task.timerStartTime || Date.now());
-                task.timerAccumulatedTime = (task.timerAccumulatedTime || 0) + elapsed;
+                if (task.timerIsRunning) { // If timer was running when stopped
+                    const elapsed = Date.now() - (task.timerStartTime || Date.now());
+                    task.timerAccumulatedTime = (task.timerAccumulatedTime || 0) + elapsed;
+                }
+
+                task.actualDurationMs = task.timerAccumulatedTime || 0; // Record final duration
             }
 
-            task.actualDurationMs = task.timerAccumulatedTime || 0; // Record final duration
             task.timerIsRunning = false;
             task.timerIsPaused = false;
             task.timerStartTime = null;
             // Note: timerAccumulatedTime is kept to show the last run, actualDurationMs is the official record.
 
-            viewTaskTimerDisplay.textContent = formatMillisecondsToHMS(task.actualDurationMs);
+            if (viewTaskTimerDisplay) viewTaskTimerDisplay.textContent = formatMillisecondsToHMS(task.actualDurationMs);
             saveTasks(); // Save updated task state
 
             // Only update modal UI if the details modal for this task is currently open
@@ -1215,23 +1259,23 @@
 
         // Updates the UI of timer controls (buttons, text) based on task state
         function updateTimerControlsUI(task) {
-            if (!task || !viewTaskStartTimerBtn || !viewTaskPauseTimerBtn || !viewTaskStopTimerBtn || !viewTaskActualDuration) return;
+            if (!featureFlags.taskTimerSystem || !task || !viewTaskStartTimerBtn || !viewTaskPauseTimerBtn || !viewTaskStopTimerBtn || !viewTaskActualDuration || !timerButtonsContainer) return;
 
             if (task.completed) { // If task is marked completed
                 timerButtonsContainer.classList.add('hidden'); // Hide timer buttons
                 // Display recorded duration or appropriate message
                 viewTaskActualDuration.textContent = task.actualDurationMs > 0 ? formatMillisecondsToHMS(task.actualDurationMs) : "Not recorded (completed).";
-                viewTaskTimerDisplay.textContent = task.actualDurationMs > 0 ? formatMillisecondsToHMS(task.actualDurationMs) : "00:00:00";
+                if (viewTaskTimerDisplay) viewTaskTimerDisplay.textContent = task.actualDurationMs > 0 ? formatMillisecondsToHMS(task.actualDurationMs) : "00:00:00";
                 return;
             }
 
             timerButtonsContainer.classList.remove('hidden'); // Ensure buttons are visible if not completed
 
-            if (task.actualDurationMs > 0) { // Timer has been run and stopped previously
+            if (task.actualDurationMs > 0 && !task.timerIsRunning && !task.timerIsPaused) { // Timer has been run and stopped previously
                 viewTaskStartTimerBtn.classList.add('hidden');
                 viewTaskPauseTimerBtn.classList.add('hidden');
-                viewTaskStopTimerBtn.classList.add('hidden');
-                viewTaskTimerDisplay.textContent = formatMillisecondsToHMS(task.actualDurationMs);
+                viewTaskStopTimerBtn.classList.add('hidden'); // Hide stop if already stopped
+                if (viewTaskTimerDisplay) viewTaskTimerDisplay.textContent = formatMillisecondsToHMS(task.actualDurationMs);
                 viewTaskActualDuration.textContent = `Recorded: ${formatMillisecondsToHMS(task.actualDurationMs)}`;
             } else if (task.timerIsRunning) { // Timer is currently running
                 viewTaskStartTimerBtn.classList.add('hidden');
@@ -1244,13 +1288,14 @@
                 viewTaskPauseTimerBtn.classList.add('hidden');
                 viewTaskStopTimerBtn.classList.remove('hidden');
                 viewTaskActualDuration.textContent = "Timer paused.";
-            } else { // Timer has not been started yet for this task
+                 if (viewTaskTimerDisplay) viewTaskTimerDisplay.textContent = formatMillisecondsToHMS(task.timerAccumulatedTime || 0);
+            } else { // Timer has not been started yet for this task (actualDurationMs is 0 or null)
                 viewTaskStartTimerBtn.classList.remove('hidden');
                 viewTaskStartTimerBtn.textContent = 'Start';
                 viewTaskPauseTimerBtn.classList.add('hidden');
                 viewTaskStopTimerBtn.classList.add('hidden'); // Can't stop if not started/paused
                 viewTaskActualDuration.textContent = "Not yet recorded.";
-                viewTaskTimerDisplay.textContent = "00:00:00";
+                if (viewTaskTimerDisplay) viewTaskTimerDisplay.textContent = "00:00:00";
             }
         }
 
@@ -1350,6 +1395,63 @@
             }, 200);
         }
 
+        // --- Modal Functions (Task Review - New) ---
+        function openTaskReviewModal() {
+            if (!featureFlags.taskTimerSystem) {
+                showMessage("Task Timer System feature is currently disabled. Enable it in Feature Flags to use Task Review.", "error");
+                return;
+            }
+            populateTaskReviewModal();
+            taskReviewModal.classList.remove('hidden');
+            setTimeout(() => {
+                modalDialogTaskReview.classList.remove('scale-95', 'opacity-0');
+                modalDialogTaskReview.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function closeTaskReviewModal() {
+            modalDialogTaskReview.classList.add('scale-95', 'opacity-0');
+            modalDialogTaskReview.classList.remove('scale-100', 'opacity-100');
+            setTimeout(() => {
+                taskReviewModal.classList.add('hidden');
+            }, 200);
+        }
+
+        function populateTaskReviewModal() {
+            taskReviewContent.innerHTML = ''; // Clear previous content
+            const completedTasksWithTime = tasks.filter(task => task.completed && (task.actualDurationMs > 0 || task.estimatedHours > 0 || task.estimatedMinutes > 0));
+
+            if (completedTasksWithTime.length === 0) {
+                taskReviewContent.innerHTML = '<p class="text-slate-500 dark:text-slate-400 text-center">No completed tasks with time estimates or recordings to review.</p>';
+                return;
+            }
+
+            completedTasksWithTime.forEach(task => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'p-3 bg-slate-50 dark:bg-slate-700 rounded-lg shadow';
+
+                const taskName = document.createElement('h4');
+                taskName.className = 'text-md font-semibold text-slate-800 dark:text-slate-100 mb-1 truncate';
+                taskName.textContent = task.text;
+                itemDiv.appendChild(taskName);
+
+                const estimatedTimeText = formatDuration(task.estimatedHours, task.estimatedMinutes);
+                const estimatedP = document.createElement('p');
+                estimatedP.className = 'text-sm text-slate-600 dark:text-slate-300';
+                estimatedP.innerHTML = `<strong>Estimated:</strong> ${estimatedTimeText}`;
+                itemDiv.appendChild(estimatedP);
+
+                const actualTimeText = task.actualDurationMs > 0 ? formatMillisecondsToHMS(task.actualDurationMs) : 'Not recorded';
+                const actualP = document.createElement('p');
+                actualP.className = 'text-sm text-slate-600 dark:text-slate-300';
+                actualP.innerHTML = `<strong>Actual:</strong> ${actualTimeText}`;
+                itemDiv.appendChild(actualP);
+
+                taskReviewContent.appendChild(itemDiv);
+            });
+        }
+
+
         // --- Modal Functions (Feature Flags) ---
         function openFeatureFlagsModal() {
             renderFeatureFlags();
@@ -1359,7 +1461,6 @@
                 modalDialogFeatureFlags.classList.add('scale-100', 'opacity-100');
             }, 10);
         }
-
         function closeFeatureFlagsModal() {
             modalDialogFeatureFlags.classList.add('scale-95', 'opacity-0');
             modalDialogFeatureFlags.classList.remove('scale-100', 'opacity-100');
@@ -1370,13 +1471,21 @@
 
         function renderFeatureFlags() {
             featureFlagsListContainer.innerHTML = '';
+            // Define display names for flags for a more user-friendly UI
+            const flagDisplayNames = {
+                testButtonFeature: "Test Button Feature",
+                reminderFeature: "Reminder System",
+                taskTimerSystem: "Task Timer & Review System" // New feature flag
+            };
+
             Object.keys(featureFlags).forEach(flagKey => {
                 const flagItem = document.createElement('div');
                 flagItem.className = 'feature-flag-item';
 
                 const label = document.createElement('label');
                 label.htmlFor = `flag-${flagKey}`;
-                const displayName = flagKey.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                // Use display name or format the key
+                const displayName = flagDisplayNames[flagKey] || flagKey.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
                 label.textContent = displayName;
                 label.className = 'feature-flag-label mr-4';
 
@@ -1412,7 +1521,14 @@
             featureFlags[flagName] = isEnabled;
             saveFeatureFlags();
             applyActiveFeatures();
-            showMessage(`Feature "${flagName.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}" ${isEnabled ? 'enabled' : 'disabled'}.`, 'success');
+            // Use display name in message if available
+            const flagDisplayNames = {
+                testButtonFeature: "Test Button Feature",
+                reminderFeature: "Reminder System",
+                taskTimerSystem: "Task Timer & Review System"
+            };
+            const displayName = flagDisplayNames[flagName] || flagName.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+            showMessage(`Feature "${displayName}" ${isEnabled ? 'enabled' : 'disabled'}.`, 'success');
         }
 
         function saveFeatureFlags() {
@@ -1421,7 +1537,7 @@
 
         function loadFeatureFlags() {
             const storedFlags = localStorage.getItem('featureFlags_v1');
-            let updated = false;
+            let updated = false; // To track if we added new default flags
             if (storedFlags) {
                 featureFlags = JSON.parse(storedFlags);
             }
@@ -1434,6 +1550,11 @@
                 featureFlags.reminderFeature = false;
                 updated = true;
             }
+            if (typeof featureFlags.taskTimerSystem === 'undefined') { // Check for the new flag
+                featureFlags.taskTimerSystem = false; // Default to off
+                updated = true;
+            }
+
             if (updated) {
                 saveFeatureFlags(); // Save if new defaults were added
             }
@@ -1457,6 +1578,13 @@
                 el.classList.toggle('hidden', !featureFlags.reminderFeature);
             });
 
+            // Task Timer System Elements (New)
+            const taskTimerSystemElements = document.querySelectorAll('.task-timer-system-element');
+            taskTimerSystemElements.forEach(el => {
+                el.classList.toggle('hidden', !featureFlags.taskTimerSystem);
+            });
+
+
             // Specific handling for reminder options within modals
             if (!featureFlags.reminderFeature) {
                 if (reminderOptionsAdd) reminderOptionsAdd.classList.add('hidden');
@@ -1469,6 +1597,18 @@
                 if (modalRemindMeViewEdit && viewEditTaskModal && !viewEditTaskModal.classList.contains('hidden')) {
                     reminderOptionsViewEdit.classList.toggle('hidden', !modalRemindMeViewEdit.checked);
                 }
+            }
+
+            // Re-render tasks if a feature affecting their display changes (e.g., timer info)
+            // This is a broad approach; could be refined if performance issues arise.
+            renderTasks();
+            // If view details modal is open, re-populate it to reflect feature changes
+            if (currentViewTaskId && !viewTaskDetailsModal.classList.contains('hidden')) {
+                openViewTaskDetailsModal(currentViewTaskId); // This will re-evaluate visibility of timer elements
+            }
+             // Ensure settings modal buttons visibility is updated
+            if (settingsTaskReviewBtn) {
+                settingsTaskReviewBtn.classList.toggle('hidden', !featureFlags.taskTimerSystem);
             }
         }
 
@@ -1715,15 +1855,19 @@
             }
             return { parsedDate, remainingText };
         }
-
         // Handles adding a new task
         function handleAddTask(event) {
             event.preventDefault();
             const rawTaskText = modalTaskInputAdd.value.trim();
             const explicitDueDate = modalDueDateInputAdd.value;
             const time = modalTimeInputAdd.value;
-            const estHours = parseInt(modalEstHoursAdd.value) || 0;
-            const estMinutes = parseInt(modalEstMinutesAdd.value) || 0;
+            let estHours = 0;
+            let estMinutes = 0;
+            // Only read estimated time if the feature is enabled
+            if (featureFlags.taskTimerSystem) {
+                estHours = parseInt(modalEstHoursAdd.value) || 0;
+                estMinutes = parseInt(modalEstMinutesAdd.value) || 0;
+            }
             const priority = modalPriorityInputAdd.value;
             const label = modalLabelInputAdd.value.trim();
             const notes = modalNotesInputAdd.value.trim();
@@ -1765,7 +1909,8 @@
             const newTask = {
                 id: Date.now(), text: finalTaskText, completed: false,
                 dueDate: finalDueDate, time: time || null,
-                estimatedHours: estHours, estimatedMinutes: estMinutes,
+                estimatedHours: featureFlags.taskTimerSystem ? estHours : 0, // Store 0 if feature off
+                estimatedMinutes: featureFlags.taskTimerSystem ? estMinutes : 0, // Store 0 if feature off
                 priority: priority, label: label || '', notes: notes || '',
                 isReminderSet: featureFlags.reminderFeature ? isReminderSet : false,
                 reminderDate: featureFlags.reminderFeature && isReminderSet ? reminderDate : null,
@@ -1794,8 +1939,13 @@
             const taskText = modalTaskInputViewEdit.value.trim();
             const dueDate = modalDueDateInputViewEdit.value;
             const time = modalTimeInputViewEdit.value;
-            const estHours = parseInt(modalEstHoursViewEdit.value) || 0;
-            const estMinutes = parseInt(modalEstMinutesViewEdit.value) || 0;
+            let estHours = 0;
+            let estMinutes = 0;
+            // Only read estimated time if the feature is enabled
+            if (featureFlags.taskTimerSystem) {
+                estHours = parseInt(modalEstHoursViewEdit.value) || 0;
+                estMinutes = parseInt(modalEstMinutesViewEdit.value) || 0;
+            }
             const priority = modalPriorityInputViewEdit.value;
             const label = modalLabelInputViewEdit.value.trim();
             const notes = modalNotesInputViewEdit.value.trim();
@@ -1825,13 +1975,14 @@
             // Update the task in the tasks array
             tasks = tasks.map(task => task.id === taskId ? {
                 ...task, text: taskText, dueDate: dueDate || null, time: time || null,
-                estimatedHours: estHours, estimatedMinutes: estMinutes,
+                estimatedHours: featureFlags.taskTimerSystem ? estHours : task.estimatedHours, // Preserve old value if feature now off
+                estimatedMinutes: featureFlags.taskTimerSystem ? estMinutes : task.estimatedMinutes, // Preserve old value
                 priority: priority, label: label || '', notes: notes || '',
                 isReminderSet: featureFlags.reminderFeature ? isReminderSet : false,
                 reminderDate: featureFlags.reminderFeature && isReminderSet ? reminderDate : null,
                 reminderTime: featureFlags.reminderFeature && isReminderSet ? reminderTime : null,
                 reminderEmail: featureFlags.reminderFeature && isReminderSet ? reminderEmail : null
-                // Timer properties are not edited here, only through dedicated timer controls
+                // Timer properties (actualDurationMs, timerIsRunning etc.) are not edited here, only through dedicated timer controls or toggleComplete
             } : task );
             saveTasks();
             renderTasks();
@@ -1846,22 +1997,22 @@
 
             tasks[taskIndex].completed = !tasks[taskIndex].completed;
 
-            // If task is being marked completed and timer was running/paused, stop it and record time.
-            if (tasks[taskIndex].completed && (tasks[taskIndex].timerIsRunning || tasks[taskIndex].timerIsPaused)) {
+            // If task is being marked completed and timer was running/paused, stop it and record time, only if feature is on.
+            if (featureFlags.taskTimerSystem && tasks[taskIndex].completed && (tasks[taskIndex].timerIsRunning || tasks[taskIndex].timerIsPaused)) {
                 handleStopTimer(taskId); // This will also save tasks
             } else {
-                saveTasks(); // Save tasks if timer wasn't affected
+                saveTasks(); // Save tasks if timer wasn't affected or feature is off
             }
             renderTasks(); // Re-render the task list
             // If the details modal for this task is open, update its timer controls
-            if (currentViewTaskId === taskId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) {
+            if (featureFlags.taskTimerSystem && currentViewTaskId === taskId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) {
                 updateTimerControlsUI(tasks[taskIndex]);
             }
         }
         // Deletes a task
         function deleteTask(taskId) {
             // If the deleted task's timer was active in the modal, clear the interval
-            if (currentViewTaskId === taskId && currentTaskTimerInterval) {
+            if (featureFlags.taskTimerSystem && currentViewTaskId === taskId && currentTaskTimerInterval) {
                 clearInterval(currentTaskTimerInterval);
                 currentTaskTimerInterval = null;
             }
@@ -1984,10 +2135,10 @@
         editFromViewModalBtn.addEventListener('click', () => { if (currentViewTaskId !== null) { closeViewTaskDetailsModal(); openViewEditModal(currentViewTaskId); } }); // Open edit modal from view modal
         viewTaskDetailsModal.addEventListener('click', (event) => { if (event.target === viewTaskDetailsModal) closeViewTaskDetailsModal(); }); // Close if backdrop clicked
 
-        // Timer button event listeners in View Task Details Modal
-        if(viewTaskStartTimerBtn) viewTaskStartTimerBtn.addEventListener('click', handleStartTimer);
-        if(viewTaskPauseTimerBtn) viewTaskPauseTimerBtn.addEventListener('click', handlePauseTimer);
-        if(viewTaskStopTimerBtn) viewTaskStopTimerBtn.addEventListener('click', () => handleStopTimer()); // Pass no arg to use currentViewTaskId
+        // Timer button event listeners in View Task Details Modal (conditionally active)
+        if(viewTaskStartTimerBtn) viewTaskStartTimerBtn.addEventListener('click', () => { if(featureFlags.taskTimerSystem) handleStartTimer(); });
+        if(viewTaskPauseTimerBtn) viewTaskPauseTimerBtn.addEventListener('click', () => { if(featureFlags.taskTimerSystem) handlePauseTimer(); });
+        if(viewTaskStopTimerBtn) viewTaskStopTimerBtn.addEventListener('click', () => { if(featureFlags.taskTimerSystem) handleStopTimer(); });
 
 
         // Manage Labels Modal
@@ -2004,6 +2155,13 @@
         if (settingsClearCompletedBtn) settingsClearCompletedBtn.addEventListener('click', clearCompletedTasks);
         if (settingsManageLabelsBtn) { settingsManageLabelsBtn.addEventListener('click', () => { closeSettingsModal(); openManageLabelsModal(); }); } // Open manage labels from settings
         if (settingsManageRemindersBtn) { settingsManageRemindersBtn.addEventListener('click', () => { if(featureFlags.reminderFeature) showMessage('Reminders feature coming soon!', 'success'); }); } // Placeholder for manage reminders
+        if (settingsTaskReviewBtn) { settingsTaskReviewBtn.addEventListener('click', () => { closeSettingsModal(); openTaskReviewModal(); });} // New: Open Task Review Modal
+
+        // Task Review Modal (New)
+        if (closeTaskReviewModalBtn) closeTaskReviewModalBtn.addEventListener('click', closeTaskReviewModal);
+        if (closeTaskReviewSecondaryBtn) closeTaskReviewSecondaryBtn.addEventListener('click', closeTaskReviewModal);
+        if (taskReviewModal) taskReviewModal.addEventListener('click', (event) => { if (event.target === taskReviewModal) closeTaskReviewModal(); });
+
 
         // Feature Flags Modal
         if (settingsFeatureFlagsBtn) { settingsFeatureFlagsBtn.addEventListener('click', () => { closeSettingsModal(); openFeatureFlagsModal(); }); } // Open feature flags from settings
@@ -2033,7 +2191,8 @@
             const isManageLabelsModalOpen = manageLabelsModal && !manageLabelsModal.classList.contains('hidden');
             const isSettingsModalOpen = settingsModal && !settingsModal.classList.contains('hidden');
             const isFeatureFlagsModalOpen = featureFlagsModal && !featureFlagsModal.classList.contains('hidden');
-            const isAnyModalOpen = isAddModalOpen || isViewEditModalOpen || isViewDetailsModalOpen || isManageLabelsModalOpen || isSettingsModalOpen || isFeatureFlagsModalOpen;
+            const isTaskReviewModalOpen = taskReviewModal && !taskReviewModal.classList.contains('hidden'); // New
+            const isAnyModalOpen = isAddModalOpen || isViewEditModalOpen || isViewDetailsModalOpen || isManageLabelsModalOpen || isSettingsModalOpen || isFeatureFlagsModalOpen || isTaskReviewModalOpen; // Updated
             const isInputFocused = document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT' || document.activeElement.tagName === 'TEXTAREA';
 
             // '+' or '=' to open Add Task Modal (if no modal is open and no input is focused)
@@ -2046,6 +2205,7 @@
                 if (isManageLabelsModalOpen) closeManageLabelsModal();
                 if (isSettingsModalOpen) closeSettingsModal();
                 if (isFeatureFlagsModalOpen) closeFeatureFlagsModal();
+                if (isTaskReviewModalOpen) closeTaskReviewModal(); // New
             }
         });
 
@@ -2054,6 +2214,10 @@
         function initializeTasks() {
             tasks = tasks.map(task => ({
                 ...task,
+                // Ensure estimated time properties exist, default to 0 if not present
+                estimatedHours: task.estimatedHours || 0,
+                estimatedMinutes: task.estimatedMinutes || 0,
+                // Ensure timer state properties exist
                 timerStartTime: task.timerStartTime || null,
                 timerAccumulatedTime: task.timerAccumulatedTime || 0,
                 timerIsRunning: task.timerIsRunning || false,
@@ -2064,7 +2228,7 @@
 
 
         loadFeatureFlags(); // Load feature flags from localStorage
-        initializeTasks(); // Ensure all tasks have timer properties
+        initializeTasks(); // Ensure all tasks have necessary properties (including new timer ones)
         updateUniqueLabels(); // Populate unique labels from tasks
         // Set initial styling for smart view buttons
         smartViewButtons.forEach(button => { button.classList.add('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600'); button.querySelector('i')?.classList.add('text-slate-500', 'dark:text-slate-400'); });
@@ -2077,12 +2241,11 @@
             setSidebarMinimized(false); // Default to expanded
         }
 
-        setFilter(currentFilter); // Apply initial filter
         // Actions to perform once the window is fully loaded
         window.onload = () => {
             loadFeatureFlags();
             initializeTasks(); // Ensure tasks are initialized again in case of race conditions
-            applyActiveFeatures();
+            applyActiveFeatures(); // Apply feature flags *after* loading them and initializing tasks
             setFilter(currentFilter); // Re-apply filter to ensure UI consistency
             // Re-apply sidebar state
             if (localStorage.getItem('sidebarState') === 'minimized') {
