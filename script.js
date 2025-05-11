@@ -27,8 +27,8 @@ const modalTodoFormAdd = document.getElementById('modalTodoFormAdd');
 const modalTaskInputAdd = document.getElementById('modalTaskInputAdd');
 const modalDueDateInputAdd = document.getElementById('modalDueDateInputAdd');
 const modalTimeInputAdd = document.getElementById('modalTimeInputAdd');
-const modalEstHoursAdd = document.getElementById('modalEstHoursAdd');
-const modalEstMinutesAdd = document.getElementById('modalEstMinutesAdd');
+const modalEstHoursAdd = document.getElementById('modalEstHoursAdd'); // New
+const modalEstMinutesAdd = document.getElementById('modalEstMinutesAdd'); // New
 const modalPriorityInputAdd = document.getElementById('modalPriorityInputAdd');
 const modalLabelInputAdd = document.getElementById('modalLabelInputAdd');
 const existingLabelsDatalist = document.getElementById('existingLabels');
@@ -50,8 +50,8 @@ const modalViewEditTaskId = document.getElementById('modalViewEditTaskId');
 const modalTaskInputViewEdit = document.getElementById('modalTaskInputViewEdit');
 const modalDueDateInputViewEdit = document.getElementById('modalDueDateInputViewEdit');
 const modalTimeInputViewEdit = document.getElementById('modalTimeInputViewEdit');
-const modalEstHoursViewEdit = document.getElementById('modalEstHoursViewEdit');
-const modalEstMinutesViewEdit = document.getElementById('modalEstMinutesViewEdit');
+const modalEstHoursViewEdit = document.getElementById('modalEstHoursViewEdit'); // New
+const modalEstMinutesViewEdit = document.getElementById('modalEstMinutesViewEdit'); // New
 const modalPriorityInputViewEdit = document.getElementById('modalPriorityInputViewEdit');
 const modalLabelInputViewEdit = document.getElementById('modalLabelInputViewEdit');
 const existingLabelsEditDatalist = document.getElementById('existingLabelsEdit');
@@ -72,7 +72,7 @@ const editFromViewModalBtn = document.getElementById('editFromViewModalBtn');
 const viewTaskText = document.getElementById('viewTaskText');
 const viewTaskDueDate = document.getElementById('viewTaskDueDate');
 const viewTaskTime = document.getElementById('viewTaskTime');
-const viewTaskEstDuration = document.getElementById('viewTaskEstDuration');
+const viewTaskEstDuration = document.getElementById('viewTaskEstDuration'); // New
 const viewTaskPriority = document.getElementById('viewTaskPriority');
 const viewTaskStatus = document.getElementById('viewTaskStatus');
 const viewTaskLabel = document.getElementById('viewTaskLabel');
@@ -83,15 +83,6 @@ const viewTaskReminderDetails = document.getElementById('viewTaskReminderDetails
 const viewTaskReminderDate = document.getElementById('viewTaskReminderDate');
 const viewTaskReminderTime = document.getElementById('viewTaskReminderTime');
 const viewTaskReminderEmail = document.getElementById('viewTaskReminderEmail');
-
-// Timer elements in View Task Details Modal
-const viewTaskTimerDisplay = document.getElementById('viewTaskTimerDisplay');
-const viewTaskStartTimerBtn = document.getElementById('viewTaskStartTimerBtn');
-const viewTaskPauseTimerBtn = document.getElementById('viewTaskPauseTimerBtn');
-const viewTaskStopTimerBtn = document.getElementById('viewTaskStopTimerBtn');
-const viewTaskActualDuration = document.getElementById('viewTaskActualDuration');
-const timerButtonsContainer = document.getElementById('timerButtonsContainer');
-
 
 // Manage Labels Modal elements
 const manageLabelsModal = document.getElementById('manageLabelsModal');
@@ -131,14 +122,13 @@ let currentFilter = 'inbox';
 let currentSort = 'default';
 let currentSearchTerm = '';
 let editingTaskId = null;
-let currentViewTaskId = null; // Stores ID of task in the details modal
+let currentViewTaskId = null;
 let tooltipTimeout = null;
 let uniqueLabels = [];
 let featureFlags = JSON.parse(localStorage.getItem('featureFlags_v1')) || {
     testButtonFeature: false,
     reminderFeature: false
 };
-let currentTaskTimerInterval = null; // Holds setInterval ID for the timer
 
 
 // --- Theme Management ---
@@ -244,13 +234,21 @@ function openAddModal() {
     modalTodoFormAdd.reset();
     modalPriorityInputAdd.value = 'medium';
     populateDatalist(existingLabelsDatalist);
+
+    // Reset duration fields
     modalEstHoursAdd.value = '';
     modalEstMinutesAdd.value = '';
+
     modalRemindMeAdd.checked = false;
     modalReminderDateAdd.value = '';
     modalReminderTimeAdd.value = '';
     modalReminderEmailAdd.value = '';
-    reminderOptionsAdd.classList.add('hidden'); // Ensure it's hidden initially
+
+    if (featureFlags.reminderFeature && modalRemindMeAdd.checked) {
+        reminderOptionsAdd.classList.remove('hidden');
+    } else {
+        reminderOptionsAdd.classList.add('hidden');
+    }
 
     const today = new Date();
     const year = today.getFullYear();
@@ -280,8 +278,8 @@ function openViewEditModal(taskId) {
     modalTaskInputViewEdit.value = task.text;
     modalDueDateInputViewEdit.value = task.dueDate || '';
     modalTimeInputViewEdit.value = task.time || '';
-    modalEstHoursViewEdit.value = task.estimatedHours || '';
-    modalEstMinutesViewEdit.value = task.estimatedMinutes || '';
+    modalEstHoursViewEdit.value = task.estimatedHours || ''; // Populate duration
+    modalEstMinutesViewEdit.value = task.estimatedMinutes || ''; // Populate duration
     modalPriorityInputViewEdit.value = task.priority;
     modalLabelInputViewEdit.value = task.label || '';
     populateDatalist(existingLabelsEditDatalist);
@@ -300,8 +298,8 @@ function openViewEditModal(taskId) {
             modalReminderEmailViewEdit.value = '';
         }
     } else {
-        modalRemindMeViewEdit.checked = false;
-        reminderOptionsViewEdit.classList.add('hidden');
+            modalRemindMeViewEdit.checked = false;
+            reminderOptionsViewEdit.classList.add('hidden');
     }
 
     const today = new Date();
@@ -345,19 +343,6 @@ function formatDuration(hours, minutes) {
     return parts.join(' ');
 }
 
-// --- Milliseconds to HH:MM:SS formatter ---
-function formatMillisecondsToHMS(ms) {
-    if (ms === null || typeof ms === 'undefined' || ms < 0) return "00:00:00";
-    let totalSeconds = Math.floor(ms / 1000);
-    let hours = Math.floor(totalSeconds / 3600);
-    totalSeconds %= 3600;
-    let minutes = Math.floor(totalSeconds / 60);
-    let seconds = totalSeconds % 60;
-
-    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-}
-
-
 // --- Modal Functions (View Task Details) ---
 function openViewTaskDetailsModal(taskId) {
     const task = tasks.find(t => t.id === taskId);
@@ -367,27 +352,11 @@ function openViewTaskDetailsModal(taskId) {
     viewTaskText.textContent = task.text;
     viewTaskDueDate.textContent = task.dueDate ? formatDate(task.dueDate) : 'Not set';
     viewTaskTime.textContent = task.time ? formatTime(task.time) : 'Not set';
-    viewTaskEstDuration.textContent = formatDuration(task.estimatedHours, task.estimatedMinutes);
+    viewTaskEstDuration.textContent = formatDuration(task.estimatedHours, task.estimatedMinutes); // Display formatted duration
     viewTaskPriority.textContent = task.priority || 'Not set';
     viewTaskStatus.textContent = task.completed ? 'Completed' : 'Active';
     viewTaskLabel.textContent = task.label || 'None';
     viewTaskNotes.textContent = task.notes || 'No notes added.';
-
-    // Timer display and buttons
-    updateTimerControlsUI(task);
-    if (task.timerIsRunning && !task.completed) {
-        if (currentTaskTimerInterval) clearInterval(currentTaskTimerInterval);
-        currentTaskTimerInterval = setInterval(() => updateLiveTimerDisplay(task.id), 1000);
-        updateLiveTimerDisplay(task.id); // Initial display
-    } else if (task.timerIsPaused) {
-        viewTaskTimerDisplay.textContent = formatMillisecondsToHMS(task.timerAccumulatedTime || 0);
-    } else if (task.actualDurationMs > 0) {
-        viewTaskTimerDisplay.textContent = formatMillisecondsToHMS(task.actualDurationMs);
-    }
-     else {
-        viewTaskTimerDisplay.textContent = "00:00:00";
-    }
-
 
     if (featureFlags.reminderFeature && task.isReminderSet) {
         viewTaskReminderStatus.textContent = 'Active';
@@ -400,9 +369,9 @@ function openViewTaskDetailsModal(taskId) {
         viewTaskReminderStatus.textContent = 'Not set';
         viewTaskReminderDetails.classList.add('hidden');
         if (featureFlags.reminderFeature) {
-            viewTaskReminderSection.classList.remove('hidden');
+                viewTaskReminderSection.classList.remove('hidden');
         } else {
-            viewTaskReminderSection.classList.add('hidden');
+                viewTaskReminderSection.classList.add('hidden');
         }
     }
 
@@ -419,151 +388,15 @@ function closeViewTaskDetailsModal() {
     modalDialogViewDetails.classList.remove('scale-100', 'opacity-100');
     setTimeout(() => {
         viewTaskDetailsModal.classList.add('hidden');
-        if (currentTaskTimerInterval) {
-            clearInterval(currentTaskTimerInterval);
-            currentTaskTimerInterval = null;
-        }
         currentViewTaskId = null;
     }, 200);
 }
-
-// --- Timer Control Functions ---
-function updateLiveTimerDisplay(taskId) {
-    const task = tasks.find(t => t.id === taskId);
-    if (!task || !task.timerIsRunning || task.completed) {
-        if (currentTaskTimerInterval) clearInterval(currentTaskTimerInterval);
-        currentTaskTimerInterval = null;
-        // If task is completed while timer was running, ensure display shows final accumulated.
-        if (task && task.completed && task.actualDurationMs) {
-             viewTaskTimerDisplay.textContent = formatMillisecondsToHMS(task.actualDurationMs);
-        }
-        return;
-    }
-    const now = Date.now();
-    const elapsedSinceStart = now - (task.timerStartTime || now);
-    const currentDisplayTime = (task.timerAccumulatedTime || 0) + elapsedSinceStart;
-    viewTaskTimerDisplay.textContent = formatMillisecondsToHMS(currentDisplayTime);
-}
-
-
-function handleStartTimer() {
-    if (!currentViewTaskId) return;
-    const taskIndex = tasks.findIndex(t => t.id === currentViewTaskId);
-    if (taskIndex === -1) return;
-    const task = tasks[taskIndex];
-
-    if (task.completed || task.actualDurationMs > 0) return; // Don't start if completed or already recorded
-
-    task.timerIsRunning = true;
-    task.timerIsPaused = false;
-    task.timerStartTime = Date.now(); // For current segment or if resuming from pause where accumulated is set
-    // If resuming, timerAccumulatedTime is already set. If fresh start, it's 0.
-
-    if (currentTaskTimerInterval) clearInterval(currentTaskTimerInterval);
-    currentTaskTimerInterval = setInterval(() => updateLiveTimerDisplay(task.id), 1000);
-    updateLiveTimerDisplay(task.id); // Immediate update
-
-    saveTasks();
-    updateTimerControlsUI(task);
-}
-
-function handlePauseTimer() {
-    if (!currentViewTaskId) return;
-    const taskIndex = tasks.findIndex(t => t.id === currentViewTaskId);
-    if (taskIndex === -1 || !tasks[taskIndex].timerIsRunning) return;
-    const task = tasks[taskIndex];
-
-    if (currentTaskTimerInterval) clearInterval(currentTaskTimerInterval);
-    currentTaskTimerInterval = null;
-
-    const elapsed = Date.now() - (task.timerStartTime || Date.now());
-    task.timerAccumulatedTime = (task.timerAccumulatedTime || 0) + elapsed;
-    task.timerIsRunning = false;
-    task.timerIsPaused = true;
-    task.timerStartTime = null;
-
-    viewTaskTimerDisplay.textContent = formatMillisecondsToHMS(task.timerAccumulatedTime); // Show paused time
-    saveTasks();
-    updateTimerControlsUI(task);
-}
-
-function handleStopTimer(taskIdToStop) {
-    const id = taskIdToStop || currentViewTaskId;
-    if (!id) return;
-    const taskIndex = tasks.findIndex(t => t.id === id);
-    if (taskIndex === -1) return;
-    const task = tasks[taskIndex];
-
-    if (currentTaskTimerInterval) clearInterval(currentTaskTimerInterval);
-    currentTaskTimerInterval = null;
-
-    if (task.timerIsRunning) {
-        const elapsed = Date.now() - (task.timerStartTime || Date.now());
-        task.timerAccumulatedTime = (task.timerAccumulatedTime || 0) + elapsed;
-    }
-    
-    task.actualDurationMs = task.timerAccumulatedTime || 0;
-    task.timerIsRunning = false;
-    task.timerIsPaused = false;
-    task.timerStartTime = null;
-    // task.timerAccumulatedTime = 0; // Reset for future potential runs, or keep it to show last run time?
-                                    // For now, actualDurationMs is the record. Let's keep accumulatedTime for display.
-
-    viewTaskTimerDisplay.textContent = formatMillisecondsToHMS(task.actualDurationMs);
-    saveTasks();
-    
-    // Only update modal UI if the details modal for this task is currently open
-    if (currentViewTaskId === id && !viewTaskDetailsModal.classList.contains('hidden')) {
-        updateTimerControlsUI(task);
-    }
-}
-
-
-function updateTimerControlsUI(task) {
-    if (!task || !viewTaskStartTimerBtn || !viewTaskPauseTimerBtn || !viewTaskStopTimerBtn || !viewTaskActualDuration) return;
-
-    if (task.completed) { // If task is marked completed
-        timerButtonsContainer.classList.add('hidden');
-        viewTaskActualDuration.textContent = task.actualDurationMs > 0 ? formatMillisecondsToHMS(task.actualDurationMs) : "Not recorded (completed).";
-        viewTaskTimerDisplay.textContent = task.actualDurationMs > 0 ? formatMillisecondsToHMS(task.actualDurationMs) : "00:00:00";
-        return;
-    }
-    
-    timerButtonsContainer.classList.remove('hidden');
-
-    if (task.actualDurationMs > 0) { // Timer has been run and stopped previously
-        viewTaskStartTimerBtn.classList.add('hidden');
-        viewTaskPauseTimerBtn.classList.add('hidden');
-        viewTaskStopTimerBtn.classList.add('hidden');
-        viewTaskTimerDisplay.textContent = formatMillisecondsToHMS(task.actualDurationMs);
-        viewTaskActualDuration.textContent = `Recorded: ${formatMillisecondsToHMS(task.actualDurationMs)}`;
-    } else if (task.timerIsRunning) {
-        viewTaskStartTimerBtn.classList.add('hidden');
-        viewTaskPauseTimerBtn.classList.remove('hidden');
-        viewTaskStopTimerBtn.classList.remove('hidden');
-        viewTaskActualDuration.textContent = "Timer running...";
-    } else if (task.timerIsPaused) {
-        viewTaskStartTimerBtn.classList.remove('hidden');
-        viewTaskStartTimerBtn.textContent = 'Resume';
-        viewTaskPauseTimerBtn.classList.add('hidden');
-        viewTaskStopTimerBtn.classList.remove('hidden');
-        viewTaskActualDuration.textContent = "Timer paused.";
-    } else { // Not started yet
-        viewTaskStartTimerBtn.classList.remove('hidden');
-        viewTaskStartTimerBtn.textContent = 'Start';
-        viewTaskPauseTimerBtn.classList.add('hidden');
-        viewTaskStopTimerBtn.classList.add('hidden'); // Can't stop if not started/paused
-        viewTaskActualDuration.textContent = "Not yet recorded.";
-        viewTaskTimerDisplay.textContent = "00:00:00";
-    }
-}
-
 
 // --- Modal Functions (Manage Labels) ---
 function openManageLabelsModal() {
     populateManageLabelsList();
     manageLabelsModal.classList.remove('hidden');
-    setTimeout(() => {
+        setTimeout(() => {
         modalDialogManageLabels.classList.remove('scale-95', 'opacity-0');
         modalDialogManageLabels.classList.add('scale-100', 'opacity-100');
     }, 10);
@@ -744,6 +577,7 @@ function loadFeatureFlags() {
 }
 
 function applyActiveFeatures() {
+    // Test Button Feature
     if (testFeatureButtonContainer && testFeatureButton) {
         testFeatureButtonContainer.classList.toggle('hidden', !featureFlags.testButtonFeature);
         const textSpan = testFeatureButton.querySelector('.sidebar-text-content');
@@ -762,7 +596,7 @@ function applyActiveFeatures() {
         if (reminderOptionsViewEdit) reminderOptionsViewEdit.classList.add('hidden');
     } else {
         if (modalRemindMeAdd && addTaskModal && !addTaskModal.classList.contains('hidden')) {
-            reminderOptionsAdd.classList.toggle('hidden', !modalRemindMeAdd.checked);
+                reminderOptionsAdd.classList.toggle('hidden', !modalRemindMeAdd.checked);
         }
         if (modalRemindMeViewEdit && viewEditTaskModal && !viewEditTaskModal.classList.contains('hidden')) {
             reminderOptionsViewEdit.classList.toggle('hidden', !modalRemindMeViewEdit.checked);
@@ -903,6 +737,13 @@ function renderTasks() {
         if (task.priority) { const priorityBadge = document.createElement('span'); priorityBadge.textContent = task.priority; priorityBadge.className = `priority-badge ${getPriorityClass(task.priority)}`; detailsContainer.appendChild(priorityBadge); }
         if (task.label) { const labelBadge = document.createElement('span'); labelBadge.textContent = task.label; labelBadge.className = 'label-badge'; detailsContainer.appendChild(labelBadge); }
         if (task.dueDate) { const dueDateSpan = document.createElement('span'); dueDateSpan.className = 'text-slate-500 dark:text-slate-400 flex items-center'; let dateDisplay = formatDate(task.dueDate); if (task.time) { dateDisplay += ` ${formatTime(task.time)}`; } dueDateSpan.innerHTML = `<i class="far fa-calendar-alt mr-1"></i> ${dateDisplay}`; detailsContainer.appendChild(dueDateSpan); }
+        // Optionally display estimated duration on task item - for now, keeping it in details view only
+        // if (task.estimatedHours || task.estimatedMinutes) {
+        // const estDurationSpan = document.createElement('span');
+        // estDurationSpan.className = 'text-slate-500 dark:text-slate-400 flex items-center';
+        // estDurationSpan.innerHTML = `<i class="far fa-clock mr-1"></i> ${formatDuration(task.estimatedHours, task.estimatedMinutes)}`;
+        // detailsContainer.appendChild(estDurationSpan);
+        // }
         if (detailsContainer.hasChildNodes()) { textDetailsDiv.appendChild(detailsContainer); }
 
 
@@ -998,8 +839,8 @@ function handleAddTask(event) {
     const rawTaskText = modalTaskInputAdd.value.trim();
     const explicitDueDate = modalDueDateInputAdd.value;
     const time = modalTimeInputAdd.value;
-    const estHours = parseInt(modalEstHoursAdd.value) || 0;
-    const estMinutes = parseInt(modalEstMinutesAdd.value) || 0;
+    const estHours = parseInt(modalEstHoursAdd.value) || 0; // New
+    const estMinutes = parseInt(modalEstMinutesAdd.value) || 0; // New
     const priority = modalPriorityInputAdd.value;
     const label = modalLabelInputAdd.value.trim();
     const notes = modalNotesInputAdd.value.trim();
@@ -1038,18 +879,12 @@ function handleAddTask(event) {
     const newTask = {
         id: Date.now(), text: finalTaskText, completed: false,
         dueDate: finalDueDate, time: time || null,
-        estimatedHours: estHours, estimatedMinutes: estMinutes,
+        estimatedHours: estHours, estimatedMinutes: estMinutes, // New
         priority: priority, label: label || '', notes: notes || '',
         isReminderSet: featureFlags.reminderFeature ? isReminderSet : false,
         reminderDate: featureFlags.reminderFeature && isReminderSet ? reminderDate : null,
         reminderTime: featureFlags.reminderFeature && isReminderSet ? reminderTime : null,
-        reminderEmail: featureFlags.reminderFeature && isReminderSet ? reminderEmail : null,
-        // Timer properties
-        timerStartTime: null,
-        timerAccumulatedTime: 0,
-        timerIsRunning: false,
-        timerIsPaused: false,
-        actualDurationMs: 0
+        reminderEmail: featureFlags.reminderFeature && isReminderSet ? reminderEmail : null
     };
     tasks.unshift(newTask);
     saveTasks();
@@ -1065,8 +900,8 @@ function handleEditTask(event) {
     const taskText = modalTaskInputViewEdit.value.trim();
     const dueDate = modalDueDateInputViewEdit.value;
     const time = modalTimeInputViewEdit.value;
-    const estHours = parseInt(modalEstHoursViewEdit.value) || 0;
-    const estMinutes = parseInt(modalEstMinutesViewEdit.value) || 0;
+    const estHours = parseInt(modalEstHoursViewEdit.value) || 0; // New
+    const estMinutes = parseInt(modalEstMinutesViewEdit.value) || 0; // New
     const priority = modalPriorityInputViewEdit.value;
     const label = modalLabelInputViewEdit.value.trim();
     const notes = modalNotesInputViewEdit.value.trim();
@@ -1081,7 +916,7 @@ function handleEditTask(event) {
         reminderDate = modalReminderDateViewEdit.value;
         reminderTime = modalReminderTimeViewEdit.value;
         reminderEmail = modalReminderEmailViewEdit.value.trim();
-        if (isReminderSet) {
+            if (isReminderSet) {
             if (!reminderDate) { showMessage('Please select a reminder date.', 'error'); modalReminderDateViewEdit.focus(); return; }
             if (!reminderTime) { showMessage('Please select a reminder time.', 'error'); modalReminderTimeViewEdit.focus(); return; }
             if (!reminderEmail) { showMessage('Please enter an email for the reminder.', 'error'); modalReminderEmailViewEdit.focus(); return; }
@@ -1093,13 +928,12 @@ function handleEditTask(event) {
 
     tasks = tasks.map(task => task.id === taskId ? {
         ...task, text: taskText, dueDate: dueDate || null, time: time || null,
-        estimatedHours: estHours, estimatedMinutes: estMinutes,
+        estimatedHours: estHours, estimatedMinutes: estMinutes, // New
         priority: priority, label: label || '', notes: notes || '',
         isReminderSet: featureFlags.reminderFeature ? isReminderSet : false,
         reminderDate: featureFlags.reminderFeature && isReminderSet ? reminderDate : null,
         reminderTime: featureFlags.reminderFeature && isReminderSet ? reminderTime : null,
         reminderEmail: featureFlags.reminderFeature && isReminderSet ? reminderEmail : null
-        // Timer properties are not edited here, only through timer controls
     } : task );
     saveTasks();
     renderTasks();
@@ -1107,34 +941,8 @@ function handleEditTask(event) {
     showMessage('Task updated successfully!', 'success');
 }
 
-function toggleComplete(taskId) {
-    const taskIndex = tasks.findIndex(t => t.id === taskId);
-    if (taskIndex === -1) return;
-
-    tasks[taskIndex].completed = !tasks[taskIndex].completed;
-
-    // If task is being marked completed and timer was running/paused, stop it.
-    if (tasks[taskIndex].completed && (tasks[taskIndex].timerIsRunning || tasks[taskIndex].timerIsPaused)) {
-        handleStopTimer(taskId); // This will also save tasks
-    } else {
-        saveTasks();
-    }
-    renderTasks();
-     // If the details modal for this task is open, update its timer controls
-    if (currentViewTaskId === taskId && !viewTaskDetailsModal.classList.contains('hidden')) {
-        updateTimerControlsUI(tasks[taskIndex]);
-    }
-}
-function deleteTask(taskId) {
-    if (currentViewTaskId === taskId && currentTaskTimerInterval) {
-        clearInterval(currentTaskTimerInterval);
-        currentTaskTimerInterval = null;
-    }
-    tasks = tasks.filter(task => task.id !== taskId);
-    saveTasks();
-    renderTasks();
-    showMessage('Task deleted.', 'error');
-}
+function toggleComplete(taskId) { tasks = tasks.map(task => task.id === taskId ? { ...task, completed: !task.completed } : task); saveTasks(); renderTasks(); }
+function deleteTask(taskId) { tasks = tasks.filter(task => task.id !== taskId); saveTasks(); renderTasks(); showMessage('Task deleted.', 'error'); }
 function setFilter(filter) { currentFilter = filter; currentSort = 'default'; updateSortButtonStates(); smartViewButtons.forEach(button => { const isActive = button.dataset.filter === filter; button.setAttribute('data-active', isActive.toString()); const baseInactive = ['bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600']; const iconInactive = ['text-slate-500', 'dark:text-slate-400']; const active = ['bg-sky-500', 'text-white', 'font-semibold']; const iconActive = ['text-sky-100']; button.classList.remove(...baseInactive, ...active); button.querySelector('i')?.classList.remove(...iconInactive, ...iconActive); if (isActive) { button.classList.add(...active); button.querySelector('i')?.classList.add(...iconActive); } else { button.classList.add(...baseInactive); button.querySelector('i')?.classList.add(...iconInactive); } }); renderTasks(); }
 
 function updateClearCompletedButtonState() {
@@ -1145,8 +953,8 @@ function updateClearCompletedButtonState() {
         settingsClearCompletedBtn.classList.add('bg-red-50', 'hover:bg-red-100', 'text-red-700', 'dark:bg-red-900/50', 'dark:hover:bg-red-800/70', 'dark:text-red-300');
     } else {
         settingsClearCompletedBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        settingsClearCompletedBtn.classList.remove('bg-red-50', 'hover:bg-red-100', 'text-red-700', 'dark:bg-red-900/50', 'dark:hover:bg-red-800/70', 'dark:text-red-300');
-        settingsClearCompletedBtn.classList.add('bg-slate-100', 'text-slate-400', 'dark:bg-slate-700', 'dark:text-slate-500');
+            settingsClearCompletedBtn.classList.remove('bg-red-50', 'hover:bg-red-100', 'text-red-700', 'dark:bg-red-900/50', 'dark:hover:bg-red-800/70', 'dark:text-red-300');
+            settingsClearCompletedBtn.classList.add('bg-slate-100', 'text-slate-400', 'dark:bg-slate-700', 'dark:text-slate-500');
     }
 }
 
@@ -1192,18 +1000,10 @@ closeViewEditModalBtn.addEventListener('click', closeViewEditModal);
 cancelViewEditModalBtn.addEventListener('click', closeViewEditModal);
 modalTodoFormViewEdit.addEventListener('submit', handleEditTask);
 viewEditTaskModal.addEventListener('click', (event) => { if (event.target === viewEditTaskModal) closeViewEditModal(); });
-
 closeViewDetailsModalBtn.addEventListener('click', closeViewTaskDetailsModal);
 closeViewDetailsSecondaryBtn.addEventListener('click', closeViewTaskDetailsModal);
 editFromViewModalBtn.addEventListener('click', () => { if (currentViewTaskId !== null) { closeViewTaskDetailsModal(); openViewEditModal(currentViewTaskId); } });
 viewTaskDetailsModal.addEventListener('click', (event) => { if (event.target === viewTaskDetailsModal) closeViewTaskDetailsModal(); });
-
-// Timer button event listeners
-if(viewTaskStartTimerBtn) viewTaskStartTimerBtn.addEventListener('click', handleStartTimer);
-if(viewTaskPauseTimerBtn) viewTaskPauseTimerBtn.addEventListener('click', handlePauseTimer);
-if(viewTaskStopTimerBtn) viewTaskStopTimerBtn.addEventListener('click', () => handleStopTimer());
-
-
 if (closeManageLabelsModalBtn) closeManageLabelsModalBtn.addEventListener('click', closeManageLabelsModal);
 if (closeManageLabelsSecondaryBtn) closeManageLabelsSecondaryBtn.addEventListener('click', closeManageLabelsModal);
 if (addNewLabelForm) addNewLabelForm.addEventListener('submit', handleAddNewLabel);
@@ -1251,20 +1051,7 @@ document.addEventListener('keydown', (event) => {
 });
 
 // --- Initial Setup ---
-function initializeTasks() {
-    tasks = tasks.map(task => ({
-        ...task,
-        timerStartTime: task.timerStartTime || null,
-        timerAccumulatedTime: task.timerAccumulatedTime || 0,
-        timerIsRunning: task.timerIsRunning || false,
-        timerIsPaused: task.timerIsPaused || false,
-        actualDurationMs: task.actualDurationMs || 0
-    }));
-}
-
-
 loadFeatureFlags();
-initializeTasks(); // Ensure all tasks have timer properties
 updateUniqueLabels();
 smartViewButtons.forEach(button => { button.classList.add('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600'); button.querySelector('i')?.classList.add('text-slate-500', 'dark:text-slate-400'); });
 
@@ -1278,7 +1065,6 @@ if (savedSidebarState === 'minimized') {
 setFilter(currentFilter);
 window.onload = () => {
     loadFeatureFlags();
-    initializeTasks(); // Ensure all tasks have timer properties on load
     applyActiveFeatures();
     setFilter(currentFilter);
     if (localStorage.getItem('sidebarState') === 'minimized') {
