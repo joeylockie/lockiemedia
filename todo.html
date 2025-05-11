@@ -969,20 +969,23 @@
         let editingTaskId = null;
         let currentViewTaskId = null;
         let tooltipTimeout = null;
-        let uniqueLabels = [];
-        let featureFlags = JSON.parse(localStorage.getItem('featureFlags_v1')) || {
-            testButtonFeature: false,
-            reminderFeature: false,
-            taskTimerSystem: false,
-            advancedRecurrence: false,
-            fileAttachments: false,
-            integrationsServices: false,
-            userAccounts: false,
-            collaborationSharing: false,
-            crossDeviceSync: false,
-            tooltipsGuide: false // New
-        };
-        let currentTaskTimerInterval = null;
+// --- Application State ---
+// ... (other variables like tasks, currentFilter, etc.)
+let uniqueLabels = [];
+// Default feature flags, will be overridden by the JSON file if successfully loaded
+let featureFlags = {
+    testButtonFeature: false,
+    reminderFeature: false,
+    taskTimerSystem: false,
+    advancedRecurrence: false,
+    fileAttachments: false,
+    integrationsServices: false,
+    userAccounts: false,
+    collaborationSharing: false,
+    crossDeviceSync: false,
+    tooltipsGuide: false
+};
+let currentTaskTimerInterval = null;
 
 
         // --- Theme Management ---
@@ -1649,39 +1652,37 @@
             showMessage(`Feature "${displayName}" ${isEnabled ? 'enabled' : 'disabled'}.`, 'success');
         }
 
-        function saveFeatureFlags() {
-            localStorage.setItem('featureFlags_v1', JSON.stringify(featureFlags));
+// function saveFeatureFlags() {
+//     localStorage.setItem('featureFlags_v1', JSON.stringify(featureFlags));
+// }
+// (The loadFeatureFlags function below this line will be changed in the next step)
+
+// Updated loadFeatureFlags function
+async function loadFeatureFlags() {
+    try {
+        // If your features.json is in a subdirectory like 'config', change this to 'config/features.json'
+        const response = await fetch('features.json?cachebust=' + new Date().getTime()); // Added cache busting
+
+        if (!response.ok) {
+            console.error('Failed to load features.json, using default flags. Status:', response.status);
+            // The 'featureFlags' object will retain its default values defined earlier
+            return; 
         }
 
-        function loadFeatureFlags() {
-            const storedFlags = localStorage.getItem('featureFlags_v1');
-            let updated = false;
-            if (storedFlags) {
-                featureFlags = JSON.parse(storedFlags);
-            }
-            const defaultFlags = {
-                testButtonFeature: false,
-                reminderFeature: false,
-                taskTimerSystem: false,
-                advancedRecurrence: false,
-                fileAttachments: false,
-                integrationsServices: false,
-                userAccounts: false,
-                collaborationSharing: false,
-                crossDeviceSync: false,
-                tooltipsGuide: false // New
-            };
-            for (const flagKey in defaultFlags) {
-                if (typeof featureFlags[flagKey] === 'undefined') {
-                    featureFlags[flagKey] = defaultFlags[flagKey];
-                    updated = true;
-                }
-            }
-            if (updated) {
-                saveFeatureFlags();
-            }
-        }
+        const fetchedFlags = await response.json();
 
+        // Merge fetched flags with the initial default flags.
+        // This ensures any new flags added to the code but not yet in features.json get a default value.
+        // And flags from features.json will override the initial defaults.
+        featureFlags = { ...featureFlags, ...fetchedFlags };
+
+        console.log('Feature flags loaded from features.json:', featureFlags);
+
+    } catch (error) {
+        console.error('Error loading or parsing features.json, using default flags:', error);
+        // The 'featureFlags' object will retain its default values in case of an error
+    }
+}
         // Applies UI changes based on the current state of feature flags
         function applyActiveFeatures() {
             const toggleElements = (selector, isEnabled) => {
@@ -2267,34 +2268,45 @@
                 actualDurationMs: task.actualDurationMs || 0,
                 attachments: task.attachments || [] // Ensure attachments array exists
             }));
-        }
+       // ... (end of initializeTasks function around line 1125)
+}
+
+// REMOVE OR COMMENT OUT THESE LINES:
+// loadFeatureFlags();
+// initializeTasks();
+// updateUniqueLabels();
+// smartViewButtons.forEach(button => { /* ... */ });
+
+// const savedSidebarState = localStorage.getItem('sidebarState');
+// if (savedSidebarState === 'minimized') { /* ... */ } else { /* ... */ }
 
 
-        loadFeatureFlags();
-        initializeTasks();
-        updateUniqueLabels();
-        smartViewButtons.forEach(button => { button.classList.add('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600'); button.querySelector('i')?.classList.add('text-slate-500', 'dark:text-slate-400'); });
+// Make window.onload an async function
+window.onload = async () => { 
+    // Load feature flags first and wait for them to complete
+    await loadFeatureFlags(); 
 
-        const savedSidebarState = localStorage.getItem('sidebarState');
-        if (savedSidebarState === 'minimized') {
-            setSidebarMinimized(true);
-        } else {
-            setSidebarMinimized(false);
-        }
+    // Now that flags are loaded, proceed with other initializations
+    initializeTasks(); 
+    updateUniqueLabels(); // Moved this here
+    applyActiveFeatures(); // This must run AFTER flags are loaded
 
-        window.onload = () => {
-            loadFeatureFlags();
-            initializeTasks();
-            applyActiveFeatures();
-            setFilter(currentFilter);
-            if (localStorage.getItem('sidebarState') === 'minimized') {
-                setSidebarMinimized(true);
-            } else {
-                setSidebarMinimized(false);
-            }
-            updateSortButtonStates();
-            updateClearCompletedButtonState();
-        };
+    smartViewButtons.forEach(button => { 
+        button.classList.add('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600'); 
+        button.querySelector('i')?.classList.add('text-slate-500', 'dark:text-slate-400'); 
+    });
+
+    const savedSidebarState = localStorage.getItem('sidebarState');
+    if (savedSidebarState === 'minimized') {
+        setSidebarMinimized(true);
+    } else {
+        setSidebarMinimized(false); // Default to expanded
+    }
+
+    setFilter(currentFilter); 
+    updateSortButtonStates();
+    updateClearCompletedButtonState();
+};
     </script>
 </body>
 </html>
