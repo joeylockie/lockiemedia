@@ -171,7 +171,8 @@ body { font-family: 'Inter', sans-serif; }
 .user-accounts-element,
 .collaboration-sharing-element,
 .cross-device-sync-element,
-.tooltips-guide-element /* New */
+.tooltips-guide-element, /* New */
+.sub-tasks-feature-element /* ADDED FOR SUB-TASKS */
 { display: block; } /* Default, JS hides if feature off */
 
 
