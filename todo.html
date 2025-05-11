@@ -102,7 +102,6 @@
                         <input type="email" id="modalReminderEmailAdd" placeholder="Enter email for reminder" class="w-full p-3 border-2 bg-white text-slate-900 placeholder-slate-400 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-shadow duration-300 dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-400 dark:border-slate-600">
                     </div>
                 </div>
-
                 <div class="mt-4 file-attachments-element">
                     <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Attachments (Coming Soon)</label>
                     <div class="file-input-placeholder">
@@ -210,7 +209,6 @@
                         <input type="email" id="modalReminderEmailViewEdit" placeholder="Enter email for reminder" class="w-full p-3 border-2 bg-white text-slate-900 placeholder-slate-400 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-shadow duration-300 dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-400 dark:border-slate-600">
                     </div>
                 </div>
-
                 <div class="mt-4 file-attachments-element">
                     <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Attachments (Coming Soon)</label>
                     <div class="file-input-placeholder">
@@ -226,7 +224,7 @@
                         <button type="button" id="modalAddSubTaskBtnViewEdit" class="px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors font-medium text-sm">Add</button>
                     </div>
                     <ul id="modalSubTasksListViewEdit" class="space-y-2 max-h-40 overflow-y-auto">
-                        </ul>
+                         </ul>
                 </div>
                 <div class="mt-4">
                     <label for="modalNotesInputViewEdit" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Notes</label>
@@ -342,7 +340,7 @@
                         </div>
                     </div>
                 </div>
-            </div>
+                </div>
             <div class="mt-6 flex justify-end gap-3">
                 <button type="button" id="editFromViewModalBtn" class="px-5 py-2.5 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors font-semibold">Edit Task</button>
                 <button type="button" id="deleteFromViewModalBtn" class="px-5 py-2.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-semibold">Delete Task</button>
@@ -414,7 +412,8 @@
                 <button type="submit" class="bg-sky-500 hover:bg-sky-600 text-white font-semibold p-2.5 rounded-lg shadow-md">Add</button>
             </form>
             <h4 class="text-lg font-medium text-slate-700 dark:text-slate-200 mb-2">Existing Labels:</h4>
-            <ul id="existingLabelsList" class="max-h-60 overflow-y-auto space-y-1 pr-1"></ul>
+            <ul id="existingLabelsList" class="max-h-60 overflow-y-auto space-y-1 pr-1">
+                </ul>
             <div class="mt-6 flex justify-end">
                 <button type="button" id="closeManageLabelsSecondaryBtn" class="px-5 py-2.5 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500 transition-colors font-medium">Close</button>
             </div>
@@ -541,8 +540,7 @@
                             <i class="fas fa-cog mr-0"></i> <span class="sidebar-text-content ml-2">Settings</span>
                         </button>
                     </div>
-                    <div id="testFeatureButtonContainer" class="hidden mt-2">
-                        <button
+                    <div id="testFeatureButtonContainer" class="hidden mt-2"> <button
                             id="testFeatureButton"
                             title="Test Feature Button"
                             class="bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2.5 px-3 md:px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 ease-in-out transform hover:-translate-y-0.5 w-full flex items-center sidebar-button-icon-only justify-center"
@@ -568,7 +566,8 @@
                         </button>
                     </div>
                 </div>
-                <ul id="taskList" class="space-y-3 sm:space-y-3.5"></ul>
+                <ul id="taskList" class="space-y-3 sm:space-y-3.5">
+                    </ul>
                 <p id="emptyState" class="text-center text-slate-500 dark:text-slate-400 mt-8 py-5 hidden">No tasks yet. Add some!</p>
                 <p id="noMatchingTasks" class="text-center text-slate-500 dark:text-slate-400 mt-8 py-5 hidden">No tasks match the current filter or search.</p>
             </main>
@@ -578,8 +577,9 @@
     <footer class="text-center text-slate-400 dark:text-slate-500 mt-10 sm:mt-12 mb-6 text-sm">
         <p>LockieMedia &copy; 2025</p>
     </footer>
-    
+
 <script src="app_logic.js"></script>
-<script src="ui_interactions.js"></script>
+<script src="feature_test_button.js"></script>
+<script src="feature_reminder.js"></script> <script src="ui_interactions.js"></script>
 </body>
 </html>
