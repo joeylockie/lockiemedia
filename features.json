@@ -1,13 +1,13 @@
 {
   "testButtonFeature": false,
   "reminderFeature": false,
-  "taskTimerSystem": true,
-  "advancedRecurrence": false,
+  "taskTimerSystem": false,
+  "advancedRecurrence": true,
   "fileAttachments": false,
   "integrationsServices": false,
   "userAccounts": false,
   "collaborationSharing": false,
   "crossDeviceSync": false,
   "tooltipsGuide": true,
-  "subTasksFeature": true
+  "subTasksFeature": false
 }
