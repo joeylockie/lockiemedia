@@ -641,39 +641,67 @@
         </div>
     </div>
 
-        <div id="settingsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-opacity-70 overflow-y-auto h-full w-full flex items-center justify-center hidden z-[180]">
-    <div class="relative mx-auto p-5 sm:p-6 border w-full max-w-md shadow-xl rounded-xl bg-white dark:bg-slate-800 transform transition-all duration-300 ease-in-out scale-95 opacity-0" id="modalDialogSettings">
-        <div class="flex justify-between items-center pb-3 mb-4 border-b border-slate-200 dark:border-slate-700">
-            <h3 class="text-2xl font-semibold text-slate-800 dark:text-slate-100">Settings</h3>
-            <button id="closeSettingsModalBtn" type="button" class="text-slate-400 hover:text-slate-600 dark:text-slate-300 dark:hover:text-slate-100 transition-colors p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700" aria-label="Close modal">
-                <i class="fas fa-times fa-lg"></i>
-            </button>
-        </div>
-        <div class="space-y-3">
-            <button id="settingsTooltipsGuideBtn" type="button" class="settings-modal-button ...">
-                <i class="fas fa-question-circle"></i> Tooltips Guide
-            </button>
-            <button id="settingsTaskReviewBtn" type="button" class="settings-modal-button ...">
-                <i class="fas fa-history"></i> Task Review
-            </button>
-            <button id="settingsClearCompletedBtn" type="button" class="settings-modal-button ...">
-                <i class="fas fa-eraser"></i> Clear Completed Tasks
-            </button>
-            <button id="settingsManageLabelsBtn" type="button" class="settings-modal-button ...">
-                <i class="fas fa-tags"></i> Manage Labels
-            </button>
-            <button id="settingsManageRemindersBtn" type="button" class="settings-modal-button ...">
-                <i class="fas fa-bell"></i> Manage Reminders
-            </button>
-            <button id="settingsIntegrationsBtn" type="button" class="settings-modal-button ...">
-                <i class="fas fa-cogs"></i> Integrations (Soon)
-            </button>
+  <div id="settingsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-opacity-70 overflow-y-auto h-full w-full flex items-center justify-center hidden z-[180]">
+        <div class="relative mx-auto p-5 sm:p-6 border w-full max-w-md shadow-xl rounded-xl bg-white dark:bg-slate-800 transform transition-all duration-300 ease-in-out scale-95 opacity-0" id="modalDialogSettings">
+            <div class="flex justify-between items-center pb-3 mb-4 border-b border-slate-200 dark:border-slate-700">
+                <h3 class="text-2xl font-semibold text-slate-800 dark:text-slate-100">Settings</h3>
+                <button id="closeSettingsModalBtn" type="button" class="text-slate-400 hover:text-slate-600 dark:text-slate-300 dark:hover:text-slate-100 transition-colors p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700" aria-label="Close modal">
+                    <i class="fas fa-times fa-lg"></i>
+                </button>
             </div>
-        <div class="mt-6 flex justify-end">
-            <button type="button" id="closeSettingsSecondaryBtn" class="px-5 py-2.5 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500 transition-colors font-medium">Close</button>
+            <div class="space-y-3">
+                <button id="settingsTooltipsGuideBtn" type="button" class="settings-modal-button bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:hover:bg-blue-800/70 dark:text-blue-300 tooltips-guide-element">
+                    <i class="fas fa-question-circle"></i> Tooltips Guide
+                </button>
+                 <button id="settingsTaskReviewBtn" type="button" class="settings-modal-button bg-cyan-50 hover:bg-cyan-100 text-cyan-700 dark:bg-cyan-900/50 dark:hover:bg-cyan-800/70 dark:text-cyan-300 task-timer-system-element">
+                    <i class="fas fa-history"></i> Task Review
+                </button>
+                <button id="settingsClearCompletedBtn" type="button" class="settings-modal-button bg-red-50 hover:bg-red-100 text-red-700 dark:bg-red-900/50 dark:hover:bg-red-800/70 dark:text-red-300">
+                    <i class="fas fa-eraser"></i> Clear Completed Tasks
+                </button>
+                <button id="settingsManageLabelsBtn" type="button" class="settings-modal-button bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:hover:bg-indigo-800/70 dark:text-indigo-300">
+                    <i class="fas fa-tags"></i> Manage Labels
+                </button>
+                <button id="settingsManageRemindersBtn" type="button" class="settings-modal-button bg-teal-50 hover:bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:hover:bg-teal-800/70 dark:text-teal-300 reminder-feature-element">
+                    <i class="fas fa-bell"></i> Manage Reminders
+                </button>
+
+                <button id="settingsIntegrationsBtn" type="button" class="settings-modal-button bg-orange-50 hover:bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:hover:bg-orange-800/70 dark:text-orange-300 integrations-services-element">
+                    <i class="fas fa-cogs"></i> Integrations (Soon)
+                </button>
+                <button id="settingsUserAccountsBtn" type="button" class="settings-modal-button bg-lime-50 hover:bg-lime-100 text-lime-700 dark:bg-lime-900/50 dark:hover:bg-lime-800/70 dark:text-lime-300 user-accounts-element">
+                    <i class="fas fa-users"></i> User Accounts (Soon)
+                </button>
+                <button id="settingsCollaborationBtn" type="button" class="settings-modal-button bg-fuchsia-50 hover:bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/50 dark:hover:bg-fuchsia-800/70 dark:text-fuchsia-300 collaboration-sharing-element">
+                    <i class="fas fa-share-alt"></i> Collaboration (Soon)
+                </button>
+                <button id="settingsSyncBackupBtn" type="button" class="settings-modal-button bg-sky-50 hover:bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:hover:bg-sky-800/70 dark:text-sky-300 cross-device-sync-element">
+                    <i class="fas fa-sync-alt"></i> Sync & Backup (Soon)
+                </button>
+
+                <button id="settingsFeatureFlagsBtn" type="button" class="settings-modal-button bg-purple-50 hover:bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:hover:bg-purple-800/70 dark:text-purple-300">
+                    <i class="fas fa-flag"></i> Manage Feature Flags
+                </button>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button type="button" id="closeSettingsSecondaryBtn" class="px-5 py-2.5 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500 transition-colors font-medium">Close</button>
+            </div>
         </div>
     </div>
-</div>
+    <div id="featureFlagsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-opacity-70 overflow-y-auto h-full w-full flex items-center justify-center hidden z-[190]">
+        <div class="relative mx-auto p-5 sm:p-6 border w-full max-w-md shadow-xl rounded-xl bg-white dark:bg-slate-800 transform transition-all duration-300 ease-in-out scale-95 opacity-0" id="modalDialogFeatureFlags">
+            <div class="flex justify-between items-center pb-3 mb-4 border-b border-slate-200 dark:border-slate-700">
+                <h3 class="text-2xl font-semibold text-slate-800 dark:text-slate-100">Manage Feature Flags</h3>
+                <button id="closeFeatureFlagsModalBtn" type="button" class="text-slate-400 hover:text-slate-600 dark:text-slate-300 dark:hover:text-slate-100 transition-colors p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700" aria-label="Close modal">
+                    <i class="fas fa-times fa-lg"></i>
+                </button>
+            </div>
+            <div id="featureFlagsListContainer" class="space-y-2">
+                </div>
+            <div class="mt-6 flex justify-end">
+                <button type="button" id="closeFeatureFlagsSecondaryBtn" class="px-5 py-2.5 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500 transition-colors font-medium">Done</button>
+            </div>
+        </div>
     </div>
 
     <div class="w-full max-w-6xl mx-auto">
