@@ -1,5 +1,5 @@
 {
-  "testButtonFeature": false,
+  "testButtonFeature": true,
   "reminderFeature": false,
   "taskTimerSystem": false,
   "advancedRecurrence": false,
