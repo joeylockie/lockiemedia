@@ -134,3 +134,10 @@ body { font-family: 'Inter', sans-serif; }
 .dark .toggle-checkbox:checked + .toggle-label::after {
     background-color: white !important;
 }
+
+/* Optional: Styles for timer buttons if needed */
+/*
+.timer-btn {
+    min-width: 70px;
+}
+*/
