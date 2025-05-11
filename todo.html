@@ -928,10 +928,10 @@
     </footer>
 
     <script>
-        // --- DOM Elements ---
+        // --- DOM Elements (Declared ONCE) ---
         // Sidebar elements
         const taskSidebar = document.getElementById('taskSidebar');
-        // --- DOM Elements ---
+// --- DOM Elements (Declared ONCE) ---
         // Sidebar elements
         const taskSidebar = document.getElementById('taskSidebar');
         const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
@@ -941,13 +941,13 @@
         const iconTooltip = document.getElementById('iconTooltip');
 
         // Main content elements
-        const mainContentTitle = document.getElementById('mainContentTitle'); // Added
-        const sortButtonsContainer = document.getElementById('sortButtonsContainer'); // Added
+        const mainContentTitle = document.getElementById('mainContentTitle');
+        const sortButtonsContainer = document.getElementById('sortButtonsContainer');
         const sortByDueDateBtn = document.getElementById('sortByDueDateBtn');
         const sortByPriorityBtn = document.getElementById('sortByPriorityBtn');
         const sortByLabelBtn = document.getElementById('sortByLabelBtn');
         const taskSearchInput = document.getElementById('taskSearchInput');
-        const taskListContainer = document.getElementById('taskListContainer'); // Added
+        const taskListContainer = document.getElementById('taskListContainer');
         const taskList = document.getElementById('taskList');
         const emptyState = document.getElementById('emptyState');
         const noMatchingTasks = document.getElementById('noMatchingTasks');
@@ -1885,7 +1885,10 @@
 
         // --- Kanban Board Functions --- START
         function updateMainViewUI() {
-            if (!mainContentTitle || !taskListContainer || !kanbanBoardView || !sortButtonsContainer || !toggleKanbanViewBtn || !kanbanViewIcon || !kanbanViewText) return;
+            if (!mainContentTitle || !taskListContainer || !kanbanBoardView || !sortButtonsContainer || !toggleKanbanViewBtn || !kanbanViewIcon || !kanbanViewText) {
+                console.error("A required UI element for view switching is missing.");
+                return;
+            }
 
             if (isKanbanViewActive && featureFlags.kanbanBoard) {
                 mainContentTitle.textContent = "Kanban Board";
@@ -1927,48 +1930,44 @@
         function renderKanbanBoard() {
             if (!kanbanBoardView || !featureFlags.kanbanBoard) return; // Do nothing if feature is off or view not ready
 
-            loadKanbanColumnNames(); // Make sure we have the latest or default names
+            loadKanbanColumnNames();
             document.querySelectorAll('.kanban-column').forEach(columnElem => {
                 const columnId = columnElem.dataset.columnId;
                 const headerElem = columnElem.querySelector('.kanban-column-header');
 
                 if (headerElem) {
-                    headerElem.textContent = kanbanColumns[columnId] || columnId.charAt(0).toUpperCase() + columnId.slice(1); // Default if somehow not in kanbanColumns
+                    headerElem.textContent = kanbanColumns[columnId] || columnId.charAt(0).toUpperCase() + columnId.slice(1);
                     headerElem.setAttribute('contenteditable', 'true');
 
-                    // To prevent duplicate listeners, clone and replace, or manage listeners more carefully.
-                    // For simplicity in this context, cloning and replacing is straightforward if performance isn't critical.
-                    // However, a more robust solution would be to attach listeners once and ensure they reference current state.
-                    // For now, we'll re-attach, assuming 'renderKanbanBoard' might be called in ways that require it.
-                    // A better way: only add these listeners ONCE during an init phase for the board elements.
-                    // For now, let's ensure they are fresh if the element is re-created or if this is the first setup.
-                    const oldBlurHandler = headerElem._blurHandler;
-                    if (oldBlurHandler) headerElem.removeEventListener('blur', oldBlurHandler);
-                    const oldKeydownHandler = headerElem._keydownHandler;
-                    if (oldKeydownHandler) headerElem.removeEventListener('keydown', oldKeydownHandler);
+                    // Simplified listener attachment: Remove if exists, then add.
+                    // This is a pragmatic way to avoid duplicates without complex management,
+                    // assuming renderKanbanBoard() is the primary function setting these up.
+                    const newHeaderElem = headerElem.cloneNode(true); // Clone to remove old listeners
+                    headerElem.parentNode.replaceChild(newHeaderElem, headerElem);
 
-                    headerElem._blurHandler = (e) => {
+
+                    const blurHandler = (e) => {
                         const newName = e.target.textContent.trim();
                         if (newName && newName !== kanbanColumns[columnId]) {
                             kanbanColumns[columnId] = newName;
                             saveKanbanColumnNames();
                             showMessage(`Column "${columnId}" renamed to "${newName}".`, 'success');
                         } else {
-                            e.target.textContent = kanbanColumns[columnId]; // Revert if empty or unchanged
+                            e.target.textContent = kanbanColumns[columnId];
                         }
                     };
-                    headerElem.addEventListener('blur', headerElem._blurHandler);
+                    newHeaderElem.addEventListener('blur', blurHandler);
 
-                    headerElem._keydownHandler = (e) => {
+                    const keydownHandler = (e) => {
                         if (e.key === 'Enter') {
                             e.preventDefault();
-                            e.target.blur(); // Trigger blur to save
+                            e.target.blur();
                         } else if (e.key === 'Escape') {
-                            e.target.textContent = kanbanColumns[columnId]; // Revert
+                            e.target.textContent = kanbanColumns[columnId];
                             e.target.blur();
                         }
                     };
-                    headerElem.addEventListener('keydown', headerElem._keydownHandler);
+                    newHeaderElem.addEventListener('keydown', keydownHandler);
                 }
 
                 const tasksContainer = columnElem.querySelector('.kanban-column-tasks');
@@ -1977,40 +1976,35 @@
                 }
             });
 
-            // Distribute tasks to columns
             const todoTasksContainer = document.querySelector('[data-column-tasks-id="todo-tasks"]');
             const inprogressTasksContainer = document.querySelector('[data-column-tasks-id="inprogress-tasks"]');
             const doneTasksContainer = document.querySelector('[data-column-tasks-id="done-tasks"]');
 
             if (!todoTasksContainer || !inprogressTasksContainer || !doneTasksContainer) {
-                console.error("One or more Kanban column task containers not found.");
+                console.error("One or more Kanban column task containers not found for rendering tasks.");
                 return;
             }
             
-            let filteredForKanban = tasks; // Apply search/filter if needed for Kanban
+            let filteredForKanban = tasks;
             if (currentSearchTerm) {
                  filteredForKanban = tasks.filter(task => task.text.toLowerCase().includes(currentSearchTerm));
             }
 
-
             filteredForKanban.forEach(task => {
-                // Ensure tasks have a column ID, defaulting if necessary
                 if (!task.hasOwnProperty('kanbanColumnId') || !['todo', 'inprogress', 'done'].includes(task.kanbanColumnId)) {
                     task.kanbanColumnId = task.completed ? 'done' : 'todo';
                 }
-                const taskCard = createTaskCard(task);
+                const taskCard = createTaskCard(task); // createTaskCard also adds its own click listener
                 if (task.kanbanColumnId === 'todo') {
                     todoTasksContainer.appendChild(taskCard);
                 } else if (task.kanbanColumnId === 'inprogress') {
                     inprogressTasksContainer.appendChild(taskCard);
                 } else if (task.kanbanColumnId === 'done') {
                     doneTasksContainer.appendChild(taskCard);
-                } else { // Fallback if columnId is unknown, though the above check should prevent this
-                    todoTasksContainer.appendChild(taskCard);
                 }
             });
 
-            addDragAndDropListeners(); // Call to set up drag/drop on newly rendered cards/columns
+            addDragAndDropListeners();
         }
 
         function createTaskCard(task) {
@@ -2049,11 +2043,10 @@
                 card.appendChild(detailsDiv);
             }
 
+            // Add click listener to open modal
             card.addEventListener('click', (event) => {
-                // Avoid opening modal if a sub-element that might have its own action was clicked,
-                // or if the card was part of a drag operation (browsers often suppress click during drag).
-                if (event.target.closest('button')) return; // Example if cards had action buttons
-                openViewEditModal(parseInt(task.id)); // Or openViewTaskDetailsModal(task.id)
+                if (event.target.closest('button')) return; // Ignore clicks on buttons within the card if any
+                openViewEditModal(parseInt(task.id));
             });
             return card;
         }
@@ -2067,16 +2060,14 @@
             const storedNames = localStorage.getItem(KANBAN_COLUMNS_STORAGE_KEY);
             if (storedNames) {
                 const parsedNames = JSON.parse(storedNames);
-                // Ensure all default columns exist, even if not in localStorage (e.g., after clearing storage)
                 kanbanColumns = {
                     todo: parsedNames.todo || "To Do",
                     inprogress: parsedNames.inprogress || "In Progress",
                     done: parsedNames.done || "Done"
                 };
             } else {
-                // Set default if nothing is stored
                 kanbanColumns = { todo: "To Do", inprogress: "In Progress", done: "Done" };
-                saveKanbanColumnNames(); // Save defaults if they were just set
+                saveKanbanColumnNames();
             }
         }
 
@@ -2085,29 +2076,46 @@
             const columnTaskAreas = document.querySelectorAll('.kanban-column-tasks');
 
             taskCards.forEach(card => {
-                // A simple way to avoid duplicate listeners if this function is called multiple times on same elements
-                // More robust would be to manage listeners state or use .cloneNode(true) approach carefully if elements are stable
-                if (card._dragListenersAttached) return;
-                card._dragListenersAttached = true;
+                // If we re-render cards often, cloning to remove listeners might be needed here too,
+                // or ensure listeners are added only once per card's lifecycle.
+                // For simplicity, assuming renderKanbanBoard creates fresh cards, so direct attachment is okay.
+                // But if cards were merely updated, one might need the cloneNode strategy.
+                const newCard = card.cloneNode(true); // Clone to effectively remove listeners
+                card.parentNode.replaceChild(newCard, card); // Replace old card with new one
 
-                card.addEventListener('dragstart', (e) => {
-                    draggedTask = card;
-                    e.dataTransfer.setData('text/plain', card.dataset.taskId);
-                    setTimeout(() => card.classList.add('dragging'), 0); // For visual feedback
+                newCard.addEventListener('dragstart', (e) => {
+                    draggedTask = newCard;
+                    e.dataTransfer.setData('text/plain', newCard.dataset.taskId);
+                    setTimeout(() => newCard.classList.add('dragging'), 0);
                 });
 
-                card.addEventListener('dragend', () => {
-                    card.classList.remove('dragging');
+                newCard.addEventListener('dragend', () => {
+                    newCard.classList.remove('dragging');
                     draggedTask = null;
                 });
+
+                 // Re-add click listener to the new card
+                const taskId = parseInt(newCard.dataset.taskId);
+                const task = tasks.find(t => t.id === taskId); // Find task data
+                if (task) { // Make sure task exists
+                    newCard.addEventListener('click', (event) => {
+                        if (event.target.closest('button')) return;
+                        openViewEditModal(task.id);
+                    });
+                }
             });
 
             columnTaskAreas.forEach(area => {
-                if (area._dropListenersAttached) return;
+                // Similar to cards, if areas are stable, attach once. If re-created, this is fine.
+                // Cloning column areas frequently could be disruptive to their children.
+                // Let's assume the column areas themselves are stable and only their children (tasks) are re-rendered.
+                // If listeners stack up, this needs refinement (e.g., cloneNode(false) and re-append tasks, or flag)
+                // For now, using a flag to prevent re-attachment on the same identified element.
+                if (area._dropListenersAttached) return; // Prevent re-attaching to the same DOM element instance
                 area._dropListenersAttached = true;
 
                 area.addEventListener('dragover', (e) => {
-                    e.preventDefault(); // Necessary to allow dropping
+                    e.preventDefault();
                     area.classList.add('dragover-active');
                 });
 
@@ -2117,7 +2125,7 @@
 
                 area.addEventListener('drop', (e) => {
                     e.preventDefault();
-                    area.classList.remove('dragover-active'); // Remove highlight
+                    area.classList.remove('dragover-active');
                     if (draggedTask) {
                         const targetColumnId = area.dataset.columnTasksId.replace('-tasks', '');
                         const taskId = parseInt(draggedTask.dataset.taskId);
@@ -2125,17 +2133,16 @@
                         const taskIndex = tasks.findIndex(t => t.id === taskId);
                         if (taskIndex > -1) {
                             tasks[taskIndex].kanbanColumnId = targetColumnId;
-                            // If dragged to "Done", mark as completed. If dragged out of "Done", mark incomplete.
                             if (targetColumnId === 'done' && !tasks[taskIndex].completed) {
                                 tasks[taskIndex].completed = true;
                                 if (featureFlags.taskTimerSystem && (tasks[taskIndex].timerIsRunning || tasks[taskIndex].timerIsPaused)) {
-                                    handleStopTimer(taskId); // Stop timer if it was running/paused
+                                    handleStopTimer(taskId);
                                 }
                             } else if (targetColumnId !== 'done' && tasks[taskIndex].completed) {
                                 tasks[taskIndex].completed = false;
                             }
                             saveTasks();
-                            renderKanbanBoard(); // Re-render the board to reflect the change
+                            renderKanbanBoard();
                             showMessage(`Task moved to "${kanbanColumns[targetColumnId] || targetColumnId}".`, 'success');
                         }
                         draggedTask = null;
@@ -2157,7 +2164,7 @@
         function showMessage(message, type = 'success') { messageBox.textContent = message; messageBox.className = 'message-box'; if (type === 'success') { messageBox.classList.add('bg-green-100', 'text-green-800', 'dark:bg-green-700', 'dark:text-green-100'); } else { messageBox.classList.add('bg-red-100', 'text-red-800', 'dark:bg-red-700', 'dark:text-red-100'); } messageBox.style.display = 'block'; messageBox.style.zIndex = '200'; setTimeout(() => { messageBox.style.display = 'none'; }, 3000); }
         function saveTasks() {
             localStorage.setItem('todos_v3', JSON.stringify(tasks));
-            updateUniqueLabels(); // Keep this for label datalists
+            updateUniqueLabels();
         }
         function getPriorityClass(priority) { switch (priority) { case 'high': return 'bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100'; case 'medium': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-600 dark:text-yellow-100'; case 'low': return 'bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100'; default: return 'bg-slate-100 text-slate-700 dark:bg-slate-600 dark:text-slate-200'; } }
 
@@ -2184,13 +2191,11 @@
         }
 
         function renderTasks() {
-            // If Kanban view is active and the feature is enabled, render that instead.
             if (isKanbanViewActive && featureFlags.kanbanBoard) {
-                // renderKanbanBoard(); // Kanban view will handle its own rendering triggered by updateMainViewUI
-                return; // Important: Stop list rendering if Kanban is active
+                // updateMainViewUI will call renderKanbanBoard if needed, so just return
+                return;
             }
 
-            // Proceed with list view rendering
             taskList.innerHTML = '';
             let filteredTasks = [];
             const todayDate = new Date();
@@ -2218,7 +2223,6 @@
                 filteredTasks = filteredTasks.filter(task => task.text.toLowerCase().includes(currentSearchTerm));
             }
 
-            // Sorting logic (remains unchanged for list view)
             const priorityOrder = { high: 1, medium: 2, low: 3 };
             if (currentSort === 'dueDate') {
                 filteredTasks.sort((a, b) => {
@@ -2246,7 +2250,6 @@
                     const labelB = (b.label || '').toLowerCase();
                     if (labelA < labelB) return -1;
                     if (labelA > labelB) return 1;
-                    // Secondary sort by due date if labels are the same
                     if (!a.dueDate && !b.dueDate) return 0;
                     if (!a.dueDate) return 1;
                     if (!b.dueDate) return -1;
@@ -2256,7 +2259,6 @@
                 });
             }
 
-
             emptyState.classList.toggle('hidden', tasks.length !== 0);
             noMatchingTasks.classList.toggle('hidden', !(tasks.length > 0 && filteredTasks.length === 0));
 
@@ -2264,74 +2266,40 @@
                 const li = document.createElement('li');
                 li.className = `task-item flex items-start justify-between bg-slate-100 dark:bg-slate-700 p-3 sm:p-3.5 rounded-lg shadow hover:shadow-md transition-shadow duration-300 ${task.completed ? 'opacity-60' : ''} overflow-hidden`;
                 li.dataset.taskId = task.id;
-
                 const mainContentClickableArea = document.createElement('div');
-                mainContentClickableArea.className = 'task-item-clickable-area flex items-start flex-grow min-w-0 mr-2 rounded-l-lg'; // min-w-0 helps with flex item truncation
+                mainContentClickableArea.className = 'task-item-clickable-area flex items-start flex-grow min-w-0 mr-2 rounded-l-lg';
                 mainContentClickableArea.addEventListener('click', (event) => {
-                    // Prevent modal opening if checkbox or action buttons inside task-item are clicked
-                    if (event.target.type === 'checkbox' || event.target.closest('.task-actions')) {
-                        return;
-                    }
+                    if (event.target.type === 'checkbox' || event.target.closest('.task-actions')) { return; }
                     openViewTaskDetailsModal(task.id);
                 });
-
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
                 checkbox.checked = task.completed;
                 checkbox.className = 'form-checkbox h-5 w-5 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 dark:focus:ring-sky-500 mt-0.5 mr-2 sm:mr-3 cursor-pointer flex-shrink-0';
                 checkbox.addEventListener('change', () => toggleComplete(task.id));
-
                 const textDetailsDiv = document.createElement('div');
-                textDetailsDiv.className = 'flex flex-col'; // Allow text and details to stack
-
+                textDetailsDiv.className = 'flex flex-col';
                 const span = document.createElement('span');
                 span.textContent = task.text;
                 let textColorClass = task.completed ? 'text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-200';
-                span.className = `text-sm sm:text-base break-all ${textColorClass} ${task.completed ? 'completed-text' : ''}`; // break-all for long words
+                span.className = `text-sm sm:text-base break-all ${textColorClass} ${task.completed ? 'completed-text' : ''}`;
                 textDetailsDiv.appendChild(span);
-
-                // Details container for priority, label, due date
                 const detailsContainer = document.createElement('div');
-                detailsContainer.className = 'flex items-center flex-wrap gap-x-2 gap-y-1 mt-1 sm:mt-1.5 text-xs'; // flex-wrap for smaller screens
-
-                if (task.priority) {
-                    const priorityBadge = document.createElement('span');
-                    priorityBadge.textContent = task.priority;
-                    priorityBadge.className = `priority-badge ${getPriorityClass(task.priority)}`;
-                    detailsContainer.appendChild(priorityBadge);
-                }
-                if (task.label) {
-                    const labelBadge = document.createElement('span');
-                    labelBadge.textContent = task.label;
-                    labelBadge.className = 'label-badge';
-                    detailsContainer.appendChild(labelBadge);
-                }
-                if (task.dueDate) {
-                    const dueDateSpan = document.createElement('span');
-                    dueDateSpan.className = 'text-slate-500 dark:text-slate-400 flex items-center';
-                    let dateDisplay = formatDate(task.dueDate);
-                    if (task.time) { dateDisplay += ` ${formatTime(task.time)}`; }
-                    dueDateSpan.innerHTML = `<i class="far fa-calendar-alt mr-1"></i> ${dateDisplay}`;
-                    detailsContainer.appendChild(dueDateSpan);
-                }
-                 if (featureFlags.fileAttachments && task.attachments && task.attachments.length > 0) {
+                detailsContainer.className = 'flex items-center flex-wrap gap-x-2 gap-y-1 mt-1 sm:mt-1.5 text-xs';
+                if (task.priority) { const priorityBadge = document.createElement('span'); priorityBadge.textContent = task.priority; priorityBadge.className = `priority-badge ${getPriorityClass(task.priority)}`; detailsContainer.appendChild(priorityBadge); }
+                if (task.label) { const labelBadge = document.createElement('span'); labelBadge.textContent = task.label; labelBadge.className = 'label-badge'; detailsContainer.appendChild(labelBadge); }
+                if (task.dueDate) { const dueDateSpan = document.createElement('span'); dueDateSpan.className = 'text-slate-500 dark:text-slate-400 flex items-center'; let dateDisplay = formatDate(task.dueDate); if (task.time) { dateDisplay += ` ${formatTime(task.time)}`; } dueDateSpan.innerHTML = `<i class="far fa-calendar-alt mr-1"></i> ${dateDisplay}`; detailsContainer.appendChild(dueDateSpan); }
+                if (featureFlags.fileAttachments && task.attachments && task.attachments.length > 0) {
                     const attachmentSpan = document.createElement('span');
-                    attachmentSpan.className = 'text-slate-500 dark:text-slate-400 flex items-center file-attachments-element'; // Ensure class for hiding if feature off
+                    attachmentSpan.className = 'text-slate-500 dark:text-slate-400 flex items-center file-attachments-element';
                     attachmentSpan.innerHTML = `<i class="fas fa-paperclip mr-1"></i> ${task.attachments.length}`;
                     detailsContainer.appendChild(attachmentSpan);
                 }
-
-
-                if (detailsContainer.hasChildNodes()) {
-                    textDetailsDiv.appendChild(detailsContainer);
-                }
-
+                if (detailsContainer.hasChildNodes()) { textDetailsDiv.appendChild(detailsContainer); }
                 mainContentClickableArea.appendChild(checkbox);
                 mainContentClickableArea.appendChild(textDetailsDiv);
-
                 const actionsDiv = document.createElement('div');
-                actionsDiv.className = 'task-actions flex-shrink-0 self-start'; // self-start aligns to top
-
+                actionsDiv.className = 'task-actions flex-shrink-0 self-start';
                 const editButton = document.createElement('button');
                 editButton.className = 'task-action-btn text-sky-500 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-500';
                 editButton.innerHTML = '<i class="fas fa-pencil-alt"></i>';
@@ -2339,7 +2307,6 @@
                 editButton.title = 'Edit task';
                 editButton.addEventListener('click', () => openViewEditModal(task.id));
                 actionsDiv.appendChild(editButton);
-
                 const deleteButton = document.createElement('button');
                 deleteButton.className = 'task-action-btn text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-500';
                 deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
@@ -2347,7 +2314,6 @@
                 deleteButton.title = 'Delete task';
                 deleteButton.addEventListener('click', () => deleteTask(task.id));
                 actionsDiv.appendChild(deleteButton);
-
                 li.appendChild(mainContentClickableArea);
                 li.appendChild(actionsDiv);
                 taskList.appendChild(li);
@@ -2358,77 +2324,49 @@
         function parseDateFromText(text) {
             let parsedDate = null;
             let remainingText = text;
-
             const today = new Date();
-            today.setHours(0, 0, 0, 0); // Normalize today to the start of the day
-
+            today.setHours(0, 0, 0, 0);
             const daysOfWeek = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
             const shortDaysOfWeek = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
-
-            // Patterns to match date expressions
             const patterns = [
-                // Matches "today"
                 { regex: /\b(today)\b/i, handler: () => getTodayDateString() },
-                // Matches "tomorrow"
                 { regex: /\b(tomorrow)\b/i, handler: () => { const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1); return tomorrow.toISOString().split('T')[0]; }},
-                // Matches "next week" (assuming start of next week, e.g., Monday)
                 { regex: /\b(next week)\b/i, handler: () => { const nextWeek = new Date(today); nextWeek.setDate(today.getDate() - today.getDay() + 1 + 7); return nextWeek.toISOString().split('T')[0]; }},
-                // Matches "next month"
                 { regex: /\b(next month)\b/i, handler: () => { const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1); return nextMonth.toISOString().split('T')[0]; }},
-                 // Matches "next year"
                 { regex: /\b(next year)\b/i, handler: () => { const nextYear = new Date(today.getFullYear() + 1, 0, 1); return nextYear.toISOString().split('T')[0]; }},
-                // Matches "next Monday", "Tuesday", "on Sat", etc.
                 { regex: new RegExp(`\\b(on\\s+)?(next\\s+)?(${daysOfWeek.join('|')}|${shortDaysOfWeek.join('|')})\\b`, 'i'),
                     handler: (match) => {
                         const dayName = match[3].toLowerCase();
                         let targetDayIndex = daysOfWeek.indexOf(dayName);
                         if (targetDayIndex === -1) targetDayIndex = shortDaysOfWeek.indexOf(dayName);
-                        if (targetDayIndex === -1) return null; // Should not happen with the regex
-
+                        if (targetDayIndex === -1) return null;
                         const currentDayIndex = today.getDay();
                         let daysToAdd = targetDayIndex - currentDayIndex;
-
-                        // If "next" is specified, or if the target day has passed this week, or it's today but we mean *next* week's today
-                        if (match[2] /* next */ || daysToAdd < 0 || (daysToAdd === 0 && new Date().getHours() > 0 /* if it's today but later in the day, assume next week's day */ )) {
-                            daysToAdd += 7;
-                        }
-                        // if it's the same day of the week, and "next" is not specified, and it's not for later today (which is covered above)
-                        // then it means *this* day.
-                        if (targetDayIndex === currentDayIndex && !match[2] && daysToAdd !== 7) {
-                            daysToAdd = 0;
-                        }
-
+                        if (match[2] || daysToAdd < 0 || (daysToAdd === 0 && new Date().getHours() > 0 )) daysToAdd += 7;
+                        if (targetDayIndex === currentDayIndex && !match[2] && daysToAdd !== 7) daysToAdd = 0;
                         const targetDate = new Date(today);
                         targetDate.setDate(today.getDate() + daysToAdd);
                         return targetDate.toISOString().split('T')[0];
                     }
                 },
-                // Matches YYYY-MM-DD or YYYY/MM/DD
                 { regex: /(\d{4}[-\/]\d{1,2}[-\/]\d{1,2})/g, handler: (match) => match[0].replace(/\//g, '-') },
-                // Matches MM/DD/YYYY or MM-DD-YYYY or MM/DD/YY or MM-DD-YY
                 { regex: /(\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})/g, handler: (match) => {
-                    const parts = match[0].replace(/-/g, '/').split('/'); // Standardize to /
+                    const parts = match[0].replace(/-/g, '/').split('/');
                     const year = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
                     const month = parts[0].padStart(2, '0');
                     const day = parts[1].padStart(2, '0');
                     return `${year}-${month}-${day}`;
                 }}
             ];
-
             for (const pattern of patterns) {
                 const match = pattern.regex.exec(remainingText);
                 if (match) {
                     const potentialDate = pattern.handler(match);
-                    // Validate the parsed date string
                     if (potentialDate && !isNaN(new Date(potentialDate).getTime())) {
                         parsedDate = potentialDate;
-                        // Attempt to remove the matched date phrase from the text
-                        // This is a bit tricky due to optional words like "on", "due", "for", "by"
                         const matchedString = match[0];
-                        // Create a regex to remove the date phrase, including optional preceding keywords
-                        // This regex is simplified and might need refinement for complex cases
                         remainingText = remainingText.replace(new RegExp(`\\b(for|on|by|due)?\\s*${matchedString.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*`, 'i'), '').replace(/\s\s+/g, ' ').trim();
-                        break; // Stop after the first successful match
+                        break;
                     }
                 }
             }
@@ -2448,7 +2386,6 @@
             const priority = modalPriorityInputAdd.value;
             const label = modalLabelInputAdd.value.trim();
             const notes = modalNotesInputAdd.value.trim();
-
             let isReminderSet = false, reminderDate = null, reminderTime = null, reminderEmail = null;
             if (featureFlags.reminderFeature) {
                 isReminderSet = modalRemindMeAdd.checked;
@@ -2462,47 +2399,33 @@
                     if (!/^\S+@\S+\.\S+$/.test(reminderEmail)) { showMessage('Please enter a valid email address.', 'error'); modalReminderEmailAdd.focus(); return; }
                 }
             }
-
-
             if (rawTaskText === '') { showMessage('Task description cannot be empty!', 'error'); modalTaskInputAdd.focus(); return; }
-
-            // Date parsing logic
-            let finalDueDate = null;
-            let finalTaskText = rawTaskText;
-
-            if (!explicitDueDate) { // Only parse from text if no explicit date is set
+            let finalDueDate = null, finalTaskText = rawTaskText;
+            if (!explicitDueDate) {
                 const { parsedDate: dateFromDescription, remainingText: textAfterDateRemoval } = parseDateFromText(rawTaskText);
                 if (dateFromDescription) {
                     finalDueDate = dateFromDescription;
-                    finalTaskText = textAfterDateRemoval || rawTaskText; // Use remaining text, or original if removal failed
+                    finalTaskText = textAfterDateRemoval || rawTaskText;
                 }
             } else {
                 finalDueDate = explicitDueDate;
             }
-
             const newTask = {
-                id: Date.now(),
-                text: finalTaskText,
-                completed: false,
-                dueDate: finalDueDate,
-                time: time || null,
+                id: Date.now(), text: finalTaskText, completed: false,
+                dueDate: finalDueDate, time: time || null,
                 estimatedHours: featureFlags.taskTimerSystem ? estHours : 0,
                 estimatedMinutes: featureFlags.taskTimerSystem ? estMinutes : 0,
-                priority: priority,
-                label: label || '',
-                notes: notes || '',
+                priority: priority, label: label || '', notes: notes || '',
                 isReminderSet: featureFlags.reminderFeature ? isReminderSet : false,
                 reminderDate: featureFlags.reminderFeature && isReminderSet ? reminderDate : null,
                 reminderTime: featureFlags.reminderFeature && isReminderSet ? reminderTime : null,
                 reminderEmail: featureFlags.reminderFeature && isReminderSet ? reminderEmail : null,
                 timerStartTime: null, timerAccumulatedTime: 0, timerIsRunning: false, timerIsPaused: false, actualDurationMs: 0,
-                attachments: [], // Initialize attachments for new tasks
+                attachments: [],
                 kanbanColumnId: 'todo' // Default new tasks to 'todo' column
             };
-
             tasks.unshift(newTask);
             saveTasks();
-
             if (isKanbanViewActive && featureFlags.kanbanBoard) {
                 renderKanbanBoard();
             } else if (currentFilter === 'completed') {
@@ -2510,7 +2433,6 @@
             } else {
                 renderTasks();
             }
-
             closeAddModal();
             showMessage('Task added successfully!', 'success');
         }
@@ -2529,7 +2451,6 @@
             const priority = modalPriorityInputViewEdit.value;
             const label = modalLabelInputViewEdit.value.trim();
             const notes = modalNotesInputViewEdit.value.trim();
-
             let isReminderSet = false, reminderDate = null, reminderTime = null, reminderEmail = null;
             if (featureFlags.reminderFeature) {
                 isReminderSet = modalRemindMeViewEdit.checked;
@@ -2543,29 +2464,19 @@
                     if (!/^\S+@\S+\.\S+$/.test(reminderEmail)) { showMessage('Please enter a valid email address.', 'error'); modalReminderEmailViewEdit.focus(); return; }
                 }
             }
-
             if (taskText === '') { showMessage('Task description cannot be empty!', 'error'); modalTaskInputViewEdit.focus(); return; }
-
-            tasks = tasks.map(task =>
-                task.id === taskId ? {
-                    ...task,
-                    text: taskText,
-                    dueDate: dueDate || null,
-                    time: time || null,
-                    estimatedHours: featureFlags.taskTimerSystem ? estHours : task.estimatedHours,
-                    estimatedMinutes: featureFlags.taskTimerSystem ? estMinutes : task.estimatedMinutes,
-                    priority: priority,
-                    label: label || '',
-                    notes: notes || '',
-                    isReminderSet: featureFlags.reminderFeature ? isReminderSet : false,
-                    reminderDate: featureFlags.reminderFeature && isReminderSet ? reminderDate : null,
-                    reminderTime: featureFlags.reminderFeature && isReminderSet ? reminderTime : null,
-                    reminderEmail: featureFlags.reminderFeature && isReminderSet ? reminderEmail : null,
-                    attachments: task.attachments || [], // Ensure attachments array is preserved
-                    // Kanban column ID should ideally be preserved unless completion status changes it
-                    kanbanColumnId: task.kanbanColumnId || (task.completed ? 'done' : 'todo')
-                } : task
-            );
+            tasks = tasks.map(task => task.id === taskId ? {
+                ...task, text: taskText, dueDate: dueDate || null, time: time || null,
+                estimatedHours: featureFlags.taskTimerSystem ? estHours : task.estimatedHours,
+                estimatedMinutes: featureFlags.taskTimerSystem ? estMinutes : task.estimatedMinutes,
+                priority: priority, label: label || '', notes: notes || '',
+                isReminderSet: featureFlags.reminderFeature ? isReminderSet : false,
+                reminderDate: featureFlags.reminderFeature && isReminderSet ? reminderDate : null,
+                reminderTime: featureFlags.reminderFeature && isReminderSet ? reminderTime : null,
+                reminderEmail: featureFlags.reminderFeature && isReminderSet ? reminderEmail : null,
+                attachments: task.attachments || [],
+                kanbanColumnId: task.kanbanColumnId || (task.completed ? 'done' : 'todo')
+            } : task );
             saveTasks();
             if (isKanbanViewActive && featureFlags.kanbanBoard) {
                 renderKanbanBoard();
@@ -2579,22 +2490,17 @@
         function toggleComplete(taskId) {
             const taskIndex = tasks.findIndex(t => t.id === taskId);
             if (taskIndex === -1) return;
-
             tasks[taskIndex].completed = !tasks[taskIndex].completed;
 
-            // If Kanban is active, also update its column based on completion status
-            // And if it's being moved to 'done', ensure timer is stopped.
             if (featureFlags.kanbanBoard) {
                 tasks[taskIndex].kanbanColumnId = tasks[taskIndex].completed ? 'done' : (tasks[taskIndex].kanbanColumnId === 'done' ? 'todo' : tasks[taskIndex].kanbanColumnId);
                 if (tasks[taskIndex].completed && featureFlags.taskTimerSystem && (tasks[taskIndex].timerIsRunning || tasks[taskIndex].timerIsPaused)) {
-                     handleStopTimer(taskId); // Stop timer if task is completed
+                     handleStopTimer(taskId);
                 }
             } else if (tasks[taskIndex].completed && featureFlags.taskTimerSystem && (tasks[taskIndex].timerIsRunning || tasks[taskIndex].timerIsPaused)) {
-                 handleStopTimer(taskId); // Also stop timer if completed in list view
+                 handleStopTimer(taskId);
             }
-
-
-            saveTasks(); // Save tasks after all modifications
+            saveTasks();
 
             if (isKanbanViewActive && featureFlags.kanbanBoard) {
                 renderKanbanBoard();
@@ -2602,12 +2508,10 @@
                 renderTasks();
             }
 
-            // If the task being toggled is currently open in the details modal, update its timer UI
             if (featureFlags.taskTimerSystem && currentViewTaskId === taskId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) {
                 updateTimerControlsUI(tasks[taskIndex]);
             }
         }
-
         function deleteTask(taskId) {
             if (featureFlags.taskTimerSystem && currentViewTaskId === taskId && currentTaskTimerInterval) {
                 clearInterval(currentTaskTimerInterval);
@@ -2622,26 +2526,19 @@
             }
             showMessage('Task deleted.', 'error');
         }
-
         function setFilter(filter) {
             currentFilter = filter;
-            currentSort = 'default'; // Reset sort when changing filter
-            updateSortButtonStates(); // Update button styles
-
+            currentSort = 'default';
+            updateSortButtonStates();
             smartViewButtons.forEach(button => {
                 const isActive = button.dataset.filter === filter;
-                button.setAttribute('data-active', isActive.toString()); // For potential CSS targeting
-                // Define class lists for active/inactive states
+                button.setAttribute('data-active', isActive.toString());
                 const baseInactive = ['bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600'];
                 const iconInactive = ['text-slate-500', 'dark:text-slate-400'];
                 const activeClasses = ['bg-sky-500', 'text-white', 'font-semibold'];
                 const iconActiveClasses = ['text-sky-100'];
-
-                // Remove all potentially conflicting classes first
                 button.classList.remove(...baseInactive, ...activeClasses);
                 button.querySelector('i')?.classList.remove(...iconInactive, ...iconActiveClasses);
-
-                // Add the correct classes based on active state
                 if (isActive) {
                     button.classList.add(...activeClasses);
                     button.querySelector('i')?.classList.add(...iconActiveClasses);
@@ -2650,14 +2547,10 @@
                     button.querySelector('i')?.classList.add(...iconInactive);
                 }
             });
-
-            // This will call either renderTasks or renderKanbanBoard via updateMainViewUI
             if (isKanbanViewActive && featureFlags.kanbanBoard) {
-                // For Kanban, filters might not directly apply to columns in this simple setup,
-                // but a search term might. Let renderKanbanBoard handle task population.
                 renderKanbanBoard();
             } else {
-                renderTasks(); // For list view, filters are applied directly.
+                renderTasks();
             }
         }
 
@@ -2676,10 +2569,7 @@
 
         function clearCompletedTasks() {
             const completedCount = tasks.filter(task => task.completed).length;
-            if (completedCount === 0) {
-                showMessage('No completed tasks to clear.', 'error');
-                return;
-            }
+            if (completedCount === 0) { showMessage('No completed tasks to clear.', 'error'); return; }
             tasks = tasks.filter(task => !task.completed);
             saveTasks();
             if (isKanbanViewActive && featureFlags.kanbanBoard) {
@@ -2690,7 +2580,6 @@
             showMessage(`${completedCount} completed task(s) cleared.`, 'success');
             closeSettingsModal();
         }
-
         function updateSortButtonStates() {
             sortByDueDateBtn.classList.toggle('sort-btn-active', currentSort === 'dueDate');
             sortByPriorityBtn.classList.toggle('sort-btn-active', currentSort === 'priority');
@@ -2709,34 +2598,29 @@
                 if(featureFlags.reminderFeature) {
                     reminderOptionsAdd.classList.toggle('hidden', !modalRemindMeAdd.checked);
                     if (modalRemindMeAdd.checked) {
-                        // Auto-populate reminder date/time from due date/time if available and reminder fields are empty
                         if (modalDueDateInputAdd.value && !modalReminderDateAdd.value) modalReminderDateAdd.value = modalDueDateInputAdd.value;
                         if (modalTimeInputAdd.value && !modalReminderTimeAdd.value) modalReminderTimeAdd.value = modalTimeInputAdd.value;
-                        // Set min date for reminder
                         const today = new Date();
                         modalReminderDateAdd.min = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
                     }
                 } else {
-                    reminderOptionsAdd.classList.add('hidden'); // Ensure it's hidden if feature is off
+                    reminderOptionsAdd.classList.add('hidden');
                 }
             });
         }
-
         if (modalRemindMeViewEdit) {
             modalRemindMeViewEdit.addEventListener('change', () => {
                 if(featureFlags.reminderFeature) {
                     reminderOptionsViewEdit.classList.toggle('hidden', !modalRemindMeViewEdit.checked);
                     if (modalRemindMeViewEdit.checked) {
-                        // Set min date for reminder
                         const today = new Date();
                         modalReminderDateViewEdit.min = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
                     }
                 } else {
-                    reminderOptionsViewEdit.classList.add('hidden'); // Ensure it's hidden if feature is off
+                    reminderOptionsViewEdit.classList.add('hidden');
                 }
             });
         }
-
         closeViewEditModalBtn.addEventListener('click', closeViewEditModal);
         cancelViewEditModalBtn.addEventListener('click', closeViewEditModal);
         modalTodoFormViewEdit.addEventListener('submit', handleEditTask);
@@ -2744,41 +2628,30 @@
 
         closeViewDetailsModalBtn.addEventListener('click', closeViewTaskDetailsModal);
         closeViewDetailsSecondaryBtn.addEventListener('click', closeViewTaskDetailsModal);
-        editFromViewModalBtn.addEventListener('click', () => {
-            if (currentViewTaskId !== null) {
-                closeViewTaskDetailsModal();
-                openViewEditModal(currentViewTaskId);
-            }
-        });
-        if(deleteFromViewModalBtn) { // Ensure button exists
+        editFromViewModalBtn.addEventListener('click', () => { if (currentViewTaskId !== null) { closeViewTaskDetailsModal(); openViewEditModal(currentViewTaskId); } });
+        if(deleteFromViewModalBtn) {
             deleteFromViewModalBtn.addEventListener('click', () => {
                 if (currentViewTaskId !== null) {
                     deleteTask(currentViewTaskId);
-                    closeViewTaskDetailsModal(); // Close modal after deletion
+                    closeViewTaskDetailsModal();
                 }
             });
         }
         viewTaskDetailsModal.addEventListener('click', (event) => { if (event.target === viewTaskDetailsModal) closeViewTaskDetailsModal(); });
 
-        // Timer buttons
         if(viewTaskStartTimerBtn) viewTaskStartTimerBtn.addEventListener('click', () => { if(featureFlags.taskTimerSystem) handleStartTimer(); });
         if(viewTaskPauseTimerBtn) viewTaskPauseTimerBtn.addEventListener('click', () => { if(featureFlags.taskTimerSystem) handlePauseTimer(); });
         if(viewTaskStopTimerBtn) viewTaskStopTimerBtn.addEventListener('click', () => { if(featureFlags.taskTimerSystem) handleStopTimer(); });
 
-
-        // Manage Labels Modal Listeners
         if (closeManageLabelsModalBtn) closeManageLabelsModalBtn.addEventListener('click', closeManageLabelsModal);
         if (closeManageLabelsSecondaryBtn) closeManageLabelsSecondaryBtn.addEventListener('click', closeManageLabelsModal);
         if (addNewLabelForm) addNewLabelForm.addEventListener('submit', handleAddNewLabel);
         if (manageLabelsModal) manageLabelsModal.addEventListener('click', (event) => { if (event.target === manageLabelsModal) closeManageLabelsModal(); });
 
-
-        // Settings Modal and its buttons
         if (openSettingsModalButton) openSettingsModalButton.addEventListener('click', openSettingsModal);
         if (closeSettingsModalBtn) closeSettingsModalBtn.addEventListener('click', closeSettingsModal);
         if (closeSettingsSecondaryBtn) closeSettingsSecondaryBtn.addEventListener('click', closeSettingsModal);
         if (settingsModal) settingsModal.addEventListener('click', (event) => { if (event.target === settingsModal) closeSettingsModal(); });
-
         if (settingsClearCompletedBtn) settingsClearCompletedBtn.addEventListener('click', clearCompletedTasks);
         if (settingsManageLabelsBtn) { settingsManageLabelsBtn.addEventListener('click', () => { closeSettingsModal(); openManageLabelsModal(); }); }
         if (settingsManageRemindersBtn) { settingsManageRemindersBtn.addEventListener('click', () => { if(featureFlags.reminderFeature) showMessage('Manage Reminders - Coming soon!', 'success'); else showMessage('Enable Reminder System in Feature Flags.', 'error'); }); }
@@ -2793,25 +2666,20 @@
         if (settingsCollaborationBtn) settingsCollaborationBtn.addEventListener('click', () => nonFunctionalFeatureMessageHandler('Collaboration'));
         if (settingsSyncBackupBtn) settingsSyncBackupBtn.addEventListener('click', () => nonFunctionalFeatureMessageHandler('Sync & Backup'));
 
-
-        // Task Review Modal Listeners
         if (closeTaskReviewModalBtn) closeTaskReviewModalBtn.addEventListener('click', closeTaskReviewModal);
         if (closeTaskReviewSecondaryBtn) closeTaskReviewSecondaryBtn.addEventListener('click', closeTaskReviewModal);
         if (taskReviewModal) taskReviewModal.addEventListener('click', (event) => { if (event.target === taskReviewModal) closeTaskReviewModal(); });
 
-        // Tooltips Guide Modal Listeners
         if (closeTooltipsGuideModalBtn) closeTooltipsGuideModalBtn.addEventListener('click', closeTooltipsGuideModal);
         if (closeTooltipsGuideSecondaryBtn) closeTooltipsGuideSecondaryBtn.addEventListener('click', closeTooltipsGuideModal);
         if (tooltipsGuideModal) tooltipsGuideModal.addEventListener('click', (event) => { if (event.target === tooltipsGuideModal) closeTooltipsGuideModal(); });
 
 
-        // Feature Flags Modal Listeners
         if (settingsFeatureFlagsBtn) { settingsFeatureFlagsBtn.addEventListener('click', () => { closeSettingsModal(); openFeatureFlagsModal(); }); }
         if (closeFeatureFlagsModalBtn) closeFeatureFlagsModalBtn.addEventListener('click', closeFeatureFlagsModal);
         if (closeFeatureFlagsSecondaryBtn) closeFeatureFlagsSecondaryBtn.addEventListener('click', closeFeatureFlagsModal);
         if (featureFlagsModal) featureFlagsModal.addEventListener('click', (event) => { if (event.target === featureFlagsModal) closeFeatureFlagsModal(); });
 
-        // Test Feature Button Listener
         if (testFeatureButton) { testFeatureButton.addEventListener('click', () => { console.log('Test Button Clicked!'); showMessage('Test Button Clicked! Check console.', 'success'); }); }
 
         // Kanban toggle button listener
@@ -2820,42 +2688,21 @@
         }
 
 
-        // Other UI Listeners
         smartViewButtons.forEach(button => button.addEventListener('click', () => setFilter(button.dataset.filter)));
         if (taskSearchInput) {
-            taskSearchInput.addEventListener('input', (event) => {
+             taskSearchInput.addEventListener('input', (event) => {
                 currentSearchTerm = event.target.value.trim().toLowerCase();
                 if (isKanbanViewActive && featureFlags.kanbanBoard) {
-                    renderKanbanBoard(); // Re-render Kanban with search term applied
+                    renderKanbanBoard();
                 } else {
-                    renderTasks(); // Re-render list view with search term
+                    renderTasks();
                 }
             });
         }
-
-        if (sidebarToggleBtn) {
-            sidebarToggleBtn.addEventListener('click', () => {
-                const isCurrentlyMinimized = taskSidebar.classList.contains('sidebar-minimized');
-                setSidebarMinimized(!isCurrentlyMinimized);
-            });
-        }
-
-        sortByDueDateBtn.addEventListener('click', () => {
-            currentSort = currentSort === 'dueDate' ? 'default' : 'dueDate';
-            updateSortButtonStates();
-            if (!isKanbanViewActive) renderTasks(); // Sorting primarily for list view
-        });
-        sortByPriorityBtn.addEventListener('click', () => {
-            currentSort = currentSort === 'priority' ? 'default' : 'priority';
-            updateSortButtonStates();
-            if (!isKanbanViewActive) renderTasks();
-        });
-        sortByLabelBtn.addEventListener('click', () => {
-            currentSort = currentSort === 'label' ? 'default' : 'label';
-            updateSortButtonStates();
-            if (!isKanbanViewActive) renderTasks();
-        });
-
+        if (sidebarToggleBtn) { sidebarToggleBtn.addEventListener('click', () => { const isCurrentlyMinimized = taskSidebar.classList.contains('sidebar-minimized'); setSidebarMinimized(!isCurrentlyMinimized); }); }
+        sortByDueDateBtn.addEventListener('click', () => { currentSort = currentSort === 'dueDate' ? 'default' : 'dueDate'; updateSortButtonStates(); if (!isKanbanViewActive) renderTasks(); });
+        sortByPriorityBtn.addEventListener('click', () => { currentSort = currentSort === 'priority' ? 'default' : 'priority'; updateSortButtonStates(); if (!isKanbanViewActive) renderTasks(); });
+        sortByLabelBtn.addEventListener('click', () => { currentSort = currentSort === 'label' ? 'default' : 'label'; updateSortButtonStates(); if (!isKanbanViewActive) renderTasks(); });
 
         document.addEventListener('keydown', (event) => {
             const isAddModalOpen = !addTaskModal.classList.contains('hidden');
@@ -2870,10 +2717,7 @@
             const isInputFocused = document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.isContentEditable;
 
 
-            if ((event.key === '+' || event.key === '=') && !isAnyModalOpen && !isInputFocused) {
-                event.preventDefault();
-                openAddModal();
-            }
+            if ((event.key === '+' || event.key === '=') && !isAnyModalOpen && !isInputFocused) { event.preventDefault(); openAddModal(); }
             if (event.key === 'Escape') {
                 if (isAddModalOpen) closeAddModal();
                 if (isViewEditModalOpen) closeViewEditModal();
@@ -2888,9 +2732,8 @@
 
         // --- Initial Setup ---
         function initializeTasks() {
-            // Ensure all tasks have necessary properties, especially for older data structures
             tasks = tasks.map(task => ({
-                id: task.id || Date.now(), // Ensure ID exists
+                id: task.id || Date.now(),
                 text: task.text || '',
                 completed: task.completed || false,
                 dueDate: task.dueDate || null,
@@ -2909,44 +2752,33 @@
                 timerIsRunning: task.timerIsRunning || false,
                 timerIsPaused: task.timerIsPaused || false,
                 actualDurationMs: task.actualDurationMs || 0,
-                attachments: task.attachments || [], // Initialize if undefined
-                kanbanColumnId: task.kanbanColumnId || (task.completed ? 'done' : 'todo') // Ensure new tasks get a default
+                attachments: task.attachments || [],
+                kanbanColumnId: task.kanbanColumnId || (task.completed ? 'done' : 'todo')
             }));
         }
 
 
-        // Initial page load sequence
-        loadFeatureFlags(); // Load flags first, as they affect other initializations
-        loadKanbanColumnNames(); // Load custom Kanban column names
-        initializeTasks();    // Ensure all tasks have default/necessary fields
-        updateUniqueLabels(); // Populate labels based on tasks
+        loadFeatureFlags();
+        loadKanbanColumnNames();
+        initializeTasks();
+        updateUniqueLabels();
+        smartViewButtons.forEach(button => { button.classList.add('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600'); button.querySelector('i')?.classList.add('text-slate-500', 'dark:text-slate-400'); });
 
-        // Set initial state for smart view buttons (cosmetic)
-        smartViewButtons.forEach(button => {
-            button.classList.add('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600');
-            button.querySelector('i')?.classList.add('text-slate-500', 'dark:text-slate-400');
-        });
-
-        // Restore sidebar state and apply features (which includes initial render)
         const savedSidebarState = localStorage.getItem('sidebarState');
         if (savedSidebarState === 'minimized') {
             setSidebarMinimized(true);
         } else {
-            setSidebarMinimized(false); // This will call applyActiveFeatures -> updateMainViewUI
+            setSidebarMinimized(false);
         }
-        // Initial filter application after sidebar and features are set
-        setFilter(currentFilter); // This also triggers a render based on current view logic
 
-        // Fallback for direct window.onload if setSidebarMinimized didn't already cover everything
-        // or for browsers that might behave differently with script execution timing.
         window.onload = () => {
-            loadFeatureFlags(); // Re-load in case of race conditions or very fast execution
+            loadFeatureFlags();
             loadKanbanColumnNames();
             initializeTasks();
-            applyActiveFeatures(); // This is key for initial view setup
-            setFilter(currentFilter); // Apply default filter and render
+            applyActiveFeatures();
+            setFilter(currentFilter);
             if (localStorage.getItem('sidebarState') === 'minimized') {
-                setSidebarMinimized(true); // Ensure sidebar state is correctly applied
+                setSidebarMinimized(true);
             } else {
                 setSidebarMinimized(false);
             }
