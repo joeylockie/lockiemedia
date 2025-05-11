@@ -110,6 +110,15 @@
                     </div>
                 </div>
 
+                <div id="subTasksSectionAdd" class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 sub-tasks-feature-element">
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Sub-tasks</label>
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="modalSubTaskInputAdd" placeholder="Add a sub-task..." class="flex-grow p-2.5 border-2 bg-white text-slate-900 placeholder-slate-400 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-400 dark:border-slate-600">
+                        <button type="button" id="modalAddSubTaskBtnAdd" class="px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors font-medium text-sm">Add</button>
+                    </div>
+                    <ul id="modalSubTasksListAdd" class="space-y-2 max-h-40 overflow-y-auto">
+                        </ul>
+                </div>
                 <div class="mt-4">
                     <label for="modalNotesInputAdd" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Notes</label>
                     <textarea id="modalNotesInputAdd" placeholder="Add any relevant notes..." rows="3" class="w-full p-3 border-2 bg-white text-slate-900 placeholder-slate-400 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-shadow duration-300 dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-400 dark:border-slate-600"></textarea>
