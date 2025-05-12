@@ -5,8 +5,6 @@
 // for display (like messages and datalists), and UI state updaters.
 
 // --- DOM Elements ---
-// (All const declarations for DOM elements from the original ui_interactions.js are placed here.
-// Some might also be referenced by ui_event_handlers.js, which will assume their global availability after this script runs.)
 const taskSidebar = document.getElementById('taskSidebar');
 const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
 const sidebarToggleIcon = document.getElementById('sidebarToggleIcon');
@@ -17,7 +15,7 @@ const sortByDueDateBtn = document.getElementById('sortByDueDateBtn');
 const sortByPriorityBtn = document.getElementById('sortByPriorityBtn');
 const sortByLabelBtn = document.getElementById('sortByLabelBtn');
 const taskSearchInput = document.getElementById('taskSearchInput');
-const taskList = document.getElementById('taskList');
+const taskList = document.getElementById('taskList'); // This is the UL for list view
 const emptyState = document.getElementById('emptyState');
 const noMatchingTasks = document.getElementById('noMatchingTasks');
 const smartViewButtonsContainer = document.getElementById('smartViewButtonsContainer');
@@ -151,6 +149,12 @@ const modalSubTaskInputAdd = document.getElementById('modalSubTaskInputAdd');
 const modalAddSubTaskBtnAdd = document.getElementById('modalAddSubTaskBtnAdd');
 const modalSubTasksListAdd = document.getElementById('modalSubTasksListAdd');
 
+// --- Kanban Board Elements (New) ---
+const kanbanViewToggleBtn = document.getElementById('kanbanViewToggleBtn');
+const kanbanViewToggleBtnText = document.getElementById('kanbanViewToggleBtnText');
+const yourTasksHeading = document.getElementById('yourTasksHeading'); // Heading for the main task area
+const mainContentArea = document.querySelector('main'); // The <main> element that holds task list or Kanban board
+
 // --- UI Helper Functions ---
 
 /**
@@ -265,16 +269,80 @@ function hideTooltip() {
 // --- Task Rendering ---
 
 /**
+ * Main dispatcher for rendering the task view (List or Kanban).
+ * Calls the appropriate rendering function based on currentTaskViewMode.
+ * Assumes global variables: 'currentTaskViewMode', 'featureFlags' (from app_logic.js).
+ * Assumes 'window.AppFeatures.KanbanBoard.renderKanbanView' is available from feature_kanban_board.js.
+ */
+function refreshTaskView() {
+    if (!mainContentArea) {
+        console.error("Main content area not found. Cannot refresh task view.");
+        return;
+    }
+
+    // Update toggle button and heading based on the current mode BEFORE rendering
+    updateKanbanViewToggleButtonState();
+    updateYourTasksHeading();
+
+    if (featureFlags.kanbanBoardFeature && currentTaskViewMode === 'kanban') {
+        if (window.AppFeatures && window.AppFeatures.KanbanBoard && typeof window.AppFeatures.KanbanBoard.renderKanbanView === 'function') {
+            window.AppFeatures.KanbanBoard.renderKanbanView();
+        } else {
+            console.error("KanbanBoard feature or renderKanbanView function not available.");
+            // Fallback to list view if Kanban rendering fails
+            setTaskViewMode('list'); // from app_logic.js
+            renderTaskListView();
+        }
+    } else {
+        renderTaskListView();
+    }
+    updateClearCompletedButtonState(); // This should be called after any view render
+}
+
+
+/**
  * Renders the list of tasks based on current filters, search term, and sort order.
+ * This was the original renderTasks() function.
  * Assumes global variables: 'tasks', 'currentFilter', 'currentSearchTerm', 'currentSort',
  * 'featureFlags', 'uniqueLabels' (from app_logic.js).
  * Assumes helper functions: 'formatDate', 'formatTime', 'getPriorityClass' (from app_logic.js).
  * Assumes modal opening functions: 'openViewTaskDetailsModal', 'openViewEditModal' (from modal_interactions.js).
- * Assumes action functions: 'toggleComplete', 'deleteTask' (from ui_event_handlers.js or app_logic.js if not moved yet).
+ * Assumes action functions: 'toggleComplete', 'deleteTask' (from ui_event_handlers.js).
  */
-function renderTasks() {
-    if (!taskList || !emptyState || !noMatchingTasks) return;
-    taskList.innerHTML = '';
+function renderTaskListView() {
+    // Ensure the main content area is set up for list view
+    // This might involve clearing it and re-adding the UL and P elements if Kanban view was active
+    if (!mainContentArea.querySelector('#taskList')) {
+        mainContentArea.innerHTML = ''; // Clear previous content (e.g., Kanban board)
+        const taskListUl = document.createElement('ul');
+        taskListUl.id = 'taskList';
+        taskListUl.className = 'space-y-3 sm:space-y-3.5';
+        mainContentArea.appendChild(taskListUl);
+
+        const emptyP = document.createElement('p');
+        emptyP.id = 'emptyState';
+        emptyP.className = 'text-center text-slate-500 dark:text-slate-400 mt-8 py-5 hidden';
+        emptyP.textContent = 'No tasks yet. Add some!';
+        mainContentArea.appendChild(emptyP);
+
+        const noMatchP = document.createElement('p');
+        noMatchP.id = 'noMatchingTasks';
+        noMatchP.className = 'text-center text-slate-500 dark:text-slate-400 mt-8 py-5 hidden';
+        noMatchP.textContent = 'No tasks match the current filter or search.';
+        mainContentArea.appendChild(noMatchP);
+    }
+
+    // Get fresh references to taskList, emptyState, noMatchingTasks as they might have been recreated
+    const currentTaskList = document.getElementById('taskList');
+    const currentEmptyState = document.getElementById('emptyState');
+    const currentNoMatchingTasks = document.getElementById('noMatchingTasks');
+
+    if (!currentTaskList || !currentEmptyState || !currentNoMatchingTasks) {
+        console.error("Required elements for task list view are missing after attempting to recreate them.");
+        return;
+    }
+    currentTaskList.innerHTML = ''; // Clear only the list items
+
     let filteredTasks = [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -342,8 +410,8 @@ function renderTasks() {
         filteredTasks.sort((a, b) => (b.creationDate || b.id) - (a.creationDate || a.id));
     }
 
-    emptyState.classList.toggle('hidden', tasks.length !== 0);
-    noMatchingTasks.classList.toggle('hidden', !(tasks.length > 0 && filteredTasks.length === 0));
+    currentEmptyState.classList.toggle('hidden', tasks.length !== 0);
+    currentNoMatchingTasks.classList.toggle('hidden', !(tasks.length > 0 && filteredTasks.length === 0));
 
     filteredTasks.forEach((task) => {
         const li = document.createElement('li');
@@ -354,16 +422,16 @@ function renderTasks() {
         mainContentClickableArea.className = 'task-item-clickable-area flex items-start flex-grow min-w-0 mr-2 rounded-l-lg';
         mainContentClickableArea.addEventListener('click', (event) => {
             if (event.target.type === 'checkbox' || event.target.closest('.task-actions')) {
-                return; // Don't open view modal if checkbox or action button was clicked
+                return;
             }
-            openViewTaskDetailsModal(task.id); // Assumes openViewTaskDetailsModal is globally available
+            openViewTaskDetailsModal(task.id);
         });
 
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.checked = task.completed;
         checkbox.className = 'form-checkbox h-5 w-5 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 dark:focus:ring-sky-500 mt-0.5 mr-2 sm:mr-3 cursor-pointer flex-shrink-0';
-        checkbox.addEventListener('change', () => toggleComplete(task.id)); // Assumes toggleComplete is globally available
+        checkbox.addEventListener('change', () => toggleComplete(task.id));
 
         const textDetailsDiv = document.createElement('div');
         textDetailsDiv.className = 'flex flex-col flex-grow min-w-0';
@@ -380,7 +448,7 @@ function renderTasks() {
         if (task.priority) {
             const pB = document.createElement('span');
             pB.textContent = task.priority;
-            pB.className = `priority-badge ${getPriorityClass(task.priority)}`; // Assumes getPriorityClass is global
+            pB.className = `priority-badge ${getPriorityClass(task.priority)}`;
             detailsContainer.appendChild(pB);
         }
         if (task.label) {
@@ -392,8 +460,8 @@ function renderTasks() {
         if (task.dueDate) {
             const dDS = document.createElement('span');
             dDS.className = 'text-slate-500 dark:text-slate-400 flex items-center';
-            let dD = formatDate(task.dueDate); // Assumes formatDate is global
-            if (task.time) { dD += ` ${formatTime(task.time)}`; } // Assumes formatTime is global
+            let dD = formatDate(task.dueDate);
+            if (task.time) { dD += ` ${formatTime(task.time)}`; }
             dDS.innerHTML = `<i class="far fa-calendar-alt mr-1"></i> ${dD}`;
             detailsContainer.appendChild(dDS);
         }
@@ -426,7 +494,7 @@ function renderTasks() {
         editButton.innerHTML = '<i class="fas fa-pencil-alt"></i>';
         editButton.setAttribute('aria-label', 'Edit task');
         editButton.title = 'Edit task';
-        editButton.addEventListener('click', () => openViewEditModal(task.id)); // Assumes openViewEditModal is global
+        editButton.addEventListener('click', () => openViewEditModal(task.id));
         actionsDiv.appendChild(editButton);
 
         const deleteButton = document.createElement('button');
@@ -434,27 +502,17 @@ function renderTasks() {
         deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
         deleteButton.setAttribute('aria-label', 'Delete task');
         deleteButton.title = 'Delete task';
-        deleteButton.addEventListener('click', () => deleteTask(task.id)); // Assumes deleteTask is global
+        deleteButton.addEventListener('click', () => deleteTask(task.id));
         actionsDiv.appendChild(deleteButton);
 
         li.appendChild(mainContentClickableArea);
         li.appendChild(actionsDiv);
-        taskList.appendChild(li);
+        currentTaskList.appendChild(li);
     });
-    updateClearCompletedButtonState(); // Assumes updateClearCompletedButtonState is global
 }
 
 
 // --- Sub-task Rendering Functions ---
-// These are called by modal functions (in modal_interactions.js) or by event handlers.
-// Assumes 'featureFlags' and 'tasks' are global (from app_logic.js).
-// Assumes logic functions like 'toggleSubTaskCompleteLogic', 'editSubTaskLogic', 'deleteSubTaskLogic'
-// are globally available (from app_logic.js).
-
-/**
- * Renders temporary sub-tasks in the Add Task modal.
- * Assumes 'tempSubTasksForAddModal' is a globally available array.
- */
 function renderTempSubTasksForAddModal() {
     if (!featureFlags.subTasksFeature || !modalSubTasksListAdd) return;
     modalSubTasksListAdd.innerHTML = '';
@@ -477,7 +535,7 @@ function renderTempSubTasksForAddModal() {
         checkbox.className = 'form-checkbox h-4 w-4 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 mr-2 cursor-pointer';
         checkbox.addEventListener('change', () => {
             tempSubTasksForAddModal[index].completed = !tempSubTasksForAddModal[index].completed;
-            renderTempSubTasksForAddModal(); // Re-render this list
+            renderTempSubTasksForAddModal();
         });
 
         const textSpan = document.createElement('span');
@@ -494,7 +552,7 @@ function renderTempSubTasksForAddModal() {
         deleteBtn.title = 'Remove sub-task';
         deleteBtn.addEventListener('click', () => {
             tempSubTasksForAddModal.splice(index, 1);
-            renderTempSubTasksForAddModal(); // Re-render this list
+            renderTempSubTasksForAddModal();
         });
         actionsDiv.appendChild(deleteBtn);
 
@@ -505,11 +563,6 @@ function renderTempSubTasksForAddModal() {
     });
 }
 
-/**
- * Renders sub-tasks in the View/Edit Task modal.
- * @param {number} parentId - The ID of the parent task.
- * @param {HTMLUListElement} subTasksListElement - The UL element to render into.
- */
 function renderSubTasksForEditModal(parentId, subTasksListElement) {
     if (!featureFlags.subTasksFeature || !subTasksListElement) return;
     subTasksListElement.innerHTML = '';
@@ -533,13 +586,12 @@ function renderSubTasksForEditModal(parentId, subTasksListElement) {
         checkbox.checked = subTask.completed;
         checkbox.className = 'form-checkbox h-4 w-4 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 mr-2 cursor-pointer';
         checkbox.addEventListener('change', () => {
-            toggleSubTaskCompleteLogic(parentId, subTask.id); // Assumes global
-            renderSubTasksForEditModal(parentId, subTasksListElement); // Re-render this list
-            // If view modal is open for the same task, update it too
+            toggleSubTaskCompleteLogic(parentId, subTask.id);
+            renderSubTasksForEditModal(parentId, subTasksListElement);
             if (currentViewTaskId === parentId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) {
                 renderSubTasksForViewModal(parentId, modalSubTasksListViewDetails, viewSubTaskProgress, noSubTasksMessageViewDetails);
             }
-            renderTasks(); // Re-render main task list to reflect sub-task icon changes
+            refreshTaskView(); // Use refreshTaskView instead of renderTasks
         });
 
         const textSpan = document.createElement('span');
@@ -557,14 +609,14 @@ function renderSubTasksForEditModal(parentId, subTasksListElement) {
         editBtn.addEventListener('click', () => {
             const newText = prompt('Edit sub-task:', subTask.text);
             if (newText !== null && newText.trim() !== '') {
-                if (editSubTaskLogic(parentId, subTask.id, newText.trim())) { // Assumes global
-                    renderSubTasksForEditModal(parentId, subTasksListElement); // Re-render this list
+                if (editSubTaskLogic(parentId, subTask.id, newText.trim())) {
+                    renderSubTasksForEditModal(parentId, subTasksListElement);
                     if (currentViewTaskId === parentId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) {
                         renderSubTasksForViewModal(parentId, modalSubTasksListViewDetails, viewSubTaskProgress, noSubTasksMessageViewDetails);
                     }
-                    showMessage('Sub-task updated.', 'success'); // Assumes global
+                    showMessage('Sub-task updated.', 'success');
                 } else {
-                    showMessage('Failed to update sub-task.', 'error'); // Assumes global
+                    showMessage('Failed to update sub-task.', 'error');
                 }
             }
         });
@@ -576,15 +628,15 @@ function renderSubTasksForEditModal(parentId, subTasksListElement) {
         deleteBtn.title = 'Delete sub-task';
         deleteBtn.addEventListener('click', () => {
             if (confirm(`Are you sure you want to delete sub-task: "${subTask.text}"?`)) {
-                if (deleteSubTaskLogic(parentId, subTask.id)) { // Assumes global
-                    renderSubTasksForEditModal(parentId, subTasksListElement); // Re-render this list
+                if (deleteSubTaskLogic(parentId, subTask.id)) {
+                    renderSubTasksForEditModal(parentId, subTasksListElement);
                     if (currentViewTaskId === parentId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) {
                         renderSubTasksForViewModal(parentId, modalSubTasksListViewDetails, viewSubTaskProgress, noSubTasksMessageViewDetails);
                     }
-                    showMessage('Sub-task deleted.', 'success'); // Assumes global
-                    renderTasks(); // Re-render main task list
+                    showMessage('Sub-task deleted.', 'success');
+                    refreshTaskView(); // Use refreshTaskView instead of renderTasks
                 } else {
-                    showMessage('Failed to delete sub-task.', 'error'); // Assumes global
+                    showMessage('Failed to delete sub-task.', 'error');
                 }
             }
         });
@@ -598,13 +650,6 @@ function renderSubTasksForEditModal(parentId, subTasksListElement) {
     });
 }
 
-/**
- * Renders sub-tasks in the View Task Details modal.
- * @param {number} parentId - The ID of the parent task.
- * @param {HTMLUListElement} subTasksListElement - The UL element to render into.
- * @param {HTMLElement} progressElement - The element to display completion progress.
- * @param {HTMLElement} noSubTasksMessageElement - Element shown when no sub-tasks exist.
- */
 function renderSubTasksForViewModal(parentId, subTasksListElement, progressElement, noSubTasksMessageElement) {
     if (!featureFlags.subTasksFeature || !subTasksListElement || !progressElement || !noSubTasksMessageElement) return;
     subTasksListElement.innerHTML = '';
@@ -632,13 +677,12 @@ function renderSubTasksForViewModal(parentId, subTasksListElement, progressEleme
         checkbox.checked = subTask.completed;
         checkbox.className = 'form-checkbox h-4 w-4 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 mr-2 cursor-pointer';
         checkbox.addEventListener('change', () => {
-            toggleSubTaskCompleteLogic(parentId, subTask.id); // Assumes global
-            renderSubTasksForViewModal(parentId, subTasksListElement, progressElement, noSubTasksMessageElement); // Re-render this list
-            // If edit modal is open for the same task, update it too
+            toggleSubTaskCompleteLogic(parentId, subTask.id);
+            renderSubTasksForViewModal(parentId, subTasksListElement, progressElement, noSubTasksMessageElement);
             if (editingTaskId === parentId && viewEditTaskModal && !viewEditTaskModal.classList.contains('hidden')) {
                 renderSubTasksForEditModal(parentId, modalSubTasksListViewEdit);
             }
-            renderTasks(); // Re-render main task list
+            refreshTaskView(); // Use refreshTaskView instead of renderTasks
         });
 
         const textSpan = document.createElement('span');
@@ -694,7 +738,48 @@ function updateClearCompletedButtonState() {
     }
 }
 
-// Note: Event handlers, event listener setup, and global initialization (window.onload)
-// will be moved to ui_event_handlers.js.
-// Functions like applyActiveFeatures, which bridge UI updates with logic,
-// will also be primarily in ui_event_handlers.js, calling rendering functions from here as needed.
+/**
+ * Updates the Kanban view toggle button's text and icon.
+ * Assumes 'currentTaskViewMode' is global (from app_logic.js).
+ */
+function updateKanbanViewToggleButtonState() {
+    if (!kanbanViewToggleBtn || !kanbanViewToggleBtnText) return;
+
+    const iconElement = kanbanViewToggleBtn.querySelector('i');
+    if (!iconElement) return;
+
+    if (currentTaskViewMode === 'kanban') {
+        kanbanViewToggleBtnText.textContent = 'List';
+        kanbanViewToggleBtn.title = 'Switch to List View';
+        iconElement.classList.remove('fa-columns');
+        iconElement.classList.add('fa-list-ul');
+        // Hide sort buttons when in Kanban view
+        if (sortByDueDateBtn) sortByDueDateBtn.classList.add('hidden');
+        if (sortByPriorityBtn) sortByPriorityBtn.classList.add('hidden');
+        if (sortByLabelBtn) sortByLabelBtn.classList.add('hidden');
+    } else { // 'list' view
+        kanbanViewToggleBtnText.textContent = 'Board';
+        kanbanViewToggleBtn.title = 'Switch to Board View';
+        iconElement.classList.remove('fa-list-ul');
+        iconElement.classList.add('fa-columns');
+        // Show sort buttons when in List view (if feature is on)
+        if (featureFlags.kanbanBoardFeature) { // Only show/hide if the feature itself is active
+             if (sortByDueDateBtn) sortByDueDateBtn.classList.remove('hidden');
+             if (sortByPriorityBtn) sortByPriorityBtn.classList.remove('hidden');
+             if (sortByLabelBtn) sortByLabelBtn.classList.remove('hidden');
+        }
+    }
+}
+
+/**
+ * Updates the main heading text based on the current view mode.
+ * Assumes 'currentTaskViewMode' and 'yourTasksHeading' are available.
+ */
+function updateYourTasksHeading() {
+    if (!yourTasksHeading) return;
+    if (currentTaskViewMode === 'kanban' && featureFlags.kanbanBoardFeature) {
+        yourTasksHeading.textContent = 'Kanban Board';
+    } else {
+        yourTasksHeading.textContent = 'Your Tasks';
+    }
+}
