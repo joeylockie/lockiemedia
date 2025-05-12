@@ -42,6 +42,18 @@ let kanbanViewToggleBtn, kanbanViewToggleBtnText, yourTasksHeading, mainContentA
  * This function should be called once the DOM is fully loaded.
  */
 function initializeDOMElements() {
+    console.log('[DOM Init] Attempting to initialize DOM elements...');
+
+    mainContentArea = document.querySelector('main');
+    if (!mainContentArea) console.error('[DOM Init Error] <main> element not found!');
+
+    kanbanViewToggleBtn = document.getElementById('kanbanViewToggleBtn');
+    if (!kanbanViewToggleBtn) console.warn('[DOM Init Warning] Element with ID "kanbanViewToggleBtn" not found.');
+
+    smartViewButtonsContainer = document.getElementById('smartViewButtonsContainer');
+    if (!smartViewButtonsContainer) console.warn('[DOM Init Warning] Element with ID "smartViewButtonsContainer" not found.');
+    
+    // Initialize other elements with checks for critical ones
     taskSidebar = document.getElementById('taskSidebar');
     sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
     sidebarToggleIcon = document.getElementById('sidebarToggleIcon');
@@ -52,10 +64,9 @@ function initializeDOMElements() {
     sortByPriorityBtn = document.getElementById('sortByPriorityBtn');
     sortByLabelBtn = document.getElementById('sortByLabelBtn');
     taskSearchInput = document.getElementById('taskSearchInput');
-    taskList = document.getElementById('taskList');
-    emptyState = document.getElementById('emptyState');
-    noMatchingTasks = document.getElementById('noMatchingTasks');
-    smartViewButtonsContainer = document.getElementById('smartViewButtonsContainer');
+    taskList = document.getElementById('taskList'); // Will be null if mainContentArea is cleared by Kanban
+    emptyState = document.getElementById('emptyState'); // Same as above
+    noMatchingTasks = document.getElementById('noMatchingTasks'); // Same as above
     smartViewButtons = smartViewButtonsContainer ? smartViewButtonsContainer.querySelectorAll('.smart-view-btn') : [];
     messageBox = document.getElementById('messageBox');
     
@@ -187,18 +198,21 @@ function initializeDOMElements() {
     modalSubTasksListAdd = document.getElementById('modalSubTasksListAdd');
     
     featureFlagsListContainer = document.getElementById('featureFlagsListContainer');
+    if (!featureFlagsListContainer) console.warn('[DOM Init Warning] Element with ID "featureFlagsListContainer" not found.');
     
-    kanbanViewToggleBtn = document.getElementById('kanbanViewToggleBtn');
     kanbanViewToggleBtnText = document.getElementById('kanbanViewToggleBtnText');
+    if (!kanbanViewToggleBtnText) console.warn('[DOM Init Warning] Element with ID "kanbanViewToggleBtnText" not found.');
+    
     yourTasksHeading = document.getElementById('yourTasksHeading');
-    mainContentArea = document.querySelector('main'); // This is the critical line
+    if (!yourTasksHeading) console.warn('[DOM Init Warning] Element with ID "yourTasksHeading" not found.');
 
-    console.log('[DOM Init] DOM Elements Initialized.');
-    console.log('[DOM Init] mainContentArea:', mainContentArea); // Log to confirm it's found
-    console.log('[DOM Init] smartViewButtonsContainer:', smartViewButtonsContainer);
-    console.log('[DOM Init] smartViewButtons NodeList length:', smartViewButtons ? smartViewButtons.length : 'undefined');
-    console.log('[DOM Init] kanbanViewToggleBtn:', kanbanViewToggleBtn);
+    console.log('[DOM Init] Finished initializing DOM elements.');
+    console.log('[DOM Init] Final mainContentArea:', mainContentArea);
+    console.log('[DOM Init] Final smartViewButtonsContainer:', smartViewButtonsContainer);
+    console.log('[DOM Init] Final smartViewButtons NodeList length:', smartViewButtons ? smartViewButtons.length : 'undefined');
+    console.log('[DOM Init] Final kanbanViewToggleBtn:', kanbanViewToggleBtn);
 }
+
 
 // --- UI Helper Functions ---
 function showMessage(message, type = 'success') {
@@ -231,7 +245,10 @@ function populateDatalist(datalistElement) {
 
 // --- Sidebar UI ---
 function setSidebarMinimized(minimize) {
-    if (!taskSidebar || !sidebarToggleIcon || !iconTooltip) return;
+    if (!taskSidebar || !sidebarToggleIcon || !iconTooltip) {
+        console.warn("setSidebarMinimized: One or more sidebar elements not found.");
+        return;
+    }
     hideTooltip(); 
     if (minimize) {
         taskSidebar.classList.remove('md:w-72', 'lg:w-80', 'w-full', 'p-5', 'sm:p-6', 'md:p-5', 'sm:p-4');
@@ -287,7 +304,7 @@ function hideTooltip() {
 
 // --- Task Rendering ---
 function refreshTaskView() {
-    console.log('[RefreshTaskView] Called. mainContentArea:', mainContentArea); // Log at the start of the function
+    console.log('[RefreshTaskView] Called. mainContentArea:', mainContentArea);
     if (!mainContentArea) {
         console.error("Main content area not found. Cannot refresh task view.");
         return;
@@ -314,34 +331,31 @@ function renderTaskListView() {
         console.error("renderTaskListView: mainContentArea is not defined.");
         return;
     }
-    if (!mainContentArea.querySelector('#taskList')) {
-        mainContentArea.innerHTML = ''; 
-        const taskListUl = document.createElement('ul');
-        taskListUl.id = 'taskList';
-        taskListUl.className = 'space-y-3 sm:space-y-3.5';
-        mainContentArea.appendChild(taskListUl);
+    // Ensure #taskList and other elements exist or create them
+    let currentTaskList = document.getElementById('taskList');
+    let currentEmptyState = document.getElementById('emptyState');
+    let currentNoMatchingTasks = document.getElementById('noMatchingTasks');
 
-        const emptyP = document.createElement('p');
-        emptyP.id = 'emptyState';
-        emptyP.className = 'text-center text-slate-500 dark:text-slate-400 mt-8 py-5 hidden';
-        emptyP.textContent = 'No tasks yet. Add some!';
-        mainContentArea.appendChild(emptyP);
+    if (!currentTaskList) { // If taskList doesn't exist, it means mainContentArea was cleared (e.g., by Kanban)
+        mainContentArea.innerHTML = ''; // Clear it completely to be safe
+        currentTaskList = document.createElement('ul');
+        currentTaskList.id = 'taskList';
+        currentTaskList.className = 'space-y-3 sm:space-y-3.5';
+        mainContentArea.appendChild(currentTaskList);
 
-        const noMatchP = document.createElement('p');
-        noMatchP.id = 'noMatchingTasks';
-        noMatchP.className = 'text-center text-slate-500 dark:text-slate-400 mt-8 py-5 hidden';
-        noMatchP.textContent = 'No tasks match the current filter or search.';
-        mainContentArea.appendChild(noMatchP);
+        currentEmptyState = document.createElement('p');
+        currentEmptyState.id = 'emptyState';
+        currentEmptyState.className = 'text-center text-slate-500 dark:text-slate-400 mt-8 py-5 hidden';
+        currentEmptyState.textContent = 'No tasks yet. Add some!';
+        mainContentArea.appendChild(currentEmptyState);
+
+        currentNoMatchingTasks = document.createElement('p');
+        currentNoMatchingTasks.id = 'noMatchingTasks';
+        currentNoMatchingTasks.className = 'text-center text-slate-500 dark:text-slate-400 mt-8 py-5 hidden';
+        currentNoMatchingTasks.textContent = 'No tasks match the current filter or search.';
+        mainContentArea.appendChild(currentNoMatchingTasks);
     }
-
-    const currentTaskList = document.getElementById('taskList');
-    const currentEmptyState = document.getElementById('emptyState');
-    const currentNoMatchingTasks = document.getElementById('noMatchingTasks');
-
-    if (!currentTaskList || !currentEmptyState || !currentNoMatchingTasks) {
-        console.error("Required elements for task list view are missing after attempting to recreate them.");
-        return;
-    }
+    
     currentTaskList.innerHTML = ''; 
 
     let filteredTasks = [];
@@ -745,10 +759,10 @@ function updateKanbanViewToggleButtonState() {
         iconElement.classList.remove('fa-list-ul');
         iconElement.classList.add('fa-columns');
         if (featureFlags.kanbanBoardFeature) { 
-             if (sortByDueDateBtn) sortByDueDateBtn.classList.remove('hidden');
-             if (sortByPriorityBtn) sortByPriorityBtn.classList.remove('hidden');
-             if (sortByLabelBtn) sortByLabelBtn.classList.remove('hidden');
-        } else { // If Kanban feature is OFF, sort buttons should be visible for list view
+             if (sortByDueDateBtn) sortByDueDateBtn.classList.remove('hidden'); // This was an error, should be remove('hidden')
+             if (sortByPriorityBtn) sortByPriorityBtn.classList.remove('hidden'); // This was an error
+             if (sortByLabelBtn) sortByLabelBtn.classList.remove('hidden'); // This was an error
+        } else { 
             if (sortByDueDateBtn) sortByDueDateBtn.classList.remove('hidden');
             if (sortByPriorityBtn) sortByPriorityBtn.classList.remove('hidden');
             if (sortByLabelBtn) sortByLabelBtn.classList.remove('hidden');
@@ -765,12 +779,8 @@ function updateYourTasksHeading() {
     }
 }
 
-/**
- * Sets initial styles for smart view buttons.
- * This function should be called once after DOM elements are initialized.
- */
 function styleInitialSmartViewButtons() {
-    if (smartViewButtons && smartViewButtons.length > 0) { // Check if smartViewButtons is not null and has items
+    if (smartViewButtons && smartViewButtons.length > 0) { 
         smartViewButtons.forEach(button => {
             button.classList.add('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600');
             button.querySelector('i')?.classList.add('text-slate-500', 'dark:text-slate-400');
