@@ -3,8 +3,8 @@
 // This file handles event listeners, user interaction handlers (forms, buttons),
 // applying feature flags to UI, and the main application initialization sequence (window.onload).
 // It depends on:
-// - DOM elements defined in ui_rendering.js (assumed to be globally available).
-// - Rendering functions from ui_rendering.js (e.g., refreshTaskView, showMessage).
+// - DOM elements defined in ui_rendering.js (assumed to be globally available AFTER initializeDOMElements is called).
+// - Rendering functions from ui_rendering.js (e.g., refreshTaskView, showMessage, initializeDOMElements, styleInitialSmartViewButtons).
 // - Modal interaction functions from modal_interactions.js (e.g., openAddModal, closeAddModal).
 // - Core logic functions from app_logic.js (e.g., saveTasks, tasks array, featureFlags, setTaskViewMode).
 // - Feature-specific modules (e.g., window.AppFeatures.TaskTimerSystem, window.AppFeatures.KanbanBoard).
@@ -13,19 +13,13 @@
 let tempSubTasksForAddModal = [];
 
 // --- Feature Flag Modal Population ---
-/**
- * Populates the Feature Flags modal with toggles for each feature.
- * Assumes 'featureFlags' (from app_logic.js) and 'featureFlagsListContainer' (DOM element from ui_rendering.js) are available.
- */
 function populateFeatureFlagsModal() {
-    // Ensure featureFlagsListContainer is the one from ui_rendering.js or freshly queried
     const currentFFListContainer = featureFlagsListContainer || document.getElementById('featureFlagsListContainer');
     if (!currentFFListContainer) {
         console.warn("Feature flags list container not found for populateFeatureFlagsModal.");
         return;
     }
-
-    currentFFListContainer.innerHTML = ''; // Clear existing items
+    currentFFListContainer.innerHTML = ''; 
 
     const friendlyNames = {
         testButtonFeature: "Test Button",
@@ -41,35 +35,21 @@ function populateFeatureFlagsModal() {
         subTasksFeature: "Sub-tasks",
         kanbanBoardFeature: "Kanban Board View"
     };
-
     const featureOrder = [
-        'kanbanBoardFeature',
-        'subTasksFeature',
-        'taskTimerSystem',
-        'reminderFeature',
-        'tooltipsGuide',
-        'testButtonFeature',
-        'advancedRecurrence',
-        'fileAttachments',
-        'integrationsServices',
-        'userAccounts',
-        'collaborationSharing',
-        'crossDeviceSync'
+        'kanbanBoardFeature', 'subTasksFeature', 'taskTimerSystem', 'reminderFeature',
+        'tooltipsGuide', 'testButtonFeature', 'advancedRecurrence', 'fileAttachments',
+        'integrationsServices', 'userAccounts', 'collaborationSharing', 'crossDeviceSync'
     ];
-
     featureOrder.forEach(key => {
         if (featureFlags.hasOwnProperty(key)) {
             const flagItem = document.createElement('div');
             flagItem.className = 'feature-flag-item';
-
             const label = document.createElement('span');
             label.textContent = friendlyNames[key] || key;
             label.className = 'feature-flag-label';
             flagItem.appendChild(label);
-
             const toggleContainer = document.createElement('div');
             toggleContainer.className = 'relative';
-
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.id = `toggle-${key}`;
@@ -79,7 +59,6 @@ function populateFeatureFlagsModal() {
                 featureFlags[key] = checkbox.checked;
                 console.log(`Feature ${key} toggled to ${featureFlags[key]}`);
                 localStorage.setItem('userFeatureFlags', JSON.stringify(featureFlags));
-
                 applyActiveFeatures();
                 if (key === 'kanbanBoardFeature') {
                     if (!featureFlags.kanbanBoardFeature && currentTaskViewMode === 'kanban') {
@@ -88,11 +67,9 @@ function populateFeatureFlagsModal() {
                     refreshTaskView();
                 }
             });
-
             const toggleLabel = document.createElement('label');
             toggleLabel.htmlFor = `toggle-${key}`;
             toggleLabel.className = 'toggle-label';
-
             toggleContainer.appendChild(checkbox);
             toggleContainer.appendChild(toggleLabel);
             flagItem.appendChild(toggleContainer);
@@ -101,35 +78,24 @@ function populateFeatureFlagsModal() {
     });
 }
 
-
 // --- Apply Active Features (UI part) ---
-/**
- * Updates UI visibility based on featureFlags.
- * Calls feature-specific UI update functions if available, otherwise directly manipulates DOM.
- */
 function applyActiveFeatures() {
     console.log('[ApplyFeatures] Starting applyActiveFeatures. Kanban Flag:', featureFlags.kanbanBoardFeature);
-
     const toggleElements = (selector, isEnabled) => {
         document.querySelectorAll(selector).forEach(el => el.classList.toggle('hidden', !isEnabled));
     };
 
-    // Test Button Feature
     if (window.AppFeatures && typeof window.AppFeatures.updateTestButtonUIVisibility === 'function') {
         window.AppFeatures.updateTestButtonUIVisibility(featureFlags.testButtonFeature);
     } else {
         if (testFeatureButtonContainer) testFeatureButtonContainer.classList.toggle('hidden', !featureFlags.testButtonFeature);
     }
-
-    // Task Timer System Feature
     if (window.AppFeatures && window.AppFeatures.TaskTimerSystem && typeof window.AppFeatures.TaskTimerSystem.updateUIVisibility === 'function') {
         window.AppFeatures.TaskTimerSystem.updateUIVisibility(featureFlags.taskTimerSystem);
     } else {
         toggleElements('.task-timer-system-element', featureFlags.taskTimerSystem);
         if (settingsTaskReviewBtn) settingsTaskReviewBtn.classList.toggle('hidden', !featureFlags.taskTimerSystem);
     }
-
-    // Reminder Feature
     if (window.AppFeatures && typeof window.AppFeatures.updateReminderUIVisibility === 'function') {
         window.AppFeatures.updateReminderUIVisibility(featureFlags.reminderFeature);
     } else {
@@ -146,7 +112,6 @@ function applyActiveFeatures() {
         if (reminderOptionsAdd) reminderOptionsAdd.classList.add('hidden');
         if (reminderOptionsViewEdit) reminderOptionsViewEdit.classList.add('hidden');
     }
-
     toggleElements('.advanced-recurrence-element', featureFlags.advancedRecurrence);
     toggleElements('.file-attachments-element', featureFlags.fileAttachments);
     toggleElements('.integrations-services-element', featureFlags.integrationsServices);
@@ -155,30 +120,24 @@ function applyActiveFeatures() {
     toggleElements('.cross-device-sync-element', featureFlags.crossDeviceSync);
     toggleElements('.tooltips-guide-element', featureFlags.tooltipsGuide);
     toggleElements('.sub-tasks-feature-element', featureFlags.subTasksFeature);
-
     if (settingsTooltipsGuideBtn) settingsTooltipsGuideBtn.classList.toggle('hidden', !featureFlags.tooltipsGuide);
 
-    // Kanban Board Feature Visibility
-    console.log('[ApplyFeatures] Checking kanbanViewToggleBtn:', kanbanViewToggleBtn);
+    console.log('[ApplyFeatures] Checking kanbanViewToggleBtn (before toggle):', kanbanViewToggleBtn);
     if (kanbanViewToggleBtn) {
         const shouldBeHidden = !featureFlags.kanbanBoardFeature;
         kanbanViewToggleBtn.classList.toggle('hidden', shouldBeHidden);
         console.log(`[ApplyFeatures] Kanban Toggle Button: shouldBeHidden=${shouldBeHidden}. Classes after toggle:`, kanbanViewToggleBtn.className);
     } else {
-        console.warn('[ApplyFeatures] kanbanViewToggleBtn is null or undefined.');
+        console.warn('[ApplyFeatures] kanbanViewToggleBtn is null or undefined during visibility toggle.');
     }
-
     if (window.AppFeatures && window.AppFeatures.KanbanBoard && typeof window.AppFeatures.KanbanBoard.updateUIVisibility === 'function') {
         window.AppFeatures.KanbanBoard.updateUIVisibility(featureFlags.kanbanBoardFeature);
     }
-
     if (!featureFlags.kanbanBoardFeature && currentTaskViewMode === 'kanban') {
         console.log('[ApplyFeatures] Kanban feature OFF, but view mode is Kanban. Switching to list.');
         setTaskViewMode('list');
     }
-
     refreshTaskView();
-
     if (currentViewTaskId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) {
         openViewTaskDetailsModal(currentViewTaskId);
     }
@@ -190,6 +149,7 @@ function applyActiveFeatures() {
 }
 
 // --- Event Handlers ---
+// ... (All event handlers like handleAddTask, handleEditTask, etc. remain unchanged from the previous version)
 function handleAddTask(event) {
     event.preventDefault();
     const rawTaskText = modalTaskInputAdd.value.trim();
@@ -406,24 +366,26 @@ function setFilter(filter) {
     setAppCurrentFilter(filter);
     updateSortButtonStates();
 
-    smartViewButtons.forEach(button => {
-        const isActive = button.dataset.filter === filter;
-        const baseInactiveClasses = ['bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600'];
-        const iconInactiveClasses = ['text-slate-500', 'dark:text-slate-400'];
-        const activeClasses = ['bg-sky-500', 'text-white', 'font-semibold', 'dark:bg-sky-600', 'dark:text-sky-50'];
-        const iconActiveClasses = ['text-sky-100', 'dark:text-sky-200'];
+    if (smartViewButtons) { 
+        smartViewButtons.forEach(button => {
+            const isActive = button.dataset.filter === filter;
+            const baseInactiveClasses = ['bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600'];
+            const iconInactiveClasses = ['text-slate-500', 'dark:text-slate-400'];
+            const activeClasses = ['bg-sky-500', 'text-white', 'font-semibold', 'dark:bg-sky-600', 'dark:text-sky-50'];
+            const iconActiveClasses = ['text-sky-100', 'dark:text-sky-200'];
 
-        button.classList.remove(...baseInactiveClasses, ...activeClasses);
-        button.querySelector('i')?.classList.remove(...iconInactiveClasses, ...iconActiveClasses);
+            button.classList.remove(...baseInactiveClasses, ...activeClasses);
+            button.querySelector('i')?.classList.remove(...iconInactiveClasses, ...iconActiveClasses);
 
-        if (isActive) {
-            button.classList.add(...activeClasses);
-            button.querySelector('i')?.classList.add(...iconActiveClasses);
-        } else {
-            button.classList.add(...baseInactiveClasses);
-            button.querySelector('i')?.classList.add(...iconInactiveClasses);
-        }
-    });
+            if (isActive) {
+                button.classList.add(...activeClasses);
+                button.querySelector('i')?.classList.add(...iconActiveClasses);
+            } else {
+                button.classList.add(...baseInactiveClasses);
+                button.querySelector('i')?.classList.add(...iconInactiveClasses);
+            }
+        });
+    }
     refreshTaskView();
 }
 
@@ -512,29 +474,24 @@ function handleAddTempSubTaskForAddModal() {
 
 // --- Event Listeners Setup ---
 function setupEventListeners() {
-    // Modal Openers and Form Submissions
     if (openAddModalButton) openAddModalButton.addEventListener('click', openAddModal);
     if (closeAddModalBtn) closeAddModalBtn.addEventListener('click', closeAddModal);
     if (cancelAddModalBtn) cancelAddModalBtn.addEventListener('click', closeAddModal);
     if (modalTodoFormAdd) modalTodoFormAdd.addEventListener('submit', handleAddTask);
     if (addTaskModal) addTaskModal.addEventListener('click', (event) => { if (event.target === addTaskModal) closeAddModal(); });
-
     if (closeViewEditModalBtn) closeViewEditModalBtn.addEventListener('click', closeViewEditModal);
     if (cancelViewEditModalBtn) cancelViewEditModalBtn.addEventListener('click', closeViewEditModal);
     if (modalTodoFormViewEdit) modalTodoFormViewEdit.addEventListener('submit', handleEditTask);
     if (viewEditTaskModal) viewEditTaskModal.addEventListener('click', (event) => { if (event.target === viewEditTaskModal) closeViewEditModal(); });
-
     if (closeViewDetailsModalBtn) closeViewDetailsModalBtn.addEventListener('click', closeViewTaskDetailsModal);
     if (closeViewDetailsSecondaryBtn) closeViewDetailsSecondaryBtn.addEventListener('click', closeViewTaskDetailsModal);
     if (editFromViewModalBtn) editFromViewModalBtn.addEventListener('click', () => { if (currentViewTaskId !== null) { closeViewTaskDetailsModal(); openViewEditModal(currentViewTaskId); } });
     if(deleteFromViewModalBtn) { deleteFromViewModalBtn.addEventListener('click', () => { if (currentViewTaskId !== null) { deleteTask(currentViewTaskId); closeViewTaskDetailsModal(); } }); }
     if (viewTaskDetailsModal) viewTaskDetailsModal.addEventListener('click', (event) => { if (event.target === viewTaskDetailsModal) closeViewTaskDetailsModal(); });
-
     if (closeManageLabelsModalBtn) closeManageLabelsModalBtn.addEventListener('click', closeManageLabelsModal);
     if (closeManageLabelsSecondaryBtn) closeManageLabelsSecondaryBtn.addEventListener('click', closeManageLabelsModal);
     if (addNewLabelForm) addNewLabelForm.addEventListener('submit', handleAddNewLabel);
     if (manageLabelsModal) manageLabelsModal.addEventListener('click', (event) => { if (event.target === manageLabelsModal) closeManageLabelsModal(); });
-
     if (openSettingsModalButton) openSettingsModalButton.addEventListener('click', openSettingsModal);
     if (closeSettingsModalBtn) closeSettingsModalBtn.addEventListener('click', closeSettingsModal);
     if (closeSettingsSecondaryBtn) closeSettingsSecondaryBtn.addEventListener('click', closeSettingsModal);
@@ -549,19 +506,15 @@ function setupEventListeners() {
     if (settingsUserAccountsBtn) settingsUserAccountsBtn.addEventListener('click', () => nonFunctionalFeatureMessageHandler('User Accounts'));
     if (settingsCollaborationBtn) settingsCollaborationBtn.addEventListener('click', () => nonFunctionalFeatureMessageHandler('Collaboration'));
     if (settingsSyncBackupBtn) settingsSyncBackupBtn.addEventListener('click', () => nonFunctionalFeatureMessageHandler('Sync & Backup'));
-
     if (closeTaskReviewModalBtn) closeTaskReviewModalBtn.addEventListener('click', closeTaskReviewModal);
     if (closeTaskReviewSecondaryBtn) closeTaskReviewSecondaryBtn.addEventListener('click', closeTaskReviewModal);
     if (taskReviewModal) taskReviewModal.addEventListener('click', (event) => { if (event.target === taskReviewModal) closeTaskReviewModal(); });
-
     if (closeTooltipsGuideModalBtn) closeTooltipsGuideModalBtn.addEventListener('click', closeTooltipsGuideModal);
     if (closeTooltipsGuideSecondaryBtn) closeTooltipsGuideSecondaryBtn.addEventListener('click', closeTooltipsGuideModal);
     if (tooltipsGuideModal) tooltipsGuideModal.addEventListener('click', (event) => { if (event.target === tooltipsGuideModal) closeTooltipsGuideModal(); });
-
     const featureFlagsModalElement = document.getElementById('featureFlagsModal');
     const closeFeatureFlagsModalBtn = document.getElementById('closeFeatureFlagsModalBtn');
     const closeFeatureFlagsSecondaryBtn = document.getElementById('closeFeatureFlagsSecondaryBtn');
-
     if (closeFeatureFlagsModalBtn) closeFeatureFlagsModalBtn.addEventListener('click', () => {
         document.getElementById('modalDialogFeatureFlags').classList.add('scale-95', 'opacity-0');
         setTimeout(() => { if (featureFlagsModalElement) featureFlagsModalElement.classList.add('hidden'); }, 200);
@@ -576,7 +529,6 @@ function setupEventListeners() {
             setTimeout(() => featureFlagsModalElement.classList.add('hidden'), 200);
         }
     });
-
     if (modalRemindMeAdd) {
         modalRemindMeAdd.addEventListener('change', () => {
             if(featureFlags.reminderFeature && reminderOptionsAdd) {
@@ -605,7 +557,6 @@ function setupEventListeners() {
             }
         });
     }
-
     if (smartViewButtonsContainer) {
         smartViewButtonsContainer.addEventListener('click', (event) => {
             const button = event.target.closest('.smart-view-btn');
@@ -620,38 +571,36 @@ function setupEventListeners() {
             refreshTaskView();
         });
     }
-
     if (sidebarToggleBtn) {
         sidebarToggleBtn.addEventListener('click', () => {
             const isCurrentlyMinimized = taskSidebar.classList.contains('sidebar-minimized');
             setSidebarMinimized(!isCurrentlyMinimized);
         });
     }
-    sidebarIconOnlyButtons.forEach(button => {
-        button.addEventListener('mouseenter', (event) => {
-            if (!taskSidebar.classList.contains('sidebar-minimized')) return;
-            clearTimeout(tooltipTimeout);
-            tooltipTimeout = setTimeout(() => {
-                const tooltipText = button.title || button.querySelector('.sidebar-text-content')?.textContent.trim();
-                if (tooltipText) {
-                    showTooltip(event.currentTarget, tooltipText);
-                }
-            }, 500);
+    if (sidebarIconOnlyButtons) {
+        sidebarIconOnlyButtons.forEach(button => {
+            button.addEventListener('mouseenter', (event) => {
+                if (!taskSidebar || !taskSidebar.classList.contains('sidebar-minimized')) return;
+                clearTimeout(tooltipTimeout);
+                tooltipTimeout = setTimeout(() => {
+                    const tooltipText = button.title || button.querySelector('.sidebar-text-content')?.textContent.trim();
+                    if (tooltipText) {
+                        showTooltip(event.currentTarget, tooltipText);
+                    }
+                }, 500);
+            });
+            button.addEventListener('mouseleave', () => {
+                hideTooltip();
+            });
         });
-        button.addEventListener('mouseleave', () => {
-            hideTooltip();
-        });
-    });
-
+    }
     if (sortByDueDateBtn) sortByDueDateBtn.addEventListener('click', () => { setAppCurrentSort(currentSort === 'dueDate' ? 'default' : 'dueDate'); updateSortButtonStates(); refreshTaskView(); });
     if (sortByPriorityBtn) sortByPriorityBtn.addEventListener('click', () => { setAppCurrentSort(currentSort === 'priority' ? 'default' : 'priority'); updateSortButtonStates(); refreshTaskView(); });
     if (sortByLabelBtn) sortByLabelBtn.addEventListener('click', () => { setAppCurrentSort(currentSort === 'label' ? 'default' : 'label'); updateSortButtonStates(); refreshTaskView(); });
-
     if (modalAddSubTaskBtnViewEdit) { modalAddSubTaskBtnViewEdit.addEventListener('click', handleAddSubTaskViewEdit); }
     if (modalSubTaskInputViewEdit) { modalSubTaskInputViewEdit.addEventListener('keypress', (event) => { if (event.key === 'Enter') { event.preventDefault(); handleAddSubTaskViewEdit(); } }); }
     if (modalAddSubTaskBtnAdd) { modalAddSubTaskBtnAdd.addEventListener('click', handleAddTempSubTaskForAddModal); }
     if (modalSubTaskInputAdd) { modalSubTaskInputAdd.addEventListener('keypress', (event) => { if (event.key === 'Enter') { event.preventDefault(); handleAddTempSubTaskForAddModal(); } }); }
-
     if (kanbanViewToggleBtn) {
         kanbanViewToggleBtn.addEventListener('click', () => {
             if (!featureFlags.kanbanBoardFeature) return;
@@ -663,7 +612,6 @@ function setupEventListeners() {
             refreshTaskView();
         });
     }
-
     document.addEventListener('keydown', (event) => {
         const isAddModalOpen = addTaskModal && !addTaskModal.classList.contains('hidden');
         const isViewEditModalOpen = viewEditTaskModal && !viewEditTaskModal.classList.contains('hidden');
@@ -674,21 +622,17 @@ function setupEventListeners() {
         const isTooltipsGuideModalOpen = tooltipsGuideModal && !tooltipsGuideModal.classList.contains('hidden');
         const currentFeatureFlagsModalElement = document.getElementById('featureFlagsModal');
         const isFeatureFlagsModalOpen = currentFeatureFlagsModalElement && !currentFeatureFlagsModalElement.classList.contains('hidden');
-
         const isAnyModalOpen = isAddModalOpen || isViewEditModalOpen || isViewDetailsModalOpen ||
                                isManageLabelsModalOpen || isSettingsModalOpen || isTaskReviewModalOpen ||
                                isTooltipsGuideModalOpen || isFeatureFlagsModalOpen;
-
         const isInputFocused = document.activeElement.tagName === 'INPUT' ||
                                document.activeElement.tagName === 'SELECT' ||
                                document.activeElement.tagName === 'TEXTAREA';
         const isSubTaskInputFocused = document.activeElement === modalSubTaskInputViewEdit || document.activeElement === modalSubTaskInputAdd;
-
         if ((event.key === '+' || event.key === '=') && !isAnyModalOpen && !isInputFocused && !isSubTaskInputFocused) {
             event.preventDefault();
             openAddModal();
         }
-
         if (event.key === 'Escape') {
             if (isAddModalOpen) closeAddModal();
             else if (isViewEditModalOpen) closeViewEditModal();
@@ -708,6 +652,14 @@ function setupEventListeners() {
 // --- Global Initialization ---
 window.onload = async () => {
     console.log("window.onload in ui_event_handlers.js starting");
+    
+    if (typeof initializeDOMElements === 'function') {
+        initializeDOMElements(); 
+    } else {
+        console.error("initializeDOMElements function is not defined! Check script load order and ui_rendering.js");
+        return; 
+    }
+    
     await loadFeatureFlags();
     initializeTasks();
     updateUniqueLabels();
@@ -732,12 +684,14 @@ window.onload = async () => {
         }
     }
 
-    applyActiveFeatures();
+    applyActiveFeatures(); 
 
-    smartViewButtons.forEach(button => {
-        button.classList.add('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600');
-        button.querySelector('i')?.classList.add('text-slate-500', 'dark:text-slate-400');
-    });
+    // Moved the smartViewButtons styling to a function in ui_rendering.js
+    if (typeof styleInitialSmartViewButtons === 'function') {
+        styleInitialSmartViewButtons();
+    } else {
+        console.warn("styleInitialSmartViewButtons function not found in ui_rendering.js");
+    }
 
     const savedSidebarState = localStorage.getItem('sidebarState');
     if (savedSidebarState === 'minimized') {
@@ -756,6 +710,6 @@ window.onload = async () => {
     updateSortButtonStates();
     updateClearCompletedButtonState();
 
-    setupEventListeners();
+    setupEventListeners(); 
     console.log("Todo App Initialized.");
 };
