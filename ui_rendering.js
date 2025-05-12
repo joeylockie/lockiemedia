@@ -148,6 +148,9 @@ const subTasksSectionAdd = document.getElementById('subTasksSectionAdd');
 const modalSubTaskInputAdd = document.getElementById('modalSubTaskInputAdd');
 const modalAddSubTaskBtnAdd = document.getElementById('modalAddSubTaskBtnAdd');
 const modalSubTasksListAdd = document.getElementById('modalSubTasksListAdd');
+// Feature Flags Modal Elements (New)
+const featureFlagsListContainer = document.getElementById('featureFlagsListContainer');
+
 
 // --- Kanban Board Elements (New) ---
 const kanbanViewToggleBtn = document.getElementById('kanbanViewToggleBtn');
@@ -748,7 +751,7 @@ function updateKanbanViewToggleButtonState() {
     const iconElement = kanbanViewToggleBtn.querySelector('i');
     if (!iconElement) return;
 
-    if (currentTaskViewMode === 'kanban') {
+    if (currentTaskViewMode === 'kanban' && featureFlags.kanbanBoardFeature) { // Check feature flag too
         kanbanViewToggleBtnText.textContent = 'List';
         kanbanViewToggleBtn.title = 'Switch to List View';
         iconElement.classList.remove('fa-columns');
@@ -757,13 +760,13 @@ function updateKanbanViewToggleButtonState() {
         if (sortByDueDateBtn) sortByDueDateBtn.classList.add('hidden');
         if (sortByPriorityBtn) sortByPriorityBtn.classList.add('hidden');
         if (sortByLabelBtn) sortByLabelBtn.classList.add('hidden');
-    } else { // 'list' view
+    } else { // 'list' view or Kanban feature disabled
         kanbanViewToggleBtnText.textContent = 'Board';
         kanbanViewToggleBtn.title = 'Switch to Board View';
         iconElement.classList.remove('fa-list-ul');
         iconElement.classList.add('fa-columns');
-        // Show sort buttons when in List view (if feature is on)
-        if (featureFlags.kanbanBoardFeature) { // Only show/hide if the feature itself is active
+        // Show sort buttons when in List view (only if Kanban feature is actually on, otherwise they are always visible)
+        if (featureFlags.kanbanBoardFeature) {
              if (sortByDueDateBtn) sortByDueDateBtn.classList.remove('hidden');
              if (sortByPriorityBtn) sortByPriorityBtn.classList.remove('hidden');
              if (sortByLabelBtn) sortByLabelBtn.classList.remove('hidden');
