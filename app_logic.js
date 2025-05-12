@@ -16,8 +16,8 @@ let featureFlags = {
     taskTimerSystem: false,
     advancedRecurrence: false,
     fileAttachments: false,
-    integrationsServices: false, // Flag for Integrations Services. Logic is now in feature_integrations_services.js
-    userAccounts: false,
+    integrationsServices: false,
+    userAccounts: false, // Flag for User Accounts. Logic is now in feature_user_accounts.js
     collaborationSharing: false,
     crossDeviceSync: false,
     tooltipsGuide: false,
@@ -45,11 +45,12 @@ async function loadFeatureFlags() {
         const response = await fetch('features.json?cachebust=' + new Date().getTime());
         if (!response.ok) {
             console.warn('Failed to load features.json, using default flags. Status:', response.status);
-            // Ensure all flags have a default
+            // Ensure all flags have a default, including the new ones
             if (typeof featureFlags.subTasksFeature === 'undefined') { featureFlags.subTasksFeature = false; }
             if (typeof featureFlags.taskTimerSystem === 'undefined') { featureFlags.taskTimerSystem = false; }
             if (typeof featureFlags.advancedRecurrence === 'undefined') { featureFlags.advancedRecurrence = false; }
-            if (typeof featureFlags.integrationsServices === 'undefined') { featureFlags.integrationsServices = false; } // Ensure default
+            if (typeof featureFlags.integrationsServices === 'undefined') { featureFlags.integrationsServices = false; }
+            if (typeof featureFlags.userAccounts === 'undefined') { featureFlags.userAccounts = false; } // Ensure default
             // Add similar checks for other feature flags if necessary
             return;
         }
@@ -62,7 +63,8 @@ async function loadFeatureFlags() {
         if (typeof featureFlags.subTasksFeature === 'undefined') { featureFlags.subTasksFeature = false; }
         if (typeof featureFlags.taskTimerSystem === 'undefined') { featureFlags.taskTimerSystem = false; }
         if (typeof featureFlags.advancedRecurrence === 'undefined') { featureFlags.advancedRecurrence = false; }
-        if (typeof featureFlags.integrationsServices === 'undefined') { featureFlags.integrationsServices = false; } // Ensure default
+        if (typeof featureFlags.integrationsServices === 'undefined') { featureFlags.integrationsServices = false; }
+        if (typeof featureFlags.userAccounts === 'undefined') { featureFlags.userAccounts = false; } // Ensure default
         // Add similar checks for other feature flags if necessary
     }
 }
@@ -257,20 +259,25 @@ function parseDateFromText(text) {
     ];
 
     for (const pattern of patterns) {
-        const regex = new RegExp(pattern.regex.source, pattern.regex.flags.replace('g', ''));
+        const regex = new RegExp(pattern.regex.source, pattern.regex.flags.replace('g', '')); // Ensure only one match is processed
         const match = regex.exec(remainingText);
         if (match) {
             const potentialDate = pattern.handler(match);
+            // Check if the potentialDate is a valid date string before proceeding
             if (potentialDate && !isNaN(new Date(potentialDate).getTime())) { 
                 const matchedString = match[0];
+                // More robust way to remove the matched string and any immediately following space
                 const tempRemainingText = remainingText.replace(new RegExp(matchedString.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*', 'i'), '').trim();
+                
+                // Check if the match is a standalone date or part of a larger word/number sequence
                 const afterMatchIndex = match.index + matchedString.length;
                 const charAfterMatch = remainingText[afterMatchIndex];
 
+                // Allow match if it's at the end of the string OR followed by a space/punctuation
                 if (afterMatchIndex === remainingText.length || /[\s,.?!]/.test(charAfterMatch || '')) {
                     parsedDate = potentialDate;
-                    remainingText = tempRemainingText.replace(/\s\s+/g, ' ').trim(); 
-                    break; 
+                    remainingText = tempRemainingText.replace(/\s\s+/g, ' ').trim(); // Clean up multiple spaces
+                    break; // Found a date, stop processing other patterns
                 }
             }
         }
@@ -285,7 +292,7 @@ function addSubTaskLogic(parentId, subTaskText) {
     if (parentTaskIndex === -1) return false;
 
     const newSubTask = {
-        id: Date.now() + Math.random(), 
+        id: Date.now() + Math.random(), // Simple unique ID for subtasks
         text: subTaskText.trim(),
         completed: false,
         creationDate: Date.now()
@@ -363,3 +370,6 @@ function setAppSearchTerm(term) {
 
 // --- Test Button Feature Logic (Placeholder) ---
 // Logic for this feature is primarily managed in feature_test_button.js
+
+// --- User Accounts Logic (Placeholder) ---
+// Logic for this feature is primarily managed in feature_user_accounts.js
