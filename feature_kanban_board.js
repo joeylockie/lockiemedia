@@ -1,67 +1,45 @@
 // feature_kanban_board.js
-console.log('[KanbanFeatureFile] feature_kanban_board.js TOP LEVEL START.');
-
-// Ensure AppFeatures namespace exists on the window object
-if (typeof window.AppFeatures === 'undefined') {
-    console.log('[KanbanFeatureFile] window.AppFeatures was UNDEFINED. Creating it now.');
-    window.AppFeatures = {};
-} else {
-    console.log('[KanbanFeatureFile] window.AppFeatures ALREADY EXISTS.');
-}
 
 // Self-invoking function to encapsulate the Kanban Board feature's code.
-(function(AppFeaturesObject) {
-    console.log('[KanbanFeatureFile] IIFE STARTING. Passed AppFeaturesObject:', AppFeaturesObject);
+(function() {
+    console.log('[KanbanFeatureFile] feature_kanban_board.js script STARTING to execute.');
 
     let draggedTask = null; 
 
     function initializeKanbanBoardFeature() {
-        loadKanbanColumns(); // Assumes this is globally available from app_logic.js
-        console.log('[KanbanFeatureFile] Kanban Board Feature Initialized (from initializeKanbanBoardFeature within IIFE).');
+        loadKanbanColumns(); 
+        console.log('[KanbanFeatureFile] Kanban Board Feature Initialized (from initializeKanbanBoardFeature).');
     }
 
     function updateKanbanBoardUIVisibility(isEnabled) {
-        // This function is called by applyActiveFeatures in ui_event_handlers.js
-        // It can trigger a re-render if the view mode needs to change based on the flag.
-        console.log(`[KanbanFeatureFile] updateKanbanBoardUIVisibility called with isEnabled: ${isEnabled}`);
         if (isEnabled) {
-            if (currentTaskViewMode === 'kanban') { // currentTaskViewMode from app_logic.js
+            if (currentTaskViewMode === 'kanban') {
                 renderKanbanView();
             }
         } else {
-            // If feature is turned off, ensure we switch back to list view if kanban was active.
             if (currentTaskViewMode === 'kanban') {
-                setTaskViewMode('list'); // from app_logic.js
-                // The main refreshTaskView in ui_rendering.js will handle calling renderListView
+                setTaskViewMode('list'); 
+                renderListView(); 
             }
         }
     }
 
     function renderKanbanBoard() {
-        console.log('[KanbanFeatureFile] renderKanbanBoard CALLED.');
         const mainContentArea = document.querySelector('main'); 
         if (!mainContentArea) {
-            console.error("[KanbanFeatureFile] Kanban: Main content area not found to render board.");
+            console.error("Kanban: Main content area not found to render board.");
             return;
         }
         mainContentArea.innerHTML = ''; 
         const kanbanContainer = document.createElement('div');
         kanbanContainer.id = 'kanbanBoardContainer';
         kanbanContainer.className = 'flex flex-col sm:flex-row gap-4 p-0 overflow-x-auto'; 
-        
-        // Ensure kanbanColumns is available (from app_logic.js)
-        if (!window.kanbanColumns || !Array.isArray(window.kanbanColumns)) {
-            console.error("[KanbanFeatureFile] kanbanColumns not available or not an array.");
-            return;
-        }
-
-        window.kanbanColumns.forEach(column => {
+        kanbanColumns.forEach(column => {
             const columnEl = createKanbanColumnElement(column);
             kanbanContainer.appendChild(columnEl);
         });
         mainContentArea.appendChild(kanbanContainer);
         setupDragAndDropListeners();
-        console.log('[KanbanFeatureFile] Kanban board rendered.');
     }
 
     function createKanbanColumnElement(column) {
@@ -86,14 +64,7 @@ if (typeof window.AppFeatures === 'undefined') {
         const taskListUl = document.createElement('ul');
         taskListUl.className = 'kanban-task-list p-3 space-y-3 overflow-y-auto flex-grow min-h-[150px]'; 
         taskListUl.dataset.columnId = column.id; 
-        
-        // Ensure tasks is available (from app_logic.js)
-        if (!window.tasks || !Array.isArray(window.tasks)) {
-            console.error("[KanbanFeatureFile] tasks array not available for filtering.");
-            return columnWrapper; // Return partially built column to avoid further errors
-        }
-
-        const tasksInColumn = window.tasks.filter(task => {
+        const tasksInColumn = tasks.filter(task => {
             if (column.id === 'done') { 
                 return task.kanbanColumnId === column.id || (task.completed && task.kanbanColumnId !== 'done');
             }
@@ -113,10 +84,10 @@ if (typeof window.AppFeatures === 'undefined') {
         taskCard.className = `kanban-task-card bg-white dark:bg-slate-700 p-3 rounded-md shadow hover:shadow-lg transition-shadow cursor-grab active:cursor-grabbing ${task.completed ? 'opacity-70' : ''}`;
         taskCard.draggable = true;
         taskCard.dataset.taskId = task.id;
-        const taskTextEl = document.createElement('p'); // Renamed to avoid conflict
-        taskTextEl.textContent = task.text;
-        taskTextEl.className = `text-sm font-medium text-slate-800 dark:text-slate-100 mb-2 break-words ${task.completed ? 'line-through' : ''}`;
-        taskCard.appendChild(taskTextEl);
+        const taskText = document.createElement('p');
+        taskText.textContent = task.text;
+        taskText.className = `text-sm font-medium text-slate-800 dark:text-slate-100 mb-2 break-words ${task.completed ? 'line-through' : ''}`;
+        taskCard.appendChild(taskText);
         const detailsContainer = document.createElement('div');
         detailsContainer.className = 'flex flex-wrap items-center gap-x-2 gap-y-1 text-xs mt-1';
         if (task.priority) {
@@ -199,7 +170,7 @@ if (typeof window.AppFeatures === 'undefined') {
         const targetColumnId = targetColumnUl.dataset.columnId;
         const taskId = parseInt(draggedTask.dataset.taskId);
         targetColumnUl.classList.remove('bg-slate-300', 'dark:bg-slate-700/70');
-        const taskIndex = tasks.findIndex(t => t.id === taskId); // `tasks` from app_logic.js
+        const taskIndex = tasks.findIndex(t => t.id === taskId);
         if (taskIndex === -1) {
             console.error("Dropped task not found in tasks array.");
             return;
@@ -225,41 +196,50 @@ if (typeof window.AppFeatures === 'undefined') {
     }
 
     function renderKanbanView() {
-        console.log("[KanbanFeatureFile] renderKanbanView CALLED.");
-        if (!featureFlags.kanbanBoardFeature) return; // featureFlags from app_logic.js
-        setTaskViewMode('kanban'); // from app_logic.js
-        
-        // Ensure sort buttons are hidden (these are global vars from ui_rendering.js)
-        if(typeof sortByDueDateBtn !== 'undefined' && sortByDueDateBtn) sortByDueDateBtn.classList.add('hidden');
-        if(typeof sortByPriorityBtn !== 'undefined' && sortByPriorityBtn) sortByPriorityBtn.classList.add('hidden');
-        if(typeof sortByLabelBtn !== 'undefined' && sortByLabelBtn) sortByLabelBtn.classList.add('hidden');
-        
+        if (!featureFlags.kanbanBoardFeature) return;
+        setTaskViewMode('kanban'); 
+        if(sortByDueDateBtn) sortByDueDateBtn.classList.add('hidden');
+        if(sortByPriorityBtn) sortByPriorityBtn.classList.add('hidden');
+        if(sortByLabelBtn) sortByLabelBtn.classList.add('hidden');
         renderKanbanBoard();
-        // The button state (icon/text) is handled by updateKanbanViewToggleButtonState in ui_rendering.js,
-        // which is called by refreshTaskView.
     }
 
     function renderListView() {
-        console.log("[KanbanFeatureFile] renderListView CALLED.");
         setTaskViewMode('list'); 
-        
-        // Ensure sort buttons are visible (these are global vars from ui_rendering.js)
-        if(typeof sortByDueDateBtn !== 'undefined' && sortByDueDateBtn) sortByDueDateBtn.classList.remove('hidden');
-        if(typeof sortByPriorityBtn !== 'undefined' && sortByPriorityBtn) sortByPriorityBtn.classList.remove('hidden');
-        if(typeof sortByLabelBtn !== 'undefined' && sortByLabelBtn) sortByLabelBtn.classList.remove('hidden');
-        
-        // The actual rendering of the list view is handled by renderTaskListView in ui_rendering.js,
-        // which is called by refreshTaskView. This function primarily sets the mode.
-        // However, to be safe, we can call it if needed, but refreshTaskView should handle it.
-        if (typeof renderTaskListView === 'function') { // renderTaskListView from ui_rendering.js
-             renderTaskListView();
-        } else {
-            console.error("[KanbanFeatureFile] renderTaskListView function not found globally.");
+        if(sortByDueDateBtn) sortByDueDateBtn.classList.remove('hidden');
+        if(sortByPriorityBtn) sortByPriorityBtn.classList.remove('hidden');
+        if(sortByLabelBtn) sortByLabelBtn.classList.remove('hidden');
+        const mainContentArea = document.querySelector('main');
+        if (mainContentArea) {
+            mainContentArea.innerHTML = ''; 
+            const taskListUl = document.createElement('ul');
+            taskListUl.id = 'taskList';
+            taskListUl.className = 'space-y-3 sm:space-y-3.5';
+            mainContentArea.appendChild(taskListUl);
+            const emptyP = document.createElement('p');
+            emptyP.id = 'emptyState';
+            emptyP.className = 'text-center text-slate-500 dark:text-slate-400 mt-8 py-5 hidden';
+            emptyP.textContent = 'No tasks yet. Add some!';
+            mainContentArea.appendChild(emptyP);
+            const noMatchP = document.createElement('p');
+            noMatchP.id = 'noMatchingTasks';
+            noMatchP.className = 'text-center text-slate-500 dark:text-slate-400 mt-8 py-5 hidden';
+            noMatchP.textContent = 'No tasks match the current filter or search.';
+            mainContentArea.appendChild(noMatchP);
         }
+        renderTaskListView(); // Call the function from ui_rendering.js
     }
 
     // --- Expose Public Interface ---
-    const kanbanModuleAPI = {
+    console.log('[KanbanFeatureFile] Attempting to define window.AppFeatures.KanbanBoard...');
+    if (typeof window.AppFeatures === 'undefined') {
+        window.AppFeatures = {};
+        console.log('[KanbanFeatureFile] window.AppFeatures object created by KanbanBoard.');
+    } else {
+        console.log('[KanbanFeatureFile] window.AppFeatures object already exists.');
+    }
+
+    window.AppFeatures.KanbanBoard = {
         initialize: initializeKanbanBoardFeature,
         updateUIVisibility: updateKanbanBoardUIVisibility,
         renderKanbanView: renderKanbanView,
@@ -267,15 +247,10 @@ if (typeof window.AppFeatures === 'undefined') {
         renderKanbanBoard: renderKanbanBoard
     };
     
-    AppFeaturesObject.KanbanBoard = kanbanModuleAPI;
-    
-    console.log('[KanbanFeatureFile] AppFeatures.KanbanBoard assigned:', AppFeaturesObject.KanbanBoard);
-    if(AppFeaturesObject.KanbanBoard) {
-        console.log('[KanbanFeatureFile] typeof AppFeatures.KanbanBoard.renderKanbanView is:', typeof AppFeaturesObject.KanbanBoard.renderKanbanView);
-        console.log('[KanbanFeatureFile] typeof AppFeatures.KanbanBoard.initialize is:', typeof AppFeaturesObject.KanbanBoard.initialize);
+    console.log('[KanbanFeatureFile] window.AppFeatures.KanbanBoard DEFINED:', window.AppFeatures.KanbanBoard);
+    if(window.AppFeatures.KanbanBoard) {
+        console.log('[KanbanFeatureFile] typeof window.AppFeatures.KanbanBoard.renderKanbanView is:', typeof window.AppFeatures.KanbanBoard.renderKanbanView);
+        console.log('[KanbanFeatureFile] typeof window.AppFeatures.KanbanBoard.initialize is:', typeof window.AppFeatures.KanbanBoard.initialize);
     }
-    console.log('[KanbanFeatureFile] IIFE FINISHED executing.');
-
-})(window.AppFeatures); // Pass the global AppFeatures object
-
-console.log('[KanbanFeatureFile] feature_kanban_board.js script FINISHED executing. window.AppFeatures.KanbanBoard is now:', window.AppFeatures.KanbanBoard);
+    console.log('[KanbanFeatureFile] feature_kanban_board.js script FINISHED executing.');
+})();
