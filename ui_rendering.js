@@ -1,54 +1,39 @@
 // ui_rendering.js
 
-// This file handles functions that directly manipulate and render UI elements,
-// including task rendering, sub-task rendering, sidebar UI, UI helper functions
-// for display (like messages and datalists), and UI state updaters.
-
 // --- DOM Elements (Declared as let, initialized in initializeDOMElements) ---
 let taskSidebar, sidebarToggleBtn, sidebarToggleIcon, sidebarTextElements, sidebarIconOnlyButtons, iconTooltip;
 let sortByDueDateBtn, sortByPriorityBtn, sortByLabelBtn, taskSearchInput, taskList, emptyState, noMatchingTasks;
 let smartViewButtonsContainer, smartViewButtons, messageBox;
-// Add Task Modal Elements
+// ... (all other let declarations remain the same)
 let addTaskModal, modalDialogAdd, openAddModalButton, closeAddModalBtn, cancelAddModalBtn, modalTodoFormAdd;
 let modalTaskInputAdd, modalDueDateInputAdd, modalTimeInputAdd, modalEstHoursAdd, modalEstMinutesAdd;
 let modalPriorityInputAdd, modalLabelInputAdd, existingLabelsDatalist, modalNotesInputAdd;
 let modalRemindMeAddContainer, modalRemindMeAdd, reminderOptionsAdd, modalReminderDateAdd, modalReminderTimeAdd, modalReminderEmailAdd;
-// View/Edit Task Modal Elements
 let viewEditTaskModal, modalDialogViewEdit, closeViewEditModalBtn, cancelViewEditModalBtn, modalTodoFormViewEdit;
 let modalViewEditTaskId, modalTaskInputViewEdit, modalDueDateInputViewEdit, modalTimeInputViewEdit;
 let modalEstHoursViewEdit, modalEstMinutesViewEdit, modalPriorityInputViewEdit, modalLabelInputViewEdit;
 let existingLabelsEditDatalist, modalNotesInputViewEdit, modalRemindMeViewEditContainer, modalRemindMeViewEdit;
 let reminderOptionsViewEdit, modalReminderDateViewEdit, modalReminderTimeViewEdit, modalReminderEmailViewEdit;
 let existingAttachmentsViewEdit;
-// View Task Details Modal Elements
 let viewTaskDetailsModal, modalDialogViewDetails, closeViewDetailsModalBtn, closeViewDetailsSecondaryBtn;
 let editFromViewModalBtn, deleteFromViewModalBtn, viewTaskText, viewTaskDueDate, viewTaskTime, viewTaskEstDuration;
 let viewTaskPriority, viewTaskStatus, viewTaskLabel, viewTaskNotes, viewTaskReminderSection, viewTaskReminderStatus;
 let viewTaskReminderDetails, viewTaskReminderDate, viewTaskReminderTime, viewTaskReminderEmail;
 let viewTaskAttachmentsSection, viewTaskAttachmentsList;
-// Timer Elements
 let taskTimerSection, viewTaskTimerDisplay, viewTaskStartTimerBtn, viewTaskPauseTimerBtn, viewTaskStopTimerBtn;
 let viewTaskActualDuration, timerButtonsContainer;
-// Manage Labels Modal Elements
 let manageLabelsModal, modalDialogManageLabels, closeManageLabelsModalBtn, closeManageLabelsSecondaryBtn;
 let addNewLabelForm, newLabelInput, existingLabelsList;
-// Settings Modal Elements
 let settingsModal, modalDialogSettings, openSettingsModalButton, closeSettingsModalBtn, closeSettingsSecondaryBtn;
 let settingsClearCompletedBtn, settingsManageLabelsBtn, settingsManageRemindersBtn, settingsTaskReviewBtn;
 let settingsTooltipsGuideBtn, settingsIntegrationsBtn, settingsUserAccountsBtn, settingsCollaborationBtn, settingsSyncBackupBtn;
-// Task Review Modal Elements
 let taskReviewModal, modalDialogTaskReview, closeTaskReviewModalBtn, closeTaskReviewSecondaryBtn, taskReviewContent;
-// Tooltips Guide Modal Elements
 let tooltipsGuideModal, modalDialogTooltipsGuide, closeTooltipsGuideModalBtn, closeTooltipsGuideSecondaryBtn, tooltipsGuideContent;
-// Test Feature Button
 let testFeatureButtonContainer, testFeatureButton;
-// Sub-task Elements
 let subTasksSectionViewEdit, modalSubTaskInputViewEdit, modalAddSubTaskBtnViewEdit, modalSubTasksListViewEdit;
 let subTasksSectionViewDetails, viewSubTaskProgress, modalSubTasksListViewDetails, noSubTasksMessageViewDetails;
 let subTasksSectionAdd, modalSubTaskInputAdd, modalAddSubTaskBtnAdd, modalSubTasksListAdd;
-// Feature Flags Modal Elements
 let featureFlagsListContainer;
-// Kanban Board Elements
 let kanbanViewToggleBtn, kanbanViewToggleBtnText, yourTasksHeading, mainContentArea;
 
 
@@ -60,8 +45,8 @@ function initializeDOMElements() {
     taskSidebar = document.getElementById('taskSidebar');
     sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
     sidebarToggleIcon = document.getElementById('sidebarToggleIcon');
-    sidebarTextElements = taskSidebar ? taskSidebar.querySelectorAll('.sidebar-text-content') : []; // Add null check for taskSidebar
-    sidebarIconOnlyButtons = taskSidebar ? taskSidebar.querySelectorAll('.sidebar-button-icon-only') : []; // Add null check
+    sidebarTextElements = taskSidebar ? taskSidebar.querySelectorAll('.sidebar-text-content') : [];
+    sidebarIconOnlyButtons = taskSidebar ? taskSidebar.querySelectorAll('.sidebar-button-icon-only') : [];
     iconTooltip = document.getElementById('iconTooltip');
     sortByDueDateBtn = document.getElementById('sortByDueDateBtn');
     sortByPriorityBtn = document.getElementById('sortByPriorityBtn');
@@ -71,7 +56,7 @@ function initializeDOMElements() {
     emptyState = document.getElementById('emptyState');
     noMatchingTasks = document.getElementById('noMatchingTasks');
     smartViewButtonsContainer = document.getElementById('smartViewButtonsContainer');
-    smartViewButtons = smartViewButtonsContainer ? smartViewButtonsContainer.querySelectorAll('.smart-view-btn') : []; // Add null check
+    smartViewButtons = smartViewButtonsContainer ? smartViewButtonsContainer.querySelectorAll('.smart-view-btn') : [];
     messageBox = document.getElementById('messageBox');
     
     addTaskModal = document.getElementById('addTaskModal');
@@ -206,23 +191,25 @@ function initializeDOMElements() {
     kanbanViewToggleBtn = document.getElementById('kanbanViewToggleBtn');
     kanbanViewToggleBtnText = document.getElementById('kanbanViewToggleBtnText');
     yourTasksHeading = document.getElementById('yourTasksHeading');
-    mainContentArea = document.querySelector('main');
+    mainContentArea = document.querySelector('main'); // This is the critical line
 
-    console.log('[DOM Init] DOM Elements Initialized. kanbanViewToggleBtn:', kanbanViewToggleBtn);
+    console.log('[DOM Init] DOM Elements Initialized.');
+    console.log('[DOM Init] mainContentArea:', mainContentArea); // Log to confirm it's found
+    console.log('[DOM Init] smartViewButtonsContainer:', smartViewButtonsContainer);
+    console.log('[DOM Init] smartViewButtons NodeList length:', smartViewButtons ? smartViewButtons.length : 'undefined');
+    console.log('[DOM Init] kanbanViewToggleBtn:', kanbanViewToggleBtn);
 }
 
-
 // --- UI Helper Functions ---
-// ... (showMessage, populateDatalist - unchanged) ...
 function showMessage(message, type = 'success') {
-    if (!messageBox) return;
+    if (!messageBox) { console.warn("showMessage: messageBox not initialized."); return; }
     messageBox.textContent = message;
-    messageBox.className = 'message-box'; // Reset classes
+    messageBox.className = 'message-box';
     if (type === 'success') {
         messageBox.classList.add('bg-green-100', 'text-green-800', 'dark:bg-green-700', 'dark:text-green-100');
     } else if (type === 'error') {
         messageBox.classList.add('bg-red-100', 'text-red-800', 'dark:bg-red-700', 'dark:text-red-100');
-    } else { // Default to info/general
+    } else {
         messageBox.classList.add('bg-sky-100', 'text-sky-800', 'dark:bg-sky-700', 'dark:text-sky-100');
     }
     messageBox.style.display = 'block';
@@ -234,7 +221,7 @@ function showMessage(message, type = 'success') {
 
 function populateDatalist(datalistElement) {
     if (!datalistElement) return;
-    datalistElement.innerHTML = ''; // Clear existing options
+    datalistElement.innerHTML = '';
     uniqueLabels.forEach(label => {
         const option = document.createElement('option');
         option.value = label;
@@ -243,7 +230,6 @@ function populateDatalist(datalistElement) {
 }
 
 // --- Sidebar UI ---
-// ... (setSidebarMinimized, showTooltip, hideTooltip - unchanged) ...
 function setSidebarMinimized(minimize) {
     if (!taskSidebar || !sidebarToggleIcon || !iconTooltip) return;
     hideTooltip(); 
@@ -300,8 +286,8 @@ function hideTooltip() {
 }
 
 // --- Task Rendering ---
-// ... (refreshTaskView, renderTaskListView, sub-task functions, UI state updaters - largely unchanged but ensure they use the now globally scoped 'let' variables)
 function refreshTaskView() {
+    console.log('[RefreshTaskView] Called. mainContentArea:', mainContentArea); // Log at the start of the function
     if (!mainContentArea) {
         console.error("Main content area not found. Cannot refresh task view.");
         return;
@@ -324,7 +310,7 @@ function refreshTaskView() {
 }
 
 function renderTaskListView() {
-    if (!mainContentArea) { // Check if mainContentArea is available
+    if (!mainContentArea) {
         console.error("renderTaskListView: mainContentArea is not defined.");
         return;
     }
@@ -348,7 +334,7 @@ function renderTaskListView() {
         mainContentArea.appendChild(noMatchP);
     }
 
-    const currentTaskList = document.getElementById('taskList'); // Re-fetch in case it was just created
+    const currentTaskList = document.getElementById('taskList');
     const currentEmptyState = document.getElementById('emptyState');
     const currentNoMatchingTasks = document.getElementById('noMatchingTasks');
 
@@ -738,8 +724,7 @@ function updateClearCompletedButtonState() {
 }
 
 function updateKanbanViewToggleButtonState() {
-    if (!kanbanViewToggleBtn || !kanbanViewToggleBtnText) { // Check if elements exist
-        // console.warn("updateKanbanViewToggleButtonState: Toggle button or text element not found.");
+    if (!kanbanViewToggleBtn || !kanbanViewToggleBtnText) {
         return;
     }
 
@@ -763,6 +748,10 @@ function updateKanbanViewToggleButtonState() {
              if (sortByDueDateBtn) sortByDueDateBtn.classList.remove('hidden');
              if (sortByPriorityBtn) sortByPriorityBtn.classList.remove('hidden');
              if (sortByLabelBtn) sortByLabelBtn.classList.remove('hidden');
+        } else { // If Kanban feature is OFF, sort buttons should be visible for list view
+            if (sortByDueDateBtn) sortByDueDateBtn.classList.remove('hidden');
+            if (sortByPriorityBtn) sortByPriorityBtn.classList.remove('hidden');
+            if (sortByLabelBtn) sortByLabelBtn.classList.remove('hidden');
         }
     }
 }
@@ -773,5 +762,20 @@ function updateYourTasksHeading() {
         yourTasksHeading.textContent = 'Kanban Board';
     } else {
         yourTasksHeading.textContent = 'Your Tasks';
+    }
+}
+
+/**
+ * Sets initial styles for smart view buttons.
+ * This function should be called once after DOM elements are initialized.
+ */
+function styleInitialSmartViewButtons() {
+    if (smartViewButtons && smartViewButtons.length > 0) { // Check if smartViewButtons is not null and has items
+        smartViewButtons.forEach(button => {
+            button.classList.add('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600');
+            button.querySelector('i')?.classList.add('text-slate-500', 'dark:text-slate-400');
+        });
+    } else {
+        console.warn("styleInitialSmartViewButtons: smartViewButtons NodeList is null, empty or not yet initialized.");
     }
 }
