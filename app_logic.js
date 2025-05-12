@@ -2,7 +2,6 @@
 
 // --- Application State ---
 let tasks = JSON.parse(localStorage.getItem('todos_v3')) || [];
-let tooltipTimeout = null;
 let currentFilter = 'inbox';
 let currentSort = 'default';
 let currentSearchTerm = '';
