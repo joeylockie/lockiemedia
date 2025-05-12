@@ -49,7 +49,7 @@ function initializeDOMElements() {
     kanbanViewToggleBtn = document.getElementById('kanbanViewToggleBtn');
     if (!kanbanViewToggleBtn) {
         console.warn('[DOM Init Warning] Element with ID "kanbanViewToggleBtn" not found.');
-        const expectedParent = mainContentArea ? mainContentArea.querySelector('.flex.gap-2.mt-3.sm\\:mt-0.flex-wrap.items-center') : null; // More specific selector
+        const expectedParent = mainContentArea ? mainContentArea.querySelector('.flex.gap-2.mt-3.sm\\:mt-0.flex-wrap.items-center') : null; 
         if (expectedParent) {
             console.log('[DOM Debug] Expected parent of kanbanViewToggleBtn innerHTML (first 500 chars):', expectedParent.innerHTML.substring(0, 500) + "...");
         } else {
@@ -791,3 +791,5 @@ function styleInitialSmartViewButtons() {
         console.warn("styleInitialSmartViewButtons: smartViewButtons NodeList is null, empty or not yet initialized.");
     }
 }
+
+console.log("ui_rendering.js parsed. initializeDOMElements is now defined."); // ADDED LOG
