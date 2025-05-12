@@ -17,8 +17,8 @@ let featureFlags = {
     advancedRecurrence: false,
     fileAttachments: false,
     integrationsServices: false,
-    userAccounts: false, // Flag for User Accounts. Logic is now in feature_user_accounts.js
-    collaborationSharing: false,
+    userAccounts: false,
+    collaborationSharing: false, // Flag for Collaboration/Sharing. Logic is now in feature_collaboration_sharing.js
     crossDeviceSync: false,
     tooltipsGuide: false,
     subTasksFeature: false
@@ -50,7 +50,8 @@ async function loadFeatureFlags() {
             if (typeof featureFlags.taskTimerSystem === 'undefined') { featureFlags.taskTimerSystem = false; }
             if (typeof featureFlags.advancedRecurrence === 'undefined') { featureFlags.advancedRecurrence = false; }
             if (typeof featureFlags.integrationsServices === 'undefined') { featureFlags.integrationsServices = false; }
-            if (typeof featureFlags.userAccounts === 'undefined') { featureFlags.userAccounts = false; } // Ensure default
+            if (typeof featureFlags.userAccounts === 'undefined') { featureFlags.userAccounts = false; }
+            if (typeof featureFlags.collaborationSharing === 'undefined') { featureFlags.collaborationSharing = false; } // Ensure default
             // Add similar checks for other feature flags if necessary
             return;
         }
@@ -64,7 +65,8 @@ async function loadFeatureFlags() {
         if (typeof featureFlags.taskTimerSystem === 'undefined') { featureFlags.taskTimerSystem = false; }
         if (typeof featureFlags.advancedRecurrence === 'undefined') { featureFlags.advancedRecurrence = false; }
         if (typeof featureFlags.integrationsServices === 'undefined') { featureFlags.integrationsServices = false; }
-        if (typeof featureFlags.userAccounts === 'undefined') { featureFlags.userAccounts = false; } // Ensure default
+        if (typeof featureFlags.userAccounts === 'undefined') { featureFlags.userAccounts = false; }
+        if (typeof featureFlags.collaborationSharing === 'undefined') { featureFlags.collaborationSharing = false; } // Ensure default
         // Add similar checks for other feature flags if necessary
     }
 }
@@ -146,7 +148,10 @@ function initializeTasks() {
         // Advanced Recurrence properties
         recurrenceRule: task.recurrenceRule || null, // Example: 'RRULE:FREQ=WEEKLY;BYDAY=MO'
         recurrenceEndDate: task.recurrenceEndDate || null,
-        nextDueDate: task.nextDueDate || task.dueDate
+        nextDueDate: task.nextDueDate || task.dueDate,
+        // Collaboration/Sharing properties (can be expanded in its own feature file)
+        sharedWith: task.sharedWith || [], // Example: array of user IDs or emails
+        owner: task.owner || null // Example: user ID of the task creator
     }));
 }
 
@@ -240,13 +245,13 @@ function parseDateFromText(text) {
             return getDateString(nextYearDate);
         }},
         // Standalone dates YYYY-MM-DD or YYYY/MM/DD (as a fallback if not prefixed by "on", "due", "by")
-        { regex: /\b(\d{4}[-\/]\d{1,2}[-\/]\d{1,2})\b/g, handler: (match) => { 
+        { regex: /\b(\d{4}[-\/]\d{1,2}[-\/]\d{1,2})\b/g, handler: (match) => {
             const pd = match[0].replace(/\//g, '-');
             if (!isNaN(new Date(pd).getTime())) return pd;
             return null;
         }},
         // Standalone dates MM/DD/YYYY or MM-DD-YY (as a fallback)
-        { regex: /\b(\d{1,2}[-\/]\d{1,2}(?:[-\/]\d{2,4})?)\b/g, handler: (match) => { 
+        { regex: /\b(\d{1,2}[-\/]\d{1,2}(?:[-\/]\d{2,4})?)\b/g, handler: (match) => {
             const ds = match[0]; const pts = ds.replace(/-/g, '/').split('/');
             let y, m, d;
             if (pts.length === 2) { y = today.getFullYear(); m = parseInt(pts[0]); d = parseInt(pts[1]); }
@@ -264,11 +269,11 @@ function parseDateFromText(text) {
         if (match) {
             const potentialDate = pattern.handler(match);
             // Check if the potentialDate is a valid date string before proceeding
-            if (potentialDate && !isNaN(new Date(potentialDate).getTime())) { 
+            if (potentialDate && !isNaN(new Date(potentialDate).getTime())) {
                 const matchedString = match[0];
                 // More robust way to remove the matched string and any immediately following space
                 const tempRemainingText = remainingText.replace(new RegExp(matchedString.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*', 'i'), '').trim();
-                
+
                 // Check if the match is a standalone date or part of a larger word/number sequence
                 const afterMatchIndex = match.index + matchedString.length;
                 const charAfterMatch = remainingText[afterMatchIndex];
@@ -366,10 +371,14 @@ function setAppSearchTerm(term) {
 // Logic for this feature is primarily managed in feature_reminder.js
 
 // --- Task Timer System Logic (Placeholder) ---
-// Logic for this feature is primarily managed in task_timer_system.js
+// Logic for this feature is primarily managed in task_timer_system.js // Assuming you'll create this file
 
 // --- Test Button Feature Logic (Placeholder) ---
 // Logic for this feature is primarily managed in feature_test_button.js
 
 // --- User Accounts Logic (Placeholder) ---
 // Logic for this feature is primarily managed in feature_user_accounts.js
+
+// --- Collaboration Sharing Logic (Placeholder) ---
+// Logic for this feature is primarily managed in feature_collaboration_sharing.js
+
