@@ -49,7 +49,7 @@ function initializeDOMElements() {
     kanbanViewToggleBtn = document.getElementById('kanbanViewToggleBtn');
     if (!kanbanViewToggleBtn) {
         console.warn('[DOM Init Warning] Element with ID "kanbanViewToggleBtn" not found.');
-        const expectedParent = mainContentArea ? mainContentArea.querySelector('.flex.gap-2.mt-3.sm\\:mt-0.flex-wrap.items-center') : null; 
+        const expectedParent = mainContentArea ? mainContentArea.querySelector('.flex.gap-2.mt-3.sm\\:mt-0.flex-wrap.items-center') : null;
         if (expectedParent) {
             console.log('[DOM Debug] Expected parent of kanbanViewToggleBtn innerHTML (first 500 chars):', expectedParent.innerHTML.substring(0, 500) + "...");
         } else {
@@ -58,11 +58,11 @@ function initializeDOMElements() {
     } else {
          console.log('[DOM Init] kanbanViewToggleBtn found:', kanbanViewToggleBtn);
     }
-    
+
     smartViewButtonsContainer = document.getElementById('smartViewButtonsContainer');
     if (!smartViewButtonsContainer) console.warn('[DOM Init Warning] Element with ID "smartViewButtonsContainer" not found.');
     else console.log('[DOM Init] smartViewButtonsContainer found:', smartViewButtonsContainer);
-    
+
     taskSidebar = document.getElementById('taskSidebar');
     sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
     sidebarToggleIcon = document.getElementById('sidebarToggleIcon');
@@ -73,9 +73,9 @@ function initializeDOMElements() {
     sortByPriorityBtn = document.getElementById('sortByPriorityBtn');
     sortByLabelBtn = document.getElementById('sortByLabelBtn');
     taskSearchInput = document.getElementById('taskSearchInput');
-    taskList = document.getElementById('taskList'); 
-    emptyState = document.getElementById('emptyState'); 
-    noMatchingTasks = document.getElementById('noMatchingTasks'); 
+    taskList = document.getElementById('taskList');
+    emptyState = document.getElementById('emptyState');
+    noMatchingTasks = document.getElementById('noMatchingTasks');
     smartViewButtons = smartViewButtonsContainer ? smartViewButtonsContainer.querySelectorAll('.smart-view-btn') : [];
     messageBox = document.getElementById('messageBox');
     addTaskModal = document.getElementById('addTaskModal');
@@ -240,7 +240,7 @@ function setSidebarMinimized(minimize) {
         console.warn("setSidebarMinimized: One or more sidebar elements not found.");
         return;
     }
-    hideTooltip(); 
+    hideTooltip();
     if (minimize) {
         taskSidebar.classList.remove('md:w-72', 'lg:w-80', 'w-full', 'p-5', 'sm:p-6', 'md:p-5', 'sm:p-4');
         taskSidebar.classList.add('w-16', 'p-3', 'sidebar-minimized');
@@ -297,69 +297,110 @@ function hideTooltip() {
 function refreshTaskView() {
     if (!mainContentArea) {
         console.error("[RefreshTaskView] Main content area not found. Cannot refresh task view. Attempting to re-initialize DOM elements.");
-        initializeDOMElements(); 
-        if (!mainContentArea) { 
+        initializeDOMElements();
+        if (!mainContentArea) {
             console.error("[RefreshTaskView] Re-initialization failed. mainContentArea still not found.");
             return;
         }
     }
-    updateKanbanViewToggleButtonState();
-    updateYourTasksHeading();
+    // Update the state of the toggle button (icon, text) and the main heading
+    updateKanbanViewToggleButtonState(); // Ensures button shows correct state (List/Board)
+    updateYourTasksHeading(); // Ensures heading shows correct title (Kanban Board/Your Tasks)
 
+    // Render either the Kanban board or the task list based on the current mode
     if (featureFlags.kanbanBoardFeature && currentTaskViewMode === 'kanban') {
         console.log('[RefreshTaskView] In Kanban mode. Checking AppFeatures.KanbanBoard.renderKanbanView...');
-        console.log('[RefreshTaskView] window.AppFeatures (keys):', window.AppFeatures ? Object.keys(window.AppFeatures) : 'undefined');
-        if (window.AppFeatures) {
-            console.log('[RefreshTaskView] window.AppFeatures.KanbanBoard (exists?):', !!window.AppFeatures.KanbanBoard);
-            if (window.AppFeatures.KanbanBoard) {
-                console.log('[RefreshTaskView] typeof window.AppFeatures.KanbanBoard.renderKanbanView:', typeof window.AppFeatures.KanbanBoard.renderKanbanView);
-            }
-        }
-        
+        // Check if the KanbanBoard feature module and its render function are available
         if (window.AppFeatures && window.AppFeatures.KanbanBoard && typeof window.AppFeatures.KanbanBoard.renderKanbanView === 'function') {
-            window.AppFeatures.KanbanBoard.renderKanbanView();
-        } else { 
-            console.error("KanbanBoard feature or renderKanbanView function not available (inside refreshTaskView).");
-            setTaskViewMode('list'); 
-            renderTaskListView();
+            window.AppFeatures.KanbanBoard.renderKanbanView(); // Call the function to render the board
+        } else {
+            console.error("KanbanBoard feature or renderKanbanView function not available (inside refreshTaskView). Switching to list view.");
+            setTaskViewMode('list'); // Fallback to list view if Kanban rendering fails
+            renderTaskListView(); // Render the list view
         }
     } else {
+        // If not in Kanban mode (or feature disabled), render the standard task list
         renderTaskListView();
     }
+    // Update the state of the "Clear Completed" button in settings
     updateClearCompletedButtonState();
 }
+
 
 function renderTaskListView() {
     if (!mainContentArea) {
         console.error("renderTaskListView: mainContentArea is not defined.");
         return;
     }
-    let currentTaskList = document.getElementById('taskList');
-    let currentEmptyState = document.getElementById('emptyState');
-    let currentNoMatchingTasks = document.getElementById('noMatchingTasks');
+    // Ensure the main content area is prepared for the list view
+    // It might currently contain the Kanban board structure
+    let listContainer = document.getElementById('taskListContainer'); // Check if a dedicated list container exists
+    if (!listContainer) {
+        // If no dedicated container, clear the main area and set it up for the list
+        mainContentArea.innerHTML = ''; // Clear previous content (like Kanban board)
 
-    if (!currentTaskList) { 
-        mainContentArea.innerHTML = ''; 
-        currentTaskList = document.createElement('ul');
-        currentTaskList.id = 'taskList';
-        currentTaskList.className = 'space-y-3 sm:space-y-3.5';
-        mainContentArea.appendChild(currentTaskList);
+        // Re-create the heading and button container if they were cleared
+        // (This assumes they are direct children of mainContentArea in list view)
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 md:mb-6';
 
-        currentEmptyState = document.createElement('p');
-        currentEmptyState.id = 'emptyState';
-        currentEmptyState.className = 'text-center text-slate-500 dark:text-slate-400 mt-8 py-5 hidden';
-        currentEmptyState.textContent = 'No tasks yet. Add some!';
-        mainContentArea.appendChild(currentEmptyState);
+        const heading = document.createElement('h2');
+        heading.id = 'yourTasksHeading'; // Ensure the ID is reset
+        heading.className = 'text-xl sm:text-2xl md:text-3xl font-semibold text-slate-800 dark:text-slate-100';
+        heading.textContent = 'Your Tasks'; // Default text for list view
+        yourTasksHeading = heading; // Update global reference
 
-        currentNoMatchingTasks = document.createElement('p');
-        currentNoMatchingTasks.id = 'noMatchingTasks';
-        currentNoMatchingTasks.className = 'text-center text-slate-500 dark:text-slate-400 mt-8 py-5 hidden';
-        currentNoMatchingTasks.textContent = 'No tasks match the current filter or search.';
-        mainContentArea.appendChild(currentNoMatchingTasks);
+        const buttonsDiv = document.createElement('div');
+        buttonsDiv.className = 'flex gap-2 mt-3 sm:mt-0 flex-wrap items-center';
+        // Add buttons back (Kanban toggle, Sort buttons) - we need references or recreate them
+        // For simplicity, we assume the toggle button element (`kanbanViewToggleBtn`) persists or is re-queried
+        if (kanbanViewToggleBtn) buttonsDiv.appendChild(kanbanViewToggleBtn); // Re-append if it exists
+        // Re-create or re-append sort buttons if needed
+        if (sortByDueDateBtn) buttonsDiv.appendChild(sortByDueDateBtn);
+        if (sortByPriorityBtn) buttonsDiv.appendChild(sortByPriorityBtn);
+        if (sortByLabelBtn) buttonsDiv.appendChild(sortByLabelBtn);
+
+        headerDiv.appendChild(heading);
+        headerDiv.appendChild(buttonsDiv);
+        mainContentArea.appendChild(headerDiv);
+
+        // Create the task list UL element
+        const taskListUl = document.createElement('ul');
+        taskListUl.id = 'taskList';
+        taskListUl.className = 'space-y-3 sm:space-y-3.5';
+        mainContentArea.appendChild(taskListUl);
+        taskList = taskListUl; // Update global reference
+
+        // Create the empty state messages
+        const emptyP = document.createElement('p');
+        emptyP.id = 'emptyState';
+        emptyP.className = 'text-center text-slate-500 dark:text-slate-400 mt-8 py-5 hidden';
+        emptyP.textContent = 'No tasks yet. Add some!';
+        mainContentArea.appendChild(emptyP);
+        emptyState = emptyP; // Update global reference
+
+        const noMatchP = document.createElement('p');
+        noMatchP.id = 'noMatchingTasks';
+        noMatchP.className = 'text-center text-slate-500 dark:text-slate-400 mt-8 py-5 hidden';
+        noMatchP.textContent = 'No tasks match the current filter or search.';
+        mainContentArea.appendChild(noMatchP);
+        noMatchingTasks = noMatchP; // Update global reference
+
+        // Re-run updates that depend on these elements being present
+        updateKanbanViewToggleButtonState();
+        updateYourTasksHeading();
+        updateSortButtonStates();
     }
-    
-    currentTaskList.innerHTML = ''; 
 
+    // Clear only the task list itself before rendering
+    if (taskList) {
+        taskList.innerHTML = '';
+    } else {
+        console.error("renderTaskListView: taskList element is still not available after setup.");
+        return;
+    }
+
+    // --- Filtering Logic (remains the same) ---
     let filteredTasks = [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -380,7 +421,7 @@ function renderTaskListView() {
         });
     } else if (currentFilter === 'completed') {
         filteredTasks = tasks.filter(task => task.completed);
-    } else { 
+    } else {
         filteredTasks = tasks.filter(task => task.label && task.label.toLowerCase() === currentFilter.toLowerCase() && !task.completed);
     }
 
@@ -392,6 +433,7 @@ function renderTaskListView() {
         );
     }
 
+    // --- Sorting Logic (remains the same) ---
     const priorityOrder = { high: 1, medium: 2, low: 3, default: 4 };
     if (currentSort === 'dueDate') {
         filteredTasks.sort((a, b) => {
@@ -420,13 +462,15 @@ function renderTaskListView() {
             if (dB === null) return -1;
             return dA - dB;
         });
-    } else if (currentFilter === 'inbox' && currentSort === 'default') { 
+    } else if (currentFilter === 'inbox' && currentSort === 'default') {
         filteredTasks.sort((a, b) => (b.creationDate || b.id) - (a.creationDate || a.id));
     }
 
-    currentEmptyState.classList.toggle('hidden', tasks.length !== 0);
-    currentNoMatchingTasks.classList.toggle('hidden', !(tasks.length > 0 && filteredTasks.length === 0));
+    // --- Update Empty State Messages (remains the same) ---
+    if (emptyState) emptyState.classList.toggle('hidden', tasks.length !== 0);
+    if (noMatchingTasks) noMatchingTasks.classList.toggle('hidden', !(tasks.length > 0 && filteredTasks.length === 0));
 
+    // --- Render Task Items (remains the same) ---
     filteredTasks.forEach((task) => {
         const li = document.createElement('li');
         li.className = `task-item flex items-start justify-between bg-slate-100 dark:bg-slate-700 p-3 sm:p-3.5 rounded-lg shadow hover:shadow-md transition-shadow duration-300 ${task.completed ? 'opacity-60' : ''} overflow-hidden`;
@@ -521,9 +565,12 @@ function renderTaskListView() {
 
         li.appendChild(mainContentClickableArea);
         li.appendChild(actionsDiv);
-        currentTaskList.appendChild(li);
+        if (taskList) { // Check again before appending
+             taskList.appendChild(li);
+        }
     });
 }
+
 
 function renderTempSubTasksForAddModal() {
     if (!featureFlags.subTasksFeature || !modalSubTasksListAdd) return;
@@ -739,50 +786,78 @@ function updateClearCompletedButtonState() {
     }
 }
 
+/**
+ * Updates the Kanban/List view toggle button's appearance (icon, text, title)
+ * and hides/shows sort buttons based on the current view mode.
+ */
 function updateKanbanViewToggleButtonState() {
+    // Ensure the button and its text element are available
     if (!kanbanViewToggleBtn || !kanbanViewToggleBtnText) {
+        console.warn("updateKanbanViewToggleButtonState: Toggle button or text element not found.");
         return;
     }
 
     const iconElement = kanbanViewToggleBtn.querySelector('i');
-    if (!iconElement) return;
+    if (!iconElement) {
+         console.warn("updateKanbanViewToggleButtonState: Icon element within toggle button not found.");
+         return;
+    }
 
+    // Check if the Kanban feature is enabled and the current mode is 'kanban'
     if (currentTaskViewMode === 'kanban' && featureFlags.kanbanBoardFeature) {
+        // --- Currently in Kanban View ---
+        // Set button text to "List"
         kanbanViewToggleBtnText.textContent = 'List';
+        // Set tooltip to indicate switching to List View
         kanbanViewToggleBtn.title = 'Switch to List View';
+        // Change icon to list icon
         iconElement.classList.remove('fa-columns');
         iconElement.classList.add('fa-list-ul');
+        // Hide sort buttons as they don't apply to Kanban view
         if (sortByDueDateBtn) sortByDueDateBtn.classList.add('hidden');
         if (sortByPriorityBtn) sortByPriorityBtn.classList.add('hidden');
         if (sortByLabelBtn) sortByLabelBtn.classList.add('hidden');
-    } else { 
+    } else {
+        // --- Currently in List View (or Kanban feature disabled) ---
+        // Set button text to "Board"
         kanbanViewToggleBtnText.textContent = 'Board';
+        // Set tooltip to indicate switching to Board View
         kanbanViewToggleBtn.title = 'Switch to Board View';
+        // Change icon to board/columns icon
         iconElement.classList.remove('fa-list-ul');
         iconElement.classList.add('fa-columns');
-        if (featureFlags.kanbanBoardFeature) { 
-             if (sortByDueDateBtn) sortByDueDateBtn.classList.remove('hidden');
-             if (sortByPriorityBtn) sortByPriorityBtn.classList.remove('hidden');
-             if (sortByLabelBtn) sortByLabelBtn.classList.remove('hidden');
-        } else { 
-            if (sortByDueDateBtn) sortByDueDateBtn.classList.remove('hidden');
-            if (sortByPriorityBtn) sortByPriorityBtn.classList.remove('hidden');
-            if (sortByLabelBtn) sortByLabelBtn.classList.remove('hidden');
-        }
+        // Show sort buttons only if the Kanban feature is enabled (otherwise they are always visible in list view)
+        // Note: The button itself (`kanbanViewToggleBtn`) is hidden via applyActiveFeatures if the feature is off.
+        // So, if we are in list view, sort buttons should generally be visible.
+        if (sortByDueDateBtn) sortByDueDateBtn.classList.remove('hidden');
+        if (sortByPriorityBtn) sortByPriorityBtn.classList.remove('hidden');
+        if (sortByLabelBtn) sortByLabelBtn.classList.remove('hidden');
     }
 }
 
+
+/**
+ * Updates the main heading text based on the current view mode.
+ */
 function updateYourTasksHeading() {
-    if (!yourTasksHeading) return;
+    // Ensure the heading element is available
+    if (!yourTasksHeading) {
+        console.warn("updateYourTasksHeading: Heading element not found.");
+        return;
+    }
+    // Check if the Kanban feature is enabled and the current mode is 'kanban'
     if (currentTaskViewMode === 'kanban' && featureFlags.kanbanBoardFeature) {
-        yourTasksHeading.textContent = 'Kanban Board';
+        // Set heading text for the Kanban board view
+        yourTasksHeading.textContent = 'Kanban Board'; // Or 'Scrum Board' if preferred
     } else {
+        // Set heading text for the list view
         yourTasksHeading.textContent = 'Your Tasks';
     }
 }
 
+
 function styleInitialSmartViewButtons() {
-    if (smartViewButtons && smartViewButtons.length > 0) { 
+    if (smartViewButtons && smartViewButtons.length > 0) {
         smartViewButtons.forEach(button => {
             button.classList.add('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600');
             button.querySelector('i')?.classList.add('text-slate-500', 'dark:text-slate-400');
@@ -792,4 +867,4 @@ function styleInitialSmartViewButtons() {
     }
 }
 
-console.log("ui_rendering.js parsed. initializeDOMElements is now defined."); // ADDED LOG
+console.log("ui_rendering.js parsed. initializeDOMElements is now defined.");
