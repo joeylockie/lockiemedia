@@ -18,8 +18,8 @@ let featureFlags = {
     fileAttachments: false,
     integrationsServices: false,
     userAccounts: false,
-    collaborationSharing: false, // Flag for Collaboration/Sharing. Logic is now in feature_collaboration_sharing.js
-    crossDeviceSync: false,
+    collaborationSharing: false,
+    crossDeviceSync: false, // Flag for Cross-Device Sync. Logic will be in feature_cross_device_sync.js
     tooltipsGuide: false,
     subTasksFeature: false
 };
@@ -45,14 +45,15 @@ async function loadFeatureFlags() {
         const response = await fetch('features.json?cachebust=' + new Date().getTime());
         if (!response.ok) {
             console.warn('Failed to load features.json, using default flags. Status:', response.status);
-            // Ensure all flags have a default, including the new ones
+            // Ensure all flags have a default
             if (typeof featureFlags.subTasksFeature === 'undefined') { featureFlags.subTasksFeature = false; }
             if (typeof featureFlags.taskTimerSystem === 'undefined') { featureFlags.taskTimerSystem = false; }
             if (typeof featureFlags.advancedRecurrence === 'undefined') { featureFlags.advancedRecurrence = false; }
             if (typeof featureFlags.integrationsServices === 'undefined') { featureFlags.integrationsServices = false; }
             if (typeof featureFlags.userAccounts === 'undefined') { featureFlags.userAccounts = false; }
-            if (typeof featureFlags.collaborationSharing === 'undefined') { featureFlags.collaborationSharing = false; } // Ensure default
-            // Add similar checks for other feature flags if necessary
+            if (typeof featureFlags.collaborationSharing === 'undefined') { featureFlags.collaborationSharing = false; }
+            if (typeof featureFlags.crossDeviceSync === 'undefined') { featureFlags.crossDeviceSync = false; } // Ensure default
+            if (typeof featureFlags.tooltipsGuide === 'undefined') { featureFlags.tooltipsGuide = false; }
             return;
         }
         const fetchedFlags = await response.json();
@@ -66,8 +67,9 @@ async function loadFeatureFlags() {
         if (typeof featureFlags.advancedRecurrence === 'undefined') { featureFlags.advancedRecurrence = false; }
         if (typeof featureFlags.integrationsServices === 'undefined') { featureFlags.integrationsServices = false; }
         if (typeof featureFlags.userAccounts === 'undefined') { featureFlags.userAccounts = false; }
-        if (typeof featureFlags.collaborationSharing === 'undefined') { featureFlags.collaborationSharing = false; } // Ensure default
-        // Add similar checks for other feature flags if necessary
+        if (typeof featureFlags.collaborationSharing === 'undefined') { featureFlags.collaborationSharing = false; }
+        if (typeof featureFlags.crossDeviceSync === 'undefined') { featureFlags.crossDeviceSync = false; } // Ensure default
+        if (typeof featureFlags.tooltipsGuide === 'undefined') { featureFlags.tooltipsGuide = false; }
     }
 }
 
@@ -149,9 +151,12 @@ function initializeTasks() {
         recurrenceRule: task.recurrenceRule || null, // Example: 'RRULE:FREQ=WEEKLY;BYDAY=MO'
         recurrenceEndDate: task.recurrenceEndDate || null,
         nextDueDate: task.nextDueDate || task.dueDate,
-        // Collaboration/Sharing properties (can be expanded in its own feature file)
-        sharedWith: task.sharedWith || [], // Example: array of user IDs or emails
-        owner: task.owner || null // Example: user ID of the task creator
+        // Collaboration/Sharing properties
+        sharedWith: task.sharedWith || [],
+        owner: task.owner || null,
+        // Cross-Device Sync properties (can be expanded in its own feature file)
+        lastSynced: task.lastSynced || null, // Example: timestamp of last sync
+        syncVersion: task.syncVersion || 0 // Example: version number for conflict resolution
     }));
 }
 
@@ -382,3 +387,5 @@ function setAppSearchTerm(term) {
 // --- Collaboration Sharing Logic (Placeholder) ---
 // Logic for this feature is primarily managed in feature_collaboration_sharing.js
 
+// --- Cross-Device Sync Logic (Placeholder) ---
+// Logic for this feature is primarily managed in feature_cross_device_sync.js
