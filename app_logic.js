@@ -21,10 +21,8 @@ let featureFlags = {
     collaborationSharing: false,
     crossDeviceSync: false, // Flag for Cross-Device Sync. Logic will be in feature_cross_device_sync.js
     tooltipsGuide: false,    // Flag for Tooltips Guide. Logic will be in feature_tooltips_guide.js
-    subTasksFeature: false
+    subTasksFeature: false   // Flag for Sub-tasks. Logic will be in feature_sub_tasks.js
 };
-
-// let tooltipTimeout = null; // Removed: This is now managed in feature_tooltips_guide.js
 
 // --- Theme Management ---
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
@@ -53,7 +51,7 @@ async function loadFeatureFlags() {
             if (typeof featureFlags.userAccounts === 'undefined') { featureFlags.userAccounts = false; }
             if (typeof featureFlags.collaborationSharing === 'undefined') { featureFlags.collaborationSharing = false; }
             if (typeof featureFlags.crossDeviceSync === 'undefined') { featureFlags.crossDeviceSync = false; }
-            if (typeof featureFlags.tooltipsGuide === 'undefined') { featureFlags.tooltipsGuide = false; } // Ensure default
+            if (typeof featureFlags.tooltipsGuide === 'undefined') { featureFlags.tooltipsGuide = false; }
             return;
         }
         const fetchedFlags = await response.json();
@@ -69,7 +67,7 @@ async function loadFeatureFlags() {
         if (typeof featureFlags.userAccounts === 'undefined') { featureFlags.userAccounts = false; }
         if (typeof featureFlags.collaborationSharing === 'undefined') { featureFlags.collaborationSharing = false; }
         if (typeof featureFlags.crossDeviceSync === 'undefined') { featureFlags.crossDeviceSync = false; }
-        if (typeof featureFlags.tooltipsGuide === 'undefined') { featureFlags.tooltipsGuide = false; } // Ensure default
+        if (typeof featureFlags.tooltipsGuide === 'undefined') { featureFlags.tooltipsGuide = false; }
     }
 }
 
@@ -146,17 +144,17 @@ function initializeTasks() {
         actualDurationMs: task.actualDurationMs || 0,
         attachments: task.attachments || [],
         completedDate: task.completedDate || null,
-        subTasks: task.subTasks || [],
+        subTasks: task.subTasks || [], // Sub-task data structure remains here
         // Advanced Recurrence properties
-        recurrenceRule: task.recurrenceRule || null, // Example: 'RRULE:FREQ=WEEKLY;BYDAY=MO'
+        recurrenceRule: task.recurrenceRule || null,
         recurrenceEndDate: task.recurrenceEndDate || null,
         nextDueDate: task.nextDueDate || task.dueDate,
         // Collaboration/Sharing properties
         sharedWith: task.sharedWith || [],
         owner: task.owner || null,
-        // Cross-Device Sync properties (can be expanded in its own feature file)
-        lastSynced: task.lastSynced || null, // Example: timestamp of last sync
-        syncVersion: task.syncVersion || 0 // Example: version number for conflict resolution
+        // Cross-Device Sync properties
+        lastSynced: task.lastSynced || null,
+        syncVersion: task.syncVersion || 0
     }));
 }
 
@@ -188,22 +186,19 @@ function parseDateFromText(text) {
     const daysOfWeek = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
     const shortDaysOfWeek = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
-    // More specific patterns first
     const patterns = [
-        // "on YYYY-MM-DD" or "due YYYY/MM/DD"
         { regex: /\b(on|due|by)\s+(\d{4}[-\/]\d{1,2}[-\/]\d{1,2})\b/i, handler: (match) => match[2].replace(/\//g, '-') },
-        // "on MM/DD/YYYY" or "due MM-DD-YY" (handles 2 or 4 digit year)
         { regex: /\b(on|due|by)\s+(\d{1,2}[-\/]\d{1,2}(?:[-\/]\d{2,4})?)\b/i, handler: (match) => {
             const dateStr = match[2];
             const parts = dateStr.replace(/-/g, '/').split('/');
             let year, month, day;
-            if (parts.length === 2) { // MM/DD
+            if (parts.length === 2) {
                 year = today.getFullYear();
                 month = parseInt(parts[0]);
                 day = parseInt(parts[1]);
-            } else { // MM/DD/YY or MM/DD/YYYY
+            } else {
                 year = parseInt(parts[2]);
-                if (year < 100) year += 2000; // Convert YY to YYYY
+                if (year < 100) year += 2000;
                 month = parseInt(parts[0]);
                 day = parseInt(parts[1]);
             }
@@ -216,7 +211,6 @@ function parseDateFromText(text) {
             tomorrow.setDate(today.getDate() + 1);
             return getDateString(tomorrow);
         }},
-        // "next Monday", "Tuesday", "fri"
         { regex: new RegExp(`\\b(next\\s+)?(${daysOfWeek.join('|')}|${shortDaysOfWeek.join('|')})\\b`, 'i'), handler: (match) => {
             const dayName = match[2].toLowerCase();
             let targetDayIndex = daysOfWeek.indexOf(dayName);
@@ -226,10 +220,10 @@ function parseDateFromText(text) {
             const currentDayIndex = today.getDay();
             let daysToAdd = targetDayIndex - currentDayIndex;
 
-            if (match[1]) { // "next ..."
+            if (match[1]) { 
                 daysToAdd = (daysToAdd <= 0 ? daysToAdd + 7 : daysToAdd);
-            } else { // just day name
-                if (daysToAdd < 0) daysToAdd += 7; // if "Monday" and today is Wednesday, means next Monday
+            } else { 
+                if (daysToAdd < 0) daysToAdd += 7; 
             }
             const targetDate = new Date(today);
             targetDate.setDate(today.getDate() + daysToAdd);
@@ -237,8 +231,8 @@ function parseDateFromText(text) {
         }},
         { regex: /\b(next week)\b/i, handler: () => {
             const nextWeek = new Date(today);
-            const dayOffset = (today.getDay() === 0 ? -6 : 1); // Adjust to start of current week (Mon)
-            nextWeek.setDate(today.getDate() - today.getDay() + dayOffset + 7); // Add 7 days
+            const dayOffset = (today.getDay() === 0 ? -6 : 1); 
+            nextWeek.setDate(today.getDate() - today.getDay() + dayOffset + 7); 
             return getDateString(nextWeek);
         }},
         { regex: /\b(next month)\b/i, handler: () => {
@@ -249,13 +243,11 @@ function parseDateFromText(text) {
             const nextYearDate = new Date(today.getFullYear() + 1, 0, 1);
             return getDateString(nextYearDate);
         }},
-        // Standalone dates YYYY-MM-DD or YYYY/MM/DD (as a fallback if not prefixed by "on", "due", "by")
         { regex: /\b(\d{4}[-\/]\d{1,2}[-\/]\d{1,2})\b/g, handler: (match) => {
             const pd = match[0].replace(/\//g, '-');
             if (!isNaN(new Date(pd).getTime())) return pd;
             return null;
         }},
-        // Standalone dates MM/DD/YYYY or MM-DD-YY (as a fallback)
         { regex: /\b(\d{1,2}[-\/]\d{1,2}(?:[-\/]\d{2,4})?)\b/g, handler: (match) => {
             const ds = match[0]; const pts = ds.replace(/-/g, '/').split('/');
             let y, m, d;
@@ -269,25 +261,20 @@ function parseDateFromText(text) {
     ];
 
     for (const pattern of patterns) {
-        const regex = new RegExp(pattern.regex.source, pattern.regex.flags.replace('g', '')); // Ensure only one match is processed
+        const regex = new RegExp(pattern.regex.source, pattern.regex.flags.replace('g', '')); 
         const match = regex.exec(remainingText);
         if (match) {
             const potentialDate = pattern.handler(match);
-            // Check if the potentialDate is a valid date string before proceeding
             if (potentialDate && !isNaN(new Date(potentialDate).getTime())) {
                 const matchedString = match[0];
-                // More robust way to remove the matched string and any immediately following space
                 const tempRemainingText = remainingText.replace(new RegExp(matchedString.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*', 'i'), '').trim();
-
-                // Check if the match is a standalone date or part of a larger word/number sequence
                 const afterMatchIndex = match.index + matchedString.length;
                 const charAfterMatch = remainingText[afterMatchIndex];
 
-                // Allow match if it's at the end of the string OR followed by a space/punctuation
                 if (afterMatchIndex === remainingText.length || /[\s,.?!]/.test(charAfterMatch || '')) {
                     parsedDate = potentialDate;
-                    remainingText = tempRemainingText.replace(/\s\s+/g, ' ').trim(); // Clean up multiple spaces
-                    break; // Found a date, stop processing other patterns
+                    remainingText = tempRemainingText.replace(/\s\s+/g, ' ').trim();
+                    break; 
                 }
             }
         }
@@ -295,59 +282,8 @@ function parseDateFromText(text) {
     return { parsedDate, remainingText };
 }
 
-// --- Sub-task Logic ---
-function addSubTaskLogic(parentId, subTaskText) {
-    if (!featureFlags.subTasksFeature || !parentId || !subTaskText.trim()) return false;
-    const parentTaskIndex = tasks.findIndex(t => t.id === parentId);
-    if (parentTaskIndex === -1) return false;
-
-    const newSubTask = {
-        id: Date.now() + Math.random(), // Simple unique ID for subtasks
-        text: subTaskText.trim(),
-        completed: false,
-        creationDate: Date.now()
-    };
-    tasks[parentTaskIndex].subTasks.push(newSubTask);
-    saveTasks();
-    return true;
-}
-
-function editSubTaskLogic(parentId, subTaskId, newText) {
-    if (!featureFlags.subTasksFeature || !parentId || !subTaskId || !newText.trim()) return false;
-    const parentTaskIndex = tasks.findIndex(t => t.id === parentId);
-    if (parentTaskIndex === -1) return false;
-
-    const subTaskIndex = tasks[parentTaskIndex].subTasks.findIndex(st => st.id === subTaskId);
-    if (subTaskIndex === -1) return false;
-
-    tasks[parentTaskIndex].subTasks[subTaskIndex].text = newText.trim();
-    saveTasks();
-    return true;
-}
-
-function toggleSubTaskCompleteLogic(parentId, subTaskId) {
-    if (!featureFlags.subTasksFeature || !parentId || !subTaskId) return false;
-    const parentTaskIndex = tasks.findIndex(t => t.id === parentId);
-    if (parentTaskIndex === -1) return false;
-
-    const subTaskIndex = tasks[parentTaskIndex].subTasks.findIndex(st => st.id === subTaskId);
-    if (subTaskIndex === -1) return false;
-
-    tasks[parentTaskIndex].subTasks[subTaskIndex].completed = !tasks[parentTaskIndex].subTasks[subTaskIndex].completed;
-    saveTasks();
-    return true;
-}
-
-function deleteSubTaskLogic(parentId, subTaskId) {
-    if (!featureFlags.subTasksFeature || !parentId || !subTaskId) return false;
-    const parentTaskIndex = tasks.findIndex(t => t.id === parentId);
-    if (parentTaskIndex === -1) return false;
-
-    tasks[parentTaskIndex].subTasks = tasks[parentTaskIndex].subTasks.filter(st => st.id !== subTaskId);
-    saveTasks();
-    return true;
-}
-
+// --- Sub-task Logic (Placeholder) ---
+// Logic for this feature is primarily managed in feature_sub_tasks.js
 
 // --- Filtering and sorting state management ---
 function setAppCurrentFilter(filter) {
