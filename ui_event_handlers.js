@@ -18,26 +18,14 @@ let tempSubTasksForAddModal = [];
  * Assumes 'featureFlags' (from app_logic.js) and 'featureFlagsListContainer' (DOM element from ui_rendering.js) are available.
  */
 function populateFeatureFlagsModal() {
-    if (!featureFlagsListContainer) {
-        console.warn("Feature flags list container not found. Cannot populate modal.");
-        // Attempt to get it dynamically if it wasn't ready at script load time
-        // This is a fallback, ideally it should be available.
-        const ffListContainer = document.getElementById('featureFlagsListContainer');
-        if (!ffListContainer) return;
-        // Assign to the global const if found (though this is not ideal for 'const')
-        // This indicates a potential load order issue if it's regularly not found.
-        // For this fix, we'll proceed assuming it might be found here.
-        // A better fix would be to ensure all DOM consts in ui_rendering.js are valid.
-        // However, the user's immediate issue is removing the button, not this modal's population.
-        // For now, we'll keep the original logic but be mindful.
-    }
-    
     // Ensure featureFlagsListContainer is the one from ui_rendering.js or freshly queried
     const currentFFListContainer = featureFlagsListContainer || document.getElementById('featureFlagsListContainer');
-    if (!currentFFListContainer) return;
+    if (!currentFFListContainer) {
+        console.warn("Feature flags list container not found for populateFeatureFlagsModal.");
+        return;
+    }
 
     currentFFListContainer.innerHTML = ''; // Clear existing items
-
 
     const friendlyNames = {
         testButtonFeature: "Test Button",
@@ -90,10 +78,7 @@ function populateFeatureFlagsModal() {
             checkbox.addEventListener('change', () => {
                 featureFlags[key] = checkbox.checked;
                 console.log(`Feature ${key} toggled to ${featureFlags[key]}`);
-                // To persist these changes, you'd typically save `featureFlags` to localStorage
-                // and then `loadFeatureFlags` would merge localStorage flags over features.json defaults.
-                // For now, we'll just update in-memory and re-apply.
-                localStorage.setItem('userFeatureFlags', JSON.stringify(featureFlags)); // Save user overrides
+                localStorage.setItem('userFeatureFlags', JSON.stringify(featureFlags));
 
                 applyActiveFeatures();
                 if (key === 'kanbanBoardFeature') {
@@ -123,6 +108,8 @@ function populateFeatureFlagsModal() {
  * Calls feature-specific UI update functions if available, otherwise directly manipulates DOM.
  */
 function applyActiveFeatures() {
+    console.log('[ApplyFeatures] Starting applyActiveFeatures. Kanban Flag:', featureFlags.kanbanBoardFeature);
+
     const toggleElements = (selector, isEnabled) => {
         document.querySelectorAll(selector).forEach(el => el.classList.toggle('hidden', !isEnabled));
     };
@@ -160,11 +147,8 @@ function applyActiveFeatures() {
         if (reminderOptionsViewEdit) reminderOptionsViewEdit.classList.add('hidden');
     }
 
-    // Advanced Recurrence Feature
     toggleElements('.advanced-recurrence-element', featureFlags.advancedRecurrence);
-    // File Attachments Feature
     toggleElements('.file-attachments-element', featureFlags.fileAttachments);
-    // Other features
     toggleElements('.integrations-services-element', featureFlags.integrationsServices);
     toggleElements('.user-accounts-element', featureFlags.userAccounts);
     toggleElements('.collaboration-sharing-element', featureFlags.collaborationSharing);
@@ -174,14 +158,22 @@ function applyActiveFeatures() {
 
     if (settingsTooltipsGuideBtn) settingsTooltipsGuideBtn.classList.toggle('hidden', !featureFlags.tooltipsGuide);
 
-    // Kanban Board Feature
+    // Kanban Board Feature Visibility
+    console.log('[ApplyFeatures] Checking kanbanViewToggleBtn:', kanbanViewToggleBtn);
     if (kanbanViewToggleBtn) {
-        kanbanViewToggleBtn.classList.toggle('hidden', !featureFlags.kanbanBoardFeature);
+        const shouldBeHidden = !featureFlags.kanbanBoardFeature;
+        kanbanViewToggleBtn.classList.toggle('hidden', shouldBeHidden);
+        console.log(`[ApplyFeatures] Kanban Toggle Button: shouldBeHidden=${shouldBeHidden}. Classes after toggle:`, kanbanViewToggleBtn.className);
+    } else {
+        console.warn('[ApplyFeatures] kanbanViewToggleBtn is null or undefined.');
     }
+
     if (window.AppFeatures && window.AppFeatures.KanbanBoard && typeof window.AppFeatures.KanbanBoard.updateUIVisibility === 'function') {
         window.AppFeatures.KanbanBoard.updateUIVisibility(featureFlags.kanbanBoardFeature);
     }
+
     if (!featureFlags.kanbanBoardFeature && currentTaskViewMode === 'kanban') {
+        console.log('[ApplyFeatures] Kanban feature OFF, but view mode is Kanban. Switching to list.');
         setTaskViewMode('list');
     }
 
@@ -194,6 +186,7 @@ function applyActiveFeatures() {
     if (featureFlagsModalElement && !featureFlagsModalElement.classList.contains('hidden')) {
         populateFeatureFlagsModal();
     }
+    console.log('[ApplyFeatures] Finished applyActiveFeatures.');
 }
 
 // --- Event Handlers ---
@@ -565,15 +558,9 @@ function setupEventListeners() {
     if (closeTooltipsGuideSecondaryBtn) closeTooltipsGuideSecondaryBtn.addEventListener('click', closeTooltipsGuideModal);
     if (tooltipsGuideModal) tooltipsGuideModal.addEventListener('click', (event) => { if (event.target === tooltipsGuideModal) closeTooltipsGuideModal(); });
 
-    // Feature Flags Modal (interactions for opening/closing if a button exists, but the button in settings is removed)
     const featureFlagsModalElement = document.getElementById('featureFlagsModal');
     const closeFeatureFlagsModalBtn = document.getElementById('closeFeatureFlagsModalBtn');
     const closeFeatureFlagsSecondaryBtn = document.getElementById('closeFeatureFlagsSecondaryBtn');
-
-    // REMOVED: The code that dynamically added a "Manage Feature Flags" button to settings.
-    // If you want a way to open this modal, you'll need to add a new trigger elsewhere or access it via console.
-    // For now, the modal can still be opened if `populateFeatureFlagsModal()` is called and then
-    // `featureFlagsModalElement.classList.remove('hidden');` is executed.
 
     if (closeFeatureFlagsModalBtn) closeFeatureFlagsModalBtn.addEventListener('click', () => {
         document.getElementById('modalDialogFeatureFlags').classList.add('scale-95', 'opacity-0');
@@ -590,8 +577,6 @@ function setupEventListeners() {
         }
     });
 
-
-    // Reminder toggles
     if (modalRemindMeAdd) {
         modalRemindMeAdd.addEventListener('change', () => {
             if(featureFlags.reminderFeature && reminderOptionsAdd) {
@@ -621,7 +606,6 @@ function setupEventListeners() {
         });
     }
 
-    // Smart Views & Search
     if (smartViewButtonsContainer) {
         smartViewButtonsContainer.addEventListener('click', (event) => {
             const button = event.target.closest('.smart-view-btn');
@@ -637,7 +621,6 @@ function setupEventListeners() {
         });
     }
 
-    // Sidebar
     if (sidebarToggleBtn) {
         sidebarToggleBtn.addEventListener('click', () => {
             const isCurrentlyMinimized = taskSidebar.classList.contains('sidebar-minimized');
@@ -660,22 +643,18 @@ function setupEventListeners() {
         });
     });
 
-    // Sort Buttons
     if (sortByDueDateBtn) sortByDueDateBtn.addEventListener('click', () => { setAppCurrentSort(currentSort === 'dueDate' ? 'default' : 'dueDate'); updateSortButtonStates(); refreshTaskView(); });
     if (sortByPriorityBtn) sortByPriorityBtn.addEventListener('click', () => { setAppCurrentSort(currentSort === 'priority' ? 'default' : 'priority'); updateSortButtonStates(); refreshTaskView(); });
     if (sortByLabelBtn) sortByLabelBtn.addEventListener('click', () => { setAppCurrentSort(currentSort === 'label' ? 'default' : 'label'); updateSortButtonStates(); refreshTaskView(); });
 
-    // Sub-task input and add buttons
     if (modalAddSubTaskBtnViewEdit) { modalAddSubTaskBtnViewEdit.addEventListener('click', handleAddSubTaskViewEdit); }
     if (modalSubTaskInputViewEdit) { modalSubTaskInputViewEdit.addEventListener('keypress', (event) => { if (event.key === 'Enter') { event.preventDefault(); handleAddSubTaskViewEdit(); } }); }
     if (modalAddSubTaskBtnAdd) { modalAddSubTaskBtnAdd.addEventListener('click', handleAddTempSubTaskForAddModal); }
     if (modalSubTaskInputAdd) { modalSubTaskInputAdd.addEventListener('keypress', (event) => { if (event.key === 'Enter') { event.preventDefault(); handleAddTempSubTaskForAddModal(); } }); }
 
-    // --- Kanban View Toggle Button Event Listener ---
     if (kanbanViewToggleBtn) {
         kanbanViewToggleBtn.addEventListener('click', () => {
             if (!featureFlags.kanbanBoardFeature) return;
-
             if (currentTaskViewMode === 'list') {
                 setTaskViewMode('kanban');
             } else {
@@ -685,7 +664,6 @@ function setupEventListeners() {
         });
     }
 
-    // Global Keydown Listener
     document.addEventListener('keydown', (event) => {
         const isAddModalOpen = addTaskModal && !addTaskModal.classList.contains('hidden');
         const isViewEditModalOpen = viewEditTaskModal && !viewEditTaskModal.classList.contains('hidden');
@@ -694,9 +672,8 @@ function setupEventListeners() {
         const isSettingsModalOpen = settingsModal && !settingsModal.classList.contains('hidden');
         const isTaskReviewModalOpen = taskReviewModal && !taskReviewModal.classList.contains('hidden');
         const isTooltipsGuideModalOpen = tooltipsGuideModal && !tooltipsGuideModal.classList.contains('hidden');
-        const currentFeatureFlagsModalElement = document.getElementById('featureFlagsModal'); // Re-check in case it was added/removed
+        const currentFeatureFlagsModalElement = document.getElementById('featureFlagsModal');
         const isFeatureFlagsModalOpen = currentFeatureFlagsModalElement && !currentFeatureFlagsModalElement.classList.contains('hidden');
-
 
         const isAnyModalOpen = isAddModalOpen || isViewEditModalOpen || isViewDetailsModalOpen ||
                                isManageLabelsModalOpen || isSettingsModalOpen || isTaskReviewModalOpen ||
@@ -731,7 +708,7 @@ function setupEventListeners() {
 // --- Global Initialization ---
 window.onload = async () => {
     console.log("window.onload in ui_event_handlers.js starting");
-    await loadFeatureFlags(); // Loads from features.json then merges localStorage overrides
+    await loadFeatureFlags();
     initializeTasks();
     updateUniqueLabels();
     loadKanbanColumns();
@@ -750,6 +727,7 @@ window.onload = async () => {
             window.AppFeatures.initializeReminderFeature();
         }
         if (featureFlags.kanbanBoardFeature && window.AppFeatures && window.AppFeatures.KanbanBoard && typeof window.AppFeatures.KanbanBoard.initialize === 'function') {
+            console.log("[OnInit] Initializing Kanban Board Feature Module...");
             window.AppFeatures.KanbanBoard.initialize();
         }
     }
