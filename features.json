@@ -7,7 +7,7 @@
   "integrationsServices": false,
   "userAccounts": false,
   "collaborationSharing": false,
-  "crossDeviceSync": true,
+  "crossDeviceSync": false,
   "tooltipsGuide": true,
   "subTasksFeature": false
 }
