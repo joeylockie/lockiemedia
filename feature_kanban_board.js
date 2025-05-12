@@ -2,15 +2,13 @@
 
 // Self-invoking function to encapsulate the Kanban Board feature's code.
 (function() {
-    console.log('[KanbanFeatureFile] feature_kanban_board.js script executing.');
+    console.log('[KanbanFeatureFile] feature_kanban_board.js script STARTING to execute.');
 
-    // --- DOM Element References (to be obtained when needed) ---
-    // ... (rest of the existing Kanban code: initializeKanbanBoardFeature, updateKanbanBoardUIVisibility, etc.)
     let draggedTask = null; 
 
     function initializeKanbanBoardFeature() {
         loadKanbanColumns(); 
-        console.log('Kanban Board Feature Initialized (from feature_kanban_board.js).');
+        console.log('[KanbanFeatureFile] Kanban Board Feature Initialized (from initializeKanbanBoardFeature).');
     }
 
     function updateKanbanBoardUIVisibility(isEnabled) {
@@ -233,22 +231,26 @@
     }
 
     // --- Expose Public Interface ---
+    console.log('[KanbanFeatureFile] Attempting to define window.AppFeatures.KanbanBoard...');
     if (typeof window.AppFeatures === 'undefined') {
         window.AppFeatures = {};
         console.log('[KanbanFeatureFile] window.AppFeatures object created by KanbanBoard.');
+    } else {
+        console.log('[KanbanFeatureFile] window.AppFeatures object already exists.');
     }
 
     window.AppFeatures.KanbanBoard = {
         initialize: initializeKanbanBoardFeature,
         updateUIVisibility: updateKanbanBoardUIVisibility,
         renderKanbanView: renderKanbanView,
-        renderListView: renderListView, // Note: This was also exposed, might be for internal use by Kanban module
+        renderListView: renderListView, 
         renderKanbanBoard: renderKanbanBoard
     };
-    // ADDED LOG
-    console.log('[KanbanFeatureFile] window.AppFeatures.KanbanBoard object CREATED:', window.AppFeatures.KanbanBoard);
+    
+    console.log('[KanbanFeatureFile] window.AppFeatures.KanbanBoard DEFINED:', window.AppFeatures.KanbanBoard);
     if(window.AppFeatures.KanbanBoard) {
         console.log('[KanbanFeatureFile] typeof window.AppFeatures.KanbanBoard.renderKanbanView is:', typeof window.AppFeatures.KanbanBoard.renderKanbanView);
+        console.log('[KanbanFeatureFile] typeof window.AppFeatures.KanbanBoard.initialize is:', typeof window.AppFeatures.KanbanBoard.initialize);
     }
-
+    console.log('[KanbanFeatureFile] feature_kanban_board.js script FINISHED executing.');
 })();
