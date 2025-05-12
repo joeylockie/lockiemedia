@@ -8,6 +8,7 @@ let currentSearchTerm = '';
 let editingTaskId = null;
 let currentViewTaskId = null; // Also used by UI, but primarily managed by logic flow
 let uniqueLabels = [];
+let tooltipTimeout = null; // <<< FIX ADDED HERE: Declare tooltipTimeout globally
 
 // Default feature flags, will be overridden by the JSON file if successfully loaded
 let featureFlags = {
