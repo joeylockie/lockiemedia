@@ -1,7 +1,7 @@
 // ui_event_handlers.js
 
 // This file handles event listeners, user interaction handlers (forms, buttons),
-// applying feature flags to UI, and the main application initialization sequence (window.onload).
+// applying feature flags to UI, and the main application initialization sequence.
 // It depends on:
 // - DOM elements defined in ui_rendering.js (assumed to be globally available AFTER initializeDOMElements is called).
 // - Rendering functions from ui_rendering.js (e.g., refreshTaskView, showMessage, initializeDOMElements, styleInitialSmartViewButtons).
@@ -650,8 +650,9 @@ function setupEventListeners() {
 }
 
 // --- Global Initialization ---
-window.onload = async () => {
-    console.log("window.onload in ui_event_handlers.js starting");
+// Replace window.onload with DOMContentLoaded
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log("DOMContentLoaded event fired in ui_event_handlers.js");
     
     if (typeof initializeDOMElements === 'function') {
         initializeDOMElements(); 
@@ -686,7 +687,6 @@ window.onload = async () => {
 
     applyActiveFeatures(); 
 
-    // Moved the smartViewButtons styling to a function in ui_rendering.js
     if (typeof styleInitialSmartViewButtons === 'function') {
         styleInitialSmartViewButtons();
     } else {
@@ -703,13 +703,13 @@ window.onload = async () => {
     if (typeof setFilter === 'function') {
         setFilter(currentFilter);
     } else {
-        console.error("setFilter function is not defined when called in window.onload!");
-        refreshTaskView();
+        console.error("setFilter function is not defined when called!");
+        refreshTaskView(); // Fallback if setFilter is not ready
     }
 
     updateSortButtonStates();
     updateClearCompletedButtonState();
 
     setupEventListeners(); 
-    console.log("Todo App Initialized.");
-};
+    console.log("Todo App Initialized (after DOMContentLoaded).");
+});
