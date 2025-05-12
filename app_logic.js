@@ -20,11 +20,11 @@ let featureFlags = {
     userAccounts: false,
     collaborationSharing: false,
     crossDeviceSync: false, // Flag for Cross-Device Sync. Logic will be in feature_cross_device_sync.js
-    tooltipsGuide: false,
+    tooltipsGuide: false,    // Flag for Tooltips Guide. Logic will be in feature_tooltips_guide.js
     subTasksFeature: false
 };
 
-let tooltipTimeout = null;
+// let tooltipTimeout = null; // Removed: This is now managed in feature_tooltips_guide.js
 
 // --- Theme Management ---
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
@@ -52,8 +52,8 @@ async function loadFeatureFlags() {
             if (typeof featureFlags.integrationsServices === 'undefined') { featureFlags.integrationsServices = false; }
             if (typeof featureFlags.userAccounts === 'undefined') { featureFlags.userAccounts = false; }
             if (typeof featureFlags.collaborationSharing === 'undefined') { featureFlags.collaborationSharing = false; }
-            if (typeof featureFlags.crossDeviceSync === 'undefined') { featureFlags.crossDeviceSync = false; } // Ensure default
-            if (typeof featureFlags.tooltipsGuide === 'undefined') { featureFlags.tooltipsGuide = false; }
+            if (typeof featureFlags.crossDeviceSync === 'undefined') { featureFlags.crossDeviceSync = false; }
+            if (typeof featureFlags.tooltipsGuide === 'undefined') { featureFlags.tooltipsGuide = false; } // Ensure default
             return;
         }
         const fetchedFlags = await response.json();
@@ -68,8 +68,8 @@ async function loadFeatureFlags() {
         if (typeof featureFlags.integrationsServices === 'undefined') { featureFlags.integrationsServices = false; }
         if (typeof featureFlags.userAccounts === 'undefined') { featureFlags.userAccounts = false; }
         if (typeof featureFlags.collaborationSharing === 'undefined') { featureFlags.collaborationSharing = false; }
-        if (typeof featureFlags.crossDeviceSync === 'undefined') { featureFlags.crossDeviceSync = false; } // Ensure default
-        if (typeof featureFlags.tooltipsGuide === 'undefined') { featureFlags.tooltipsGuide = false; }
+        if (typeof featureFlags.crossDeviceSync === 'undefined') { featureFlags.crossDeviceSync = false; }
+        if (typeof featureFlags.tooltipsGuide === 'undefined') { featureFlags.tooltipsGuide = false; } // Ensure default
     }
 }
 
@@ -389,3 +389,6 @@ function setAppSearchTerm(term) {
 
 // --- Cross-Device Sync Logic (Placeholder) ---
 // Logic for this feature is primarily managed in feature_cross_device_sync.js
+
+// --- Tooltips Guide Logic (Placeholder) ---
+// Logic for this feature is primarily managed in feature_tooltips_guide.js
