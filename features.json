@@ -9,5 +9,5 @@
   "collaborationSharing": false,
   "crossDeviceSync": false,
   "tooltipsGuide": true,
-  "subTasksFeature": false
+  "subTasksFeature": true
 }
