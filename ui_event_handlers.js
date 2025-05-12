@@ -12,7 +12,13 @@
 // --- Temporary State for UI Interactions (scoped to this file) ---
 let tempSubTasksForAddModal = [];
 
-// --- Feature Flag Modal Population ---
+
+// --- Function Definitions MOVED UP ---
+
+/**
+ * Populates the Feature Flags modal with toggles for each feature.
+ * Assumes 'featureFlags' (from app_logic.js) and 'featureFlagsListContainer' (DOM element from ui_rendering.js) are available.
+ */
 function populateFeatureFlagsModal() {
     const currentFFListContainer = featureFlagsListContainer || document.getElementById('featureFlagsListContainer');
     if (!currentFFListContainer) {
@@ -59,7 +65,7 @@ function populateFeatureFlagsModal() {
                 featureFlags[key] = checkbox.checked;
                 console.log(`Feature ${key} toggled to ${featureFlags[key]}`);
                 localStorage.setItem('userFeatureFlags', JSON.stringify(featureFlags));
-                applyActiveFeatures();
+                applyActiveFeatures(); // This function is now defined above
                 if (key === 'kanbanBoardFeature') {
                     if (!featureFlags.kanbanBoardFeature && currentTaskViewMode === 'kanban') {
                         setTaskViewMode('list');
@@ -78,7 +84,10 @@ function populateFeatureFlagsModal() {
     });
 }
 
-// --- Apply Active Features (UI part) ---
+/**
+ * Updates UI visibility based on featureFlags.
+ * Calls feature-specific UI update functions if available, otherwise directly manipulates DOM.
+ */
 function applyActiveFeatures() {
     console.log('[ApplyFeatures] Starting applyActiveFeatures. Kanban Flag:', featureFlags.kanbanBoardFeature);
     const toggleElements = (selector, isEnabled) => {
@@ -660,7 +669,6 @@ function setupEventListeners() {
 document.addEventListener('DOMContentLoaded', async () => {
     console.log("DOMContentLoaded event fired in ui_event_handlers.js");
     
-    // ADDED LOG: Check typeof initializeDOMElements before calling
     console.log('[DOMContentLoaded] typeof initializeDOMElements before call:', typeof initializeDOMElements);
 
     if (typeof initializeDOMElements === 'function') {
@@ -717,6 +725,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // Moved applyActiveFeatures call to be after all module initializations
     applyActiveFeatures(); 
 
     if (typeof styleInitialSmartViewButtons === 'function') {
