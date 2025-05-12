@@ -6,8 +6,8 @@
   "fileAttachments": false,
   "integrationsServices": false,
   "userAccounts": false,
-  "collaborationSharing": true,
-  "crossDeviceSync": false,
+  "collaborationSharing": false,
+  "crossDeviceSync": true,
   "tooltipsGuide": true,
   "subTasksFeature": false
 }
