@@ -6,12 +6,12 @@ let currentFilter = 'inbox';
 let currentSort = 'default';
 let currentSearchTerm = '';
 let editingTaskId = null;
-let currentViewTaskId = null; // Also used by UI, but primarily managed by logic flow
+let currentViewTaskId = null;
 let uniqueLabels = [];
 let tooltipTimeout = null;
 let currentTaskViewMode = 'list'; // 'list' or 'kanban'
 
-// Default feature flags, will be overridden by the JSON file if successfully loaded
+// Default feature flags, will be overridden by features.json and then by localStorage
 let featureFlags = {
     testButtonFeature: false,
     reminderFeature: false,
@@ -24,16 +24,14 @@ let featureFlags = {
     crossDeviceSync: false,
     tooltipsGuide: false,
     subTasksFeature: false,
-    kanbanBoardFeature: false // Added Kanban Board Feature Flag
+    kanbanBoardFeature: false
 };
 
-// Kanban board specific state (will be managed more in its own file)
 let kanbanColumns = [
     { id: 'todo', title: 'To Do' },
     { id: 'inprogress', title: 'In Progress' },
     { id: 'done', title: 'Done' }
 ];
-
 
 // --- Theme Management ---
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
@@ -50,39 +48,55 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', eve
 
 // --- Feature Flag Management ---
 async function loadFeatureFlags() {
+    console.log('[Flags] Initial default flags:', JSON.parse(JSON.stringify(featureFlags)));
     try {
         const response = await fetch('features.json?cachebust=' + new Date().getTime());
         if (!response.ok) {
-            console.warn('Failed to load features.json, using default flags. Status:', response.status);
-            // Ensure all flags have a default
-            if (typeof featureFlags.subTasksFeature === 'undefined') { featureFlags.subTasksFeature = false; }
-            if (typeof featureFlags.taskTimerSystem === 'undefined') { featureFlags.taskTimerSystem = false; }
-            if (typeof featureFlags.advancedRecurrence === 'undefined') { featureFlags.advancedRecurrence = false; }
-            if (typeof featureFlags.integrationsServices === 'undefined') { featureFlags.integrationsServices = false; }
-            if (typeof featureFlags.userAccounts === 'undefined') { featureFlags.userAccounts = false; }
-            if (typeof featureFlags.collaborationSharing === 'undefined') { featureFlags.collaborationSharing = false; }
-            if (typeof featureFlags.crossDeviceSync === 'undefined') { featureFlags.crossDeviceSync = false; }
-            if (typeof featureFlags.tooltipsGuide === 'undefined') { featureFlags.tooltipsGuide = false; }
-            if (typeof featureFlags.kanbanBoardFeature === 'undefined') { featureFlags.kanbanBoardFeature = false; } // Default for Kanban
-            return;
+            console.warn('[Flags] Failed to load features.json, using default flags. Status:', response.status);
+        } else {
+            const fetchedFlagsFromFile = await response.json();
+            console.log('[Flags] Flags loaded from features.json:', fetchedFlagsFromFile);
+            // Merge file flags over defaults. This ensures all flags from the default object are present.
+            featureFlags = { ...featureFlags, ...fetchedFlagsFromFile };
+            console.log('[Flags] Flags after merging features.json:', JSON.parse(JSON.stringify(featureFlags)));
         }
-        const fetchedFlags = await response.json();
-        featureFlags = { ...featureFlags, ...fetchedFlags }; // Merge defaults with fetched
-        console.log('Feature flags loaded successfully:', featureFlags);
     } catch (error) {
-        console.error('Error loading or parsing features.json, using default flags:', error);
-        // Ensure default on error
-        if (typeof featureFlags.subTasksFeature === 'undefined') { featureFlags.subTasksFeature = false; }
-        if (typeof featureFlags.taskTimerSystem === 'undefined') { featureFlags.taskTimerSystem = false; }
-        if (typeof featureFlags.advancedRecurrence === 'undefined') { featureFlags.advancedRecurrence = false; }
-        if (typeof featureFlags.integrationsServices === 'undefined') { featureFlags.integrationsServices = false; }
-        if (typeof featureFlags.userAccounts === 'undefined') { featureFlags.userAccounts = false; }
-        if (typeof featureFlags.collaborationSharing === 'undefined') { featureFlags.collaborationSharing = false; }
-        if (typeof featureFlags.crossDeviceSync === 'undefined') { featureFlags.crossDeviceSync = false; }
-        if (typeof featureFlags.tooltipsGuide === 'undefined') { featureFlags.tooltipsGuide = false; }
-        if (typeof featureFlags.kanbanBoardFeature === 'undefined') { featureFlags.kanbanBoardFeature = false; } // Default for Kanban
+        console.error('[Flags] Error loading or parsing features.json, using flags potentially modified by defaults only:', error);
     }
+
+    // Load user-specific overrides from localStorage
+    const userFlagsString = localStorage.getItem('userFeatureFlags');
+    if (userFlagsString) {
+        try {
+            const userFlagsFromStorage = JSON.parse(userFlagsString);
+            console.log('[Flags] User flags found in localStorage:', userFlagsFromStorage);
+            // Merge localStorage flags over the current flags (which are defaults or defaults+file)
+            featureFlags = { ...featureFlags, ...userFlagsFromStorage };
+            console.log('[Flags] Flags after merging localStorage:', JSON.parse(JSON.stringify(featureFlags)));
+        } catch (e) {
+            console.error('[Flags] Error parsing userFeatureFlags from localStorage:', e);
+        }
+    } else {
+        console.log('[Flags] No userFeatureFlags found in localStorage.');
+    }
+
+    // Ensure all expected flags have a boolean value after all merges, defaulting to false if undefined
+    const allKnownFlagKeys = [
+        'testButtonFeature', 'reminderFeature', 'taskTimerSystem', 'advancedRecurrence',
+        'fileAttachments', 'integrationsServices', 'userAccounts', 'collaborationSharing',
+        'crossDeviceSync', 'tooltipsGuide', 'subTasksFeature', 'kanbanBoardFeature'
+    ];
+    allKnownFlagKeys.forEach(key => {
+        if (typeof featureFlags[key] !== 'boolean') {
+            console.warn(`[Flags] Flag "${key}" was not a boolean after loading. Defaulting to false.`);
+            featureFlags[key] = false;
+        }
+    });
+
+    console.log('[Flags] Final feature flags loaded:', JSON.parse(JSON.stringify(featureFlags)));
+    console.log(`[Flags] Kanban Board Feature is: ${featureFlags.kanbanBoardFeature}`);
 }
+
 
 // --- Date & Time Helper Functions ---
 function getTodayDateString() { return new Date().toISOString().split('T')[0]; }
@@ -93,7 +107,7 @@ function formatDate(dateString) {
     const year = parseInt(dateParts[0]);
     const month = parseInt(dateParts[1]) - 1;
     const day = parseInt(dateParts[2]);
-    const date = new Date(Date.UTC(year, month, day)); // Use UTC to avoid timezone issues with date parts
+    const date = new Date(Date.UTC(year, month, day));
     return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
 }
 function formatTime(timeString) {
@@ -101,7 +115,7 @@ function formatTime(timeString) {
     const [hours, minutes] = timeString.split(':');
     const h = parseInt(hours, 10);
     const ampm = h >= 12 ? 'PM' : 'AM';
-    const formattedHours = h % 12 || 12; // Converts 0 or 12 to 12
+    const formattedHours = h % 12 || 12;
     return `${String(formattedHours).padStart(2, '0')}:${minutes} ${ampm}`;
 }
 function formatDuration(hours, minutes) {
@@ -113,7 +127,7 @@ function formatDuration(hours, minutes) {
     let parts = [];
     if (hours > 0) { parts.push(`${hours} hr${hours > 1 ? 's' : ''}`); }
     if (minutes > 0) { parts.push(`${minutes} min${minutes > 1 ? 's' : ''}`); }
-    return parts.join(' ') || 'Not set'; // Fallback if somehow parts is empty
+    return parts.join(' ') || 'Not set';
 }
 function formatMillisecondsToHMS(ms) {
     if (ms === null || typeof ms === 'undefined' || ms < 0) return "00:00:00";
@@ -133,7 +147,7 @@ function saveTasks() {
 }
 
 function initializeTasks() {
-    const defaultKanbanColumn = kanbanColumns[0]?.id || 'todo'; // Default to the first column
+    const defaultKanbanColumn = kanbanColumns[0]?.id || 'todo';
     tasks = tasks.map(task => ({
         id: task.id || Date.now(),
         text: task.text || '',
@@ -165,7 +179,7 @@ function initializeTasks() {
         owner: task.owner || null,
         lastSynced: task.lastSynced || null,
         syncVersion: task.syncVersion || 0,
-        kanbanColumnId: task.kanbanColumnId || defaultKanbanColumn // Added Kanban Column ID
+        kanbanColumnId: task.kanbanColumnId || defaultKanbanColumn
     }));
 }
 
@@ -296,17 +310,15 @@ function parseDateFromText(text) {
 function setTaskViewMode(mode) {
     if (mode === 'list' || mode === 'kanban') {
         currentTaskViewMode = mode;
-        // This will eventually trigger a re-render of the main task area
-        // For now, we'll just log it. The rendering logic will be in ui_rendering.js
         console.log(`Task view mode changed to: ${currentTaskViewMode}`);
-        // renderTasks(); // Or a new function like renderTaskArea();
+        // The actual rendering is triggered by refreshTaskView() in ui_rendering.js
     }
 }
 
 // --- Filtering and sorting state management ---
 function setAppCurrentFilter(filter) {
     currentFilter = filter;
-    currentSort = 'default'; // Reset sort when changing filter
+    currentSort = 'default';
 }
 
 function setAppCurrentSort(sortType) {
@@ -317,17 +329,17 @@ function setAppSearchTerm(term) {
     currentSearchTerm = term;
 }
 
-// --- Kanban Board Logic (Placeholder & Basic Structure) ---
-// More detailed logic will be in feature_kanban_board.js
+// --- Kanban Board Logic ---
 function updateKanbanColumnTitle(columnId, newTitle) {
     const columnIndex = kanbanColumns.findIndex(col => col.id === columnId);
     if (columnIndex !== -1) {
         kanbanColumns[columnIndex].title = newTitle;
-        saveKanbanColumns(); // Persist column titles (e.g., to localStorage)
-        // Re-render Kanban board if it's the current view
+        saveKanbanColumns();
         if (currentTaskViewMode === 'kanban' && featureFlags.kanbanBoardFeature) {
-            // This function will be defined in ui_rendering.js or feature_kanban_board.js
-            // renderKanbanBoard(); 
+            if (window.AppFeatures && window.AppFeatures.KanbanBoard && typeof window.AppFeatures.KanbanBoard.renderKanbanBoard === 'function') {
+                 // Re-render the specific column header or the whole board if simpler
+                 window.AppFeatures.KanbanBoard.renderKanbanBoard();
+            }
         }
     }
 }
@@ -341,67 +353,31 @@ function loadKanbanColumns() {
     if (storedColumns) {
         try {
             const parsedColumns = JSON.parse(storedColumns);
-            // Basic validation: check if it's an array and items have id and title
             if (Array.isArray(parsedColumns) && parsedColumns.every(col => col && typeof col.id === 'string' && typeof col.title === 'string')) {
-                 // Ensure the loaded columns match the structure and IDs of the default ones,
-                 // updating titles if they exist, but keeping the default structure if not.
                  const defaultColumnIds = ['todo', 'inprogress', 'done'];
                  const newKanbanColumns = defaultColumnIds.map(defaultId => {
                     const foundStored = parsedColumns.find(sc => sc.id === defaultId);
-                    const defaultColumn = kanbanColumns.find(dc => dc.id === defaultId);
+                    const defaultColumn = kanbanColumns.find(dc => dc.id === defaultId) || { id: defaultId, title: defaultId.charAt(0).toUpperCase() + defaultId.slice(1) }; // Ensure defaultColumn is defined
                     return {
                         id: defaultId,
-                        title: foundStored ? foundStored.title : (defaultColumn ? defaultColumn.title : defaultId) // Use stored, then default, then ID as fallback
+                        title: foundStored ? foundStored.title : defaultColumn.title
                     };
                  });
                 kanbanColumns = newKanbanColumns;
+                console.log('[Kanban] Loaded column titles from localStorage:', kanbanColumns);
             } else {
-                 console.warn("Stored Kanban columns are invalid. Using defaults.");
+                 console.warn("[Kanban] Stored Kanban columns are invalid. Using defaults and saving them.");
                  saveKanbanColumns(); // Save defaults if stored is bad
             }
         } catch (e) {
-            console.error("Error parsing stored Kanban columns. Using defaults.", e);
+            console.error("[Kanban] Error parsing stored Kanban columns. Using defaults and saving them.", e);
             saveKanbanColumns(); // Save defaults if parsing fails
         }
     } else {
-        // If no columns are stored, save the default ones.
+        console.log('[Kanban] No stored Kanban columns found. Saving defaults.');
         saveKanbanColumns();
     }
 }
 
-
-// --- Sub-task Logic (Placeholder) ---
-// Logic for this feature is primarily managed in feature_sub_tasks.js
-
-// --- Advanced Recurrence Logic (Placeholder) ---
-// Logic for this feature is primarily managed in feature_advanced_recurrence.js
-
-// --- Integrations Services Logic (Placeholder) ---
-// Logic for this feature is primarily managed in feature_integrations_services.js
-
-// --- File Attachments Logic (Placeholder) ---
-// Logic for this feature is primarily managed in feature_file_attachments.js
-
-// --- Reminder Logic (Placeholder) ---
-// Logic for this feature is primarily managed in feature_reminder.js
-
-// --- Task Timer System Logic (Placeholder) ---
-// Logic for this feature is primarily managed in task_timer_system.js
-
-// --- Test Button Feature Logic (Placeholder) ---
-// Logic for this feature is primarily managed in feature_test_button.js
-
-// --- User Accounts Logic (Placeholder) ---
-// Logic for this feature is primarily managed in feature_user_accounts.js
-
-// --- Collaboration Sharing Logic (Placeholder) ---
-// Logic for this feature is primarily managed in feature_collaboration_sharing.js
-
-// --- Cross-Device Sync Logic (Placeholder) ---
-// Logic for this feature is primarily managed in feature_cross_device_sync.js
-
-// --- Tooltips Guide Logic (Placeholder) ---
-// Logic for this feature is primarily managed in feature_tooltips_guide.js
-
-// --- Kanban Board Feature Logic (Placeholder) ---
-// Logic for this feature will be primarily managed in feature_kanban_board.js
+// --- Placeholder for other feature logic sections (Sub-tasks, etc.) ---
+// ... (Reminder, Task Timer, Test Button, etc. logic remains here)
