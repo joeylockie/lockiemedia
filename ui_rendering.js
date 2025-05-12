@@ -773,7 +773,7 @@ function updateKanbanViewToggleButtonState() {
         }
     }
 }
-
+ 
 /**
  * Updates the main heading text based on the current view mode.
  * Assumes 'currentTaskViewMode' and 'yourTasksHeading' are available.
