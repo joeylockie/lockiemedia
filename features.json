@@ -5,8 +5,8 @@
   "advancedRecurrence": false,
   "fileAttachments": false,
   "integrationsServices": false,
-  "userAccounts": true,
-  "collaborationSharing": false,
+  "userAccounts": false,
+  "collaborationSharing": true,
   "crossDeviceSync": false,
   "tooltipsGuide": true,
   "subTasksFeature": false
