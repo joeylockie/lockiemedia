@@ -4,167 +4,216 @@
 // including task rendering, sub-task rendering, sidebar UI, UI helper functions
 // for display (like messages and datalists), and UI state updaters.
 
-// --- DOM Elements ---
-const taskSidebar = document.getElementById('taskSidebar');
-const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
-const sidebarToggleIcon = document.getElementById('sidebarToggleIcon');
-const sidebarTextElements = taskSidebar.querySelectorAll('.sidebar-text-content');
-const sidebarIconOnlyButtons = taskSidebar.querySelectorAll('.sidebar-button-icon-only');
-const iconTooltip = document.getElementById('iconTooltip');
-const sortByDueDateBtn = document.getElementById('sortByDueDateBtn');
-const sortByPriorityBtn = document.getElementById('sortByPriorityBtn');
-const sortByLabelBtn = document.getElementById('sortByLabelBtn');
-const taskSearchInput = document.getElementById('taskSearchInput');
-const taskList = document.getElementById('taskList'); // This is the UL for list view
-const emptyState = document.getElementById('emptyState');
-const noMatchingTasks = document.getElementById('noMatchingTasks');
-const smartViewButtonsContainer = document.getElementById('smartViewButtonsContainer');
-const smartViewButtons = smartViewButtonsContainer.querySelectorAll('.smart-view-btn');
-const messageBox = document.getElementById('messageBox');
+// --- DOM Elements (Declared as let, initialized in initializeDOMElements) ---
+let taskSidebar, sidebarToggleBtn, sidebarToggleIcon, sidebarTextElements, sidebarIconOnlyButtons, iconTooltip;
+let sortByDueDateBtn, sortByPriorityBtn, sortByLabelBtn, taskSearchInput, taskList, emptyState, noMatchingTasks;
+let smartViewButtonsContainer, smartViewButtons, messageBox;
 // Add Task Modal Elements
-const addTaskModal = document.getElementById('addTaskModal');
-const modalDialogAdd = document.getElementById('modalDialogAdd');
-const openAddModalButton = document.getElementById('openAddModalButton');
-const closeAddModalBtn = document.getElementById('closeAddModalBtn');
-const cancelAddModalBtn = document.getElementById('cancelAddModalBtn');
-const modalTodoFormAdd = document.getElementById('modalTodoFormAdd');
-const modalTaskInputAdd = document.getElementById('modalTaskInputAdd');
-const modalDueDateInputAdd = document.getElementById('modalDueDateInputAdd');
-const modalTimeInputAdd = document.getElementById('modalTimeInputAdd');
-const modalEstHoursAdd = document.getElementById('modalEstHoursAdd');
-const modalEstMinutesAdd = document.getElementById('modalEstMinutesAdd');
-const modalPriorityInputAdd = document.getElementById('modalPriorityInputAdd');
-const modalLabelInputAdd = document.getElementById('modalLabelInputAdd');
-const existingLabelsDatalist = document.getElementById('existingLabels');
-const modalNotesInputAdd = document.getElementById('modalNotesInputAdd');
-const modalRemindMeAddContainer = document.getElementById('modalRemindMeAddContainer');
-const modalRemindMeAdd = document.getElementById('modalRemindMeAdd');
-const reminderOptionsAdd = document.getElementById('reminderOptionsAdd');
-const modalReminderDateAdd = document.getElementById('modalReminderDateAdd');
-const modalReminderTimeAdd = document.getElementById('modalReminderTimeAdd');
-const modalReminderEmailAdd = document.getElementById('modalReminderEmailAdd');
+let addTaskModal, modalDialogAdd, openAddModalButton, closeAddModalBtn, cancelAddModalBtn, modalTodoFormAdd;
+let modalTaskInputAdd, modalDueDateInputAdd, modalTimeInputAdd, modalEstHoursAdd, modalEstMinutesAdd;
+let modalPriorityInputAdd, modalLabelInputAdd, existingLabelsDatalist, modalNotesInputAdd;
+let modalRemindMeAddContainer, modalRemindMeAdd, reminderOptionsAdd, modalReminderDateAdd, modalReminderTimeAdd, modalReminderEmailAdd;
 // View/Edit Task Modal Elements
-const viewEditTaskModal = document.getElementById('viewEditTaskModal');
-const modalDialogViewEdit = document.getElementById('modalDialogViewEdit');
-const closeViewEditModalBtn = document.getElementById('closeViewEditModalBtn');
-const cancelViewEditModalBtn = document.getElementById('cancelViewEditModalBtn');
-const modalTodoFormViewEdit = document.getElementById('modalTodoFormViewEdit');
-const modalViewEditTaskId = document.getElementById('modalViewEditTaskId');
-const modalTaskInputViewEdit = document.getElementById('modalTaskInputViewEdit');
-const modalDueDateInputViewEdit = document.getElementById('modalDueDateInputViewEdit');
-const modalTimeInputViewEdit = document.getElementById('modalTimeInputViewEdit');
-const modalEstHoursViewEdit = document.getElementById('modalEstHoursViewEdit');
-const modalEstMinutesViewEdit = document.getElementById('modalEstMinutesViewEdit');
-const modalPriorityInputViewEdit = document.getElementById('modalPriorityInputViewEdit');
-const modalLabelInputViewEdit = document.getElementById('modalLabelInputViewEdit');
-const existingLabelsEditDatalist = document.getElementById('existingLabelsEdit');
-const modalNotesInputViewEdit = document.getElementById('modalNotesInputViewEdit');
-const modalRemindMeViewEditContainer = document.getElementById('modalRemindMeViewEditContainer');
-const modalRemindMeViewEdit = document.getElementById('modalRemindMeViewEdit');
-const reminderOptionsViewEdit = document.getElementById('reminderOptionsViewEdit');
-const modalReminderDateViewEdit = document.getElementById('modalReminderDateViewEdit');
-const modalReminderTimeViewEdit = document.getElementById('modalReminderTimeViewEdit');
-const modalReminderEmailViewEdit = document.getElementById('modalReminderEmailViewEdit');
-const existingAttachmentsViewEdit = document.getElementById('existingAttachmentsViewEdit');
+let viewEditTaskModal, modalDialogViewEdit, closeViewEditModalBtn, cancelViewEditModalBtn, modalTodoFormViewEdit;
+let modalViewEditTaskId, modalTaskInputViewEdit, modalDueDateInputViewEdit, modalTimeInputViewEdit;
+let modalEstHoursViewEdit, modalEstMinutesViewEdit, modalPriorityInputViewEdit, modalLabelInputViewEdit;
+let existingLabelsEditDatalist, modalNotesInputViewEdit, modalRemindMeViewEditContainer, modalRemindMeViewEdit;
+let reminderOptionsViewEdit, modalReminderDateViewEdit, modalReminderTimeViewEdit, modalReminderEmailViewEdit;
+let existingAttachmentsViewEdit;
 // View Task Details Modal Elements
-const viewTaskDetailsModal = document.getElementById('viewTaskDetailsModal');
-const modalDialogViewDetails = document.getElementById('modalDialogViewDetails');
-const closeViewDetailsModalBtn = document.getElementById('closeViewDetailsModalBtn');
-const closeViewDetailsSecondaryBtn = document.getElementById('closeViewDetailsSecondaryBtn');
-const editFromViewModalBtn = document.getElementById('editFromViewModalBtn');
-const deleteFromViewModalBtn = document.getElementById('deleteFromViewModalBtn');
-const viewTaskText = document.getElementById('viewTaskText');
-const viewTaskDueDate = document.getElementById('viewTaskDueDate');
-const viewTaskTime = document.getElementById('viewTaskTime');
-const viewTaskEstDuration = document.getElementById('viewTaskEstDuration');
-const viewTaskPriority = document.getElementById('viewTaskPriority');
-const viewTaskStatus = document.getElementById('viewTaskStatus');
-const viewTaskLabel = document.getElementById('viewTaskLabel');
-const viewTaskNotes = document.getElementById('viewTaskNotes');
-const viewTaskReminderSection = document.getElementById('viewTaskReminderSection');
-const viewTaskReminderStatus = document.getElementById('viewTaskReminderStatus');
-const viewTaskReminderDetails = document.getElementById('viewTaskReminderDetails');
-const viewTaskReminderDate = document.getElementById('viewTaskReminderDate');
-const viewTaskReminderTime = document.getElementById('viewTaskReminderTime');
-const viewTaskReminderEmail = document.getElementById('viewTaskReminderEmail');
-const viewTaskAttachmentsSection = document.getElementById('viewTaskAttachmentsSection');
-const viewTaskAttachmentsList = document.getElementById('viewTaskAttachmentsList');
+let viewTaskDetailsModal, modalDialogViewDetails, closeViewDetailsModalBtn, closeViewDetailsSecondaryBtn;
+let editFromViewModalBtn, deleteFromViewModalBtn, viewTaskText, viewTaskDueDate, viewTaskTime, viewTaskEstDuration;
+let viewTaskPriority, viewTaskStatus, viewTaskLabel, viewTaskNotes, viewTaskReminderSection, viewTaskReminderStatus;
+let viewTaskReminderDetails, viewTaskReminderDate, viewTaskReminderTime, viewTaskReminderEmail;
+let viewTaskAttachmentsSection, viewTaskAttachmentsList;
 // Timer Elements
-const taskTimerSection = document.getElementById('taskTimerSection');
-const viewTaskTimerDisplay = document.getElementById('viewTaskTimerDisplay');
-const viewTaskStartTimerBtn = document.getElementById('viewTaskStartTimerBtn');
-const viewTaskPauseTimerBtn = document.getElementById('viewTaskPauseTimerBtn');
-const viewTaskStopTimerBtn = document.getElementById('viewTaskStopTimerBtn');
-const viewTaskActualDuration = document.getElementById('viewTaskActualDuration');
-const timerButtonsContainer = document.getElementById('timerButtonsContainer');
+let taskTimerSection, viewTaskTimerDisplay, viewTaskStartTimerBtn, viewTaskPauseTimerBtn, viewTaskStopTimerBtn;
+let viewTaskActualDuration, timerButtonsContainer;
 // Manage Labels Modal Elements
-const manageLabelsModal = document.getElementById('manageLabelsModal');
-const modalDialogManageLabels = document.getElementById('modalDialogManageLabels');
-const closeManageLabelsModalBtn = document.getElementById('closeManageLabelsModalBtn');
-const closeManageLabelsSecondaryBtn = document.getElementById('closeManageLabelsSecondaryBtn');
-const addNewLabelForm = document.getElementById('addNewLabelForm');
-const newLabelInput = document.getElementById('newLabelInput');
-const existingLabelsList = document.getElementById('existingLabelsList');
+let manageLabelsModal, modalDialogManageLabels, closeManageLabelsModalBtn, closeManageLabelsSecondaryBtn;
+let addNewLabelForm, newLabelInput, existingLabelsList;
 // Settings Modal Elements
-const settingsModal = document.getElementById('settingsModal');
-const modalDialogSettings = document.getElementById('modalDialogSettings');
-const openSettingsModalButton = document.getElementById('openSettingsModalButton');
-const closeSettingsModalBtn = document.getElementById('closeSettingsModalBtn');
-const closeSettingsSecondaryBtn = document.getElementById('closeSettingsSecondaryBtn');
-const settingsClearCompletedBtn = document.getElementById('settingsClearCompletedBtn');
-const settingsManageLabelsBtn = document.getElementById('settingsManageLabelsBtn');
-const settingsManageRemindersBtn = document.getElementById('settingsManageRemindersBtn');
-const settingsTaskReviewBtn = document.getElementById('settingsTaskReviewBtn');
-const settingsTooltipsGuideBtn = document.getElementById('settingsTooltipsGuideBtn');
-const settingsIntegrationsBtn = document.getElementById('settingsIntegrationsBtn');
-const settingsUserAccountsBtn = document.getElementById('settingsUserAccountsBtn');
-const settingsCollaborationBtn = document.getElementById('settingsCollaborationBtn');
-const settingsSyncBackupBtn = document.getElementById('settingsSyncBackupBtn');
+let settingsModal, modalDialogSettings, openSettingsModalButton, closeSettingsModalBtn, closeSettingsSecondaryBtn;
+let settingsClearCompletedBtn, settingsManageLabelsBtn, settingsManageRemindersBtn, settingsTaskReviewBtn;
+let settingsTooltipsGuideBtn, settingsIntegrationsBtn, settingsUserAccountsBtn, settingsCollaborationBtn, settingsSyncBackupBtn;
 // Task Review Modal Elements
-const taskReviewModal = document.getElementById('taskReviewModal');
-const modalDialogTaskReview = document.getElementById('modalDialogTaskReview');
-const closeTaskReviewModalBtn = document.getElementById('closeTaskReviewModalBtn');
-const closeTaskReviewSecondaryBtn = document.getElementById('closeTaskReviewSecondaryBtn');
-const taskReviewContent = document.getElementById('taskReviewContent');
+let taskReviewModal, modalDialogTaskReview, closeTaskReviewModalBtn, closeTaskReviewSecondaryBtn, taskReviewContent;
 // Tooltips Guide Modal Elements
-const tooltipsGuideModal = document.getElementById('tooltipsGuideModal');
-const modalDialogTooltipsGuide = document.getElementById('modalDialogTooltipsGuide');
-const closeTooltipsGuideModalBtn = document.getElementById('closeTooltipsGuideModalBtn');
-const closeTooltipsGuideSecondaryBtn = document.getElementById('closeTooltipsGuideSecondaryBtn');
-const tooltipsGuideContent = document.getElementById('tooltipsGuideContent');
+let tooltipsGuideModal, modalDialogTooltipsGuide, closeTooltipsGuideModalBtn, closeTooltipsGuideSecondaryBtn, tooltipsGuideContent;
 // Test Feature Button
-const testFeatureButtonContainer = document.getElementById('testFeatureButtonContainer');
-const testFeatureButton = document.getElementById('testFeatureButton');
+let testFeatureButtonContainer, testFeatureButton;
 // Sub-task Elements
-const subTasksSectionViewEdit = document.getElementById('subTasksSectionViewEdit');
-const modalSubTaskInputViewEdit = document.getElementById('modalSubTaskInputViewEdit');
-const modalAddSubTaskBtnViewEdit = document.getElementById('modalAddSubTaskBtnViewEdit');
-const modalSubTasksListViewEdit = document.getElementById('modalSubTasksListViewEdit');
-const subTasksSectionViewDetails = document.getElementById('subTasksSectionViewDetails');
-const viewSubTaskProgress = document.getElementById('viewSubTaskProgress');
-const modalSubTasksListViewDetails = document.getElementById('modalSubTasksListViewDetails');
-const noSubTasksMessageViewDetails = document.getElementById('noSubTasksMessageViewDetails');
-const subTasksSectionAdd = document.getElementById('subTasksSectionAdd');
-const modalSubTaskInputAdd = document.getElementById('modalSubTaskInputAdd');
-const modalAddSubTaskBtnAdd = document.getElementById('modalAddSubTaskBtnAdd');
-const modalSubTasksListAdd = document.getElementById('modalSubTasksListAdd');
-// Feature Flags Modal Elements (New)
-const featureFlagsListContainer = document.getElementById('featureFlagsListContainer');
+let subTasksSectionViewEdit, modalSubTaskInputViewEdit, modalAddSubTaskBtnViewEdit, modalSubTasksListViewEdit;
+let subTasksSectionViewDetails, viewSubTaskProgress, modalSubTasksListViewDetails, noSubTasksMessageViewDetails;
+let subTasksSectionAdd, modalSubTaskInputAdd, modalAddSubTaskBtnAdd, modalSubTasksListAdd;
+// Feature Flags Modal Elements
+let featureFlagsListContainer;
+// Kanban Board Elements
+let kanbanViewToggleBtn, kanbanViewToggleBtnText, yourTasksHeading, mainContentArea;
 
-
-// --- Kanban Board Elements (New) ---
-const kanbanViewToggleBtn = document.getElementById('kanbanViewToggleBtn');
-const kanbanViewToggleBtnText = document.getElementById('kanbanViewToggleBtnText');
-const yourTasksHeading = document.getElementById('yourTasksHeading'); // Heading for the main task area
-const mainContentArea = document.querySelector('main'); // The <main> element that holds task list or Kanban board
-
-// --- UI Helper Functions ---
 
 /**
- * Displays a styled message to the user.
- * @param {string} message - The message to display.
- * @param {string} [type='success'] - The type of message ('success', 'error', or other for info).
+ * Initializes all DOM element constants.
+ * This function should be called once the DOM is fully loaded.
  */
+function initializeDOMElements() {
+    taskSidebar = document.getElementById('taskSidebar');
+    sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+    sidebarToggleIcon = document.getElementById('sidebarToggleIcon');
+    sidebarTextElements = taskSidebar ? taskSidebar.querySelectorAll('.sidebar-text-content') : []; // Add null check for taskSidebar
+    sidebarIconOnlyButtons = taskSidebar ? taskSidebar.querySelectorAll('.sidebar-button-icon-only') : []; // Add null check
+    iconTooltip = document.getElementById('iconTooltip');
+    sortByDueDateBtn = document.getElementById('sortByDueDateBtn');
+    sortByPriorityBtn = document.getElementById('sortByPriorityBtn');
+    sortByLabelBtn = document.getElementById('sortByLabelBtn');
+    taskSearchInput = document.getElementById('taskSearchInput');
+    taskList = document.getElementById('taskList');
+    emptyState = document.getElementById('emptyState');
+    noMatchingTasks = document.getElementById('noMatchingTasks');
+    smartViewButtonsContainer = document.getElementById('smartViewButtonsContainer');
+    smartViewButtons = smartViewButtonsContainer ? smartViewButtonsContainer.querySelectorAll('.smart-view-btn') : []; // Add null check
+    messageBox = document.getElementById('messageBox');
+    
+    addTaskModal = document.getElementById('addTaskModal');
+    modalDialogAdd = document.getElementById('modalDialogAdd');
+    openAddModalButton = document.getElementById('openAddModalButton');
+    closeAddModalBtn = document.getElementById('closeAddModalBtn');
+    cancelAddModalBtn = document.getElementById('cancelAddModalBtn');
+    modalTodoFormAdd = document.getElementById('modalTodoFormAdd');
+    modalTaskInputAdd = document.getElementById('modalTaskInputAdd');
+    modalDueDateInputAdd = document.getElementById('modalDueDateInputAdd');
+    modalTimeInputAdd = document.getElementById('modalTimeInputAdd');
+    modalEstHoursAdd = document.getElementById('modalEstHoursAdd');
+    modalEstMinutesAdd = document.getElementById('modalEstMinutesAdd');
+    modalPriorityInputAdd = document.getElementById('modalPriorityInputAdd');
+    modalLabelInputAdd = document.getElementById('modalLabelInputAdd');
+    existingLabelsDatalist = document.getElementById('existingLabels');
+    modalNotesInputAdd = document.getElementById('modalNotesInputAdd');
+    modalRemindMeAddContainer = document.getElementById('modalRemindMeAddContainer');
+    modalRemindMeAdd = document.getElementById('modalRemindMeAdd');
+    reminderOptionsAdd = document.getElementById('reminderOptionsAdd');
+    modalReminderDateAdd = document.getElementById('modalReminderDateAdd');
+    modalReminderTimeAdd = document.getElementById('modalReminderTimeAdd');
+    modalReminderEmailAdd = document.getElementById('modalReminderEmailAdd');
+    
+    viewEditTaskModal = document.getElementById('viewEditTaskModal');
+    modalDialogViewEdit = document.getElementById('modalDialogViewEdit');
+    closeViewEditModalBtn = document.getElementById('closeViewEditModalBtn');
+    cancelViewEditModalBtn = document.getElementById('cancelViewEditModalBtn');
+    modalTodoFormViewEdit = document.getElementById('modalTodoFormViewEdit');
+    modalViewEditTaskId = document.getElementById('modalViewEditTaskId');
+    modalTaskInputViewEdit = document.getElementById('modalTaskInputViewEdit');
+    modalDueDateInputViewEdit = document.getElementById('modalDueDateInputViewEdit');
+    modalTimeInputViewEdit = document.getElementById('modalTimeInputViewEdit');
+    modalEstHoursViewEdit = document.getElementById('modalEstHoursViewEdit');
+    modalEstMinutesViewEdit = document.getElementById('modalEstMinutesViewEdit');
+    modalPriorityInputViewEdit = document.getElementById('modalPriorityInputViewEdit');
+    modalLabelInputViewEdit = document.getElementById('modalLabelInputViewEdit');
+    existingLabelsEditDatalist = document.getElementById('existingLabelsEdit');
+    modalNotesInputViewEdit = document.getElementById('modalNotesInputViewEdit');
+    modalRemindMeViewEditContainer = document.getElementById('modalRemindMeViewEditContainer');
+    modalRemindMeViewEdit = document.getElementById('modalRemindMeViewEdit');
+    reminderOptionsViewEdit = document.getElementById('reminderOptionsViewEdit');
+    modalReminderDateViewEdit = document.getElementById('modalReminderDateViewEdit');
+    modalReminderTimeViewEdit = document.getElementById('modalReminderTimeViewEdit');
+    modalReminderEmailViewEdit = document.getElementById('modalReminderEmailViewEdit');
+    existingAttachmentsViewEdit = document.getElementById('existingAttachmentsViewEdit');
+    
+    viewTaskDetailsModal = document.getElementById('viewTaskDetailsModal');
+    modalDialogViewDetails = document.getElementById('modalDialogViewDetails');
+    closeViewDetailsModalBtn = document.getElementById('closeViewDetailsModalBtn');
+    closeViewDetailsSecondaryBtn = document.getElementById('closeViewDetailsSecondaryBtn');
+    editFromViewModalBtn = document.getElementById('editFromViewModalBtn');
+    deleteFromViewModalBtn = document.getElementById('deleteFromViewModalBtn');
+    viewTaskText = document.getElementById('viewTaskText');
+    viewTaskDueDate = document.getElementById('viewTaskDueDate');
+    viewTaskTime = document.getElementById('viewTaskTime');
+    viewTaskEstDuration = document.getElementById('viewTaskEstDuration');
+    viewTaskPriority = document.getElementById('viewTaskPriority');
+    viewTaskStatus = document.getElementById('viewTaskStatus');
+    viewTaskLabel = document.getElementById('viewTaskLabel');
+    viewTaskNotes = document.getElementById('viewTaskNotes');
+    viewTaskReminderSection = document.getElementById('viewTaskReminderSection');
+    viewTaskReminderStatus = document.getElementById('viewTaskReminderStatus');
+    viewTaskReminderDetails = document.getElementById('viewTaskReminderDetails');
+    viewTaskReminderDate = document.getElementById('viewTaskReminderDate');
+    viewTaskReminderTime = document.getElementById('viewTaskReminderTime');
+    viewTaskReminderEmail = document.getElementById('viewTaskReminderEmail');
+    viewTaskAttachmentsSection = document.getElementById('viewTaskAttachmentsSection');
+    viewTaskAttachmentsList = document.getElementById('viewTaskAttachmentsList');
+    
+    taskTimerSection = document.getElementById('taskTimerSection');
+    viewTaskTimerDisplay = document.getElementById('viewTaskTimerDisplay');
+    viewTaskStartTimerBtn = document.getElementById('viewTaskStartTimerBtn');
+    viewTaskPauseTimerBtn = document.getElementById('viewTaskPauseTimerBtn');
+    viewTaskStopTimerBtn = document.getElementById('viewTaskStopTimerBtn');
+    viewTaskActualDuration = document.getElementById('viewTaskActualDuration');
+    timerButtonsContainer = document.getElementById('timerButtonsContainer');
+    
+    manageLabelsModal = document.getElementById('manageLabelsModal');
+    modalDialogManageLabels = document.getElementById('modalDialogManageLabels');
+    closeManageLabelsModalBtn = document.getElementById('closeManageLabelsModalBtn');
+    closeManageLabelsSecondaryBtn = document.getElementById('closeManageLabelsSecondaryBtn');
+    addNewLabelForm = document.getElementById('addNewLabelForm');
+    newLabelInput = document.getElementById('newLabelInput');
+    existingLabelsList = document.getElementById('existingLabelsList');
+    
+    settingsModal = document.getElementById('settingsModal');
+    modalDialogSettings = document.getElementById('modalDialogSettings');
+    openSettingsModalButton = document.getElementById('openSettingsModalButton');
+    closeSettingsModalBtn = document.getElementById('closeSettingsModalBtn');
+    closeSettingsSecondaryBtn = document.getElementById('closeSettingsSecondaryBtn');
+    settingsClearCompletedBtn = document.getElementById('settingsClearCompletedBtn');
+    settingsManageLabelsBtn = document.getElementById('settingsManageLabelsBtn');
+    settingsManageRemindersBtn = document.getElementById('settingsManageRemindersBtn');
+    settingsTaskReviewBtn = document.getElementById('settingsTaskReviewBtn');
+    settingsTooltipsGuideBtn = document.getElementById('settingsTooltipsGuideBtn');
+    settingsIntegrationsBtn = document.getElementById('settingsIntegrationsBtn');
+    settingsUserAccountsBtn = document.getElementById('settingsUserAccountsBtn');
+    settingsCollaborationBtn = document.getElementById('settingsCollaborationBtn');
+    settingsSyncBackupBtn = document.getElementById('settingsSyncBackupBtn');
+    
+    taskReviewModal = document.getElementById('taskReviewModal');
+    modalDialogTaskReview = document.getElementById('modalDialogTaskReview');
+    closeTaskReviewModalBtn = document.getElementById('closeTaskReviewModalBtn');
+    closeTaskReviewSecondaryBtn = document.getElementById('closeTaskReviewSecondaryBtn');
+    taskReviewContent = document.getElementById('taskReviewContent');
+    
+    tooltipsGuideModal = document.getElementById('tooltipsGuideModal');
+    modalDialogTooltipsGuide = document.getElementById('modalDialogTooltipsGuide');
+    closeTooltipsGuideModalBtn = document.getElementById('closeTooltipsGuideModalBtn');
+    closeTooltipsGuideSecondaryBtn = document.getElementById('closeTooltipsGuideSecondaryBtn');
+    tooltipsGuideContent = document.getElementById('tooltipsGuideContent');
+    
+    testFeatureButtonContainer = document.getElementById('testFeatureButtonContainer');
+    testFeatureButton = document.getElementById('testFeatureButton');
+    
+    subTasksSectionViewEdit = document.getElementById('subTasksSectionViewEdit');
+    modalSubTaskInputViewEdit = document.getElementById('modalSubTaskInputViewEdit');
+    modalAddSubTaskBtnViewEdit = document.getElementById('modalAddSubTaskBtnViewEdit');
+    modalSubTasksListViewEdit = document.getElementById('modalSubTasksListViewEdit');
+    subTasksSectionViewDetails = document.getElementById('subTasksSectionViewDetails');
+    viewSubTaskProgress = document.getElementById('viewSubTaskProgress');
+    modalSubTasksListViewDetails = document.getElementById('modalSubTasksListViewDetails');
+    noSubTasksMessageViewDetails = document.getElementById('noSubTasksMessageViewDetails');
+    subTasksSectionAdd = document.getElementById('subTasksSectionAdd');
+    modalSubTaskInputAdd = document.getElementById('modalSubTaskInputAdd');
+    modalAddSubTaskBtnAdd = document.getElementById('modalAddSubTaskBtnAdd');
+    modalSubTasksListAdd = document.getElementById('modalSubTasksListAdd');
+    
+    featureFlagsListContainer = document.getElementById('featureFlagsListContainer');
+    
+    kanbanViewToggleBtn = document.getElementById('kanbanViewToggleBtn');
+    kanbanViewToggleBtnText = document.getElementById('kanbanViewToggleBtnText');
+    yourTasksHeading = document.getElementById('yourTasksHeading');
+    mainContentArea = document.querySelector('main');
+
+    console.log('[DOM Init] DOM Elements Initialized. kanbanViewToggleBtn:', kanbanViewToggleBtn);
+}
+
+
+// --- UI Helper Functions ---
+// ... (showMessage, populateDatalist - unchanged) ...
 function showMessage(message, type = 'success') {
     if (!messageBox) return;
     messageBox.textContent = message;
@@ -183,11 +232,6 @@ function showMessage(message, type = 'success') {
     }, 3000);
 }
 
-/**
- * Populates a datalist element with unique labels.
- * Assumes 'uniqueLabels' is a globally available array (from app_logic.js).
- * @param {HTMLDataListElement} datalistElement - The datalist element to populate.
- */
 function populateDatalist(datalistElement) {
     if (!datalistElement) return;
     datalistElement.innerHTML = ''; // Clear existing options
@@ -199,22 +243,18 @@ function populateDatalist(datalistElement) {
 }
 
 // --- Sidebar UI ---
-
-/**
- * Toggles the sidebar between minimized and expanded states.
- * @param {boolean} minimize - True to minimize the sidebar, false to expand.
- */
+// ... (setSidebarMinimized, showTooltip, hideTooltip - unchanged) ...
 function setSidebarMinimized(minimize) {
     if (!taskSidebar || !sidebarToggleIcon || !iconTooltip) return;
-    hideTooltip(); // Hide any active tooltip before changing state
+    hideTooltip(); 
     if (minimize) {
         taskSidebar.classList.remove('md:w-72', 'lg:w-80', 'w-full', 'p-5', 'sm:p-6', 'md:p-5', 'sm:p-4');
         taskSidebar.classList.add('w-16', 'p-3', 'sidebar-minimized');
         sidebarToggleIcon.classList.remove('fa-chevron-left');
         sidebarToggleIcon.classList.add('fa-chevron-right');
-        sidebarTextElements.forEach(el => el.classList.add('hidden'));
+        if(sidebarTextElements) sidebarTextElements.forEach(el => el.classList.add('hidden'));
         document.querySelectorAll('.sidebar-section-title, #taskSearchInputContainer, #testFeatureButtonContainer .sidebar-text-content').forEach(el => el.classList.add('hidden'));
-        sidebarIconOnlyButtons.forEach(btn => {
+        if(sidebarIconOnlyButtons) sidebarIconOnlyButtons.forEach(btn => {
             btn.classList.add('justify-center');
             const icon = btn.querySelector('i');
             if(icon) icon.classList.remove('md:mr-2', 'md:mr-2.5', 'ml-2');
@@ -225,9 +265,9 @@ function setSidebarMinimized(minimize) {
         taskSidebar.classList.add('w-full', 'md:w-72', 'lg:w-80', 'p-3', 'sm:p-4', 'md:p-5');
         sidebarToggleIcon.classList.remove('fa-chevron-right');
         sidebarToggleIcon.classList.add('fa-chevron-left');
-        sidebarTextElements.forEach(el => el.classList.remove('hidden'));
+        if(sidebarTextElements) sidebarTextElements.forEach(el => el.classList.remove('hidden'));
         document.querySelectorAll('.sidebar-section-title, #taskSearchInputContainer, #testFeatureButtonContainer .sidebar-text-content').forEach(el => el.classList.remove('hidden'));
-        sidebarIconOnlyButtons.forEach(btn => {
+        if(sidebarIconOnlyButtons) sidebarIconOnlyButtons.forEach(btn => {
             btn.classList.remove('justify-center');
             const icon = btn.querySelector('i');
             const textSpan = btn.querySelector('.sidebar-text-content');
@@ -244,12 +284,6 @@ function setSidebarMinimized(minimize) {
     }
 }
 
-/**
- * Shows a tooltip for an element, typically when the sidebar is minimized.
- * Assumes 'tooltipTimeout' is a globally available variable (from app_logic.js).
- * @param {HTMLElement} element - The element to show the tooltip for.
- * @param {string} text - The text content of the tooltip.
- */
 function showTooltip(element, text) {
     if (!taskSidebar || !iconTooltip || !taskSidebar.classList.contains('sidebar-minimized')) return;
     iconTooltip.textContent = text;
@@ -259,10 +293,6 @@ function showTooltip(element, text) {
     iconTooltip.style.display = 'block';
 }
 
-/**
- * Hides the tooltip.
- * Assumes 'tooltipTimeout' is a globally available variable (from app_logic.js).
- */
 function hideTooltip() {
     if (!iconTooltip) return;
     clearTimeout(tooltipTimeout);
@@ -270,20 +300,12 @@ function hideTooltip() {
 }
 
 // --- Task Rendering ---
-
-/**
- * Main dispatcher for rendering the task view (List or Kanban).
- * Calls the appropriate rendering function based on currentTaskViewMode.
- * Assumes global variables: 'currentTaskViewMode', 'featureFlags' (from app_logic.js).
- * Assumes 'window.AppFeatures.KanbanBoard.renderKanbanView' is available from feature_kanban_board.js.
- */
+// ... (refreshTaskView, renderTaskListView, sub-task functions, UI state updaters - largely unchanged but ensure they use the now globally scoped 'let' variables)
 function refreshTaskView() {
     if (!mainContentArea) {
         console.error("Main content area not found. Cannot refresh task view.");
         return;
     }
-
-    // Update toggle button and heading based on the current mode BEFORE rendering
     updateKanbanViewToggleButtonState();
     updateYourTasksHeading();
 
@@ -292,31 +314,22 @@ function refreshTaskView() {
             window.AppFeatures.KanbanBoard.renderKanbanView();
         } else {
             console.error("KanbanBoard feature or renderKanbanView function not available.");
-            // Fallback to list view if Kanban rendering fails
-            setTaskViewMode('list'); // from app_logic.js
+            setTaskViewMode('list'); 
             renderTaskListView();
         }
     } else {
         renderTaskListView();
     }
-    updateClearCompletedButtonState(); // This should be called after any view render
+    updateClearCompletedButtonState();
 }
 
-
-/**
- * Renders the list of tasks based on current filters, search term, and sort order.
- * This was the original renderTasks() function.
- * Assumes global variables: 'tasks', 'currentFilter', 'currentSearchTerm', 'currentSort',
- * 'featureFlags', 'uniqueLabels' (from app_logic.js).
- * Assumes helper functions: 'formatDate', 'formatTime', 'getPriorityClass' (from app_logic.js).
- * Assumes modal opening functions: 'openViewTaskDetailsModal', 'openViewEditModal' (from modal_interactions.js).
- * Assumes action functions: 'toggleComplete', 'deleteTask' (from ui_event_handlers.js).
- */
 function renderTaskListView() {
-    // Ensure the main content area is set up for list view
-    // This might involve clearing it and re-adding the UL and P elements if Kanban view was active
+    if (!mainContentArea) { // Check if mainContentArea is available
+        console.error("renderTaskListView: mainContentArea is not defined.");
+        return;
+    }
     if (!mainContentArea.querySelector('#taskList')) {
-        mainContentArea.innerHTML = ''; // Clear previous content (e.g., Kanban board)
+        mainContentArea.innerHTML = ''; 
         const taskListUl = document.createElement('ul');
         taskListUl.id = 'taskList';
         taskListUl.className = 'space-y-3 sm:space-y-3.5';
@@ -335,8 +348,7 @@ function renderTaskListView() {
         mainContentArea.appendChild(noMatchP);
     }
 
-    // Get fresh references to taskList, emptyState, noMatchingTasks as they might have been recreated
-    const currentTaskList = document.getElementById('taskList');
+    const currentTaskList = document.getElementById('taskList'); // Re-fetch in case it was just created
     const currentEmptyState = document.getElementById('emptyState');
     const currentNoMatchingTasks = document.getElementById('noMatchingTasks');
 
@@ -344,13 +356,12 @@ function renderTaskListView() {
         console.error("Required elements for task list view are missing after attempting to recreate them.");
         return;
     }
-    currentTaskList.innerHTML = ''; // Clear only the list items
+    currentTaskList.innerHTML = ''; 
 
     let filteredTasks = [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Apply current filter
     if (currentFilter === 'inbox') {
         filteredTasks = tasks.filter(task => !task.completed);
     } else if (currentFilter === 'today') {
@@ -367,11 +378,10 @@ function renderTaskListView() {
         });
     } else if (currentFilter === 'completed') {
         filteredTasks = tasks.filter(task => task.completed);
-    } else { // Label filter
+    } else { 
         filteredTasks = tasks.filter(task => task.label && task.label.toLowerCase() === currentFilter.toLowerCase() && !task.completed);
     }
 
-    // Apply search term
     if (currentSearchTerm) {
         filteredTasks = filteredTasks.filter(task =>
             task.text.toLowerCase().includes(currentSearchTerm) ||
@@ -380,7 +390,6 @@ function renderTaskListView() {
         );
     }
 
-    // Apply sorting
     const priorityOrder = { high: 1, medium: 2, low: 3, default: 4 };
     if (currentSort === 'dueDate') {
         filteredTasks.sort((a, b) => {
@@ -409,7 +418,7 @@ function renderTaskListView() {
             if (dB === null) return -1;
             return dA - dB;
         });
-    } else if (currentFilter === 'inbox' && currentSort === 'default') { // Default sort for inbox: newest first
+    } else if (currentFilter === 'inbox' && currentSort === 'default') { 
         filteredTasks.sort((a, b) => (b.creationDate || b.id) - (a.creationDate || a.id));
     }
 
@@ -514,8 +523,6 @@ function renderTaskListView() {
     });
 }
 
-
-// --- Sub-task Rendering Functions ---
 function renderTempSubTasksForAddModal() {
     if (!featureFlags.subTasksFeature || !modalSubTasksListAdd) return;
     modalSubTasksListAdd.innerHTML = '';
@@ -594,7 +601,7 @@ function renderSubTasksForEditModal(parentId, subTasksListElement) {
             if (currentViewTaskId === parentId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) {
                 renderSubTasksForViewModal(parentId, modalSubTasksListViewDetails, viewSubTaskProgress, noSubTasksMessageViewDetails);
             }
-            refreshTaskView(); // Use refreshTaskView instead of renderTasks
+            refreshTaskView();
         });
 
         const textSpan = document.createElement('span');
@@ -637,7 +644,7 @@ function renderSubTasksForEditModal(parentId, subTasksListElement) {
                         renderSubTasksForViewModal(parentId, modalSubTasksListViewDetails, viewSubTaskProgress, noSubTasksMessageViewDetails);
                     }
                     showMessage('Sub-task deleted.', 'success');
-                    refreshTaskView(); // Use refreshTaskView instead of renderTasks
+                    refreshTaskView();
                 } else {
                     showMessage('Failed to delete sub-task.', 'error');
                 }
@@ -685,7 +692,7 @@ function renderSubTasksForViewModal(parentId, subTasksListElement, progressEleme
             if (editingTaskId === parentId && viewEditTaskModal && !viewEditTaskModal.classList.contains('hidden')) {
                 renderSubTasksForEditModal(parentId, modalSubTasksListViewEdit);
             }
-            refreshTaskView(); // Use refreshTaskView instead of renderTasks
+            refreshTaskView();
         });
 
         const textSpan = document.createElement('span');
@@ -699,13 +706,6 @@ function renderSubTasksForViewModal(parentId, subTasksListElement, progressEleme
     progressElement.textContent = `${completedCount}/${parentTask.subTasks.length} completed`;
 }
 
-
-// --- UI State Updaters ---
-
-/**
- * Updates the visual state of sort buttons to reflect the current sort order.
- * Assumes 'currentSort' is a globally available variable (from app_logic.js).
- */
 function updateSortButtonStates() {
     [sortByDueDateBtn, sortByPriorityBtn, sortByLabelBtn].forEach(btn => {
         if (btn) {
@@ -718,10 +718,6 @@ function updateSortButtonStates() {
     });
 }
 
-/**
- * Updates the enabled/disabled state and styling of the "Clear Completed Tasks" button.
- * Assumes 'tasks' is a globally available array (from app_logic.js).
- */
 function updateClearCompletedButtonState() {
     if (!settingsClearCompletedBtn) return;
     const hasCompleted = tasks.some(task => task.completed);
@@ -741,43 +737,36 @@ function updateClearCompletedButtonState() {
     }
 }
 
-/**
- * Updates the Kanban view toggle button's text and icon.
- * Assumes 'currentTaskViewMode' is global (from app_logic.js).
- */
 function updateKanbanViewToggleButtonState() {
-    if (!kanbanViewToggleBtn || !kanbanViewToggleBtnText) return;
+    if (!kanbanViewToggleBtn || !kanbanViewToggleBtnText) { // Check if elements exist
+        // console.warn("updateKanbanViewToggleButtonState: Toggle button or text element not found.");
+        return;
+    }
 
     const iconElement = kanbanViewToggleBtn.querySelector('i');
     if (!iconElement) return;
 
-    if (currentTaskViewMode === 'kanban' && featureFlags.kanbanBoardFeature) { // Check feature flag too
+    if (currentTaskViewMode === 'kanban' && featureFlags.kanbanBoardFeature) {
         kanbanViewToggleBtnText.textContent = 'List';
         kanbanViewToggleBtn.title = 'Switch to List View';
         iconElement.classList.remove('fa-columns');
         iconElement.classList.add('fa-list-ul');
-        // Hide sort buttons when in Kanban view
         if (sortByDueDateBtn) sortByDueDateBtn.classList.add('hidden');
         if (sortByPriorityBtn) sortByPriorityBtn.classList.add('hidden');
         if (sortByLabelBtn) sortByLabelBtn.classList.add('hidden');
-    } else { // 'list' view or Kanban feature disabled
+    } else { 
         kanbanViewToggleBtnText.textContent = 'Board';
         kanbanViewToggleBtn.title = 'Switch to Board View';
         iconElement.classList.remove('fa-list-ul');
         iconElement.classList.add('fa-columns');
-        // Show sort buttons when in List view (only if Kanban feature is actually on, otherwise they are always visible)
-        if (featureFlags.kanbanBoardFeature) {
+        if (featureFlags.kanbanBoardFeature) { 
              if (sortByDueDateBtn) sortByDueDateBtn.classList.remove('hidden');
              if (sortByPriorityBtn) sortByPriorityBtn.classList.remove('hidden');
              if (sortByLabelBtn) sortByLabelBtn.classList.remove('hidden');
         }
     }
 }
- 
-/**
- * Updates the main heading text based on the current view mode.
- * Assumes 'currentTaskViewMode' and 'yourTasksHeading' are available.
- */
+
 function updateYourTasksHeading() {
     if (!yourTasksHeading) return;
     if (currentTaskViewMode === 'kanban' && featureFlags.kanbanBoardFeature) {
