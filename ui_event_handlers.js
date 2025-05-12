@@ -122,13 +122,21 @@ function applyActiveFeatures() {
     toggleElements('.sub-tasks-feature-element', featureFlags.subTasksFeature);
     if (settingsTooltipsGuideBtn) settingsTooltipsGuideBtn.classList.toggle('hidden', !featureFlags.tooltipsGuide);
 
-    console.log('[ApplyFeatures] Checking kanbanViewToggleBtn (before toggle):', kanbanViewToggleBtn);
+    console.log('[ApplyFeatures] Checking kanbanViewToggleBtn (before toggle):', kanbanViewToggleBtn); // This uses the global 'let' variable
     if (kanbanViewToggleBtn) {
         const shouldBeHidden = !featureFlags.kanbanBoardFeature;
         kanbanViewToggleBtn.classList.toggle('hidden', shouldBeHidden);
         console.log(`[ApplyFeatures] Kanban Toggle Button: shouldBeHidden=${shouldBeHidden}. Classes after toggle:`, kanbanViewToggleBtn.className);
     } else {
-        console.warn('[ApplyFeatures] kanbanViewToggleBtn is null or undefined during visibility toggle.');
+        console.warn('[ApplyFeatures] kanbanViewToggleBtn (global var) is null or undefined during visibility toggle.');
+        // Try to get it directly again, just in case
+        const directButtonCheck = document.getElementById('kanbanViewToggleBtn');
+        console.warn('[ApplyFeatures] Direct check for kanbanViewToggleBtn:', directButtonCheck);
+        if (directButtonCheck) {
+             const shouldBeHidden = !featureFlags.kanbanBoardFeature;
+             directButtonCheck.classList.toggle('hidden', shouldBeHidden);
+             console.log(`[ApplyFeatures] DIRECT CHECK Kanban Toggle Button: shouldBeHidden=${shouldBeHidden}. Classes after toggle:`, directButtonCheck.className);
+        }
     }
     if (window.AppFeatures && window.AppFeatures.KanbanBoard && typeof window.AppFeatures.KanbanBoard.updateUIVisibility === 'function') {
         window.AppFeatures.KanbanBoard.updateUIVisibility(featureFlags.kanbanBoardFeature);
@@ -149,7 +157,7 @@ function applyActiveFeatures() {
 }
 
 // --- Event Handlers ---
-// ... (All event handlers like handleAddTask, handleEditTask, etc. remain unchanged from the previous version)
+// ... (All event handlers like handleAddTask, handleEditTask, etc. remain unchanged)
 function handleAddTask(event) {
     event.preventDefault();
     const rawTaskText = modalTaskInputAdd.value.trim();
@@ -650,12 +658,14 @@ function setupEventListeners() {
 }
 
 // --- Global Initialization ---
-// Replace window.onload with DOMContentLoaded
 document.addEventListener('DOMContentLoaded', async () => {
     console.log("DOMContentLoaded event fired in ui_event_handlers.js");
     
     if (typeof initializeDOMElements === 'function') {
         initializeDOMElements(); 
+        // Log the button status immediately after initialization from this scope
+        const directButton = document.getElementById('kanbanViewToggleBtn');
+        console.log('[DOMContentLoaded] Direct check for kanbanViewToggleBtn after initializeDOMElements():', directButton);
     } else {
         console.error("initializeDOMElements function is not defined! Check script load order and ui_rendering.js");
         return; 
@@ -704,7 +714,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         setFilter(currentFilter);
     } else {
         console.error("setFilter function is not defined when called!");
-        refreshTaskView(); // Fallback if setFilter is not ready
+        refreshTaskView(); 
     }
 
     updateSortButtonStates();
