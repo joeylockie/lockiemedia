@@ -8,6 +8,7 @@
   "userAccounts": false,
   "collaborationSharing": false,
   "crossDeviceSync": false,
-  "tooltipsGuide": false,
-  "subTasksFeature": false
+  "tooltipsGuide": true,
+  "subTasksFeature": false,
+  "kanbanBoardFeature": false
 }
