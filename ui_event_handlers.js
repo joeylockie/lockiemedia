@@ -4,21 +4,105 @@
 // applying feature flags to UI, and the main application initialization sequence (window.onload).
 // It depends on:
 // - DOM elements defined in ui_rendering.js (assumed to be globally available).
-// - Rendering functions from ui_rendering.js (e.g., renderTasks, showMessage).
+// - Rendering functions from ui_rendering.js (e.g., refreshTaskView, showMessage).
 // - Modal interaction functions from modal_interactions.js (e.g., openAddModal, closeAddModal).
-// - Core logic functions from app_logic.js (e.g., saveTasks, tasks array, featureFlags).
-// - Feature-specific modules (e.g., window.AppFeatures.TaskTimerSystem, window.AppFeatures.FileAttachments).
+// - Core logic functions from app_logic.js (e.g., saveTasks, tasks array, featureFlags, setTaskViewMode).
+// - Feature-specific modules (e.g., window.AppFeatures.TaskTimerSystem, window.AppFeatures.KanbanBoard).
 
 // --- Temporary State for UI Interactions (scoped to this file) ---
-let tempSubTasksForAddModal = []; // Used by handleAddTask and handleAddTempSubTaskForAddModal
+let tempSubTasksForAddModal = [];
+
+// --- Feature Flag Modal Population ---
+/**
+ * Populates the Feature Flags modal with toggles for each feature.
+ * Assumes 'featureFlags' (from app_logic.js) and 'featureFlagsListContainer' (DOM element) are available.
+ */
+function populateFeatureFlagsModal() {
+    if (!featureFlagsListContainer) return;
+    featureFlagsListContainer.innerHTML = ''; // Clear existing items
+
+    const friendlyNames = {
+        testButtonFeature: "Test Button",
+        reminderFeature: "Task Reminders",
+        taskTimerSystem: "Task Timer & Review",
+        advancedRecurrence: "Advanced Recurrence (Soon)",
+        fileAttachments: "File Attachments (Soon)",
+        integrationsServices: "Integrations (Soon)",
+        userAccounts: "User Accounts (Soon)",
+        collaborationSharing: "Collaboration (Soon)",
+        crossDeviceSync: "Cross-Device Sync (Soon)",
+        tooltipsGuide: "Tooltips & Shortcuts Guide",
+        subTasksFeature: "Sub-tasks",
+        kanbanBoardFeature: "Kanban Board View" // Added Kanban
+    };
+
+    // Define the order of feature flags in the modal
+    const featureOrder = [
+        'kanbanBoardFeature',
+        'subTasksFeature',
+        'taskTimerSystem',
+        'reminderFeature',
+        'tooltipsGuide',
+        'testButtonFeature',
+        'advancedRecurrence',
+        'fileAttachments',
+        'integrationsServices',
+        'userAccounts',
+        'collaborationSharing',
+        'crossDeviceSync'
+    ];
+
+    featureOrder.forEach(key => {
+        if (featureFlags.hasOwnProperty(key)) {
+            const flagItem = document.createElement('div');
+            flagItem.className = 'feature-flag-item';
+
+            const label = document.createElement('span');
+            label.textContent = friendlyNames[key] || key;
+            label.className = 'feature-flag-label';
+            flagItem.appendChild(label);
+
+            const toggleContainer = document.createElement('div');
+            toggleContainer.className = 'relative';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `toggle-${key}`;
+            checkbox.className = 'toggle-checkbox';
+            checkbox.checked = featureFlags[key];
+            checkbox.addEventListener('change', () => {
+                featureFlags[key] = checkbox.checked;
+                // Note: Persisting feature flag changes to features.json requires server-side logic
+                // or a more complex client-side storage mechanism if features.json is just a default.
+                // For now, this updates the in-memory flags and re-applies UI.
+                console.log(`Feature ${key} toggled to ${featureFlags[key]}`);
+                applyActiveFeatures(); // Re-apply features to update UI immediately
+                // If Kanban feature is toggled, ensure the view mode is consistent
+                if (key === 'kanbanBoardFeature') {
+                    if (!featureFlags.kanbanBoardFeature && currentTaskViewMode === 'kanban') {
+                        setTaskViewMode('list'); // from app_logic.js
+                    }
+                    refreshTaskView(); // from ui_rendering.js
+                }
+            });
+
+            const toggleLabel = document.createElement('label');
+            toggleLabel.htmlFor = `toggle-${key}`;
+            toggleLabel.className = 'toggle-label';
+
+            toggleContainer.appendChild(checkbox);
+            toggleContainer.appendChild(toggleLabel);
+            flagItem.appendChild(toggleContainer);
+            featureFlagsListContainer.appendChild(flagItem);
+        }
+    });
+}
+
 
 // --- Apply Active Features (UI part) ---
 /**
  * Updates UI visibility based on featureFlags.
  * Calls feature-specific UI update functions if available, otherwise directly manipulates DOM.
- * Assumes 'featureFlags' is global (from app_logic.js).
- * Assumes 'currentViewTaskId' is global (from app_logic.js).
- * Calls rendering functions from ui_rendering.js and modal_interactions.js.
  */
 function applyActiveFeatures() {
     const toggleElements = (selector, isEnabled) => {
@@ -46,7 +130,6 @@ function applyActiveFeatures() {
     } else {
         toggleElements('.reminder-feature-element', featureFlags.reminderFeature);
     }
-    // Ensure reminder options visibility is also updated based on checkbox state if feature is on
     if (featureFlags.reminderFeature) {
         if (modalRemindMeAdd && addTaskModal && !addTaskModal.classList.contains('hidden')) {
             if(reminderOptionsAdd) reminderOptionsAdd.classList.toggle('hidden', !modalRemindMeAdd.checked);
@@ -60,20 +143,10 @@ function applyActiveFeatures() {
     }
 
     // Advanced Recurrence Feature
-    if (window.AppFeatures && typeof window.AppFeatures.updateAdvancedRecurrenceUIVisibility === 'function') {
-        window.AppFeatures.updateAdvancedRecurrenceUIVisibility(featureFlags.advancedRecurrence);
-    } else {
-        toggleElements('.advanced-recurrence-element', featureFlags.advancedRecurrence);
-    }
-
+    toggleElements('.advanced-recurrence-element', featureFlags.advancedRecurrence);
     // File Attachments Feature
-    if (window.AppFeatures && window.AppFeatures.FileAttachments && typeof window.AppFeatures.FileAttachments.updateUIVisibility === 'function') {
-        window.AppFeatures.FileAttachments.updateUIVisibility(featureFlags.fileAttachments);
-    } else {
-        toggleElements('.file-attachments-element', featureFlags.fileAttachments);
-    }
-
-    // Other features (direct DOM manipulation as fallback)
+    toggleElements('.file-attachments-element', featureFlags.fileAttachments);
+    // Other features
     toggleElements('.integrations-services-element', featureFlags.integrationsServices);
     toggleElements('.user-accounts-element', featureFlags.userAccounts);
     toggleElements('.collaboration-sharing-element', featureFlags.collaborationSharing);
@@ -83,25 +156,32 @@ function applyActiveFeatures() {
 
     if (settingsTooltipsGuideBtn) settingsTooltipsGuideBtn.classList.toggle('hidden', !featureFlags.tooltipsGuide);
 
-    renderTasks(); // Re-render tasks to reflect any UI changes (from ui_rendering.js)
+    // Kanban Board Feature
+    if (kanbanViewToggleBtn) { // Ensure button exists
+        kanbanViewToggleBtn.classList.toggle('hidden', !featureFlags.kanbanBoardFeature);
+    }
+    if (window.AppFeatures && window.AppFeatures.KanbanBoard && typeof window.AppFeatures.KanbanBoard.updateUIVisibility === 'function') {
+        window.AppFeatures.KanbanBoard.updateUIVisibility(featureFlags.kanbanBoardFeature);
+    }
+    // If Kanban feature is disabled, ensure view mode is list
+    if (!featureFlags.kanbanBoardFeature && currentTaskViewMode === 'kanban') {
+        setTaskViewMode('list'); // from app_logic.js
+    }
+
+    refreshTaskView(); // Re-render tasks/kanban to reflect any UI changes (from ui_rendering.js)
 
     // If a task is being viewed, refresh its details modal
     if (currentViewTaskId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) {
-        // openViewTaskDetailsModal (from modal_interactions.js) handles re-rendering the modal content
-        openViewTaskDetailsModal(currentViewTaskId);
+        openViewTaskDetailsModal(currentViewTaskId); // from modal_interactions.js
+    }
+    // Update feature flags modal if it's open
+    const featureFlagsModalElement = document.getElementById('featureFlagsModal');
+    if (featureFlagsModalElement && !featureFlagsModalElement.classList.contains('hidden')) {
+        populateFeatureFlagsModal();
     }
 }
 
 // --- Event Handlers ---
-// These functions handle user interactions and call logic/rendering functions.
-// They assume global variables like 'tasks', 'featureFlags', 'editingTaskId', 'currentViewTaskId',
-// 'currentFilter', 'currentSort' (from app_logic.js).
-// They also assume modal functions (from modal_interactions.js) and rendering functions (from ui_rendering.js).
-
-/**
- * Handles adding a new task from the Add Task modal.
- * @param {Event} event - The form submission event.
- */
 function handleAddTask(event) {
     event.preventDefault();
     const rawTaskText = modalTaskInputAdd.value.trim();
@@ -134,7 +214,7 @@ function handleAddTask(event) {
     }
 
     if (rawTaskText === '') {
-        showMessage('Task description cannot be empty!', 'error'); // showMessage from ui_rendering.js
+        showMessage('Task description cannot be empty!', 'error');
         modalTaskInputAdd.focus();
         return;
     }
@@ -142,7 +222,7 @@ function handleAddTask(event) {
     let finalDueDate = explicitDueDate;
     let finalTaskText = rawTaskText;
     if (!explicitDueDate) {
-        const { parsedDate: dateFromDesc, remainingText: textAfterDate } = parseDateFromText(rawTaskText); // parseDateFromText from app_logic.js
+        const { parsedDate: dateFromDesc, remainingText: textAfterDate } = parseDateFromText(rawTaskText);
         if (dateFromDesc) {
             finalDueDate = dateFromDesc;
             finalTaskText = textAfterDate.trim() || rawTaskText;
@@ -150,12 +230,13 @@ function handleAddTask(event) {
     }
 
     const subTasksToSave = featureFlags.subTasksFeature ? tempSubTasksForAddModal.map(st => ({
-        id: Date.now() + Math.random(), // Simple unique ID
+        id: Date.now() + Math.random(),
         text: st.text,
         completed: st.completed,
         creationDate: Date.now()
     })) : [];
 
+    const defaultKanbanColumn = kanbanColumns[0]?.id || 'todo'; // From app_logic.js
     const newTask = {
         id: Date.now(),
         text: finalTaskText,
@@ -177,31 +258,28 @@ function handleAddTask(event) {
         timerIsRunning: false,
         timerIsPaused: false,
         actualDurationMs: 0,
-        attachments: [], // Placeholder for file attachments feature
+        attachments: [],
         completedDate: null,
         subTasks: subTasksToSave,
-        recurrenceRule: null, // Placeholder
-        recurrenceEndDate: null, // Placeholder
-        nextDueDate: finalDueDate || null // Placeholder
+        recurrenceRule: null,
+        recurrenceEndDate: null,
+        nextDueDate: finalDueDate || null,
+        kanbanColumnId: defaultKanbanColumn // Assign to default Kanban column
     };
 
-    tasks.unshift(newTask); // tasks from app_logic.js
-    saveTasks(); // saveTasks from app_logic.js
+    tasks.unshift(newTask);
+    saveTasks();
 
-    if (currentFilter === 'completed') { // currentFilter from app_logic.js
-        setFilter('inbox'); // Calls setFilter in this file
+    if (currentFilter === 'completed') {
+        setFilter('inbox');
     } else {
-        renderTasks(); // renderTasks from ui_rendering.js
+        refreshTaskView(); // Use refreshTaskView
     }
-    closeAddModal(); // closeAddModal from modal_interactions.js
-    showMessage('Task added successfully!', 'success'); // showMessage from ui_rendering.js
-    tempSubTasksForAddModal = []; // Reset temp sub-tasks for next add
+    closeAddModal();
+    showMessage('Task added successfully!', 'success');
+    tempSubTasksForAddModal = [];
 }
 
-/**
- * Handles editing an existing task from the View/Edit Task modal.
- * @param {Event} event - The form submission event.
- */
 function handleEditTask(event) {
     event.preventDefault();
     const taskId = parseInt(modalViewEditTaskId.value);
@@ -210,16 +288,15 @@ function handleEditTask(event) {
     const time = modalTimeInputViewEdit.value;
 
     let estHours = 0, estMinutes = 0;
-    const originalTask = tasks.find(t => t.id === taskId); // tasks from app_logic.js
+    const originalTask = tasks.find(t => t.id === taskId);
     if (featureFlags.taskTimerSystem && window.AppFeatures && window.AppFeatures.TaskTimerSystem) {
         const estimates = window.AppFeatures.TaskTimerSystem.getEstimatesFromEditModal();
         estHours = estimates.estHours;
         estMinutes = estimates.estMinutes;
-    } else if (originalTask) { // Fallback if feature off or module not loaded
+    } else if (originalTask) {
         estHours = originalTask.estimatedHours;
         estMinutes = originalTask.estimatedMinutes;
     }
-
 
     const priority = modalPriorityInputViewEdit.value;
     const label = modalLabelInputViewEdit.value.trim();
@@ -260,15 +337,15 @@ function handleEditTask(event) {
             reminderDate,
             reminderTime,
             reminderEmail,
-            attachments: task.attachments || [] // Preserve existing attachments
+            attachments: task.attachments || []
+            // kanbanColumnId is preserved
         } : task
     );
     saveTasks();
-    renderTasks();
-    closeViewEditModal(); // from modal_interactions.js
+    refreshTaskView(); // Use refreshTaskView
+    closeViewEditModal();
     showMessage('Task updated successfully!', 'success');
 
-    // If the task being edited was also being viewed in the timer modal, refresh timer display
     if (featureFlags.taskTimerSystem && window.AppFeatures && window.AppFeatures.TaskTimerSystem && currentViewTaskId === taskId) {
         const updatedTask = tasks.find(t => t.id === taskId);
         if (updatedTask && typeof window.AppFeatures.TaskTimerSystem.setupTimerForModal === 'function') {
@@ -277,10 +354,6 @@ function handleEditTask(event) {
     }
 }
 
-/**
- * Toggles the completion status of a task.
- * @param {number} taskId - The ID of the task to toggle.
- */
 function toggleComplete(taskId) {
     const taskIndex = tasks.findIndex(t => t.id === taskId);
     if (taskIndex === -1) return;
@@ -288,14 +361,25 @@ function toggleComplete(taskId) {
     tasks[taskIndex].completed = !tasks[taskIndex].completed;
     tasks[taskIndex].completedDate = tasks[taskIndex].completed ? Date.now() : null;
 
-    // If Task Timer System is active, handle timer stop on completion
+    // If task is completed and Kanban is active, move to "Done" column
+    if (tasks[taskIndex].completed && featureFlags.kanbanBoardFeature) {
+        const doneColumn = kanbanColumns.find(col => col.id === 'done');
+        if (doneColumn) {
+            tasks[taskIndex].kanbanColumnId = doneColumn.id;
+        }
+    } else if (!tasks[taskIndex].completed && featureFlags.kanbanBoardFeature && tasks[taskIndex].kanbanColumnId === 'done') {
+        // If uncompleted from "Done" column, move to default "To Do" column
+         const defaultColumn = kanbanColumns[0]?.id || 'todo';
+         tasks[taskIndex].kanbanColumnId = defaultColumn;
+    }
+
+
     if (featureFlags.taskTimerSystem && window.AppFeatures && window.AppFeatures.TaskTimerSystem) {
         window.AppFeatures.TaskTimerSystem.handleTaskCompletion(taskId, tasks[taskIndex].completed);
     }
     saveTasks();
-    renderTasks();
+    refreshTaskView(); // Use refreshTaskView
 
-    // If the completed task is currently in the view modal, update its timer UI
     if (featureFlags.taskTimerSystem && window.AppFeatures && window.AppFeatures.TaskTimerSystem && currentViewTaskId === taskId) {
          const task = tasks.find(t => t.id === taskId);
          if(task && window.AppFeatures.TaskTimerSystem.setupTimerForModal) {
@@ -304,30 +388,20 @@ function toggleComplete(taskId) {
     }
 }
 
-/**
- * Deletes a task from the list.
- * @param {number} taskId - The ID of the task to delete.
- */
 function deleteTask(taskId) {
-    // If timer is running for this task in the view modal, clear it
     if (featureFlags.taskTimerSystem && window.AppFeatures && window.AppFeatures.TaskTimerSystem && currentViewTaskId === taskId) {
         window.AppFeatures.TaskTimerSystem.clearTimerOnModalClose();
     }
     tasks = tasks.filter(task => task.id !== taskId);
     saveTasks();
-    renderTasks();
-    showMessage('Task deleted.', 'error'); // Using 'error' style for destructive action feedback
+    refreshTaskView(); // Use refreshTaskView
+    showMessage('Task deleted.', 'error');
 }
 
-/**
- * Sets the current task filter and re-renders the task list.
- * @param {string} filter - The filter to apply (e.g., 'inbox', 'today', or a label name).
- */
 function setFilter(filter) {
-    setAppCurrentFilter(filter); // setAppCurrentFilter from app_logic.js
-    updateSortButtonStates(); // from ui_rendering.js
+    setAppCurrentFilter(filter);
+    updateSortButtonStates();
 
-    // Update active state for smart view buttons
     smartViewButtons.forEach(button => {
         const isActive = button.dataset.filter === filter;
         const baseInactiveClasses = ['bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600'];
@@ -346,12 +420,9 @@ function setFilter(filter) {
             button.querySelector('i')?.classList.add(...iconInactiveClasses);
         }
     });
-    renderTasks();
+    refreshTaskView(); // Use refreshTaskView
 }
 
-/**
- * Clears all completed tasks from the list.
- */
 function clearCompletedTasks() {
     const completedCount = tasks.filter(task => task.completed).length;
     if (completedCount === 0) {
@@ -360,15 +431,11 @@ function clearCompletedTasks() {
     }
     tasks = tasks.filter(task => !task.completed);
     saveTasks();
-    renderTasks();
+    refreshTaskView(); // Use refreshTaskView
     showMessage(`${completedCount} completed task${completedCount > 1 ? 's' : ''} cleared.`, 'success');
-    closeSettingsModal(); // from modal_interactions.js
+    closeSettingsModal();
 }
 
-/**
- * Handles adding a new label from the Manage Labels modal.
- * @param {Event} event - The form submission event.
- */
 function handleAddNewLabel(event) {
     event.preventDefault();
     const labelName = newLabelInput.value.trim();
@@ -376,49 +443,35 @@ function handleAddNewLabel(event) {
         showMessage('Label name cannot be empty.', 'error');
         return;
     }
-    if (uniqueLabels.some(l => l.toLowerCase() === labelName.toLowerCase())) { // uniqueLabels from app_logic.js
+    if (uniqueLabels.some(l => l.toLowerCase() === labelName.toLowerCase())) {
         showMessage(`Label "${labelName}" already exists.`, 'error');
         return;
     }
     uniqueLabels.push(labelName);
     uniqueLabels.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
-    // saveTasks() indirectly updates uniqueLabels via updateUniqueLabels() in app_logic.js if tasks were changed.
-    // Here, we directly modified uniqueLabels, so we need to ensure app_logic.js's version is also updated.
-    // A more robust solution might involve a function in app_logic.js to add a label.
-    // For now, calling saveTasks() will trigger updateUniqueLabels(), which re-evaluates from 'tasks'.
-    // However, if no tasks use this new label yet, updateUniqueLabels() won't pick it up from 'tasks'.
-    // So, we ensure it's in the list, then populateDatalist and populateManageLabelsList will use the updated uniqueLabels.
-    // The saveTasks() call is more for persistence if other parts of the app rely on it for label management.
-    updateUniqueLabels(); // Call this to ensure the list is correctly rebuilt if app_logic depends on it.
-    populateManageLabelsList(); // from modal_interactions.js
-    populateDatalist(existingLabelsDatalist); // from ui_rendering.js
-    populateDatalist(existingLabelsEditDatalist); // from ui_rendering.js
+    updateUniqueLabels();
+    populateManageLabelsList();
+    populateDatalist(existingLabelsDatalist);
+    populateDatalist(existingLabelsEditDatalist);
     newLabelInput.value = '';
     showMessage(`Label "${labelName}" added.`, 'success');
 }
 
-/**
- * Handles deleting an existing label and unlabelling tasks.
- * @param {string} labelToDelete - The label name to delete.
- */
 function handleDeleteLabel(labelToDelete) {
     tasks = tasks.map(task => {
         if (task.label && task.label.toLowerCase() === labelToDelete.toLowerCase()) {
-            return { ...task, label: '' }; // Unlabel tasks
+            return { ...task, label: '' };
         }
         return task;
     });
-    saveTasks(); // This will trigger updateUniqueLabels in app_logic.js
-    populateManageLabelsList(); // from modal_interactions.js
-    populateDatalist(existingLabelsDatalist); // from ui_rendering.js
-    populateDatalist(existingLabelsEditDatalist); // from ui_rendering.js
-    renderTasks();
+    saveTasks();
+    populateManageLabelsList();
+    populateDatalist(existingLabelsDatalist);
+    populateDatalist(existingLabelsEditDatalist);
+    refreshTaskView(); // Use refreshTaskView
     showMessage(`Label "${labelToDelete}" deleted. Tasks using it have been unlabelled.`, 'success');
 }
 
-/**
- * Handles adding a sub-task in the View/Edit Task modal.
- */
 function handleAddSubTaskViewEdit() {
     if (!featureFlags.subTasksFeature || !editingTaskId || !modalSubTaskInputViewEdit) return;
     const subTaskText = modalSubTaskInputViewEdit.value.trim();
@@ -428,22 +481,18 @@ function handleAddSubTaskViewEdit() {
         return;
     }
     if (addSubTaskLogic(editingTaskId, subTaskText)) { // addSubTaskLogic from app_logic.js
-        renderSubTasksForEditModal(editingTaskId, modalSubTasksListViewEdit); // from ui_rendering.js
+        renderSubTasksForEditModal(editingTaskId, modalSubTasksListViewEdit);
         modalSubTaskInputViewEdit.value = '';
         showMessage('Sub-task added.', 'success');
-        // If view modal is open for the same task, update it too
         if (currentViewTaskId === editingTaskId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) {
-            renderSubTasksForViewModal(editingTaskId, modalSubTasksListViewDetails, viewSubTaskProgress, noSubTasksMessageViewDetails); // from ui_rendering.js
+            renderSubTasksForViewModal(editingTaskId, modalSubTasksListViewDetails, viewSubTaskProgress, noSubTasksMessageViewDetails);
         }
-        renderTasks(); // from ui_rendering.js
+        refreshTaskView(); // Use refreshTaskView
     } else {
         showMessage('Failed to add sub-task.', 'error');
     }
 }
 
-/**
- * Handles adding a temporary sub-task in the Add Task modal.
- */
 function handleAddTempSubTaskForAddModal() {
     if (!featureFlags.subTasksFeature || !modalSubTaskInputAdd) return;
     const subTaskText = modalSubTaskInputAdd.value.trim();
@@ -453,17 +502,13 @@ function handleAddTempSubTaskForAddModal() {
         return;
     }
     tempSubTasksForAddModal.push({ text: subTaskText, completed: false });
-    renderTempSubTasksForAddModal(); // from ui_rendering.js
+    renderTempSubTasksForAddModal();
     modalSubTaskInputAdd.value = '';
 }
 
-
 // --- Event Listeners Setup ---
-/**
- * Sets up all primary event listeners for the application.
- */
 function setupEventListeners() {
-    // Modal Openers and Form Submissions (using functions from modal_interactions.js for open/close)
+    // Modal Openers and Form Submissions
     if (openAddModalButton) openAddModalButton.addEventListener('click', openAddModal);
     if (closeAddModalBtn) closeAddModalBtn.addEventListener('click', closeAddModal);
     if (cancelAddModalBtn) cancelAddModalBtn.addEventListener('click', closeAddModal);
@@ -501,7 +546,6 @@ function setupEventListeners() {
     if (settingsCollaborationBtn) settingsCollaborationBtn.addEventListener('click', () => nonFunctionalFeatureMessageHandler('Collaboration'));
     if (settingsSyncBackupBtn) settingsSyncBackupBtn.addEventListener('click', () => nonFunctionalFeatureMessageHandler('Sync & Backup'));
 
-
     if (closeTaskReviewModalBtn) closeTaskReviewModalBtn.addEventListener('click', closeTaskReviewModal);
     if (closeTaskReviewSecondaryBtn) closeTaskReviewSecondaryBtn.addEventListener('click', closeTaskReviewModal);
     if (taskReviewModal) taskReviewModal.addEventListener('click', (event) => { if (event.target === taskReviewModal) closeTaskReviewModal(); });
@@ -510,21 +554,70 @@ function setupEventListeners() {
     if (closeTooltipsGuideSecondaryBtn) closeTooltipsGuideSecondaryBtn.addEventListener('click', closeTooltipsGuideModal);
     if (tooltipsGuideModal) tooltipsGuideModal.addEventListener('click', (event) => { if (event.target === tooltipsGuideModal) closeTooltipsGuideModal(); });
 
+    // Feature Flags Modal
+    const openFeatureFlagsModalBtn = document.getElementById('openFeatureFlagsModalBtn'); // Assuming you add this button
+    const featureFlagsModalElement = document.getElementById('featureFlagsModal');
+    const closeFeatureFlagsModalBtn = document.getElementById('closeFeatureFlagsModalBtn');
+    const closeFeatureFlagsSecondaryBtn = document.getElementById('closeFeatureFlagsSecondaryBtn');
 
-    // Reminder toggles in Modals (event listeners for checkboxes within modals)
+    // Example: Add a button to open feature flags modal, perhaps in settings or a debug area
+    // For now, let's assume it's opened from settings or a dedicated button.
+    // If you add a button with id="openFeatureFlagsModalBtn" somewhere:
+    // if (openFeatureFlagsModalBtn) openFeatureFlagsModalBtn.addEventListener('click', () => {
+    //     populateFeatureFlagsModal(); // Populate before opening
+    //     featureFlagsModalElement.classList.remove('hidden');
+    //     // Add modal open transition if needed
+    // });
+    if (settingsModal) { // Add a button inside settings to open feature flags
+        const ffButton = document.createElement('button');
+        ffButton.id = 'settingsOpenFeatureFlagsBtn';
+        ffButton.type = 'button';
+        ffButton.className = 'settings-modal-button bg-purple-50 hover:bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:hover:bg-purple-800/70 dark:text-purple-300';
+        ffButton.innerHTML = '<i class="fas fa-cogs"></i> Manage Feature Flags'; // Or a more appropriate icon
+        ffButton.addEventListener('click', () => {
+            closeSettingsModal();
+            populateFeatureFlagsModal();
+            featureFlagsModalElement.classList.remove('hidden');
+            setTimeout(() => {
+                 document.getElementById('modalDialogFeatureFlags').classList.remove('scale-95', 'opacity-0');
+                 document.getElementById('modalDialogFeatureFlags').classList.add('scale-100', 'opacity-100');
+            },10);
+        });
+        // Add this button to the settings modal's content area
+        const settingsModalContent = modalDialogSettings.querySelector('.space-y-3');
+        if(settingsModalContent) settingsModalContent.appendChild(ffButton);
+
+    }
+
+
+    if (closeFeatureFlagsModalBtn) closeFeatureFlagsModalBtn.addEventListener('click', () => {
+        document.getElementById('modalDialogFeatureFlags').classList.add('scale-95', 'opacity-0');
+        setTimeout(() => featureFlagsModalElement.classList.add('hidden'), 200);
+    });
+    if (closeFeatureFlagsSecondaryBtn) closeFeatureFlagsSecondaryBtn.addEventListener('click', () => {
+        document.getElementById('modalDialogFeatureFlags').classList.add('scale-95', 'opacity-0');
+        setTimeout(() => featureFlagsModalElement.classList.add('hidden'), 200);
+    });
+    if (featureFlagsModalElement) featureFlagsModalElement.addEventListener('click', (event) => {
+        if (event.target === featureFlagsModalElement) {
+            document.getElementById('modalDialogFeatureFlags').classList.add('scale-95', 'opacity-0');
+            setTimeout(() => featureFlagsModalElement.classList.add('hidden'), 200);
+        }
+    });
+
+
+    // Reminder toggles
     if (modalRemindMeAdd) {
         modalRemindMeAdd.addEventListener('change', () => {
             if(featureFlags.reminderFeature && reminderOptionsAdd) {
                 reminderOptionsAdd.classList.toggle('hidden', !modalRemindMeAdd.checked);
-                if (modalRemindMeAdd.checked) { // If enabling reminder
-                    // Pre-fill reminder date/time from due date/time if available and reminder fields are empty
+                if (modalRemindMeAdd.checked) {
                     if (modalDueDateInputAdd.value && !modalReminderDateAdd.value) modalReminderDateAdd.value = modalDueDateInputAdd.value;
                     if (modalTimeInputAdd.value && !modalReminderTimeAdd.value) modalReminderTimeAdd.value = modalTimeInputAdd.value;
-                    // Set min date for reminder
-                    const today = new Date();
-                    modalReminderDateAdd.min = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                    const today = new Date().toISOString().split('T')[0];
+                    modalReminderDateAdd.min = today;
                 }
-            } else if (reminderOptionsAdd) { // Feature disabled, ensure hidden
+            } else if (reminderOptionsAdd) {
                 reminderOptionsAdd.classList.add('hidden');
             }
         });
@@ -533,12 +626,11 @@ function setupEventListeners() {
         modalRemindMeViewEdit.addEventListener('change', () => {
             if(featureFlags.reminderFeature && reminderOptionsViewEdit) {
                 reminderOptionsViewEdit.classList.toggle('hidden', !modalRemindMeViewEdit.checked);
-                 if (modalRemindMeViewEdit.checked) { // If enabling reminder
-                     // Set min date for reminder
-                     const today = new Date();
-                     modalReminderDateViewEdit.min = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                 if (modalRemindMeViewEdit.checked) {
+                     const today = new Date().toISOString().split('T')[0];
+                     modalReminderDateViewEdit.min = today;
                  }
-            } else if (reminderOptionsViewEdit) { // Feature disabled, ensure hidden
+            } else if (reminderOptionsViewEdit) {
                 reminderOptionsViewEdit.classList.add('hidden');
             }
         });
@@ -555,8 +647,8 @@ function setupEventListeners() {
     }
     if (taskSearchInput) {
         taskSearchInput.addEventListener('input', (event) => {
-            setAppSearchTerm(event.target.value.trim().toLowerCase()); // setAppSearchTerm from app_logic.js
-            renderTasks();
+            setAppSearchTerm(event.target.value.trim().toLowerCase());
+            refreshTaskView(); // Use refreshTaskView
         });
     }
 
@@ -564,41 +656,52 @@ function setupEventListeners() {
     if (sidebarToggleBtn) {
         sidebarToggleBtn.addEventListener('click', () => {
             const isCurrentlyMinimized = taskSidebar.classList.contains('sidebar-minimized');
-            setSidebarMinimized(!isCurrentlyMinimized); // from ui_rendering.js
+            setSidebarMinimized(!isCurrentlyMinimized);
         });
     }
     sidebarIconOnlyButtons.forEach(button => {
         button.addEventListener('mouseenter', (event) => {
             if (!taskSidebar.classList.contains('sidebar-minimized')) return;
-            clearTimeout(tooltipTimeout); // tooltipTimeout from app_logic.js
+            clearTimeout(tooltipTimeout);
             tooltipTimeout = setTimeout(() => {
                 const tooltipText = button.title || button.querySelector('.sidebar-text-content')?.textContent.trim();
                 if (tooltipText) {
-                    showTooltip(event.currentTarget, tooltipText); // from ui_rendering.js
+                    showTooltip(event.currentTarget, tooltipText);
                 }
-            }, 500); // Delay before showing tooltip
+            }, 500);
         });
         button.addEventListener('mouseleave', () => {
-            hideTooltip(); // from ui_rendering.js
+            hideTooltip();
         });
     });
 
-
     // Sort Buttons
-    if (sortByDueDateBtn) sortByDueDateBtn.addEventListener('click', () => { setAppCurrentSort(currentSort === 'dueDate' ? 'default' : 'dueDate'); updateSortButtonStates(); renderTasks(); }); // setAppCurrentSort from app_logic.js
-    if (sortByPriorityBtn) sortByPriorityBtn.addEventListener('click', () => { setAppCurrentSort(currentSort === 'priority' ? 'default' : 'priority'); updateSortButtonStates(); renderTasks(); });
-    if (sortByLabelBtn) sortByLabelBtn.addEventListener('click', () => { setAppCurrentSort(currentSort === 'label' ? 'default' : 'label'); updateSortButtonStates(); renderTasks(); });
-
+    if (sortByDueDateBtn) sortByDueDateBtn.addEventListener('click', () => { setAppCurrentSort(currentSort === 'dueDate' ? 'default' : 'dueDate'); updateSortButtonStates(); refreshTaskView(); });
+    if (sortByPriorityBtn) sortByPriorityBtn.addEventListener('click', () => { setAppCurrentSort(currentSort === 'priority' ? 'default' : 'priority'); updateSortButtonStates(); refreshTaskView(); });
+    if (sortByLabelBtn) sortByLabelBtn.addEventListener('click', () => { setAppCurrentSort(currentSort === 'label' ? 'default' : 'label'); updateSortButtonStates(); refreshTaskView(); });
 
     // Sub-task input and add buttons
     if (modalAddSubTaskBtnViewEdit) { modalAddSubTaskBtnViewEdit.addEventListener('click', handleAddSubTaskViewEdit); }
     if (modalSubTaskInputViewEdit) { modalSubTaskInputViewEdit.addEventListener('keypress', (event) => { if (event.key === 'Enter') { event.preventDefault(); handleAddSubTaskViewEdit(); } }); }
-
     if (modalAddSubTaskBtnAdd) { modalAddSubTaskBtnAdd.addEventListener('click', handleAddTempSubTaskForAddModal); }
     if (modalSubTaskInputAdd) { modalSubTaskInputAdd.addEventListener('keypress', (event) => { if (event.key === 'Enter') { event.preventDefault(); handleAddTempSubTaskForAddModal(); } }); }
 
+    // --- Kanban View Toggle Button Event Listener (New) ---
+    if (kanbanViewToggleBtn) {
+        kanbanViewToggleBtn.addEventListener('click', () => {
+            if (!featureFlags.kanbanBoardFeature) return; // Should not be clickable if feature is off
 
-    // Global Keydown Listener for shortcuts (e.g., '+' for add task, 'Esc' for close modal)
+            if (currentTaskViewMode === 'list') {
+                setTaskViewMode('kanban'); // from app_logic.js
+            } else {
+                setTaskViewMode('list'); // from app_logic.js
+            }
+            refreshTaskView(); // This will call the correct render function and update button/heading
+        });
+    }
+
+
+    // Global Keydown Listener
     document.addEventListener('keydown', (event) => {
         const isAddModalOpen = addTaskModal && !addTaskModal.classList.contains('hidden');
         const isViewEditModalOpen = viewEditTaskModal && !viewEditTaskModal.classList.contains('hidden');
@@ -607,10 +710,7 @@ function setupEventListeners() {
         const isSettingsModalOpen = settingsModal && !settingsModal.classList.contains('hidden');
         const isTaskReviewModalOpen = taskReviewModal && !taskReviewModal.classList.contains('hidden');
         const isTooltipsGuideModalOpen = tooltipsGuideModal && !tooltipsGuideModal.classList.contains('hidden');
-        // Assuming Feature Flags modal has an ID 'featureFlagsModal'
-        const featureFlagsModalElement = document.getElementById('featureFlagsModal');
         const isFeatureFlagsModalOpen = featureFlagsModalElement && !featureFlagsModalElement.classList.contains('hidden');
-
 
         const isAnyModalOpen = isAddModalOpen || isViewEditModalOpen || isViewDetailsModalOpen ||
                                isManageLabelsModalOpen || isSettingsModalOpen || isTaskReviewModalOpen ||
@@ -621,10 +721,9 @@ function setupEventListeners() {
                                document.activeElement.tagName === 'TEXTAREA';
         const isSubTaskInputFocused = document.activeElement === modalSubTaskInputViewEdit || document.activeElement === modalSubTaskInputAdd;
 
-
         if ((event.key === '+' || event.key === '=') && !isAnyModalOpen && !isInputFocused && !isSubTaskInputFocused) {
             event.preventDefault();
-            openAddModal(); // from modal_interactions.js
+            openAddModal();
         }
 
         if (event.key === 'Escape') {
@@ -635,36 +734,25 @@ function setupEventListeners() {
             else if (isSettingsModalOpen) closeSettingsModal();
             else if (isTaskReviewModalOpen) closeTaskReviewModal();
             else if (isTooltipsGuideModalOpen) closeTooltipsGuideModal();
-            else if (isFeatureFlagsModalOpen) {
-                // Feature flags modal might have its own close function or button
-                const closeBtn = document.getElementById('closeFeatureFlagsModalBtn'); // Standardized ID
-                if (closeBtn && typeof closeBtn.click === 'function') closeBtn.click();
-                // Or if it's managed by a generic modal_interactions.js function:
-                // else if (typeof closeFeatureFlagsModal === 'function') closeFeatureFlagsModal();
+            else if (isFeatureFlagsModalOpen && closeFeatureFlagsModalBtn) {
+                closeFeatureFlagsModalBtn.click();
             }
         }
     });
 }
 
 // --- Global Initialization ---
-/**
- * Initializes the application on window load.
- * Loads feature flags, initializes tasks, populates UI elements,
- * initializes feature modules, applies active features, sets initial UI states,
- * and sets up event listeners.
- */
 window.onload = async () => {
     console.log("window.onload in ui_event_handlers.js starting");
-    await loadFeatureFlags(); // loadFeatureFlags from app_logic.js
-    initializeTasks();    // initializeTasks from app_logic.js
-    updateUniqueLabels(); // updateUniqueLabels from app_logic.js
+    await loadFeatureFlags();
+    initializeTasks();
+    updateUniqueLabels();
+    loadKanbanColumns(); // Load Kanban column preferences from app_logic.js
 
-    // Populate datalists (uses uniqueLabels from app_logic.js, functions from ui_rendering.js)
     populateDatalist(existingLabelsDatalist);
     populateDatalist(existingLabelsEditDatalist);
 
-    // Initialize feature modules (these are self-initializing or have their init functions called)
-    // Assumes AppFeatures object is created by feature_*.js files.
+    // Initialize feature modules
     if (window.AppFeatures) {
         if (window.AppFeatures.initializeTestButtonFeature) {
             window.AppFeatures.initializeTestButtonFeature();
@@ -675,43 +763,38 @@ window.onload = async () => {
         if (window.AppFeatures.initializeReminderFeature) {
             window.AppFeatures.initializeReminderFeature();
         }
-        if (window.AppFeatures.initializeAdvancedRecurrenceFeature) {
-            window.AppFeatures.initializeAdvancedRecurrenceFeature();
+        // Kanban Board Initialization (New)
+        if (featureFlags.kanbanBoardFeature && window.AppFeatures && window.AppFeatures.KanbanBoard && typeof window.AppFeatures.KanbanBoard.initialize === 'function') {
+            window.AppFeatures.KanbanBoard.initialize();
         }
-        if (window.AppFeatures.FileAttachments && typeof window.AppFeatures.FileAttachments.initialize === 'function') {
-            window.AppFeatures.FileAttachments.initialize(); // Initialize File Attachments
-        }
-        // Add other feature initializations here as they are created
+        // Add other feature initializations
     }
 
-    applyActiveFeatures(); // Applies visibility based on loaded flags
+    applyActiveFeatures(); // Applies visibility based on loaded flags, including Kanban button
 
-    // Set initial state for smart view buttons (styling)
     smartViewButtons.forEach(button => {
         button.classList.add('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600');
         button.querySelector('i')?.classList.add('text-slate-500', 'dark:text-slate-400');
     });
 
-    // Restore sidebar state
     const savedSidebarState = localStorage.getItem('sidebarState');
     if (savedSidebarState === 'minimized') {
-        setSidebarMinimized(true); // from ui_rendering.js
+        setSidebarMinimized(true);
     } else {
-        setSidebarMinimized(false); // from ui_rendering.js
+        setSidebarMinimized(false);
     }
 
-    // Set initial filter and render tasks
     if (typeof setFilter === 'function') {
-        setFilter(currentFilter); // currentFilter from app_logic.js
+        setFilter(currentFilter); // This will also call refreshTaskView
     } else {
         console.error("setFilter function is not defined when called in window.onload!");
+        refreshTaskView(); // Call refreshTaskView directly if setFilter is somehow not ready
     }
 
-    // Update button states
-    updateSortButtonStates(); // from ui_rendering.js
-    updateClearCompletedButtonState(); // from ui_rendering.js
+    updateSortButtonStates();
+    updateClearCompletedButtonState();
+    // Initial state for Kanban toggle button and heading is handled by refreshTaskView via applyActiveFeatures/setFilter
 
-    // Setup all event listeners
     setupEventListeners();
     console.log("Todo App Initialized.");
 };
