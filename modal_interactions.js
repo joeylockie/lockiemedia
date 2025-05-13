@@ -1,11 +1,13 @@
 // modal_interactions.js
 
 // This file contains functions for managing modal dialogs (Add, Edit, View, Settings, etc.)
-// It assumes that relevant DOM elements and global variables (like 'tasks', 'featureFlags', 'editingTaskId', 'currentViewTaskId', 'uniqueLabels')
-// are defined and managed in other JavaScript files (e.g., app_logic.js and the main ui_interactions.js or a new dom_elements.js).
+// It assumes that relevant DOM elements and global variables (like 'tasks', 'featureFlags', 'editingTaskId', 
+// 'currentViewTaskId', 'uniqueLabels', 'projects', 'modalProjectSelectAdd', 'modalProjectSelectViewEdit', 'viewTaskProject')
+// are defined and managed in other JavaScript files (e.g., app_logic.js and ui_rendering.js).
 // Helper functions like 'formatDate', 'formatTime', 'formatDuration', 'showMessage', 'populateDatalist',
 // 'renderSubTasksForEditModal', 'renderSubTasksForViewModal', 'renderTempSubTasksForAddModal', 'handleDeleteLabel'
 // are also assumed to be globally available or imported if using a module system.
+// Project-specific functions like 'populateProjectDropdowns' are expected via window.AppFeatures.Projects.
 
 // --- Add Task Modal UI Functions ---
 function openAddModal() {
@@ -23,6 +25,15 @@ function openAddModal() {
     modalTodoFormAdd.reset(); // Clear form fields
     modalPriorityInputAdd.value = 'medium'; // Default priority
     populateDatalist(existingLabelsDatalist);
+
+    // New: Populate and set default for Project dropdown
+    if (featureFlags.projectFeature && window.AppFeatures && window.AppFeatures.Projects) {
+        window.AppFeatures.Projects.populateProjectDropdowns(); // Populates both add and edit, but that's fine
+        if (modalProjectSelectAdd) {
+            modalProjectSelectAdd.value = "0"; // Default to "No Project"
+        }
+    }
+
 
     // Reset estimate fields if the feature is enabled
     if (featureFlags.taskTimerSystem) {
@@ -68,7 +79,7 @@ function closeAddModal() {
 function openViewEditModal(taskId) {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
-    editingTaskId = taskId; // Assumes editingTaskId is a global or accessible variable
+    editingTaskId = taskId; 
 
     if (modalViewEditTaskId) modalViewEditTaskId.value = task.id;
     if (modalTaskInputViewEdit) modalTaskInputViewEdit.value = task.text;
@@ -83,7 +94,17 @@ function openViewEditModal(taskId) {
 
     if (modalPriorityInputViewEdit) modalPriorityInputViewEdit.value = task.priority;
     if (modalLabelInputViewEdit) modalLabelInputViewEdit.value = task.label || '';
-    populateDatalist(existingLabelsEditDatalist); // Assumes existingLabelsEditDatalist is a global DOM element
+    populateDatalist(existingLabelsEditDatalist); 
+
+    // New: Populate and set Project dropdown
+    if (featureFlags.projectFeature && window.AppFeatures && window.AppFeatures.Projects) {
+        window.AppFeatures.Projects.populateProjectDropdowns();
+        if (modalProjectSelectViewEdit) {
+            modalProjectSelectViewEdit.value = task.projectId || "0"; // Set to task's project or "No Project"
+        }
+    }
+
+
     if (modalNotesInputViewEdit) modalNotesInputViewEdit.value = task.notes || '';
 
     // File Attachments (Placeholder)
@@ -101,12 +122,12 @@ function openViewEditModal(taskId) {
             if (modalReminderDateViewEdit) modalReminderDateViewEdit.value = task.reminderDate || '';
             if (modalReminderTimeViewEdit) modalReminderTimeViewEdit.value = task.reminderTime || '';
             if (modalReminderEmailViewEdit) modalReminderEmailViewEdit.value = task.reminderEmail || '';
-        } else { // Clear fields if reminder is not set or unchecked
+        } else { 
             if (modalReminderDateViewEdit) modalReminderDateViewEdit.value = '';
             if (modalReminderTimeViewEdit) modalReminderTimeViewEdit.value = '';
             if (modalReminderEmailViewEdit) modalReminderEmailViewEdit.value = '';
         }
-    } else { // Feature disabled
+    } else { 
         if (modalRemindMeViewEdit) modalRemindMeViewEdit.checked = false;
         if (reminderOptionsViewEdit) reminderOptionsViewEdit.classList.add('hidden');
     }
@@ -121,12 +142,12 @@ function openViewEditModal(taskId) {
 
     // Sub-tasks
     if (featureFlags.subTasksFeature && modalSubTasksListViewEdit) {
-        renderSubTasksForEditModal(taskId, modalSubTasksListViewEdit); // Assumes renderSubTasksForEditModal is available
+        renderSubTasksForEditModal(taskId, modalSubTasksListViewEdit); 
         if(modalSubTaskInputViewEdit) modalSubTaskInputViewEdit.value = '';
     }
 
     viewEditTaskModal.classList.remove('hidden');
-    setTimeout(() => { // For transition
+    setTimeout(() => { 
         modalDialogViewEdit.classList.remove('scale-95', 'opacity-0');
         modalDialogViewEdit.classList.add('scale-100', 'opacity-100');
     }, 10);
@@ -138,7 +159,7 @@ function closeViewEditModal() {
     modalDialogViewEdit.classList.remove('scale-100', 'opacity-100');
     setTimeout(() => {
         viewEditTaskModal.classList.add('hidden');
-        editingTaskId = null; // Clear editing state
+        editingTaskId = null; 
     }, 200);
 }
 
@@ -146,7 +167,7 @@ function closeViewEditModal() {
 function openViewTaskDetailsModal(taskId) {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
-    currentViewTaskId = taskId; // Assumes currentViewTaskId is a global or accessible variable
+    currentViewTaskId = taskId; 
 
     if(viewTaskText) viewTaskText.textContent = task.text;
     if(viewTaskDueDate) viewTaskDueDate.textContent = task.dueDate ? formatDate(task.dueDate) : 'Not set';
@@ -155,9 +176,9 @@ function openViewTaskDetailsModal(taskId) {
     // Task Timer System integration
     if (featureFlags.taskTimerSystem && window.AppFeatures && window.AppFeatures.TaskTimerSystem) {
         window.AppFeatures.TaskTimerSystem.setupTimerForModal(task);
-    } else { // Fallback or hide if feature/module not available
-        if(viewTaskEstDuration) viewTaskEstDuration.textContent = formatDuration(task.estimatedHours, task.estimatedMinutes); // Still show estimate
-        if(taskTimerSection) taskTimerSection.classList.add('hidden'); // Hide timer controls
+    } else { 
+        if(viewTaskEstDuration) viewTaskEstDuration.textContent = formatDuration(task.estimatedHours, task.estimatedMinutes); 
+        if(taskTimerSection) taskTimerSection.classList.add('hidden'); 
     }
 
     // File Attachments (Placeholder)
@@ -170,6 +191,20 @@ function openViewTaskDetailsModal(taskId) {
     if(viewTaskPriority) viewTaskPriority.textContent = task.priority || 'Not set';
     if(viewTaskStatus) viewTaskStatus.textContent = task.completed ? 'Completed' : 'Active';
     if(viewTaskLabel) viewTaskLabel.textContent = task.label || 'None';
+    
+    // New: Populate Project Name in View Details Modal
+    const projectSectionInView = viewTaskProject ? viewTaskProject.closest('.project-feature-element') : null;
+    if (featureFlags.projectFeature && viewTaskProject) {
+        const project = projects.find(p => p.id === task.projectId);
+        viewTaskProject.textContent = project && project.id !== 0 ? project.name : 'None';
+        if (projectSectionInView) {
+            projectSectionInView.classList.remove('hidden');
+        }
+    } else if (projectSectionInView) {
+        projectSectionInView.classList.add('hidden');
+    }
+
+
     if(viewTaskNotes) viewTaskNotes.textContent = task.notes || 'No notes added.';
 
     // Reminder details
@@ -192,7 +227,7 @@ function openViewTaskDetailsModal(taskId) {
     }
 
     viewTaskDetailsModal.classList.remove('hidden');
-    setTimeout(() => { // For transition
+    setTimeout(() => { 
         modalDialogViewDetails.classList.remove('scale-95', 'opacity-0');
         modalDialogViewDetails.classList.add('scale-100', 'opacity-100');
     }, 10);
@@ -203,19 +238,18 @@ function closeViewTaskDetailsModal() {
     modalDialogViewDetails.classList.remove('scale-100', 'opacity-100');
     setTimeout(() => {
         viewTaskDetailsModal.classList.add('hidden');
-        // Clear timer interval if Task Timer System is active
         if (featureFlags.taskTimerSystem && window.AppFeatures && window.AppFeatures.TaskTimerSystem) {
             window.AppFeatures.TaskTimerSystem.clearTimerOnModalClose();
         }
-        currentViewTaskId = null; // Clear viewing state
+        currentViewTaskId = null; 
     }, 200);
 }
 
 // --- Manage Labels Modal UI Functions ---
 function openManageLabelsModal() {
-    populateManageLabelsList(); // Assumes populateManageLabelsList is available
+    populateManageLabelsList(); 
     manageLabelsModal.classList.remove('hidden');
-    setTimeout(() => { // For transition
+    setTimeout(() => { 
         modalDialogManageLabels.classList.remove('scale-95', 'opacity-0');
         modalDialogManageLabels.classList.add('scale-100', 'opacity-100');
     }, 10);
@@ -232,19 +266,19 @@ function closeManageLabelsModal() {
 
 function populateManageLabelsList() {
     if (!existingLabelsList) return;
-    existingLabelsList.innerHTML = ''; // Clear current list
-    uniqueLabels.forEach(label => { // Assumes uniqueLabels is global or accessible
+    existingLabelsList.innerHTML = ''; 
+    uniqueLabels.forEach(label => { 
         const li = document.createElement('li');
         li.className = 'flex justify-between items-center p-2 bg-slate-50 dark:bg-slate-700 rounded-md';
         const span = document.createElement('span');
-        span.textContent = label.charAt(0).toUpperCase() + label.slice(1); // Capitalize
+        span.textContent = label.charAt(0).toUpperCase() + label.slice(1); 
         span.className = 'text-slate-700 dark:text-slate-200';
         li.appendChild(span);
         const deleteBtn = document.createElement('button');
         deleteBtn.innerHTML = '<i class="fas fa-trash-alt text-red-500 hover:text-red-700"></i>';
-        deleteBtn.className = 'p-1'; // For easier clicking
+        deleteBtn.className = 'p-1'; 
         deleteBtn.title = `Delete label "${label}"`;
-        deleteBtn.addEventListener('click', () => handleDeleteLabel(label)); // Assumes handleDeleteLabel is available
+        deleteBtn.addEventListener('click', () => handleDeleteLabel(label)); 
         li.appendChild(deleteBtn);
         existingLabelsList.appendChild(li);
     });
@@ -256,11 +290,11 @@ function populateManageLabelsList() {
 // --- Settings Modal UI Functions ---
 function openSettingsModal() {
     settingsModal.classList.remove('hidden');
-    setTimeout(() => { // For transition
+    setTimeout(() => { 
         modalDialogSettings.classList.remove('scale-95', 'opacity-0');
         modalDialogSettings.classList.add('scale-100', 'opacity-100');
     }, 10);
-    updateClearCompletedButtonState(); // Assumes updateClearCompletedButtonState is available
+    updateClearCompletedButtonState(); 
 }
 
 function closeSettingsModal() {
@@ -274,7 +308,7 @@ function closeSettingsModal() {
 // --- Task Review Modal UI Functions ---
 function openTaskReviewModal() {
     if (!featureFlags.taskTimerSystem) {
-        showMessage("Task Timer System feature is currently disabled.", "error"); // Assumes showMessage is available
+        showMessage("Task Timer System feature is currently disabled.", "error"); 
         return;
     }
     populateTaskReviewModal();
@@ -293,13 +327,13 @@ function closeTaskReviewModal() {
 
 function populateTaskReviewModal() {
     if (!taskReviewContent) return;
-    taskReviewContent.innerHTML = ''; // Clear previous content
-    const completedTasksWithTime = tasks.filter(task => // Assumes tasks is global or accessible
+    taskReviewContent.innerHTML = ''; 
+    const completedTasksWithTime = tasks.filter(task => 
         task.completed &&
         ((task.estimatedHours && task.estimatedHours > 0) ||
          (task.estimatedMinutes && task.estimatedMinutes > 0) ||
          (task.actualDurationMs && task.actualDurationMs > 0))
-    ).sort((a,b) => (b.completedDate || 0) - (a.completedDate || 0)); // Sort by most recently completed
+    ).sort((a,b) => (b.completedDate || 0) - (a.completedDate || 0)); 
 
     if (completedTasksWithTime.length === 0) {
         taskReviewContent.innerHTML = '<p class="text-slate-500 dark:text-slate-400 text-center">No completed tasks with time data.</p>';
@@ -317,18 +351,18 @@ function populateTaskReviewModal() {
 
         const estimatedP = document.createElement('p');
         estimatedP.className = 'text-sm text-slate-600 dark:text-slate-300';
-        estimatedP.innerHTML = `<strong>Estimated:</strong> ${formatDuration(task.estimatedHours, task.estimatedMinutes)}`; // Assumes formatDuration is available
+        estimatedP.innerHTML = `<strong>Estimated:</strong> ${formatDuration(task.estimatedHours, task.estimatedMinutes)}`; 
         itemDiv.appendChild(estimatedP);
 
         const actualP = document.createElement('p');
         actualP.className = 'text-sm text-slate-600 dark:text-slate-300';
-        actualP.innerHTML = `<strong>Actual:</strong> ${task.actualDurationMs > 0 ? formatMillisecondsToHMS(task.actualDurationMs) : 'Not recorded'}`; // Assumes formatMillisecondsToHMS is available
+        actualP.innerHTML = `<strong>Actual:</strong> ${task.actualDurationMs > 0 ? formatMillisecondsToHMS(task.actualDurationMs) : 'Not recorded'}`; 
         itemDiv.appendChild(actualP);
 
         if (task.completedDate) {
             const completedOnP = document.createElement('p');
             completedOnP.className = 'text-xs text-slate-400 dark:text-slate-500 mt-1';
-            completedOnP.textContent = `Completed on: ${formatDate(task.completedDate)}`; // Assumes formatDate is available
+            completedOnP.textContent = `Completed on: ${formatDate(task.completedDate)}`; 
             itemDiv.appendChild(completedOnP);
         }
         taskReviewContent.appendChild(itemDiv);
@@ -337,7 +371,7 @@ function populateTaskReviewModal() {
 
 // --- Tooltips Guide Modal UI Functions ---
 function openTooltipsGuideModal() {
-    if (!featureFlags.tooltipsGuide) { // Assumes featureFlags is global or accessible
+    if (!featureFlags.tooltipsGuide) { 
         showMessage("Tooltips Guide feature is disabled.", "error");
         return;
     }
