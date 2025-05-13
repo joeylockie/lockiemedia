@@ -2,12 +2,14 @@
 
 // --- Application State ---
 let tasks = JSON.parse(localStorage.getItem('todos_v3')) || [];
+let projects = JSON.parse(localStorage.getItem('projects_v1')) || []; // New: For projects
 let currentFilter = 'inbox';
 let currentSort = 'default';
 let currentSearchTerm = '';
 let editingTaskId = null;
 let currentViewTaskId = null;
 let uniqueLabels = [];
+let uniqueProjects = []; // New: For project names in dropdowns etc.
 let tooltipTimeout = null;
 let currentTaskViewMode = 'list'; // 'list' or 'kanban'
 
@@ -24,7 +26,8 @@ let featureFlags = {
     crossDeviceSync: false,
     tooltipsGuide: false,
     subTasksFeature: false,
-    kanbanBoardFeature: false
+    kanbanBoardFeature: false,
+    projectFeature: false // New: Project feature flag
 };
 
 let kanbanColumns = [
@@ -84,7 +87,8 @@ async function loadFeatureFlags() {
     const allKnownFlagKeys = [
         'testButtonFeature', 'reminderFeature', 'taskTimerSystem', 'advancedRecurrence',
         'fileAttachments', 'integrationsServices', 'userAccounts', 'collaborationSharing',
-        'crossDeviceSync', 'tooltipsGuide', 'subTasksFeature', 'kanbanBoardFeature'
+        'crossDeviceSync', 'tooltipsGuide', 'subTasksFeature', 'kanbanBoardFeature',
+        'projectFeature' // New: Added projectFeature
     ];
     allKnownFlagKeys.forEach(key => {
         if (typeof featureFlags[key] !== 'boolean') {
@@ -95,6 +99,7 @@ async function loadFeatureFlags() {
 
     console.log('[Flags] Final feature flags loaded:', JSON.parse(JSON.stringify(featureFlags)));
     console.log(`[Flags] Kanban Board Feature is: ${featureFlags.kanbanBoardFeature}`);
+    console.log(`[Flags] Project Feature is: ${featureFlags.projectFeature}`); // New: Log project feature status
 }
 
 
@@ -144,6 +149,7 @@ function formatMillisecondsToHMS(ms) {
 function saveTasks() {
     localStorage.setItem('todos_v3', JSON.stringify(tasks));
     updateUniqueLabels();
+    // updateUniqueProjects(); // We'll call this when projects are actually modified
 }
 
 function initializeTasks() {
@@ -179,7 +185,8 @@ function initializeTasks() {
         owner: task.owner || null,
         lastSynced: task.lastSynced || null,
         syncVersion: task.syncVersion || 0,
-        kanbanColumnId: task.kanbanColumnId || defaultKanbanColumn
+        kanbanColumnId: task.kanbanColumnId || defaultKanbanColumn,
+        projectId: task.projectId || null // New: Initialize projectId for tasks
     }));
 }
 
@@ -201,6 +208,64 @@ function updateUniqueLabels() {
     });
     uniqueLabels = Array.from(labels).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
 }
+
+// --- Project Data Functions ---
+/**
+ * Saves the current projects array to localStorage.
+ */
+function saveProjects() {
+    localStorage.setItem('projects_v1', JSON.stringify(projects));
+    updateUniqueProjects(); // Update the list of unique project names for dropdowns etc.
+    console.log('[Projects] Projects saved to localStorage:', projects);
+}
+
+/**
+ * Loads projects from localStorage.
+ * Initializes with a default "No Project" if none exist or if data is invalid.
+ */
+function loadProjects() {
+    const storedProjects = localStorage.getItem('projects_v1');
+    if (storedProjects) {
+        try {
+            const parsedProjects = JSON.parse(storedProjects);
+            // Basic validation: check if it's an array and items have id and name
+            if (Array.isArray(parsedProjects) && parsedProjects.every(p => p && typeof p.id === 'number' && typeof p.name === 'string')) {
+                projects = parsedProjects;
+                console.log('[Projects] Loaded projects from localStorage:', projects);
+            } else {
+                console.warn("[Projects] Stored projects data is invalid. Initializing with default.");
+                projects = [{ id: 0, name: "No Project", creationDate: Date.now() }]; // Default project
+                saveProjects();
+            }
+        } catch (e) {
+            console.error("[Projects] Error parsing stored projects. Initializing with default.", e);
+            projects = [{ id: 0, name: "No Project", creationDate: Date.now() }];
+            saveProjects();
+        }
+    } else {
+        console.log('[Projects] No stored projects found. Initializing with default "No Project".');
+        projects = [{ id: 0, name: "No Project", creationDate: Date.now() }];
+        saveProjects();
+    }
+    updateUniqueProjects();
+}
+
+
+/**
+ * Updates the uniqueProjects array based on the current projects.
+ * This is used for populating dropdowns or selection lists.
+ * The "No Project" option (ID 0) is typically handled separately in UI or prepended.
+ */
+function updateUniqueProjects() {
+    // Filter out "No Project" if it exists (ID 0), then map to names, sort.
+    // UI can decide to add a "None" or "No Project" option as needed.
+    uniqueProjects = projects
+        .filter(project => project.id !== 0) // Exclude the default "No Project" from this list
+        .map(project => ({ id: project.id, name: project.name })) // Keep id and name for dropdowns
+        .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+    console.log('[Projects] Unique projects updated:', uniqueProjects);
+}
+
 
 function parseDateFromText(text) {
     let parsedDate = null;
@@ -318,7 +383,7 @@ function setTaskViewMode(mode) {
 // --- Filtering and sorting state management ---
 function setAppCurrentFilter(filter) {
     currentFilter = filter;
-    currentSort = 'default';
+    currentSort = 'default'; // Reset sort when filter changes
 }
 
 function setAppCurrentSort(sortType) {
