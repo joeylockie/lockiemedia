@@ -10,5 +10,6 @@
   "crossDeviceSync": false,
   "tooltipsGuide": true,
   "subTasksFeature": false,
-  "kanbanBoardFeature": false
+  "kanbanBoardFeature": false,
+  "projectFeature": true
 }
