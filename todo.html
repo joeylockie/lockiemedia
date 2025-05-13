@@ -65,6 +65,11 @@
                         <option value="high">High</option>
                     </select>
                 </div>
+                <div class="mt-4 project-feature-element">
+                    <label for="modalProjectSelectAdd" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Project (optional)</label>
+                    <select id="modalProjectSelectAdd" class="w-full p-3 border-2 bg-white text-slate-900 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600">
+                        </select>
+                </div>
                 <div class="mt-4 advanced-recurrence-element">
                     <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Recurrence (Coming Soon)</label>
                     <div class="p-3 bg-slate-100 dark:bg-slate-700 rounded-lg text-slate-500 dark:text-slate-400 text-center">
@@ -167,6 +172,11 @@
                         <option value="medium">Medium</option>
                         <option value="high">High</option>
                     </select>
+                </div>
+                <div class="mt-4 project-feature-element">
+                    <label for="modalProjectSelectViewEdit" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Project</label>
+                    <select id="modalProjectSelectViewEdit" class="w-full p-3 border-2 bg-white text-slate-900 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600">
+                        </select>
                 </div>
                 <div class="mt-4 advanced-recurrence-element">
                     <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Recurrence (Coming Soon)</label>
@@ -289,6 +299,9 @@
                         <p id="viewTaskStatus" class="capitalize"></p>
                     </div>
                 </div>
+                <div class="project-feature-element">
+                    <strong class="view-details-heading block mb-0.5">Project:</strong>
+                    <p id="viewTaskProject" class="capitalize"></p> </div>
                 <div>
                     <strong class="view-details-heading block mb-0.5">Label:</strong>
                     <p id="viewTaskLabel" class="capitalize"></p>
@@ -408,6 +421,27 @@
         </div>
     </div>
 
+    <div id="manageProjectsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-opacity-70 overflow-y-auto h-full w-full flex items-center justify-center hidden z-[175] project-feature-element">
+        <div class="relative mx-auto p-5 sm:p-6 border w-full max-w-md shadow-xl rounded-xl bg-white dark:bg-slate-800 transform transition-all duration-300 ease-in-out scale-95 opacity-0" id="modalDialogManageProjects">
+            <div class="flex justify-between items-center pb-3 mb-4 border-b border-slate-200 dark:border-slate-700">
+                <h3 class="text-2xl font-semibold text-slate-800 dark:text-slate-100">Manage Projects</h3>
+                <button id="closeManageProjectsModalBtn" type="button" class="text-slate-400 hover:text-slate-600 dark:text-slate-300 dark:hover:text-slate-100 transition-colors p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700" aria-label="Close modal">
+                    <i class="fas fa-times fa-lg"></i>
+                </button>
+            </div>
+            <form id="addNewProjectForm" class="flex gap-2 mb-4">
+                <input type="text" id="newProjectInput" placeholder="New project name" class="flex-grow p-2.5 border-2 bg-white text-slate-900 placeholder-slate-400 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-400 dark:border-slate-600">
+                <button type="submit" class="bg-sky-500 hover:bg-sky-600 text-white font-semibold p-2.5 rounded-lg shadow-md">Add Project</button>
+            </form>
+            <h4 class="text-lg font-medium text-slate-700 dark:text-slate-200 mb-2">Existing Projects:</h4>
+            <ul id="existingProjectsList" class="max-h-60 overflow-y-auto space-y-1 pr-1">
+                </ul>
+            <div class="mt-6 flex justify-end">
+                <button type="button" id="closeManageProjectsSecondaryBtn" class="px-5 py-2.5 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500 transition-colors font-medium">Close</button>
+            </div>
+        </div>
+    </div>
+
     <div id="settingsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-opacity-70 overflow-y-auto h-full w-full flex items-center justify-center hidden z-[180]">
         <div class="relative mx-auto p-5 sm:p-6 border w-full max-w-md shadow-xl rounded-xl bg-white dark:bg-slate-800 transform transition-all duration-300 ease-in-out scale-95 opacity-0" id="modalDialogSettings">
             <div class="flex justify-between items-center pb-3 mb-4 border-b border-slate-200 dark:border-slate-700">
@@ -425,6 +459,9 @@
                 </button>
                 <button id="settingsClearCompletedBtn" type="button" class="settings-modal-button bg-red-50 hover:bg-red-100 text-red-700 dark:bg-red-900/50 dark:hover:bg-red-800/70 dark:text-red-300">
                     <i class="fas fa-eraser"></i> Clear Completed Tasks
+                </button>
+                <button id="settingsManageProjectsBtn" type="button" class="settings-modal-button bg-purple-50 hover:bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:hover:bg-purple-800/70 dark:text-purple-300 project-feature-element">
+                    <i class="fas fa-project-diagram"></i> Manage Projects
                 </button>
                 <button id="settingsManageLabelsBtn" type="button" class="settings-modal-button bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:hover:bg-indigo-800/70 dark:text-indigo-300">
                     <i class="fas fa-tags"></i> Manage Labels
@@ -517,6 +554,9 @@
                         </div>
                     </div>
 
+                    <div id="projectFilterContainer" class="project-feature-element hidden">
+                        </div>
+
                     <div>
                         <h2 class="sidebar-text-content sidebar-section-title text-lg md:text-xl font-semibold text-slate-700 dark:text-slate-200 mb-2 md:mb-3 mt-4">Settings</h2>
                         <button
@@ -557,7 +597,7 @@
                     </div>
                 </div>
                 <ul id="taskList" class="space-y-3 sm:space-y-3.5">
-                </ul>
+                    </ul>
                 <p id="emptyState" class="text-center text-slate-500 dark:text-slate-400 mt-8 py-5 hidden">No tasks yet. Add some!</p>
                 <p id="noMatchingTasks" class="text-center text-slate-500 dark:text-slate-400 mt-8 py-5 hidden">No tasks match the current filter or search.</p>
             </main>
@@ -577,7 +617,8 @@
 <script src="feature_file_attachments.js"></script>
 <script src="feature_integrations_services.js"></script>
 <script src="task_timer_system.js"></script>
-<script src="feature_kanban_board.js"></script> <script src="ui_rendering.js"></script>
+<script src="feature_kanban_board.js"></script>
+<script src="feature_projects.js"></script> <script src="ui_rendering.js"></script>
 <script src="ui_event_handlers.js"></script>
 </body>
 </html>
