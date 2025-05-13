@@ -35,6 +35,15 @@ let subTasksSectionAdd, modalSubTaskInputAdd, modalAddSubTaskBtnAdd, modalSubTas
 let featureFlagsListContainer;
 let kanbanViewToggleBtn, kanbanViewToggleBtnText, yourTasksHeading, mainContentArea;
 
+// New: Project Feature DOM Elements
+let settingsManageProjectsBtn; // Button in settings modal
+let manageProjectsModal, modalDialogManageProjects, closeManageProjectsModalBtn, closeManageProjectsSecondaryBtn; // Manage Projects Modal elements
+let addNewProjectForm, newProjectInput, existingProjectsList; // Manage Projects Modal form/list
+let modalProjectSelectAdd, modalProjectSelectViewEdit; // Project selectors in task modals
+let projectFilterContainer; // Container for project filters in sidebar
+let viewTaskProject; // Element to display project in View Task Details modal
+
+
 /**
  * Initializes all DOM element constants.
  * This function should be called once the DOM is fully loaded.
@@ -42,27 +51,10 @@ let kanbanViewToggleBtn, kanbanViewToggleBtnText, yourTasksHeading, mainContentA
 function initializeDOMElements() {
     console.log('[DOM Init] Attempting to initialize DOM elements...');
 
+    // Existing elements...
     mainContentArea = document.querySelector('main');
-    if (!mainContentArea) console.error('[DOM Init Error] <main> element not found!');
-    else console.log('[DOM Init] <main> element found:', mainContentArea);
-
     kanbanViewToggleBtn = document.getElementById('kanbanViewToggleBtn');
-    if (!kanbanViewToggleBtn) {
-        console.warn('[DOM Init Warning] Element with ID "kanbanViewToggleBtn" not found.');
-        const expectedParent = mainContentArea ? mainContentArea.querySelector('.flex.gap-2.mt-3.sm\\:mt-0.flex-wrap.items-center') : null;
-        if (expectedParent) {
-            console.log('[DOM Debug] Expected parent of kanbanViewToggleBtn innerHTML (first 500 chars):', expectedParent.innerHTML.substring(0, 500) + "...");
-        } else {
-            console.log('[DOM Debug] Expected parent of kanbanViewToggleBtn (div with sort buttons) not found either.');
-        }
-    } else {
-         console.log('[DOM Init] kanbanViewToggleBtn found:', kanbanViewToggleBtn);
-    }
-
     smartViewButtonsContainer = document.getElementById('smartViewButtonsContainer');
-    if (!smartViewButtonsContainer) console.warn('[DOM Init Warning] Element with ID "smartViewButtonsContainer" not found.');
-    else console.log('[DOM Init] smartViewButtonsContainer found:', smartViewButtonsContainer);
-
     taskSidebar = document.getElementById('taskSidebar');
     sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
     sidebarToggleIcon = document.getElementById('sidebarToggleIcon');
@@ -196,11 +188,30 @@ function initializeDOMElements() {
     modalAddSubTaskBtnAdd = document.getElementById('modalAddSubTaskBtnAdd');
     modalSubTasksListAdd = document.getElementById('modalSubTasksListAdd');
     featureFlagsListContainer = document.getElementById('featureFlagsListContainer');
-    if (!featureFlagsListContainer) console.warn('[DOM Init Warning] Element with ID "featureFlagsListContainer" not found.');
     kanbanViewToggleBtnText = document.getElementById('kanbanViewToggleBtnText');
-    if (!kanbanViewToggleBtnText) console.warn('[DOM Init Warning] Element with ID "kanbanViewToggleBtnText" not found.');
     yourTasksHeading = document.getElementById('yourTasksHeading');
-    if (!yourTasksHeading) console.warn('[DOM Init Warning] Element with ID "yourTasksHeading" not found.');
+
+    // New: Initialize Project Feature Elements
+    settingsManageProjectsBtn = document.getElementById('settingsManageProjectsBtn');
+    manageProjectsModal = document.getElementById('manageProjectsModal');
+    modalDialogManageProjects = document.getElementById('modalDialogManageProjects');
+    closeManageProjectsModalBtn = document.getElementById('closeManageProjectsModalBtn');
+    closeManageProjectsSecondaryBtn = document.getElementById('closeManageProjectsSecondaryBtn');
+    addNewProjectForm = document.getElementById('addNewProjectForm');
+    newProjectInput = document.getElementById('newProjectInput');
+    existingProjectsList = document.getElementById('existingProjectsList');
+    modalProjectSelectAdd = document.getElementById('modalProjectSelectAdd');
+    modalProjectSelectViewEdit = document.getElementById('modalProjectSelectViewEdit');
+    projectFilterContainer = document.getElementById('projectFilterContainer');
+    viewTaskProject = document.getElementById('viewTaskProject');
+
+    // Add checks for newly added elements
+    if (!settingsManageProjectsBtn) console.warn('[DOM Init Warning] Element "settingsManageProjectsBtn" not found.');
+    if (!manageProjectsModal) console.warn('[DOM Init Warning] Element "manageProjectsModal" not found.');
+    if (!modalProjectSelectAdd) console.warn('[DOM Init Warning] Element "modalProjectSelectAdd" not found.');
+    if (!modalProjectSelectViewEdit) console.warn('[DOM Init Warning] Element "modalProjectSelectViewEdit" not found.');
+    if (!projectFilterContainer) console.warn('[DOM Init Warning] Element "projectFilterContainer" not found.');
+    if (!viewTaskProject) console.warn('[DOM Init Warning] Element "viewTaskProject" not found.');
 
     console.log('[DOM Init] Finished initializing DOM elements.');
 }
@@ -247,12 +258,21 @@ function setSidebarMinimized(minimize) {
         sidebarToggleIcon.classList.remove('fa-chevron-left');
         sidebarToggleIcon.classList.add('fa-chevron-right');
         if(sidebarTextElements) sidebarTextElements.forEach(el => el.classList.add('hidden'));
-        document.querySelectorAll('.sidebar-section-title, #taskSearchInputContainer, #testFeatureButtonContainer .sidebar-text-content').forEach(el => el.classList.add('hidden'));
+        // Also hide project filter text content
+        document.querySelectorAll('.sidebar-section-title, #taskSearchInputContainer, #testFeatureButtonContainer .sidebar-text-content, #projectFilterContainer .sidebar-text-content').forEach(el => el.classList.add('hidden'));
         if(sidebarIconOnlyButtons) sidebarIconOnlyButtons.forEach(btn => {
             btn.classList.add('justify-center');
             const icon = btn.querySelector('i');
             if(icon) icon.classList.remove('md:mr-2', 'md:mr-2.5', 'ml-2');
         });
+         // Apply to dynamically added project buttons too
+        if (projectFilterContainer) {
+            projectFilterContainer.querySelectorAll('.sidebar-button-icon-only').forEach(btn => {
+                btn.classList.add('justify-center');
+                const icon = btn.querySelector('i');
+                if(icon) icon.classList.remove('md:mr-2', 'md:mr-2.5', 'ml-2');
+            });
+        }
         localStorage.setItem('sidebarState', 'minimized');
     } else {
         taskSidebar.classList.remove('w-16', 'p-3', 'sidebar-minimized');
@@ -260,13 +280,15 @@ function setSidebarMinimized(minimize) {
         sidebarToggleIcon.classList.remove('fa-chevron-right');
         sidebarToggleIcon.classList.add('fa-chevron-left');
         if(sidebarTextElements) sidebarTextElements.forEach(el => el.classList.remove('hidden'));
-        document.querySelectorAll('.sidebar-section-title, #taskSearchInputContainer, #testFeatureButtonContainer .sidebar-text-content').forEach(el => el.classList.remove('hidden'));
+        // Show project filter text content
+        document.querySelectorAll('.sidebar-section-title, #taskSearchInputContainer, #testFeatureButtonContainer .sidebar-text-content, #projectFilterContainer .sidebar-text-content').forEach(el => el.classList.remove('hidden'));
         if(sidebarIconOnlyButtons) sidebarIconOnlyButtons.forEach(btn => {
             btn.classList.remove('justify-center');
             const icon = btn.querySelector('i');
             const textSpan = btn.querySelector('.sidebar-text-content');
             if(icon && textSpan && !textSpan.classList.contains('hidden')) {
-                if (btn.id === 'openAddModalButton' || btn.id === 'openSettingsModalButton' || (testFeatureButton && btn.id === testFeatureButton.id)) {
+                 // Adjust margin based on button type (original logic)
+                 if (btn.id === 'openAddModalButton' || btn.id === 'openSettingsModalButton' || (testFeatureButton && btn.id === testFeatureButton.id)) {
                     icon.classList.add('md:mr-2');
                 } else {
                     icon.classList.add('md:mr-2.5');
@@ -274,9 +296,22 @@ function setSidebarMinimized(minimize) {
                 textSpan.classList.add('ml-2');
             }
         });
+        // Apply to dynamically added project buttons too
+        if (projectFilterContainer) {
+             projectFilterContainer.querySelectorAll('.sidebar-button-icon-only').forEach(btn => {
+                btn.classList.remove('justify-center');
+                const icon = btn.querySelector('i');
+                const textSpan = btn.querySelector('.sidebar-text-content');
+                 if(icon && textSpan && !textSpan.classList.contains('hidden')) {
+                    icon.classList.add('md:mr-2.5'); // Assuming project buttons follow this spacing
+                    textSpan.classList.add('ml-2');
+                }
+            });
+        }
         localStorage.setItem('sidebarState', 'expanded');
     }
 }
+
 
 function showTooltip(element, text) {
     if (!taskSidebar || !iconTooltip || !taskSidebar.classList.contains('sidebar-minimized')) return;
@@ -289,7 +324,7 @@ function showTooltip(element, text) {
 
 function hideTooltip() {
     if (!iconTooltip) return;
-    clearTimeout(tooltipTimeout);
+    clearTimeout(tooltipTimeout); // tooltipTimeout from app_logic.js
     iconTooltip.style.display = 'none';
 }
 
@@ -303,26 +338,20 @@ function refreshTaskView() {
             return;
         }
     }
-    // Update the state of the toggle button (icon, text) and the main heading
-    updateKanbanViewToggleButtonState(); // Ensures button shows correct state (List/Board)
-    updateYourTasksHeading(); // Ensures heading shows correct title (Kanban Board/Your Tasks)
+    updateKanbanViewToggleButtonState();
+    updateYourTasksHeading();
 
-    // Render either the Kanban board or the task list based on the current mode
     if (featureFlags.kanbanBoardFeature && currentTaskViewMode === 'kanban') {
-        console.log('[RefreshTaskView] In Kanban mode. Checking AppFeatures.KanbanBoard.renderKanbanView...');
-        // Check if the KanbanBoard feature module and its render function are available
         if (window.AppFeatures && window.AppFeatures.KanbanBoard && typeof window.AppFeatures.KanbanBoard.renderKanbanView === 'function') {
-            window.AppFeatures.KanbanBoard.renderKanbanView(); // Call the function to render the board
+            window.AppFeatures.KanbanBoard.renderKanbanView();
         } else {
-            console.error("KanbanBoard feature or renderKanbanView function not available (inside refreshTaskView). Switching to list view.");
-            setTaskViewMode('list'); // Fallback to list view if Kanban rendering fails
-            renderTaskListView(); // Render the list view
+            console.error("KanbanBoard feature or renderKanbanView function not available. Switching to list view.");
+            setTaskViewMode('list');
+            renderTaskListView();
         }
     } else {
-        // If not in Kanban mode (or feature disabled), render the standard task list
         renderTaskListView();
     }
-    // Update the state of the "Clear Completed" button in settings
     updateClearCompletedButtonState();
 }
 
@@ -332,67 +361,46 @@ function renderTaskListView() {
         console.error("renderTaskListView: mainContentArea is not defined.");
         return;
     }
-    // Ensure the main content area is prepared for the list view
-    // It might currently contain the Kanban board structure
-    let listContainer = document.getElementById('taskListContainer'); // Check if a dedicated list container exists
+    let listContainer = document.getElementById('taskList'); // Direct check for the UL
     if (!listContainer) {
-        // If no dedicated container, clear the main area and set it up for the list
         mainContentArea.innerHTML = ''; // Clear previous content (like Kanban board)
-
-        // Re-create the heading and button container if they were cleared
-        // (This assumes they are direct children of mainContentArea in list view)
         const headerDiv = document.createElement('div');
         headerDiv.className = 'flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 md:mb-6';
-
         const heading = document.createElement('h2');
-        heading.id = 'yourTasksHeading'; // Ensure the ID is reset
+        heading.id = 'yourTasksHeading';
         heading.className = 'text-xl sm:text-2xl md:text-3xl font-semibold text-slate-800 dark:text-slate-100';
-        heading.textContent = 'Your Tasks'; // Default text for list view
-        yourTasksHeading = heading; // Update global reference
-
+        yourTasksHeading = heading;
         const buttonsDiv = document.createElement('div');
         buttonsDiv.className = 'flex gap-2 mt-3 sm:mt-0 flex-wrap items-center';
-        // Add buttons back (Kanban toggle, Sort buttons) - we need references or recreate them
-        // For simplicity, we assume the toggle button element (`kanbanViewToggleBtn`) persists or is re-queried
-        if (kanbanViewToggleBtn) buttonsDiv.appendChild(kanbanViewToggleBtn); // Re-append if it exists
-        // Re-create or re-append sort buttons if needed
+        if (kanbanViewToggleBtn) buttonsDiv.appendChild(kanbanViewToggleBtn);
         if (sortByDueDateBtn) buttonsDiv.appendChild(sortByDueDateBtn);
         if (sortByPriorityBtn) buttonsDiv.appendChild(sortByPriorityBtn);
         if (sortByLabelBtn) buttonsDiv.appendChild(sortByLabelBtn);
-
         headerDiv.appendChild(heading);
         headerDiv.appendChild(buttonsDiv);
         mainContentArea.appendChild(headerDiv);
-
-        // Create the task list UL element
         const taskListUl = document.createElement('ul');
         taskListUl.id = 'taskList';
         taskListUl.className = 'space-y-3 sm:space-y-3.5';
         mainContentArea.appendChild(taskListUl);
-        taskList = taskListUl; // Update global reference
-
-        // Create the empty state messages
+        taskList = taskListUl;
         const emptyP = document.createElement('p');
         emptyP.id = 'emptyState';
         emptyP.className = 'text-center text-slate-500 dark:text-slate-400 mt-8 py-5 hidden';
         emptyP.textContent = 'No tasks yet. Add some!';
         mainContentArea.appendChild(emptyP);
-        emptyState = emptyP; // Update global reference
-
+        emptyState = emptyP;
         const noMatchP = document.createElement('p');
         noMatchP.id = 'noMatchingTasks';
         noMatchP.className = 'text-center text-slate-500 dark:text-slate-400 mt-8 py-5 hidden';
         noMatchP.textContent = 'No tasks match the current filter or search.';
         mainContentArea.appendChild(noMatchP);
-        noMatchingTasks = noMatchP; // Update global reference
-
-        // Re-run updates that depend on these elements being present
+        noMatchingTasks = noMatchP;
         updateKanbanViewToggleButtonState();
         updateYourTasksHeading();
         updateSortButtonStates();
     }
 
-    // Clear only the task list itself before rendering
     if (taskList) {
         taskList.innerHTML = '';
     } else {
@@ -400,7 +408,7 @@ function renderTaskListView() {
         return;
     }
 
-    // --- Filtering Logic (remains the same) ---
+    // --- Filtering Logic ---
     let filteredTasks = [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -421,7 +429,14 @@ function renderTaskListView() {
         });
     } else if (currentFilter === 'completed') {
         filteredTasks = tasks.filter(task => task.completed);
-    } else {
+    } else if (currentFilter.startsWith('project_')) { // New: Handle project filter
+        const projectId = parseInt(currentFilter.split('_')[1]);
+        if (!isNaN(projectId)) {
+            filteredTasks = tasks.filter(task => task.projectId === projectId && !task.completed);
+        } else {
+            filteredTasks = tasks.filter(task => !task.projectId && !task.completed); // Should not happen with current setup, but safe fallback
+        }
+    } else { // Assume label filter
         filteredTasks = tasks.filter(task => task.label && task.label.toLowerCase() === currentFilter.toLowerCase() && !task.completed);
     }
 
@@ -429,7 +444,9 @@ function renderTaskListView() {
         filteredTasks = filteredTasks.filter(task =>
             task.text.toLowerCase().includes(currentSearchTerm) ||
             (task.label && task.label.toLowerCase().includes(currentSearchTerm)) ||
-            (task.notes && task.notes.toLowerCase().includes(currentSearchTerm))
+            (task.notes && task.notes.toLowerCase().includes(currentSearchTerm)) ||
+            // New: Include project name in search
+            (featureFlags.projectFeature && task.projectId && projects.find(p => p.id === task.projectId)?.name.toLowerCase().includes(currentSearchTerm))
         );
     }
 
@@ -466,11 +483,11 @@ function renderTaskListView() {
         filteredTasks.sort((a, b) => (b.creationDate || b.id) - (a.creationDate || a.id));
     }
 
-    // --- Update Empty State Messages (remains the same) ---
+    // --- Update Empty State Messages ---
     if (emptyState) emptyState.classList.toggle('hidden', tasks.length !== 0);
     if (noMatchingTasks) noMatchingTasks.classList.toggle('hidden', !(tasks.length > 0 && filteredTasks.length === 0));
 
-    // --- Render Task Items (remains the same) ---
+    // --- Render Task Items ---
     filteredTasks.forEach((task) => {
         const li = document.createElement('li');
         li.className = `task-item flex items-start justify-between bg-slate-100 dark:bg-slate-700 p-3 sm:p-3.5 rounded-lg shadow hover:shadow-md transition-shadow duration-300 ${task.completed ? 'opacity-60' : ''} overflow-hidden`;
@@ -482,14 +499,14 @@ function renderTaskListView() {
             if (event.target.type === 'checkbox' || event.target.closest('.task-actions')) {
                 return;
             }
-            openViewTaskDetailsModal(task.id);
+            openViewTaskDetailsModal(task.id); // from modal_interactions.js
         });
 
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.checked = task.completed;
         checkbox.className = 'form-checkbox h-5 w-5 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 dark:focus:ring-sky-500 mt-0.5 mr-2 sm:mr-3 cursor-pointer flex-shrink-0';
-        checkbox.addEventListener('change', () => toggleComplete(task.id));
+        checkbox.addEventListener('change', () => toggleComplete(task.id)); // from ui_event_handlers.js
 
         const textDetailsDiv = document.createElement('div');
         textDetailsDiv.className = 'flex flex-col flex-grow min-w-0';
@@ -503,10 +520,21 @@ function renderTaskListView() {
         const detailsContainer = document.createElement('div');
         detailsContainer.className = 'flex items-center flex-wrap gap-x-2 gap-y-1 mt-1 sm:mt-1.5 text-xs';
 
+        // New: Add Project Indicator
+        if (featureFlags.projectFeature && task.projectId && task.projectId !== 0) {
+            const project = projects.find(p => p.id === task.projectId); // projects from app_logic.js
+            if (project) {
+                const projSpan = document.createElement('span');
+                projSpan.className = 'text-purple-600 dark:text-purple-400 flex items-center project-feature-element';
+                projSpan.innerHTML = `<i class="fas fa-folder mr-1"></i> ${project.name}`;
+                detailsContainer.appendChild(projSpan);
+            }
+        }
+
         if (task.priority) {
             const pB = document.createElement('span');
             pB.textContent = task.priority;
-            pB.className = `priority-badge ${getPriorityClass(task.priority)}`;
+            pB.className = `priority-badge ${getPriorityClass(task.priority)}`; // getPriorityClass from app_logic.js
             detailsContainer.appendChild(pB);
         }
         if (task.label) {
@@ -518,8 +546,8 @@ function renderTaskListView() {
         if (task.dueDate) {
             const dDS = document.createElement('span');
             dDS.className = 'text-slate-500 dark:text-slate-400 flex items-center';
-            let dD = formatDate(task.dueDate);
-            if (task.time) { dD += ` ${formatTime(task.time)}`; }
+            let dD = formatDate(task.dueDate); // formatDate from app_logic.js
+            if (task.time) { dD += ` ${formatTime(task.time)}`; } // formatTime from app_logic.js
             dDS.innerHTML = `<i class="far fa-calendar-alt mr-1"></i> ${dD}`;
             detailsContainer.appendChild(dDS);
         }
@@ -552,7 +580,16 @@ function renderTaskListView() {
         editButton.innerHTML = '<i class="fas fa-pencil-alt"></i>';
         editButton.setAttribute('aria-label', 'Edit task');
         editButton.title = 'Edit task';
-        editButton.addEventListener('click', () => openViewEditModal(task.id));
+        editButton.addEventListener('click', () => {
+            openViewEditModal(task.id); // from modal_interactions.js
+             // New: Populate and set project dropdown when opening edit modal
+            if (featureFlags.projectFeature && window.AppFeatures && window.AppFeatures.Projects) {
+                 window.AppFeatures.Projects.populateProjectDropdowns();
+                 if (modalProjectSelectViewEdit) {
+                     modalProjectSelectViewEdit.value = task.projectId || "0";
+                 }
+            }
+        });
         actionsDiv.appendChild(editButton);
 
         const deleteButton = document.createElement('button');
@@ -560,12 +597,12 @@ function renderTaskListView() {
         deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
         deleteButton.setAttribute('aria-label', 'Delete task');
         deleteButton.title = 'Delete task';
-        deleteButton.addEventListener('click', () => deleteTask(task.id));
+        deleteButton.addEventListener('click', () => deleteTask(task.id)); // from ui_event_handlers.js
         actionsDiv.appendChild(deleteButton);
 
         li.appendChild(mainContentClickableArea);
         li.appendChild(actionsDiv);
-        if (taskList) { // Check again before appending
+        if (taskList) {
              taskList.appendChild(li);
         }
     });
@@ -645,7 +682,7 @@ function renderSubTasksForEditModal(parentId, subTasksListElement) {
         checkbox.checked = subTask.completed;
         checkbox.className = 'form-checkbox h-4 w-4 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 mr-2 cursor-pointer';
         checkbox.addEventListener('change', () => {
-            toggleSubTaskCompleteLogic(parentId, subTask.id);
+            toggleSubTaskCompleteLogic(parentId, subTask.id); // Assumes this logic exists globally or is imported
             renderSubTasksForEditModal(parentId, subTasksListElement);
             if (currentViewTaskId === parentId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) {
                 renderSubTasksForViewModal(parentId, modalSubTasksListViewDetails, viewSubTaskProgress, noSubTasksMessageViewDetails);
@@ -668,7 +705,7 @@ function renderSubTasksForEditModal(parentId, subTasksListElement) {
         editBtn.addEventListener('click', () => {
             const newText = prompt('Edit sub-task:', subTask.text);
             if (newText !== null && newText.trim() !== '') {
-                if (editSubTaskLogic(parentId, subTask.id, newText.trim())) {
+                if (editSubTaskLogic(parentId, subTask.id, newText.trim())) { // Assumes this logic exists globally or is imported
                     renderSubTasksForEditModal(parentId, subTasksListElement);
                     if (currentViewTaskId === parentId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) {
                         renderSubTasksForViewModal(parentId, modalSubTasksListViewDetails, viewSubTaskProgress, noSubTasksMessageViewDetails);
@@ -687,7 +724,7 @@ function renderSubTasksForEditModal(parentId, subTasksListElement) {
         deleteBtn.title = 'Delete sub-task';
         deleteBtn.addEventListener('click', () => {
             if (confirm(`Are you sure you want to delete sub-task: "${subTask.text}"?`)) {
-                if (deleteSubTaskLogic(parentId, subTask.id)) {
+                if (deleteSubTaskLogic(parentId, subTask.id)) { // Assumes this logic exists globally or is imported
                     renderSubTasksForEditModal(parentId, subTasksListElement);
                     if (currentViewTaskId === parentId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) {
                         renderSubTasksForViewModal(parentId, modalSubTasksListViewDetails, viewSubTaskProgress, noSubTasksMessageViewDetails);
@@ -736,7 +773,7 @@ function renderSubTasksForViewModal(parentId, subTasksListElement, progressEleme
         checkbox.checked = subTask.completed;
         checkbox.className = 'form-checkbox h-4 w-4 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 mr-2 cursor-pointer';
         checkbox.addEventListener('change', () => {
-            toggleSubTaskCompleteLogic(parentId, subTask.id);
+            toggleSubTaskCompleteLogic(parentId, subTask.id); // Assumes this logic exists globally or is imported
             renderSubTasksForViewModal(parentId, subTasksListElement, progressElement, noSubTasksMessageElement);
             if (editingTaskId === parentId && viewEditTaskModal && !viewEditTaskModal.classList.contains('hidden')) {
                 renderSubTasksForEditModal(parentId, modalSubTasksListViewEdit);
@@ -786,49 +823,29 @@ function updateClearCompletedButtonState() {
     }
 }
 
-/**
- * Updates the Kanban/List view toggle button's appearance (icon, text, title)
- * and hides/shows sort buttons based on the current view mode.
- */
 function updateKanbanViewToggleButtonState() {
-    // Ensure the button and its text element are available
     if (!kanbanViewToggleBtn || !kanbanViewToggleBtnText) {
         console.warn("updateKanbanViewToggleButtonState: Toggle button or text element not found.");
         return;
     }
-
     const iconElement = kanbanViewToggleBtn.querySelector('i');
     if (!iconElement) {
          console.warn("updateKanbanViewToggleButtonState: Icon element within toggle button not found.");
          return;
     }
-
-    // Check if the Kanban feature is enabled and the current mode is 'kanban'
     if (currentTaskViewMode === 'kanban' && featureFlags.kanbanBoardFeature) {
-        // --- Currently in Kanban View ---
-        // Set button text to "List"
         kanbanViewToggleBtnText.textContent = 'List';
-        // Set tooltip to indicate switching to List View
         kanbanViewToggleBtn.title = 'Switch to List View';
-        // Change icon to list icon
         iconElement.classList.remove('fa-columns');
         iconElement.classList.add('fa-list-ul');
-        // Hide sort buttons as they don't apply to Kanban view
         if (sortByDueDateBtn) sortByDueDateBtn.classList.add('hidden');
         if (sortByPriorityBtn) sortByPriorityBtn.classList.add('hidden');
         if (sortByLabelBtn) sortByLabelBtn.classList.add('hidden');
     } else {
-        // --- Currently in List View (or Kanban feature disabled) ---
-        // Set button text to "Board"
         kanbanViewToggleBtnText.textContent = 'Board';
-        // Set tooltip to indicate switching to Board View
         kanbanViewToggleBtn.title = 'Switch to Board View';
-        // Change icon to board/columns icon
         iconElement.classList.remove('fa-list-ul');
         iconElement.classList.add('fa-columns');
-        // Show sort buttons only if the Kanban feature is enabled (otherwise they are always visible in list view)
-        // Note: The button itself (`kanbanViewToggleBtn`) is hidden via applyActiveFeatures if the feature is off.
-        // So, if we are in list view, sort buttons should generally be visible.
         if (sortByDueDateBtn) sortByDueDateBtn.classList.remove('hidden');
         if (sortByPriorityBtn) sortByPriorityBtn.classList.remove('hidden');
         if (sortByLabelBtn) sortByLabelBtn.classList.remove('hidden');
@@ -836,22 +853,21 @@ function updateKanbanViewToggleButtonState() {
 }
 
 
-/**
- * Updates the main heading text based on the current view mode.
- */
 function updateYourTasksHeading() {
-    // Ensure the heading element is available
     if (!yourTasksHeading) {
         console.warn("updateYourTasksHeading: Heading element not found.");
         return;
     }
-    // Check if the Kanban feature is enabled and the current mode is 'kanban'
     if (currentTaskViewMode === 'kanban' && featureFlags.kanbanBoardFeature) {
-        // Set heading text for the Kanban board view
-        yourTasksHeading.textContent = 'Kanban Board'; // Or 'Scrum Board' if preferred
+        yourTasksHeading.textContent = 'Kanban Board';
+    } else if (currentFilter.startsWith('project_')) { // New: Update heading for project filter
+         const projectId = parseInt(currentFilter.split('_')[1]);
+         const project = projects.find(p => p.id === projectId);
+         yourTasksHeading.textContent = project ? `Project: ${project.name}` : 'Unknown Project Tasks';
     } else {
-        // Set heading text for the list view
-        yourTasksHeading.textContent = 'Your Tasks';
+        // Existing logic for other filters (Inbox, Today, etc.)
+        const filterText = currentFilter.charAt(0).toUpperCase() + currentFilter.slice(1);
+        yourTasksHeading.textContent = `${filterText} Tasks`; // Or keep as 'Your Tasks' if preferred
     }
 }
 
@@ -866,5 +882,36 @@ function styleInitialSmartViewButtons() {
         console.warn("styleInitialSmartViewButtons: smartViewButtons NodeList is null, empty or not yet initialized.");
     }
 }
+
+// --- Modal Interaction Dependencies ---
+// Functions like openViewTaskDetailsModal, openViewEditModal are defined in modal_interactions.js
+// They need to be updated to handle project data population.
+
+// Example of how openViewTaskDetailsModal in modal_interactions.js should be updated:
+/*
+function openViewTaskDetailsModal(taskId) {
+    // ... existing code to find task ...
+    if (!task) return;
+    currentViewTaskId = taskId;
+
+    // ... existing code to populate text, due date, time, etc. ...
+
+    // New: Populate Project Name
+    if (featureFlags.projectFeature && viewTaskProject) {
+        const project = projects.find(p => p.id === task.projectId);
+        viewTaskProject.textContent = project && project.id !== 0 ? project.name : 'None';
+        // Ensure the parent element is visible if the feature is on
+        const projectSection = viewTaskProject.closest('.project-feature-element');
+        if (projectSection) {
+            projectSection.classList.toggle('hidden', !featureFlags.projectFeature);
+        }
+    } else if (viewTaskProject) {
+         const projectSection = viewTaskProject.closest('.project-feature-element');
+         if (projectSection) projectSection.classList.add('hidden');
+    }
+
+    // ... rest of the function ...
+}
+*/
 
 console.log("ui_rendering.js parsed. initializeDOMElements is now defined.");
