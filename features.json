@@ -11,5 +11,5 @@
   "tooltipsGuide": true,
   "subTasksFeature": false,
   "kanbanBoardFeature": false,
-  "projectFeature": true
+  "projectFeature": false
 }
