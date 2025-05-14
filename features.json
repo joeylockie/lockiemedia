@@ -12,5 +12,5 @@
   "subTasksFeature": false,
   "kanbanBoardFeature": false,
   "projectFeature": false,
-  "exportDataFeature": true
+  "exportDataFeature": false
 }
