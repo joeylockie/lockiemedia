@@ -42,11 +42,13 @@ function populateFeatureFlagsModal() {
         kanbanBoardFeature: "Kanban Board View",
         projectFeature: "Projects Feature",
         exportDataFeature: "Export Data Feature",
-        calendarViewFeature: "Calendar View" // New: Calendar View friendly name
+        calendarViewFeature: "Calendar View",
+        taskDependenciesFeature: "Task Dependencies (Soon)" // New: Task Dependencies friendly name
     };
     const featureOrder = [
-        'projectFeature', 'kanbanBoardFeature', 'calendarViewFeature', // New: Added calendarViewFeature to the order
-        'subTasksFeature', 'taskTimerSystem', 'reminderFeature',
+        'projectFeature', 'kanbanBoardFeature', 'calendarViewFeature',
+        'subTasksFeature', 'taskDependenciesFeature', // New: Added taskDependenciesFeature to the order
+        'taskTimerSystem', 'reminderFeature',
         'tooltipsGuide', 'exportDataFeature',
         'testButtonFeature', 'advancedRecurrence', 'fileAttachments',
         'integrationsServices', 'userAccounts', 'collaborationSharing', 'crossDeviceSync'
@@ -135,17 +137,19 @@ function applyActiveFeatures() {
         toggleElements('.export-data-feature-element', featureFlags.exportDataFeature);
     }
 
-    // New: Calendar View Feature UI
-    // Assuming a button with id 'calendarViewToggleBtn' and elements with class '.calendar-view-feature-element'
+    // Calendar View Feature UI
     const calendarViewToggleBtn = document.getElementById('calendarViewToggleBtn');
     if (calendarViewToggleBtn) calendarViewToggleBtn.classList.toggle('hidden', !featureFlags.calendarViewFeature);
     toggleElements('.calendar-view-feature-element', featureFlags.calendarViewFeature);
-    // If a dedicated CalendarView module exists, call its UI update function:
-    // if (window.AppFeatures?.CalendarView?.updateUIVisibility) window.AppFeatures.CalendarView.updateUIVisibility(featureFlags.calendarViewFeature);
-
     if (!featureFlags.calendarViewFeature && currentTaskViewMode === 'calendar') {
-        setTaskViewMode('list'); // Switch to list if Calendar is disabled while active
+        setTaskViewMode('list');
     }
+
+    // New: Task Dependencies Feature UI
+    // Add a class like '.task-dependencies-feature-element' to HTML elements related to this feature.
+    toggleElements('.task-dependencies-feature-element', featureFlags.taskDependenciesFeature);
+    // If a dedicated TaskDependencies module exists, call its UI update function:
+    // if (window.AppFeatures?.TaskDependencies?.updateUIVisibility) window.AppFeatures.TaskDependencies.updateUIVisibility(featureFlags.taskDependenciesFeature);
 
 
     refreshTaskView(); // This should handle rendering the correct view (list, kanban, or eventually calendar)
@@ -156,7 +160,6 @@ function applyActiveFeatures() {
 }
 
 // --- Event Handlers (handleAddTask, handleEditTask, etc. remain unchanged for this feature) ---
-// ... (Existing event handlers: handleAddTask, handleEditTask, toggleComplete, deleteTask, setFilter, clearCompletedTasks, handleAddNewLabel, handleDeleteLabel, sub-task handlers)
 
 function handleAddTask(event) {
     event.preventDefault();
@@ -206,7 +209,9 @@ function handleAddTask(event) {
     const subTasksToSave = featureFlags.subTasksFeature ? tempSubTasksForAddModal.map(st => ({ id: Date.now() + Math.random(), text: st.text, completed: st.completed, creationDate: Date.now() })) : [];
     const defaultKanbanColumn = kanbanColumns[0]?.id || 'todo';
     const newTask = {
-        id: Date.now(), text: finalTaskText, completed: false, creationDate: Date.now(), dueDate: finalDueDate || null, time: time || null, priority: priority, label: label || '', notes: notes || '', projectId: projectId, isReminderSet, reminderDate, reminderTime, reminderEmail, estimatedHours: estHours, estimatedMinutes: estMinutes, timerStartTime: null, timerAccumulatedTime: 0, timerIsRunning: false, timerIsPaused: false, actualDurationMs: 0, attachments: [], completedDate: null, subTasks: subTasksToSave, recurrenceRule: null, recurrenceEndDate: null, nextDueDate: finalDueDate || null, kanbanColumnId: defaultKanbanColumn
+        id: Date.now(), text: finalTaskText, completed: false, creationDate: Date.now(), dueDate: finalDueDate || null, time: time || null, priority: priority, label: label || '', notes: notes || '', projectId: projectId, isReminderSet, reminderDate, reminderTime, reminderEmail, estimatedHours: estHours, estimatedMinutes: estMinutes, timerStartTime: null, timerAccumulatedTime: 0, timerIsRunning: false, timerIsPaused: false, actualDurationMs: 0, attachments: [], completedDate: null, subTasks: subTasksToSave, recurrenceRule: null, recurrenceEndDate: null, nextDueDate: finalDueDate || null, kanbanColumnId: defaultKanbanColumn,
+        dependsOn: [], // New: Initialize for task dependencies
+        blocksTasks: [] // New: Initialize for task dependencies
     };
     tasks.unshift(newTask);
     saveTasks();
@@ -264,7 +269,11 @@ function handleEditTask(event) {
         modalTaskInputViewEdit.focus();
         return;
     }
-    tasks = tasks.map(task => task.id === taskId ? { ...task, text: taskText, dueDate: dueDate || null, time: time || null, priority: priority, label: label || '', notes: notes || '', projectId: projectId, isReminderSet, reminderDate, reminderTime, reminderEmail, estimatedHours: estHours, estimatedMinutes: estMinutes, attachments: task.attachments || [] } : task);
+    tasks = tasks.map(task => task.id === taskId ? { ...task, text: taskText, dueDate: dueDate || null, time: time || null, priority: priority, label: label || '', notes: notes || '', projectId: projectId, isReminderSet, reminderDate, reminderTime, reminderEmail, estimatedHours: estHours, estimatedMinutes: estMinutes, attachments: task.attachments || [],
+        // Preserve existing dependencies, UI for editing these will be added later
+        dependsOn: task.dependsOn || [],
+        blocksTasks: task.blocksTasks || []
+    } : task);
     saveTasks();
     refreshTaskView();
     closeViewEditModal();
@@ -280,8 +289,41 @@ function handleEditTask(event) {
 function toggleComplete(taskId) {
     const taskIndex = tasks.findIndex(t => t.id === taskId);
     if (taskIndex === -1) return;
+
+    const taskToToggle = tasks[taskIndex];
+
+    // Check for dependencies if the feature is enabled and we are marking as incomplete
+    if (featureFlags.taskDependenciesFeature && !taskToToggle.completed) {
+        // If we are trying to mark a task as NOT completed,
+        // and it blocks other tasks that are not yet completed, this is usually fine.
+        // However, if this task DEPENDS ON other tasks that are NOT completed,
+        // it shouldn't have been completable in the first place.
+        // For now, we allow toggling, but more complex logic might be needed.
+    }
+
+    // Check if completing this task is allowed (if it depends on incomplete tasks)
+    if (featureFlags.taskDependenciesFeature && !taskToToggle.completed) { // Trying to complete it
+        if (taskToToggle.dependsOn && taskToToggle.dependsOn.length > 0) {
+            const incompleteDependencies = taskToToggle.dependsOn.some(depId => {
+                const dependentTask = tasks.find(t => t.id === depId);
+                return dependentTask && !dependentTask.completed;
+            });
+            if (incompleteDependencies) {
+                const depTaskNames = taskToToggle.dependsOn
+                    .map(depId => tasks.find(t => t.id === depId)?.text)
+                    .filter(name => name)
+                    .join(', ');
+                showMessage(`Cannot complete this task. It depends on incomplete task(s): ${depTaskNames}.`, 'error');
+                refreshTaskView(); // Re-render to ensure checkbox state is correct
+                return; // Prevent completion
+            }
+        }
+    }
+
+
     tasks[taskIndex].completed = !tasks[taskIndex].completed;
     tasks[taskIndex].completedDate = tasks[taskIndex].completed ? Date.now() : null;
+
     if (tasks[taskIndex].completed && featureFlags.kanbanBoardFeature) {
         const doneColumn = kanbanColumns.find(col => col.id === 'done');
         if (doneColumn) tasks[taskIndex].kanbanColumnId = doneColumn.id;
@@ -298,6 +340,24 @@ function toggleComplete(taskId) {
          const task = tasks.find(t => t.id === taskId);
          if(task && window.AppFeatures.TaskTimerSystem.setupTimerForModal) window.AppFeatures.TaskTimerSystem.setupTimerForModal(task);
     }
+
+    // New: If a task is completed, check tasks that depend on it.
+    // This is a simple check; more complex UI updates (e.g., notifications) could be added.
+    if (featureFlags.taskDependenciesFeature && tasks[taskIndex].completed) {
+        tasks.forEach(potentialDependentTask => {
+            if (potentialDependentTask.dependsOn.includes(taskId)) {
+                // Check if all dependencies for potentialDependentTask are now met
+                const allDependenciesMet = potentialDependentTask.dependsOn.every(depId => {
+                    const depTask = tasks.find(t => t.id === depId);
+                    return depTask && depTask.completed;
+                });
+                if (allDependenciesMet) {
+                    console.log(`Task "${potentialDependentTask.text}" can now be started as its dependency "${tasks[taskIndex].text}" is complete.`);
+                    // Optionally, trigger a notification or UI highlight for potentialDependentTask
+                }
+            }
+        });
+    }
 }
 
 function deleteTask(taskId) {
@@ -305,6 +365,21 @@ function deleteTask(taskId) {
         window.AppFeatures.TaskTimerSystem.clearTimerOnModalClose();
     }
     tasks = tasks.filter(task => task.id !== taskId);
+
+    // New: Update dependencies if a task is deleted
+    if (featureFlags.taskDependenciesFeature) {
+        tasks.forEach(task => {
+            // Remove the deleted task from 'dependsOn' arrays
+            if (task.dependsOn.includes(taskId)) {
+                task.dependsOn = task.dependsOn.filter(id => id !== taskId);
+            }
+            // Remove the deleted task from 'blocksTasks' arrays (less critical as the blocker is gone)
+             if (task.blocksTasks.includes(taskId)) {
+                task.blocksTasks = task.blocksTasks.filter(id => id !== taskId);
+            }
+        });
+    }
+
     saveTasks();
     refreshTaskView();
     showMessage('Task deleted.', 'error');
@@ -359,7 +434,21 @@ function clearCompletedTasks() {
         showMessage('No completed tasks to clear.', 'error');
         return;
     }
-    tasks = tasks.filter(task => !task.completed);
+    const tasksToKeep = tasks.filter(task => !task.completed);
+    const clearedTaskIds = tasks.filter(task => task.completed).map(task => task.id);
+
+    tasks = tasksToKeep;
+
+    // New: Update dependencies if completed tasks are cleared
+    if (featureFlags.taskDependenciesFeature) {
+        tasks.forEach(task => {
+            // Remove cleared tasks from 'dependsOn' arrays
+            task.dependsOn = task.dependsOn.filter(id => !clearedTaskIds.includes(id));
+            // Remove cleared tasks from 'blocksTasks' arrays
+            task.blocksTasks = task.blocksTasks.filter(id => !clearedTaskIds.includes(id));
+        });
+    }
+
     saveTasks();
     refreshTaskView();
     showMessage(`${completedCount} completed task${completedCount > 1 ? 's' : ''} cleared.`, 'success');
@@ -473,7 +562,6 @@ function setupEventListeners() {
     if (settingsManageLabelsBtn) settingsManageLabelsBtn.addEventListener('click', () => { closeSettingsModal(); openManageLabelsModal(); });
     const settingsManageProjectsBtn = document.getElementById('settingsManageProjectsBtn');
     if (settingsManageProjectsBtn) settingsManageProjectsBtn.addEventListener('click', () => { if (featureFlags.projectFeature && window.AppFeatures?.Projects) { closeSettingsModal(); window.AppFeatures.Projects.openManageProjectsModal(); } else { showMessage('Enable Project Feature in Feature Flags.', 'error'); } });
-    // The Export button listener is set up in feature_data_management.js's initialize function.
     if (settingsManageRemindersBtn) { settingsManageRemindersBtn.addEventListener('click', () => { if(featureFlags.reminderFeature) { showMessage('Manage Reminders - Coming soon!', 'info'); } else { showMessage('Enable Reminder System in Feature Flags.', 'error'); }});}
     if (settingsTaskReviewBtn) { settingsTaskReviewBtn.addEventListener('click', () => { closeSettingsModal(); openTaskReviewModal(); });}
     if (settingsTooltipsGuideBtn) { settingsTooltipsGuideBtn.addEventListener('click', () => {closeSettingsModal(); openTooltipsGuideModal(); }); }
@@ -526,7 +614,6 @@ function setupEventListeners() {
 
     // View Toggle Buttons (Kanban, Calendar)
     if (kanbanViewToggleBtn) kanbanViewToggleBtn.addEventListener('click', () => { if (!featureFlags.kanbanBoardFeature) return; if (currentTaskViewMode === 'list') setTaskViewMode('kanban'); else setTaskViewMode('list'); refreshTaskView(); });
-    // New: Calendar View Toggle Button Listener (Placeholder for now, button needs to be added to HTML)
     const calendarViewToggleBtn = document.getElementById('calendarViewToggleBtn');
     if (calendarViewToggleBtn) {
         calendarViewToggleBtn.addEventListener('click', () => {
@@ -534,7 +621,7 @@ function setupEventListeners() {
             if (currentTaskViewMode !== 'calendar') {
                 setTaskViewMode('calendar');
             } else {
-                setTaskViewMode('list'); // Or back to previous view if more complex logic is desired
+                setTaskViewMode('list');
             }
             refreshTaskView();
         });
@@ -568,50 +655,44 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (typeof initializeDOMElements === 'function') initializeDOMElements(); else console.error("initializeDOMElements function is not defined! Check script load order and ui_rendering.js.");
 
-    await loadFeatureFlags(); // Loads flags from JSON and localStorage
-    initializeTasks();    // Initializes task array with defaults and structure
-    updateUniqueLabels(); // Populates uniqueLabels from tasks
-    loadKanbanColumns();  // Loads or initializes Kanban column titles
+    await loadFeatureFlags(); 
+    initializeTasks();    
+    updateUniqueLabels(); 
+    loadKanbanColumns();  
     if (typeof loadProjects === 'function') loadProjects(); else console.error("loadProjects function is not defined in app_logic.js!");
 
-    populateDatalist(existingLabelsDatalist);    // Populate label datalist for Add modal
-    populateDatalist(existingLabelsEditDatalist); // Populate label datalist for Edit modal
+    populateDatalist(existingLabelsDatalist);    
+    populateDatalist(existingLabelsEditDatalist); 
 
-    // Initialize core features and their UI components
     if (window.AppFeatures) {
         if (window.AppFeatures.initializeTestButtonFeature) window.AppFeatures.initializeTestButtonFeature();
         if (window.AppFeatures.TaskTimerSystem?.initialize) window.AppFeatures.TaskTimerSystem.initialize();
         if (window.AppFeatures.initializeReminderFeature) window.AppFeatures.initializeReminderFeature();
-        // Kanban and Projects initialization might depend on their flags being true initially,
-        // or they can initialize their core logic and let applyActiveFeatures handle UI.
-        // For now, let's assume they initialize regardless of the flag and applyActiveFeatures controls visibility.
         if (window.AppFeatures.KanbanBoard?.initialize) window.AppFeatures.KanbanBoard.initialize();
         if (window.AppFeatures.Projects?.initialize) { console.log("[OnInit] Initializing Project Feature Module..."); window.AppFeatures.Projects.initialize(); }
         if (window.AppFeatures.DataManagement?.initialize) { console.log("[OnInit] Initializing Data Management Feature Module..."); window.AppFeatures.DataManagement.initialize(); }
-        // New: Initialize Calendar View Feature (placeholder)
-        // if (window.AppFeatures.CalendarView?.initialize) {
-        //     console.log("[OnInit] Initializing Calendar View Feature Module...");
-        //     window.AppFeatures.CalendarView.initialize();
+        // New: Initialize Task Dependencies Feature (placeholder for now)
+        // if (window.AppFeatures.TaskDependencies?.initialize) {
+        //     console.log("[OnInit] Initializing Task Dependencies Feature Module...");
+        //     window.AppFeatures.TaskDependencies.initialize();
         // }
     }
 
-    applyActiveFeatures(); // This applies visibility based on flags, should be after all inits
+    applyActiveFeatures(); 
 
     if (typeof styleInitialSmartViewButtons === 'function') styleInitialSmartViewButtons(); else console.warn("styleInitialSmartViewButtons function not found in ui_rendering.js");
 
     const savedSidebarState = localStorage.getItem('sidebarState');
     if (savedSidebarState === 'minimized') setSidebarMinimized(true); else setSidebarMinimized(false);
 
-    // Populate dynamic UI parts that depend on data and features
     if (featureFlags.projectFeature && window.AppFeatures?.Projects?.populateProjectFilterList) window.AppFeatures.Projects.populateProjectFilterList();
     if (featureFlags.projectFeature && window.AppFeatures?.Projects?.populateProjectDropdowns) window.AppFeatures.Projects.populateProjectDropdowns();
 
-    // Set initial filter and render tasks
     if (typeof setFilter === 'function') setFilter(currentFilter); else { console.error("setFilter function is not defined when called!"); refreshTaskView(); }
 
     updateSortButtonStates();
     updateClearCompletedButtonState();
 
-    setupEventListeners(); // Setup all event listeners for UI interactions
+    setupEventListeners(); 
     console.log("Todo App Initialized (after DOMContentLoaded).");
 });

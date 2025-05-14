@@ -5,7 +5,8 @@
 // 'currentViewTaskId', 'uniqueLabels', 'projects', 'modalProjectSelectAdd', 'modalProjectSelectViewEdit', 'viewTaskProject')
 // are defined and managed in other JavaScript files (e.g., app_logic.js and ui_rendering.js).
 // Helper functions like 'formatDate', 'formatTime', 'formatDuration', 'showMessage', 'populateDatalist',
-// 'renderSubTasksForEditModal', 'renderSubTasksForViewModal', 'renderTempSubTasksForAddModal', 'handleDeleteLabel'
+// 'renderSubTasksForEditModal', 'renderSubTasksForViewModal', 'renderTempSubTasksForAddModal', 'handleDeleteLabel',
+// 'renderTaskDependenciesForViewModal' (new)
 // are also assumed to be globally available or imported if using a module system.
 // Project-specific functions like 'populateProjectDropdowns' are expected via window.AppFeatures.Projects.
 
@@ -62,6 +63,11 @@ function openAddModal() {
     if (featureFlags.subTasksFeature && modalSubTasksListAdd) {
         renderTempSubTasksForAddModal(); // Clear and display "no sub-tasks" message
         if(modalSubTaskInputAdd) modalSubTaskInputAdd.value = '';
+    }
+
+    // New: Hide Task Dependencies section in Add Modal if feature is off (already handled by class but good for explicit control)
+    if (taskDependenciesSectionAdd) { // taskDependenciesSectionAdd from ui_rendering.js
+        taskDependenciesSectionAdd.classList.toggle('hidden', !featureFlags.taskDependenciesFeature);
     }
 }
 
@@ -146,6 +152,14 @@ function openViewEditModal(taskId) {
         if(modalSubTaskInputViewEdit) modalSubTaskInputViewEdit.value = '';
     }
 
+    // New: Hide Task Dependencies section in Edit Modal if feature is off (already handled by class but good for explicit control)
+    if (taskDependenciesSectionViewEdit) { // taskDependenciesSectionViewEdit from ui_rendering.js
+        taskDependenciesSectionViewEdit.classList.toggle('hidden', !featureFlags.taskDependenciesFeature);
+        // Placeholder: Populate dependency selection UI here if feature is ON
+        // e.g., populateTaskDependencyPickers(task, 'ViewEdit');
+    }
+
+
     viewEditTaskModal.classList.remove('hidden');
     setTimeout(() => { 
         modalDialogViewEdit.classList.remove('scale-95', 'opacity-0');
@@ -192,7 +206,6 @@ function openViewTaskDetailsModal(taskId) {
     if(viewTaskStatus) viewTaskStatus.textContent = task.completed ? 'Completed' : 'Active';
     if(viewTaskLabel) viewTaskLabel.textContent = task.label || 'None';
     
-    // New: Populate Project Name in View Details Modal
     const projectSectionInView = viewTaskProject ? viewTaskProject.closest('.project-feature-element') : null;
     if (featureFlags.projectFeature && viewTaskProject) {
         const project = projects.find(p => p.id === task.projectId);
@@ -225,6 +238,19 @@ function openViewTaskDetailsModal(taskId) {
     if (featureFlags.subTasksFeature && modalSubTasksListViewDetails && viewSubTaskProgress && noSubTasksMessageViewDetails) {
         renderSubTasksForViewModal(taskId, modalSubTasksListViewDetails, viewSubTaskProgress, noSubTasksMessageViewDetails);
     }
+
+    // New: Render Task Dependencies
+    if (featureFlags.taskDependenciesFeature) {
+        if (typeof renderTaskDependenciesForViewModal === 'function') { // renderTaskDependenciesForViewModal from ui_rendering.js
+            renderTaskDependenciesForViewModal(task);
+        } else {
+            console.warn("renderTaskDependenciesForViewModal function not found. Task dependencies will not be displayed.");
+            if(viewTaskDependenciesSection) viewTaskDependenciesSection.classList.add('hidden'); // Ensure section is hidden if function is missing
+        }
+    } else {
+        if(viewTaskDependenciesSection) viewTaskDependenciesSection.classList.add('hidden'); // Hide if feature is off
+    }
+
 
     viewTaskDetailsModal.classList.remove('hidden');
     setTimeout(() => { 

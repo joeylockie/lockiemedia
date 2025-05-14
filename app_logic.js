@@ -28,8 +28,9 @@ let featureFlags = {
     subTasksFeature: false,
     kanbanBoardFeature: false,
     projectFeature: false,
-    exportDataFeature: false, // New: Export Data Feature flag
-    calendarViewFeature: false // New: Calendar View Feature flag
+    exportDataFeature: false,
+    calendarViewFeature: false,
+    taskDependenciesFeature: false // New: Task Dependencies Feature flag
 };
 
 let kanbanColumns = [
@@ -86,7 +87,7 @@ async function loadFeatureFlags() {
         'testButtonFeature', 'reminderFeature', 'taskTimerSystem', 'advancedRecurrence',
         'fileAttachments', 'integrationsServices', 'userAccounts', 'collaborationSharing',
         'crossDeviceSync', 'tooltipsGuide', 'subTasksFeature', 'kanbanBoardFeature',
-        'projectFeature', 'exportDataFeature', 'calendarViewFeature' // New: Added calendarViewFeature
+        'projectFeature', 'exportDataFeature', 'calendarViewFeature', 'taskDependenciesFeature' // New: Added taskDependenciesFeature
     ];
     allKnownFlagKeys.forEach(key => {
         if (typeof featureFlags[key] !== 'boolean') {
@@ -98,7 +99,8 @@ async function loadFeatureFlags() {
     console.log('[Flags] Final feature flags loaded:', JSON.parse(JSON.stringify(featureFlags)));
     console.log(`[Flags] Project Feature is: ${featureFlags.projectFeature}`);
     console.log(`[Flags] Export Data Feature is: ${featureFlags.exportDataFeature}`);
-    console.log(`[Flags] Calendar View Feature is: ${featureFlags.calendarViewFeature}`); // New: Log calendar feature status
+    console.log(`[Flags] Calendar View Feature is: ${featureFlags.calendarViewFeature}`);
+    console.log(`[Flags] Task Dependencies Feature is: ${featureFlags.taskDependenciesFeature}`); // New: Log task dependencies feature status
 }
 
 
@@ -195,7 +197,9 @@ function initializeTasks() {
         lastSynced: task.lastSynced || null,
         syncVersion: task.syncVersion || 0,
         kanbanColumnId: task.kanbanColumnId || defaultKanbanColumn,
-        projectId: task.projectId || null
+        projectId: task.projectId || null,
+        dependsOn: task.dependsOn || [], // New: IDs of tasks this task depends on
+        blocksTasks: task.blocksTasks || []  // New: IDs of tasks this task blocks
     }));
 }
 

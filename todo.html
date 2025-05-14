@@ -123,6 +123,23 @@
                     <label for="modalNotesInputAdd" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Notes</label>
                     <textarea id="modalNotesInputAdd" placeholder="Add any relevant notes..." rows="3" class="w-full p-3 border-2 bg-white text-slate-900 placeholder-slate-400 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-shadow duration-300 dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-400 dark:border-slate-600"></textarea>
                 </div>
+                <div id="taskDependenciesSectionAdd" class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 task-dependencies-feature-element">
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Task Dependencies (Coming Soon)</label>
+                    <div class="space-y-3">
+                        <div>
+                            <label for="dependsOnContainerAdd" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Depends On (Prerequisites):</label>
+                            <div id="dependsOnContainerAdd" class="p-3 bg-slate-100 dark:bg-slate-700 rounded-lg text-slate-500 dark:text-slate-400 text-center text-sm">
+                                Select tasks that must be completed before this one.
+                            </div>
+                        </div>
+                        <div>
+                            <label for="blocksTasksContainerAdd" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Blocks Tasks:</label>
+                            <div id="blocksTasksContainerAdd" class="p-3 bg-slate-100 dark:bg-slate-700 rounded-lg text-slate-500 dark:text-slate-400 text-center text-sm">
+                                Select tasks that cannot start until this one is done.
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="mt-6 flex justify-end gap-3">
                     <button type="button" id="cancelAddModalBtn" class="px-5 py-2.5 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500 transition-colors font-medium">Cancel</button>
                     <button type="submit" class="px-5 py-2.5 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors font-semibold">Save Task</button>
@@ -233,6 +250,23 @@
                     <label for="modalNotesInputViewEdit" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Notes</label>
                     <textarea id="modalNotesInputViewEdit" placeholder="Add any relevant notes..." rows="3" class="w-full p-3 border-2 bg-white text-slate-900 placeholder-slate-400 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-shadow duration-300 dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-400 dark:border-slate-600"></textarea>
                 </div>
+                <div id="taskDependenciesSectionViewEdit" class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 task-dependencies-feature-element">
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Task Dependencies (Coming Soon)</label>
+                    <div class="space-y-3">
+                        <div>
+                            <label for="dependsOnContainerViewEdit" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Depends On (Prerequisites):</label>
+                            <div id="dependsOnContainerViewEdit" class="p-3 bg-slate-100 dark:bg-slate-700 rounded-lg text-slate-500 dark:text-slate-400 text-center text-sm">
+                                Select tasks that must be completed before this one.
+                            </div>
+                        </div>
+                        <div>
+                            <label for="blocksTasksContainerViewEdit" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Blocks Tasks:</label>
+                            <div id="blocksTasksContainerViewEdit" class="p-3 bg-slate-100 dark:bg-slate-700 rounded-lg text-slate-500 dark:text-slate-400 text-center text-sm">
+                                Select tasks that cannot start until this one is done.
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="mt-6 flex justify-end gap-3">
                     <button type="button" id="cancelViewEditModalBtn" class="px-5 py-2.5 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500 transition-colors font-medium">Cancel</button>
                     <button type="submit" class="px-5 py-2.5 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors font-semibold">Save Changes</button>
@@ -316,6 +350,22 @@
                 <div>
                     <strong class="view-details-heading block mb-0.5">Notes:</strong>
                     <p id="viewTaskNotes" class="mt-1 break-all whitespace-pre-wrap"></p>
+                </div>
+                <div id="viewTaskDependenciesSection" class="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 task-dependencies-feature-element">
+                    <div class="space-y-2">
+                        <div>
+                            <strong class="view-details-heading block mb-0.5">Depends On (Prerequisites):</strong>
+                            <ul id="viewTaskDependsOnList" class="list-disc list-inside pl-2 text-slate-600 dark:text-slate-400">
+                                <li class="italic">None</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <strong class="view-details-heading block mb-0.5">Blocks Tasks:</strong>
+                            <ul id="viewTaskBlocksTasksList" class="list-disc list-inside pl-2 text-slate-600 dark:text-slate-400">
+                                <li class="italic">None</li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
                 <div id="viewTaskReminderSection" class="border-t border-slate-200 dark:border-slate-700 pt-3 mt-3 space-y-2 reminder-feature-element">
                     <div>
@@ -625,10 +675,12 @@
     <script src="feature_advanced_recurrence.js"></script>
     <script src="feature_file_attachments.js"></script>
     <script src="feature_integrations_services.js"></script>
-    <script src="task_timer_system.js"></script> <script src="feature_kanban_board.js"></script>
+    <script src="task_timer_system.js"></script>
+    <script src="feature_kanban_board.js"></script>
     <script src="feature_projects.js"></script>
     <script src="feature_data_management.js"></script>
-    <script src="feature_calendar_view.js"></script> <script src="ui_rendering.js"></script>
+    <script src="feature_calendar_view.js"></script>
+    <script src="feature_task_dependencies.js"></script> <script src="ui_rendering.js"></script>
     <script src="ui_event_handlers.js"></script>
 </body>
 </html>
