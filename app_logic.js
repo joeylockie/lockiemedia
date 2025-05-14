@@ -27,7 +27,8 @@ let featureFlags = {
     tooltipsGuide: false,
     subTasksFeature: false,
     kanbanBoardFeature: false,
-    projectFeature: false // Project feature flag
+    projectFeature: false,
+    exportDataFeature: false // New: Export Data Feature flag
 };
 
 let kanbanColumns = [
@@ -84,7 +85,7 @@ async function loadFeatureFlags() {
         'testButtonFeature', 'reminderFeature', 'taskTimerSystem', 'advancedRecurrence',
         'fileAttachments', 'integrationsServices', 'userAccounts', 'collaborationSharing',
         'crossDeviceSync', 'tooltipsGuide', 'subTasksFeature', 'kanbanBoardFeature',
-        'projectFeature' // Added projectFeature
+        'projectFeature', 'exportDataFeature' // New: Added exportDataFeature
     ];
     allKnownFlagKeys.forEach(key => {
         if (typeof featureFlags[key] !== 'boolean') {
@@ -95,6 +96,7 @@ async function loadFeatureFlags() {
 
     console.log('[Flags] Final feature flags loaded:', JSON.parse(JSON.stringify(featureFlags)));
     console.log(`[Flags] Project Feature is: ${featureFlags.projectFeature}`);
+    console.log(`[Flags] Export Data Feature is: ${featureFlags.exportDataFeature}`); // New: Log export feature status
 }
 
 
@@ -103,11 +105,22 @@ function getTodayDateString() { return new Date().toISOString().split('T')[0]; }
 function getDateString(date) { return date.toISOString().split('T')[0]; }
 function formatDate(dateString) {
     if (!dateString) return '';
-    const dateParts = dateString.split('-');
-    const year = parseInt(dateParts[0]);
-    const month = parseInt(dateParts[1]) - 1;
-    const day = parseInt(dateParts[2]);
-    const date = new Date(Date.UTC(year, month, day));
+    // Handles both Date objects and ISO string dates (timestamps)
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) { // Check if date is valid
+        // Try parsing as YYYY-MM-DD if it's just a string
+        const parts = dateString.split('-');
+        if (parts.length === 3) {
+            const year = parseInt(parts[0]);
+            const month = parseInt(parts[1]) - 1; // Month is 0-indexed
+            const day = parseInt(parts[2]);
+            const utcDate = new Date(Date.UTC(year, month, day));
+            if (!isNaN(utcDate.getTime())) {
+                 return utcDate.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
+            }
+        }
+        return 'Invalid Date'; // Fallback for unparseable strings
+    }
     return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
 }
 function formatTime(timeString) {
@@ -144,7 +157,6 @@ function formatMillisecondsToHMS(ms) {
 function saveTasks() {
     localStorage.setItem('todos_v3', JSON.stringify(tasks));
     updateUniqueLabels();
-    // updateUniqueProjects(); // Called by saveProjects() when projects are actually modified
 }
 
 function initializeTasks() {
@@ -181,7 +193,7 @@ function initializeTasks() {
         lastSynced: task.lastSynced || null,
         syncVersion: task.syncVersion || 0,
         kanbanColumnId: task.kanbanColumnId || defaultKanbanColumn,
-        projectId: task.projectId || null // Initialize projectId for tasks
+        projectId: task.projectId || null
     }));
 }
 
@@ -205,20 +217,12 @@ function updateUniqueLabels() {
 }
 
 // --- Project Data Functions ---
-/**
- * Saves the current projects array to localStorage.
- */
 function saveProjects() {
     localStorage.setItem('projects_v1', JSON.stringify(projects));
-    updateUniqueProjects(); 
+    updateUniqueProjects();
     console.log('[Projects] Projects saved to localStorage:', projects);
 }
 
-/**
- * Loads projects from localStorage.
- * Initializes with a default "No Project" if none exist or if data is invalid.
- * This function is typically called once at application startup.
- */
 function loadProjects() {
     const storedProjects = localStorage.getItem('projects_v1');
     if (storedProjects) {
@@ -227,14 +231,12 @@ function loadProjects() {
             if (Array.isArray(parsedProjects) && parsedProjects.every(p => p && typeof p.id === 'number' && typeof p.name === 'string')) {
                 projects = parsedProjects;
                 console.log('[Projects] Loaded projects from localStorage:', projects);
-                // Ensure "No Project" (ID 0) exists if not loaded, or create if projects array is empty from valid parse
                 if (!projects.find(p => p.id === 0)) {
-                    projects.unshift({ id: 0, name: "No Project", creationDate: Date.now() -1 }); // Add it if missing
+                    projects.unshift({ id: 0, name: "No Project", creationDate: Date.now() -1 });
                 }
             } else {
                 console.warn("[Projects] Stored projects data is invalid. Initializing with default.");
-                projects = [{ id: 0, name: "No Project", creationDate: Date.now() }]; 
-                // saveProjects(); // No, saveProjects will be called if user adds one. This just sets default.
+                projects = [{ id: 0, name: "No Project", creationDate: Date.now() }];
             }
         } catch (e) {
             console.error("[Projects] Error parsing stored projects. Initializing with default.", e);
@@ -244,29 +246,22 @@ function loadProjects() {
         console.log('[Projects] No stored projects found. Initializing with default "No Project".');
         projects = [{ id: 0, name: "No Project", creationDate: Date.now() }];
     }
-    // If after loading, "No Project" is still not the first or doesn't exist, ensure it.
-    // This is a safeguard, typically the above logic should handle it.
     if (!projects.length || projects[0].id !== 0 || !projects.find(p=>p.id ===0)) {
         const noProjIndex = projects.findIndex(p => p.id === 0);
-        if (noProjIndex > -1) { // if "No Project" exists but not first
+        if (noProjIndex > -1) {
             const noProj = projects.splice(noProjIndex, 1)[0];
             projects.unshift(noProj);
-        } else { // if "No Project" is entirely missing
+        } else {
             projects.unshift({ id: 0, name: "No Project", creationDate: Date.now() -1 });
         }
     }
-    updateUniqueProjects(); // This will sort uniqueProjects excluding "No Project"
+    updateUniqueProjects();
 }
 
-
-/**
- * Updates the uniqueProjects array based on the current projects.
- * This is used for populating dropdowns or selection lists.
- */
 function updateUniqueProjects() {
     uniqueProjects = projects
-        .filter(project => project.id !== 0) 
-        .map(project => ({ id: project.id, name: project.name })) 
+        .filter(project => project.id !== 0)
+        .map(project => ({ id: project.id, name: project.name }))
         .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
     console.log('[Projects] Unique projects updated for UI:', uniqueProjects);
 }
@@ -314,10 +309,10 @@ function parseDateFromText(text) {
             const currentDayIndex = today.getDay();
             let daysToAdd = targetDayIndex - currentDayIndex;
 
-            if (match[1]) { 
+            if (match[1]) {
                 daysToAdd = (daysToAdd <= 0 ? daysToAdd + 7 : daysToAdd);
-            } else { 
-                if (daysToAdd < 0) daysToAdd += 7; 
+            } else {
+                if (daysToAdd < 0) daysToAdd += 7;
             }
             const targetDate = new Date(today);
             targetDate.setDate(today.getDate() + daysToAdd);
@@ -325,8 +320,8 @@ function parseDateFromText(text) {
         }},
         { regex: /\b(next week)\b/i, handler: () => {
             const nextWeek = new Date(today);
-            const dayOffset = (today.getDay() === 0 ? -6 : 1); 
-            nextWeek.setDate(today.getDate() - today.getDay() + dayOffset + 7); 
+            const dayOffset = (today.getDay() === 0 ? -6 : 1);
+            nextWeek.setDate(today.getDate() - today.getDay() + dayOffset + 7);
             return getDateString(nextWeek);
         }},
         { regex: /\b(next month)\b/i, handler: () => {
@@ -355,7 +350,7 @@ function parseDateFromText(text) {
     ];
 
     for (const pattern of patterns) {
-        const regex = new RegExp(pattern.regex.source, pattern.regex.flags.replace('g', '')); 
+        const regex = new RegExp(pattern.regex.source, pattern.regex.flags.replace('g', ''));
         const match = regex.exec(remainingText);
         if (match) {
             const potentialDate = pattern.handler(match);
@@ -368,7 +363,7 @@ function parseDateFromText(text) {
                 if (afterMatchIndex === remainingText.length || /[\s,.?!]/.test(charAfterMatch || '')) {
                     parsedDate = potentialDate;
                     remainingText = tempRemainingText.replace(/\s\s+/g, ' ').trim();
-                    break; 
+                    break;
                 }
             }
         }
@@ -387,7 +382,7 @@ function setTaskViewMode(mode) {
 // --- Filtering and sorting state management ---
 function setAppCurrentFilter(filter) {
     currentFilter = filter;
-    currentSort = 'default'; 
+    currentSort = 'default';
 }
 
 function setAppCurrentSort(sortType) {
@@ -435,11 +430,11 @@ function loadKanbanColumns() {
                 console.log('[Kanban] Loaded column titles from localStorage:', kanbanColumns);
             } else {
                  console.warn("[Kanban] Stored Kanban columns are invalid. Using defaults and saving them.");
-                 saveKanbanColumns(); 
+                 saveKanbanColumns();
             }
         } catch (e) {
             console.error("[Kanban] Error parsing stored Kanban columns. Using defaults and saving them.", e);
-            saveKanbanColumns(); 
+            saveKanbanColumns();
         }
     } else {
         console.log('[Kanban] No stored Kanban columns found. Saving defaults.');
@@ -447,5 +442,23 @@ function loadKanbanColumns() {
     }
 }
 
-// --- Placeholder for other feature logic sections (Sub-tasks, etc.) ---
-// ... (Reminder, Task Timer, Test Button, etc. logic remains here)
+// --- Data Management Functions (Export/Import) ---
+/**
+ * Prepares all application data for export.
+ * This function itself doesn't trigger download but returns the data object.
+ * The actual download will be handled by a feature module.
+ * @returns {object} An object containing all data to be exported.
+ */
+function prepareDataForExport() {
+    return {
+        version: "1.0.0", // Version of the export format
+        exportDate: new Date().toISOString(),
+        data: {
+            tasks: tasks,
+            projects: projects,
+            kanbanColumns: kanbanColumns,
+            featureFlags: featureFlags // Optional: export current feature flag settings
+            // You could add other settings here like currentFilter, currentSort if desired
+        }
+    };
+}
