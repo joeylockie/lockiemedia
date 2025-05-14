@@ -41,12 +41,13 @@ function populateFeatureFlagsModal() {
         subTasksFeature: "Sub-tasks",
         kanbanBoardFeature: "Kanban Board View",
         projectFeature: "Projects Feature",
-        exportDataFeature: "Export Data Feature" // New: Export Data friendly name
+        exportDataFeature: "Export Data Feature",
+        calendarViewFeature: "Calendar View" // New: Calendar View friendly name
     };
     const featureOrder = [
-        'projectFeature',
-        'kanbanBoardFeature', 'subTasksFeature', 'taskTimerSystem', 'reminderFeature',
-        'tooltipsGuide', 'exportDataFeature', // New: Added exportDataFeature to the order
+        'projectFeature', 'kanbanBoardFeature', 'calendarViewFeature', // New: Added calendarViewFeature to the order
+        'subTasksFeature', 'taskTimerSystem', 'reminderFeature',
+        'tooltipsGuide', 'exportDataFeature',
         'testButtonFeature', 'advancedRecurrence', 'fileAttachments',
         'integrationsServices', 'userAccounts', 'collaborationSharing', 'crossDeviceSync'
     ];
@@ -69,20 +70,19 @@ function populateFeatureFlagsModal() {
                 featureFlags[key] = checkbox.checked;
                 console.log(`Feature ${key} toggled to ${featureFlags[key]}`);
                 localStorage.setItem('userFeatureFlags', JSON.stringify(featureFlags));
-                applyActiveFeatures();
-                if (key === 'kanbanBoardFeature') {
-                    if (!featureFlags.kanbanBoardFeature && currentTaskViewMode === 'kanban') {
-                        setTaskViewMode('list');
-                    }
-                    refreshTaskView();
+                applyActiveFeatures(); // This will handle UI updates including view mode changes
+
+                // Specific logic for view-changing features when they are disabled
+                if (key === 'kanbanBoardFeature' && !featureFlags.kanbanBoardFeature && currentTaskViewMode === 'kanban') {
+                    setTaskViewMode('list'); // Switch to list if Kanban is disabled while active
                 }
-                if (key === 'projectFeature') {
-                    if (!featureFlags.projectFeature && currentFilter.startsWith('project_')) {
-                        setFilter('inbox');
-                    }
-                    refreshTaskView();
+                if (key === 'calendarViewFeature' && !featureFlags.calendarViewFeature && currentTaskViewMode === 'calendar') {
+                    setTaskViewMode('list'); // Switch to list if Calendar is disabled while active
                 }
-                // No specific refresh needed for exportDataFeature on toggle, applyActiveFeatures handles UI.
+                if (key === 'projectFeature' && !featureFlags.projectFeature && currentFilter.startsWith('project_')) {
+                    setFilter('inbox'); // Reset filter if project feature is disabled
+                }
+                refreshTaskView(); // Refresh the view after any potential mode/filter change
             });
             const toggleLabel = document.createElement('label');
             toggleLabel.htmlFor = `toggle-${key}`;
@@ -100,16 +100,15 @@ function populateFeatureFlagsModal() {
  * Calls feature-specific UI update functions if available, otherwise directly manipulates DOM.
  */
 function applyActiveFeatures() {
-    console.log('[ApplyFeatures] Starting applyActiveFeatures. Export Flag:', featureFlags.exportDataFeature);
+    console.log('[ApplyFeatures] Starting applyActiveFeatures. Calendar Flag:', featureFlags.calendarViewFeature);
     const toggleElements = (selector, isEnabled) => {
         document.querySelectorAll(selector).forEach(el => el.classList.toggle('hidden', !isEnabled));
     };
 
-    // Existing feature toggles (condensed)
+    // Existing feature toggles
     if (window.AppFeatures?.updateTestButtonUIVisibility) window.AppFeatures.updateTestButtonUIVisibility(featureFlags.testButtonFeature); else if (testFeatureButtonContainer) testFeatureButtonContainer.classList.toggle('hidden', !featureFlags.testButtonFeature);
     if (window.AppFeatures?.TaskTimerSystem?.updateUIVisibility) window.AppFeatures.TaskTimerSystem.updateUIVisibility(featureFlags.taskTimerSystem); else { toggleElements('.task-timer-system-element', featureFlags.taskTimerSystem); if (settingsTaskReviewBtn) settingsTaskReviewBtn.classList.toggle('hidden', !featureFlags.taskTimerSystem); }
     if (window.AppFeatures?.updateReminderUIVisibility) window.AppFeatures.updateReminderUIVisibility(featureFlags.reminderFeature); else toggleElements('.reminder-feature-element', featureFlags.reminderFeature);
-    // ... (other existing feature toggles remain the same) ...
     toggleElements('.advanced-recurrence-element', featureFlags.advancedRecurrence);
     toggleElements('.file-attachments-element', featureFlags.fileAttachments);
     toggleElements('.integrations-services-element', featureFlags.integrationsServices);
@@ -120,26 +119,39 @@ function applyActiveFeatures() {
     toggleElements('.sub-tasks-feature-element', featureFlags.subTasksFeature);
     if (settingsTooltipsGuideBtn) settingsTooltipsGuideBtn.classList.toggle('hidden', !featureFlags.tooltipsGuide);
 
+    // Kanban Board UI
     if (kanbanViewToggleBtn) kanbanViewToggleBtn.classList.toggle('hidden', !featureFlags.kanbanBoardFeature);
     if (window.AppFeatures?.KanbanBoard?.updateUIVisibility) window.AppFeatures.KanbanBoard.updateUIVisibility(featureFlags.kanbanBoardFeature);
     if (!featureFlags.kanbanBoardFeature && currentTaskViewMode === 'kanban') setTaskViewMode('list');
 
+    // Project Feature UI
     if (window.AppFeatures?.Projects?.updateUIVisibility) window.AppFeatures.Projects.updateUIVisibility(featureFlags.projectFeature); else toggleElements('.project-feature-element', featureFlags.projectFeature);
     if (!featureFlags.projectFeature && currentFilter.startsWith('project_')) setFilter('inbox');
 
-    // New: Data Management Feature UI (Export Button)
+    // Data Management Feature UI
     if (window.AppFeatures?.DataManagement?.updateUIVisibility) {
-        window.AppFeatures.DataManagement.updateUIVisibility(featureFlags.exportDataFeature /*, featureFlags.importDataFeature */);
+        window.AppFeatures.DataManagement.updateUIVisibility(featureFlags.exportDataFeature);
     } else {
-        // Fallback if the data management feature module isn't fully loaded
         toggleElements('.export-data-feature-element', featureFlags.exportDataFeature);
-        // toggleElements('.import-data-feature-element', featureFlags.importDataFeature); // For future import
     }
 
-    refreshTaskView();
-    if (currentViewTaskId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) openViewTaskDetailsModal(currentViewTaskId);
+    // New: Calendar View Feature UI
+    // Assuming a button with id 'calendarViewToggleBtn' and elements with class '.calendar-view-feature-element'
+    const calendarViewToggleBtn = document.getElementById('calendarViewToggleBtn');
+    if (calendarViewToggleBtn) calendarViewToggleBtn.classList.toggle('hidden', !featureFlags.calendarViewFeature);
+    toggleElements('.calendar-view-feature-element', featureFlags.calendarViewFeature);
+    // If a dedicated CalendarView module exists, call its UI update function:
+    // if (window.AppFeatures?.CalendarView?.updateUIVisibility) window.AppFeatures.CalendarView.updateUIVisibility(featureFlags.calendarViewFeature);
+
+    if (!featureFlags.calendarViewFeature && currentTaskViewMode === 'calendar') {
+        setTaskViewMode('list'); // Switch to list if Calendar is disabled while active
+    }
+
+
+    refreshTaskView(); // This should handle rendering the correct view (list, kanban, or eventually calendar)
+    if (currentViewTaskId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) openViewTaskDetailsModal(currentViewTaskId); // Re-open view modal if it was open
     const featureFlagsModalElement = document.getElementById('featureFlagsModal');
-    if (featureFlagsModalElement && !featureFlagsModalElement.classList.contains('hidden')) populateFeatureFlagsModal();
+    if (featureFlagsModalElement && !featureFlagsModalElement.classList.contains('hidden')) populateFeatureFlagsModal(); // Refresh feature flags modal if open
     console.log('[ApplyFeatures] Finished applyActiveFeatures.');
 }
 
@@ -367,7 +379,7 @@ function handleAddNewLabel(event) {
     }
     uniqueLabels.push(labelName);
     uniqueLabels.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
-    saveTasks();
+    saveTasks(); // This calls updateUniqueLabels
     populateDatalist(existingLabelsDatalist);
     populateDatalist(existingLabelsEditDatalist);
     populateManageLabelsList();
@@ -382,11 +394,11 @@ function handleDeleteLabel(labelToDelete) {
         }
         return task;
     });
-    saveTasks();
-    populateManageLabelsList();
-    populateDatalist(existingLabelsDatalist);
+    saveTasks(); // This calls updateUniqueLabels
+    populateManageLabelsList(); // Re-renders the list in the manage labels modal
+    populateDatalist(existingLabelsDatalist); // Update datalists in add/edit modals
     populateDatalist(existingLabelsEditDatalist);
-    refreshTaskView();
+    refreshTaskView(); // Update the main task display
     showMessage(`Label "${labelToDelete}" deleted. Tasks using it have been unlabelled.`, 'success');
 }
 
@@ -398,14 +410,15 @@ function handleAddSubTaskViewEdit() {
         modalSubTaskInputViewEdit.focus();
         return;
     }
-    if (addSubTaskLogic(editingTaskId, subTaskText)) {
+    // Assuming addSubTaskLogic is globally available or part of AppFeatures.SubTasks
+    if (window.AppFeatures?.SubTasks?.addSubTaskLogic(editingTaskId, subTaskText)) {
         renderSubTasksForEditModal(editingTaskId, modalSubTasksListViewEdit);
         modalSubTaskInputViewEdit.value = '';
         showMessage('Sub-task added.', 'success');
         if (currentViewTaskId === editingTaskId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) {
             renderSubTasksForViewModal(editingTaskId, modalSubTasksListViewDetails, viewSubTaskProgress, noSubTasksMessageViewDetails);
         }
-        refreshTaskView();
+        refreshTaskView(); // To update main list if subtask count is shown there
     } else {
         showMessage('Failed to add sub-task.', 'error');
     }
@@ -427,7 +440,7 @@ function handleAddTempSubTaskForAddModal() {
 
 // --- Event Listeners Setup ---
 function setupEventListeners() {
-    // Modal Open/Close Listeners (condensed for brevity)
+    // Modal Open/Close Listeners
     if (openAddModalButton) openAddModalButton.addEventListener('click', () => { openAddModal(); if (featureFlags.projectFeature && window.AppFeatures?.Projects) window.AppFeatures.Projects.populateProjectDropdowns(); });
     if (closeAddModalBtn) closeAddModalBtn.addEventListener('click', closeAddModal);
     if (cancelAddModalBtn) cancelAddModalBtn.addEventListener('click', closeAddModal);
@@ -461,8 +474,6 @@ function setupEventListeners() {
     const settingsManageProjectsBtn = document.getElementById('settingsManageProjectsBtn');
     if (settingsManageProjectsBtn) settingsManageProjectsBtn.addEventListener('click', () => { if (featureFlags.projectFeature && window.AppFeatures?.Projects) { closeSettingsModal(); window.AppFeatures.Projects.openManageProjectsModal(); } else { showMessage('Enable Project Feature in Feature Flags.', 'error'); } });
     // The Export button listener is set up in feature_data_management.js's initialize function.
-
-    // ... (rest of existing settings button listeners, reminder toggles, smart view, search, sidebar, sort, sub-task, kanban toggle, keyboard shortcuts)
     if (settingsManageRemindersBtn) { settingsManageRemindersBtn.addEventListener('click', () => { if(featureFlags.reminderFeature) { showMessage('Manage Reminders - Coming soon!', 'info'); } else { showMessage('Enable Reminder System in Feature Flags.', 'error'); }});}
     if (settingsTaskReviewBtn) { settingsTaskReviewBtn.addEventListener('click', () => { closeSettingsModal(); openTaskReviewModal(); });}
     if (settingsTooltipsGuideBtn) { settingsTooltipsGuideBtn.addEventListener('click', () => {closeSettingsModal(); openTooltipsGuideModal(); }); }
@@ -472,14 +483,17 @@ function setupEventListeners() {
     if (settingsCollaborationBtn) settingsCollaborationBtn.addEventListener('click', () => nonFunctionalFeatureMessageHandler('Collaboration'));
     if (settingsSyncBackupBtn) settingsSyncBackupBtn.addEventListener('click', () => nonFunctionalFeatureMessageHandler('Sync & Backup'));
 
+    // Task Review Modal
     if (closeTaskReviewModalBtn) closeTaskReviewModalBtn.addEventListener('click', closeTaskReviewModal);
     if (closeTaskReviewSecondaryBtn) closeTaskReviewSecondaryBtn.addEventListener('click', closeTaskReviewModal);
     if (taskReviewModal) taskReviewModal.addEventListener('click', (event) => { if (event.target === taskReviewModal) closeTaskReviewModal(); });
 
+    // Tooltips Guide Modal
     if (closeTooltipsGuideModalBtn) closeTooltipsGuideModalBtn.addEventListener('click', closeTooltipsGuideModal);
     if (closeTooltipsGuideSecondaryBtn) closeTooltipsGuideSecondaryBtn.addEventListener('click', closeTooltipsGuideModal);
     if (tooltipsGuideModal) tooltipsGuideModal.addEventListener('click', (event) => { if (event.target === tooltipsGuideModal) closeTooltipsGuideModal(); });
 
+    // Feature Flags Modal
     const featureFlagsModalElement = document.getElementById('featureFlagsModal');
     const closeFeatureFlagsModalBtn = document.getElementById('closeFeatureFlagsModalBtn');
     const closeFeatureFlagsSecondaryBtn = document.getElementById('closeFeatureFlagsSecondaryBtn');
@@ -487,13 +501,16 @@ function setupEventListeners() {
     if (closeFeatureFlagsSecondaryBtn) closeFeatureFlagsSecondaryBtn.addEventListener('click', () => { document.getElementById('modalDialogFeatureFlags').classList.add('scale-95', 'opacity-0'); setTimeout(() => { if (featureFlagsModalElement) featureFlagsModalElement.classList.add('hidden'); }, 200); });
     if (featureFlagsModalElement) featureFlagsModalElement.addEventListener('click', (event) => { if (event.target === featureFlagsModalElement) { document.getElementById('modalDialogFeatureFlags').classList.add('scale-95', 'opacity-0'); setTimeout(() => featureFlagsModalElement.classList.add('hidden'), 200); } });
 
+    // Reminder Toggles in Modals
     if (modalRemindMeAdd) modalRemindMeAdd.addEventListener('change', () => { if(featureFlags.reminderFeature && reminderOptionsAdd) { reminderOptionsAdd.classList.toggle('hidden', !modalRemindMeAdd.checked); if (modalRemindMeAdd.checked) { if (modalDueDateInputAdd.value && !modalReminderDateAdd.value) modalReminderDateAdd.value = modalDueDateInputAdd.value; if (modalTimeInputAdd.value && !modalReminderTimeAdd.value) modalReminderTimeAdd.value = modalTimeInputAdd.value; const today = new Date().toISOString().split('T')[0]; modalReminderDateAdd.min = today; } } else if (reminderOptionsAdd) reminderOptionsAdd.classList.add('hidden'); });
     if (modalRemindMeViewEdit) modalRemindMeViewEdit.addEventListener('change', () => { if(featureFlags.reminderFeature && reminderOptionsViewEdit) { reminderOptionsViewEdit.classList.toggle('hidden', !modalRemindMeViewEdit.checked); if (modalRemindMeViewEdit.checked) { const today = new Date().toISOString().split('T')[0]; modalReminderDateViewEdit.min = today; } } else if (reminderOptionsViewEdit) reminderOptionsViewEdit.classList.add('hidden'); });
 
+    // Smart View & Project Filters
     if (smartViewButtonsContainer) smartViewButtonsContainer.addEventListener('click', (event) => { const button = event.target.closest('.smart-view-btn'); if (button && button.dataset.filter && !button.dataset.filter.startsWith('project_')) setFilter(button.dataset.filter); });
     const projectFilterContainer = document.getElementById('projectFilterContainer');
     if (projectFilterContainer) projectFilterContainer.addEventListener('click', (event) => { const button = event.target.closest('.smart-view-btn'); if (button && button.dataset.filter && button.dataset.filter.startsWith('project_')) setFilter(button.dataset.filter); });
 
+    // Search, Sidebar, Sort
     if (taskSearchInput) taskSearchInput.addEventListener('input', (event) => { setAppSearchTerm(event.target.value.trim().toLowerCase()); refreshTaskView(); });
     if (sidebarToggleBtn) sidebarToggleBtn.addEventListener('click', () => { const isCurrentlyMinimized = taskSidebar.classList.contains('sidebar-minimized'); setSidebarMinimized(!isCurrentlyMinimized); });
     if (sidebarIconOnlyButtons) sidebarIconOnlyButtons.forEach(button => { button.addEventListener('mouseenter', (event) => { if (!taskSidebar || !taskSidebar.classList.contains('sidebar-minimized')) return; clearTimeout(tooltipTimeout); tooltipTimeout = setTimeout(() => { const tooltipText = button.title || button.querySelector('.sidebar-text-content')?.textContent.trim(); if (tooltipText) showTooltip(event.currentTarget, tooltipText); }, 500); }); button.addEventListener('mouseleave', () => { hideTooltip(); }); });
@@ -501,12 +518,30 @@ function setupEventListeners() {
     if (sortByPriorityBtn) sortByPriorityBtn.addEventListener('click', () => { setAppCurrentSort(currentSort === 'priority' ? 'default' : 'priority'); updateSortButtonStates(); refreshTaskView(); });
     if (sortByLabelBtn) sortByLabelBtn.addEventListener('click', () => { setAppCurrentSort(currentSort === 'label' ? 'default' : 'label'); updateSortButtonStates(); refreshTaskView(); });
 
+    // Sub-task Add Buttons
     if (modalAddSubTaskBtnViewEdit) modalAddSubTaskBtnViewEdit.addEventListener('click', handleAddSubTaskViewEdit);
     if (modalSubTaskInputViewEdit) modalSubTaskInputViewEdit.addEventListener('keypress', (event) => { if (event.key === 'Enter') { event.preventDefault(); handleAddSubTaskViewEdit(); } });
     if (modalAddSubTaskBtnAdd) modalAddSubTaskBtnAdd.addEventListener('click', handleAddTempSubTaskForAddModal);
     if (modalSubTaskInputAdd) modalSubTaskInputAdd.addEventListener('keypress', (event) => { if (event.key === 'Enter') { event.preventDefault(); handleAddTempSubTaskForAddModal(); } });
 
+    // View Toggle Buttons (Kanban, Calendar)
     if (kanbanViewToggleBtn) kanbanViewToggleBtn.addEventListener('click', () => { if (!featureFlags.kanbanBoardFeature) return; if (currentTaskViewMode === 'list') setTaskViewMode('kanban'); else setTaskViewMode('list'); refreshTaskView(); });
+    // New: Calendar View Toggle Button Listener (Placeholder for now, button needs to be added to HTML)
+    const calendarViewToggleBtn = document.getElementById('calendarViewToggleBtn');
+    if (calendarViewToggleBtn) {
+        calendarViewToggleBtn.addEventListener('click', () => {
+            if (!featureFlags.calendarViewFeature) return;
+            if (currentTaskViewMode !== 'calendar') {
+                setTaskViewMode('calendar');
+            } else {
+                setTaskViewMode('list'); // Or back to previous view if more complex logic is desired
+            }
+            refreshTaskView();
+        });
+    }
+
+
+    // Keyboard Shortcuts
     document.addEventListener('keydown', (event) => {
         const isAddModalOpen = addTaskModal && !addTaskModal.classList.contains('hidden');
         const isViewEditModalOpen = viewEditTaskModal && !viewEditTaskModal.classList.contains('hidden');
@@ -533,33 +568,31 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (typeof initializeDOMElements === 'function') initializeDOMElements(); else console.error("initializeDOMElements function is not defined! Check script load order and ui_rendering.js.");
 
-    await loadFeatureFlags();
-    initializeTasks();
-    updateUniqueLabels();
-    loadKanbanColumns();
+    await loadFeatureFlags(); // Loads flags from JSON and localStorage
+    initializeTasks();    // Initializes task array with defaults and structure
+    updateUniqueLabels(); // Populates uniqueLabels from tasks
+    loadKanbanColumns();  // Loads or initializes Kanban column titles
     if (typeof loadProjects === 'function') loadProjects(); else console.error("loadProjects function is not defined in app_logic.js!");
 
-    populateDatalist(existingLabelsDatalist);
-    populateDatalist(existingLabelsEditDatalist);
+    populateDatalist(existingLabelsDatalist);    // Populate label datalist for Add modal
+    populateDatalist(existingLabelsEditDatalist); // Populate label datalist for Edit modal
 
-    // Initialize core features
+    // Initialize core features and their UI components
     if (window.AppFeatures) {
         if (window.AppFeatures.initializeTestButtonFeature) window.AppFeatures.initializeTestButtonFeature();
         if (window.AppFeatures.TaskTimerSystem?.initialize) window.AppFeatures.TaskTimerSystem.initialize();
         if (window.AppFeatures.initializeReminderFeature) window.AppFeatures.initializeReminderFeature();
-        if (featureFlags.kanbanBoardFeature && window.AppFeatures.KanbanBoard?.initialize) window.AppFeatures.KanbanBoard.initialize();
-        if (featureFlags.projectFeature && window.AppFeatures.Projects?.initialize) { console.log("[OnInit] Initializing Project Feature Module..."); window.AppFeatures.Projects.initialize(); } else { console.warn("[OnInit] Project Feature Module NOT Initialized. Details:", `Flag: ${featureFlags.projectFeature}`, `Module Exists: ${!!(window.AppFeatures?.Projects)}`, `Init Exists: ${!!(window.AppFeatures?.Projects?.initialize)}`); }
-
-        // New: Initialize Data Management Feature
-        if (window.AppFeatures.DataManagement?.initialize) {
-            console.log("[OnInit] Initializing Data Management Feature Module...");
-            window.AppFeatures.DataManagement.initialize();
-        } else {
-            console.warn("[OnInit] Data Management Feature Module NOT Initialized. Details:",
-                `Module Exists: ${!!(window.AppFeatures?.DataManagement)}`,
-                `Init Exists: ${!!(window.AppFeatures?.DataManagement?.initialize)}`
-            );
-        }
+        // Kanban and Projects initialization might depend on their flags being true initially,
+        // or they can initialize their core logic and let applyActiveFeatures handle UI.
+        // For now, let's assume they initialize regardless of the flag and applyActiveFeatures controls visibility.
+        if (window.AppFeatures.KanbanBoard?.initialize) window.AppFeatures.KanbanBoard.initialize();
+        if (window.AppFeatures.Projects?.initialize) { console.log("[OnInit] Initializing Project Feature Module..."); window.AppFeatures.Projects.initialize(); }
+        if (window.AppFeatures.DataManagement?.initialize) { console.log("[OnInit] Initializing Data Management Feature Module..."); window.AppFeatures.DataManagement.initialize(); }
+        // New: Initialize Calendar View Feature (placeholder)
+        // if (window.AppFeatures.CalendarView?.initialize) {
+        //     console.log("[OnInit] Initializing Calendar View Feature Module...");
+        //     window.AppFeatures.CalendarView.initialize();
+        // }
     }
 
     applyActiveFeatures(); // This applies visibility based on flags, should be after all inits
@@ -569,14 +602,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     const savedSidebarState = localStorage.getItem('sidebarState');
     if (savedSidebarState === 'minimized') setSidebarMinimized(true); else setSidebarMinimized(false);
 
+    // Populate dynamic UI parts that depend on data and features
     if (featureFlags.projectFeature && window.AppFeatures?.Projects?.populateProjectFilterList) window.AppFeatures.Projects.populateProjectFilterList();
     if (featureFlags.projectFeature && window.AppFeatures?.Projects?.populateProjectDropdowns) window.AppFeatures.Projects.populateProjectDropdowns();
 
+    // Set initial filter and render tasks
     if (typeof setFilter === 'function') setFilter(currentFilter); else { console.error("setFilter function is not defined when called!"); refreshTaskView(); }
 
     updateSortButtonStates();
     updateClearCompletedButtonState();
 
-    setupEventListeners();
+    setupEventListeners(); // Setup all event listeners for UI interactions
     console.log("Todo App Initialized (after DOMContentLoaded).");
 });

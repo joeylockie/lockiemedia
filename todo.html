@@ -197,7 +197,7 @@
                     </div>
                 </div>
                 <div id="reminderOptionsViewEdit" class="hidden mt-3 space-y-3 border-t border-slate-200 dark:border-slate-700 pt-3 reminder-feature-element">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label for="modalReminderDateViewEdit" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Reminder Date</label>
                             <input type="date" id="modalReminderDateViewEdit" class="w-full p-3 border-2 bg-white text-slate-900 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 dark:[color-scheme:dark]">
@@ -299,8 +299,7 @@
                         <p id="viewTaskStatus" class="capitalize"></p>
                     </div>
                 </div>
-                <div class="project-feature-element">
-                    <strong class="view-details-heading block mb-0.5">Project:</strong>
+                <div class="project-feature-element"> <strong class="view-details-heading block mb-0.5">Project:</strong>
                     <p id="viewTaskProject" class="capitalize"></p> </div>
                 <div>
                     <strong class="view-details-heading block mb-0.5">Label:</strong>
@@ -311,8 +310,7 @@
                         <strong class="view-details-heading">Sub-tasks:</strong>
                         <span id="viewSubTaskProgress" class="text-xs text-slate-500 dark:text-slate-400"></span>
                     </div>
-                    <ul id="modalSubTasksListViewDetails" class="space-y-1.5 max-h-32 overflow-y-auto text-sm">
-                        </ul>
+                    <ul id="modalSubTasksListViewDetails" class="space-y-1.5 max-h-32 overflow-y-auto text-sm"></ul>
                     <p id="noSubTasksMessageViewDetails" class="text-slate-500 dark:text-slate-400 text-xs hidden">No sub-tasks added.</p>
                 </div>
                 <div>
@@ -570,7 +568,8 @@
                             <i class="fas fa-cog mr-0"></i> <span class="sidebar-text-content ml-2">Settings</span>
                         </button>
                     </div>
-                    <div id="testFeatureButtonContainer" class="hidden mt-2"> <button
+                    <div id="testFeatureButtonContainer" class="hidden mt-2">
+                        <button
                             id="testFeatureButton"
                             title="Test Feature Button"
                             class="bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2.5 px-3 md:px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 ease-in-out transform hover:-translate-y-0.5 w-full flex items-center sidebar-button-icon-only justify-center"
@@ -585,6 +584,9 @@
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 md:mb-6">
                     <h2 id="yourTasksHeading" class="text-xl sm:text-2xl md:text-3xl font-semibold text-slate-800 dark:text-slate-100">Your Tasks</h2>
                     <div class="flex gap-2 mt-3 sm:mt-0 flex-wrap items-center">
+                        <button id="calendarViewToggleBtn" title="Switch to Calendar View" class="hidden sort-btn bg-teal-200 hover:bg-teal-300 dark:bg-teal-700 dark:hover:bg-teal-600 text-teal-700 dark:text-teal-200 text-xs sm:text-sm font-medium py-2 px-3 rounded-lg transition-colors duration-300 flex items-center calendar-view-feature-element">
+                            <i class="fas fa-calendar-week mr-1.5"></i> <span id="calendarViewToggleBtnText">Calendar</span>
+                        </button>
                         <button id="kanbanViewToggleBtn" title="Switch to Board View" class="hidden sort-btn bg-purple-200 hover:bg-purple-300 dark:bg-purple-700 dark:hover:bg-purple-600 text-purple-700 dark:text-purple-200 text-xs sm:text-sm font-medium py-2 px-3 rounded-lg transition-colors duration-300 flex items-center">
                             <i class="fas fa-columns mr-1.5"></i> <span id="kanbanViewToggleBtnText">Board</span>
                         </button>
@@ -601,6 +603,10 @@
                 </div>
                 <ul id="taskList" class="space-y-3 sm:space-y-3.5">
                     </ul>
+                <div id="calendarViewContainer" class="hidden calendar-view-feature-element">
+                    <p class="text-center text-slate-500 dark:text-slate-400 p-8">Calendar View Coming Soon!</p>
+                </div>
+
                 <p id="emptyState" class="text-center text-slate-500 dark:text-slate-400 mt-8 py-5 hidden">No tasks yet. Add some!</p>
                 <p id="noMatchingTasks" class="text-center text-slate-500 dark:text-slate-400 mt-8 py-5 hidden">No tasks match the current filter or search.</p>
             </main>
@@ -611,18 +617,18 @@
         <p>LockieMedia &copy; 2025</p>
     </footer>
 
-<script src="app_logic.js"></script>
-<script src="modal_interactions.js"></script>
+    <script src="app_logic.js"></script>
+    <script src="modal_interactions.js"></script>
 
-<script src="feature_test_button.js"></script>
-<script src="feature_reminder.js"></script>
-<script src="feature_advanced_recurrence.js"></script>
-<script src="feature_file_attachments.js"></script>
-<script src="feature_integrations_services.js"></script>
-<script src="task_timer_system.js"></script>
-<script src="feature_kanban_board.js"></script>
-<script src="feature_projects.js"></script>
-<script src="feature_data_management.js"></script> <script src="ui_rendering.js"></script>
-<script src="ui_event_handlers.js"></script>
+    <script src="feature_test_button.js"></script>
+    <script src="feature_reminder.js"></script>
+    <script src="feature_advanced_recurrence.js"></script>
+    <script src="feature_file_attachments.js"></script>
+    <script src="feature_integrations_services.js"></script>
+    <script src="task_timer_system.js"></script> <script src="feature_kanban_board.js"></script>
+    <script src="feature_projects.js"></script>
+    <script src="feature_data_management.js"></script>
+    <script src="feature_calendar_view.js"></script> <script src="ui_rendering.js"></script>
+    <script src="ui_event_handlers.js"></script>
 </body>
 </html>

@@ -11,7 +11,7 @@ let currentViewTaskId = null;
 let uniqueLabels = [];
 let uniqueProjects = []; // For project names in dropdowns etc.
 let tooltipTimeout = null;
-let currentTaskViewMode = 'list'; // 'list' or 'kanban'
+let currentTaskViewMode = 'list'; // 'list', 'kanban', or 'calendar'
 
 // Default feature flags, will be overridden by features.json and then by localStorage
 let featureFlags = {
@@ -28,7 +28,8 @@ let featureFlags = {
     subTasksFeature: false,
     kanbanBoardFeature: false,
     projectFeature: false,
-    exportDataFeature: false // New: Export Data Feature flag
+    exportDataFeature: false, // New: Export Data Feature flag
+    calendarViewFeature: false // New: Calendar View Feature flag
 };
 
 let kanbanColumns = [
@@ -85,7 +86,7 @@ async function loadFeatureFlags() {
         'testButtonFeature', 'reminderFeature', 'taskTimerSystem', 'advancedRecurrence',
         'fileAttachments', 'integrationsServices', 'userAccounts', 'collaborationSharing',
         'crossDeviceSync', 'tooltipsGuide', 'subTasksFeature', 'kanbanBoardFeature',
-        'projectFeature', 'exportDataFeature' // New: Added exportDataFeature
+        'projectFeature', 'exportDataFeature', 'calendarViewFeature' // New: Added calendarViewFeature
     ];
     allKnownFlagKeys.forEach(key => {
         if (typeof featureFlags[key] !== 'boolean') {
@@ -96,7 +97,8 @@ async function loadFeatureFlags() {
 
     console.log('[Flags] Final feature flags loaded:', JSON.parse(JSON.stringify(featureFlags)));
     console.log(`[Flags] Project Feature is: ${featureFlags.projectFeature}`);
-    console.log(`[Flags] Export Data Feature is: ${featureFlags.exportDataFeature}`); // New: Log export feature status
+    console.log(`[Flags] Export Data Feature is: ${featureFlags.exportDataFeature}`);
+    console.log(`[Flags] Calendar View Feature is: ${featureFlags.calendarViewFeature}`); // New: Log calendar feature status
 }
 
 
@@ -309,10 +311,10 @@ function parseDateFromText(text) {
             const currentDayIndex = today.getDay();
             let daysToAdd = targetDayIndex - currentDayIndex;
 
-            if (match[1]) {
+            if (match[1]) { // "next Monday"
                 daysToAdd = (daysToAdd <= 0 ? daysToAdd + 7 : daysToAdd);
-            } else {
-                if (daysToAdd < 0) daysToAdd += 7;
+            } else { // "Monday"
+                if (daysToAdd < 0) daysToAdd += 7; // If Monday has passed this week, go to next week's Monday
             }
             const targetDate = new Date(today);
             targetDate.setDate(today.getDate() + daysToAdd);
@@ -320,7 +322,7 @@ function parseDateFromText(text) {
         }},
         { regex: /\b(next week)\b/i, handler: () => {
             const nextWeek = new Date(today);
-            const dayOffset = (today.getDay() === 0 ? -6 : 1);
+            const dayOffset = (today.getDay() === 0 ? -6 : 1); // Adjust to start of week (Monday)
             nextWeek.setDate(today.getDate() - today.getDay() + dayOffset + 7);
             return getDateString(nextWeek);
         }},
@@ -332,38 +334,63 @@ function parseDateFromText(text) {
             const nextYearDate = new Date(today.getFullYear() + 1, 0, 1);
             return getDateString(nextYearDate);
         }},
+        // More specific date formats (YYYY-MM-DD or MM/DD/YYYY) without keywords, try to match these last.
+        // Regex for YYYY-MM-DD or YYYY/MM/DD
         { regex: /\b(\d{4}[-\/]\d{1,2}[-\/]\d{1,2})\b/g, handler: (match) => {
-            const pd = match[0].replace(/\//g, '-');
-            if (!isNaN(new Date(pd).getTime())) return pd;
+            const potentialDate = match[0].replace(/\//g, '-'); // Normalize to YYYY-MM-DD
+            // Basic validation: check if it forms a valid date object
+            if (!isNaN(new Date(potentialDate).getTime())) {
+                return potentialDate;
+            }
             return null;
         }},
+        // Regex for M/D, MM/DD, M/D/YY, MM/DD/YY, M/D/YYYY, MM/DD/YYYY
         { regex: /\b(\d{1,2}[-\/]\d{1,2}(?:[-\/]\d{2,4})?)\b/g, handler: (match) => {
-            const ds = match[0]; const pts = ds.replace(/-/g, '/').split('/');
-            let y, m, d;
-            if (pts.length === 2) { y = today.getFullYear(); m = parseInt(pts[0]); d = parseInt(pts[1]); }
-            else { y = parseInt(pts[2]); if (y < 100) y += 2000; m = parseInt(pts[0]); d = parseInt(pts[1]); }
-            if (isNaN(y) || isNaN(m) || isNaN(d)) return null;
-            const pd = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-            if (!isNaN(new Date(pd).getTime())) return pd;
+            const dateStr = match[0];
+            const parts = dateStr.replace(/-/g, '/').split('/');
+            let year, month, day;
+
+            if (parts.length === 2) { // M/D or MM/DD
+                year = today.getFullYear();
+                month = parseInt(parts[0]);
+                day = parseInt(parts[1]);
+            } else { // M/D/YY, MM/DD/YY, M/D/YYYY, or MM/DD/YYYY
+                year = parseInt(parts[2]);
+                if (year < 100) year += 2000; // Assume 20xx for two-digit years
+                month = parseInt(parts[0]);
+                day = parseInt(parts[1]);
+            }
+            if (isNaN(year) || isNaN(month) || isNaN(day)) return null;
+            const potentialDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            if (!isNaN(new Date(potentialDate).getTime())) {
+                 return potentialDate;
+            }
             return null;
         }}
     ];
 
     for (const pattern of patterns) {
+        // Create a non-global version of the regex for exec
         const regex = new RegExp(pattern.regex.source, pattern.regex.flags.replace('g', ''));
         const match = regex.exec(remainingText);
+
         if (match) {
             const potentialDate = pattern.handler(match);
             if (potentialDate && !isNaN(new Date(potentialDate).getTime())) {
+                // Check if the matched string is a standalone date or part of a larger number/word
                 const matchedString = match[0];
+                // Attempt to remove the matched date string and any preceding keyword like "on", "due", "by" and following space
                 const tempRemainingText = remainingText.replace(new RegExp(matchedString.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*', 'i'), '').trim();
+
+                // Check character immediately after the match to avoid partial matches like "call by 5pm"
                 const afterMatchIndex = match.index + matchedString.length;
                 const charAfterMatch = remainingText[afterMatchIndex];
 
+                // Ensure the match is at a word boundary or followed by punctuation/end of string
                 if (afterMatchIndex === remainingText.length || /[\s,.?!]/.test(charAfterMatch || '')) {
                     parsedDate = potentialDate;
-                    remainingText = tempRemainingText.replace(/\s\s+/g, ' ').trim();
-                    break;
+                    remainingText = tempRemainingText.replace(/\s\s+/g, ' ').trim(); // Clean up multiple spaces
+                    break; // Found a date, stop processing
                 }
             }
         }
@@ -373,16 +400,21 @@ function parseDateFromText(text) {
 
 // --- Task View Mode Management ---
 function setTaskViewMode(mode) {
-    if (mode === 'list' || mode === 'kanban') {
+    // Valid modes: 'list', 'kanban', 'calendar'
+    if (['list', 'kanban', 'calendar'].includes(mode)) {
         currentTaskViewMode = mode;
         console.log(`Task view mode changed to: ${currentTaskViewMode}`);
+        // Potentially trigger a re-render or UI update specific to the view mode change
+        // This is handled by refreshTaskView in ui_rendering.js
+    } else {
+        console.warn(`Attempted to set invalid task view mode: ${mode}`);
     }
 }
 
 // --- Filtering and sorting state management ---
 function setAppCurrentFilter(filter) {
     currentFilter = filter;
-    currentSort = 'default';
+    currentSort = 'default'; // Reset sort when filter changes
 }
 
 function setAppCurrentSort(sortType) {
@@ -399,7 +431,9 @@ function updateKanbanColumnTitle(columnId, newTitle) {
     if (columnIndex !== -1) {
         kanbanColumns[columnIndex].title = newTitle;
         saveKanbanColumns();
+        // If the Kanban board is currently visible, re-render it
         if (currentTaskViewMode === 'kanban' && featureFlags.kanbanBoardFeature) {
+            // Assuming renderKanbanBoard is a function in the Kanban feature module
             if (window.AppFeatures && window.AppFeatures.KanbanBoard && typeof window.AppFeatures.KanbanBoard.renderKanbanBoard === 'function') {
                  window.AppFeatures.KanbanBoard.renderKanbanBoard();
             }
@@ -416,11 +450,15 @@ function loadKanbanColumns() {
     if (storedColumns) {
         try {
             const parsedColumns = JSON.parse(storedColumns);
+            // Validate the structure of parsedColumns
             if (Array.isArray(parsedColumns) && parsedColumns.every(col => col && typeof col.id === 'string' && typeof col.title === 'string')) {
+                 // Ensure default columns (todo, inprogress, done) exist and maintain their order,
+                 // updating titles from storage if found.
                  const defaultColumnIds = ['todo', 'inprogress', 'done'];
                  const newKanbanColumns = defaultColumnIds.map(defaultId => {
                     const foundStored = parsedColumns.find(sc => sc.id === defaultId);
-                    const defaultColumn = kanbanColumns.find(dc => dc.id === defaultId) || { id: defaultId, title: defaultId.charAt(0).toUpperCase() + defaultId.slice(1) };
+                    // Get the default title from the initial `kanbanColumns` array
+                    const defaultColumn = kanbanColumns.find(dc => dc.id === defaultId) || { id: defaultId, title: defaultId.charAt(0).toUpperCase() + defaultId.slice(1) }; // Fallback if somehow default is missing
                     return {
                         id: defaultId,
                         title: foundStored ? foundStored.title : defaultColumn.title
@@ -429,14 +467,16 @@ function loadKanbanColumns() {
                 kanbanColumns = newKanbanColumns;
                 console.log('[Kanban] Loaded column titles from localStorage:', kanbanColumns);
             } else {
+                 // If stored data is invalid, reset to defaults and save
                  console.warn("[Kanban] Stored Kanban columns are invalid. Using defaults and saving them.");
-                 saveKanbanColumns();
+                 saveKanbanColumns(); // This will save the initial `kanbanColumns`
             }
         } catch (e) {
             console.error("[Kanban] Error parsing stored Kanban columns. Using defaults and saving them.", e);
-            saveKanbanColumns();
+            saveKanbanColumns(); // Save defaults on error
         }
     } else {
+        // No stored columns, save the initial defaults
         console.log('[Kanban] No stored Kanban columns found. Saving defaults.');
         saveKanbanColumns();
     }
