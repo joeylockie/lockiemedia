@@ -6,7 +6,7 @@
 // - DOM elements defined in ui_rendering.js (assumed to be globally available AFTER initializeDOMElements is called).
 // - Rendering functions from ui_rendering.js (e.g., refreshTaskView, showMessage, initializeDOMElements, styleInitialSmartViewButtons).
 // - Modal interaction functions from modal_interactions.js (e.g., openAddModal, closeAddModal).
-// - Core logic functions from app_logic.js (e.g., saveTasks, tasks array, featureFlags, setTaskViewMode, projects array, uniqueProjects).
+// - Core logic functions from app_logic.js (e.g., saveTasks, tasks array, featureFlags, setTaskViewMode, projects array, uniqueProjects, selectedTaskIdsForBulkAction, clearBulkActionSelections).
 // - Feature-specific modules (e.g., window.AppFeatures.TaskTimerSystem, window.AppFeatures.KanbanBoard, window.AppFeatures.Projects, window.AppFeatures.DataManagement).
 
 // --- Temporary State for UI Interactions (scoped to this file) ---
@@ -44,11 +44,13 @@ function populateFeatureFlagsModal() {
         exportDataFeature: "Export Data Feature",
         calendarViewFeature: "Calendar View",
         taskDependenciesFeature: "Task Dependencies (Soon)",
-        smarterSearchFeature: "Smarter Search (Soon)" // New: Smarter Search friendly name
+        smarterSearchFeature: "Smarter Search (Soon)",
+        bulkActionsFeature: "Bulk Task Actions (Soon)" // New: Bulk Actions friendly name
     };
     const featureOrder = [
         'projectFeature', 'kanbanBoardFeature', 'calendarViewFeature',
-        'subTasksFeature', 'taskDependenciesFeature', 'smarterSearchFeature', // New: Added smarterSearchFeature to the order
+        'subTasksFeature', 'taskDependenciesFeature', 'smarterSearchFeature',
+        'bulkActionsFeature', // New: Added bulkActionsFeature to the order
         'taskTimerSystem', 'reminderFeature',
         'tooltipsGuide', 'exportDataFeature',
         'testButtonFeature', 'advancedRecurrence', 'fileAttachments',
@@ -77,13 +79,20 @@ function populateFeatureFlagsModal() {
 
                 // Specific logic for view-changing features when they are disabled
                 if (key === 'kanbanBoardFeature' && !featureFlags.kanbanBoardFeature && currentTaskViewMode === 'kanban') {
-                    setTaskViewMode('list'); // Switch to list if Kanban is disabled while active
+                    setTaskViewMode('list');
                 }
                 if (key === 'calendarViewFeature' && !featureFlags.calendarViewFeature && currentTaskViewMode === 'calendar') {
-                    setTaskViewMode('list'); // Switch to list if Calendar is disabled while active
+                    setTaskViewMode('list');
                 }
                 if (key === 'projectFeature' && !featureFlags.projectFeature && currentFilter.startsWith('project_')) {
-                    setFilter('inbox'); // Reset filter if project feature is disabled
+                    setFilter('inbox');
+                }
+                // New: If bulk actions are disabled, clear any selections and hide UI
+                if (key === 'bulkActionsFeature' && !featureFlags.bulkActionsFeature) {
+                    if (typeof clearBulkActionSelections === 'function') {
+                        clearBulkActionSelections();
+                    }
+                    // Add logic here to hide any bulk action UI elements if they become visible
                 }
                 refreshTaskView(); // Refresh the view after any potential mode/filter change
             });
@@ -150,9 +159,21 @@ function applyActiveFeatures() {
     toggleElements('.task-dependencies-feature-element', featureFlags.taskDependenciesFeature);
     // if (window.AppFeatures?.TaskDependencies?.updateUIVisibility) window.AppFeatures.TaskDependencies.updateUIVisibility(featureFlags.taskDependenciesFeature);
 
-    // New: Smarter Search Feature UI
+    // Smarter Search Feature UI
     toggleElements('.smarter-search-feature-element', featureFlags.smarterSearchFeature);
     // if (window.AppFeatures?.SmarterSearch?.updateUIVisibility) window.AppFeatures.SmarterSearch.updateUIVisibility(featureFlags.smarterSearchFeature);
+
+    // New: Bulk Actions Feature UI
+    toggleElements('.bulk-actions-feature-element', featureFlags.bulkActionsFeature);
+    // if (window.AppFeatures?.BulkActions?.updateUIVisibility) window.AppFeatures.BulkActions.updateUIVisibility(featureFlags.bulkActionsFeature);
+    if (!featureFlags.bulkActionsFeature) {
+        if (typeof clearBulkActionSelections === 'function') {
+            clearBulkActionSelections(); // Clear any selections if feature is turned off
+        }
+        // Hide any specific bulk action UI controls if they are visible
+        const bulkActionControls = document.getElementById('bulkActionControlsContainer'); // Assuming this ID for future UI
+        if (bulkActionControls) bulkActionControls.classList.add('hidden');
+    }
 
 
     refreshTaskView(); // This should handle rendering the correct view (list, kanban, or eventually calendar)
@@ -213,8 +234,8 @@ function handleAddTask(event) {
     const defaultKanbanColumn = kanbanColumns[0]?.id || 'todo';
     const newTask = {
         id: Date.now(), text: finalTaskText, completed: false, creationDate: Date.now(), dueDate: finalDueDate || null, time: time || null, priority: priority, label: label || '', notes: notes || '', projectId: projectId, isReminderSet, reminderDate, reminderTime, reminderEmail, estimatedHours: estHours, estimatedMinutes: estMinutes, timerStartTime: null, timerAccumulatedTime: 0, timerIsRunning: false, timerIsPaused: false, actualDurationMs: 0, attachments: [], completedDate: null, subTasks: subTasksToSave, recurrenceRule: null, recurrenceEndDate: null, nextDueDate: finalDueDate || null, kanbanColumnId: defaultKanbanColumn,
-        dependsOn: [], // New: Initialize for task dependencies
-        blocksTasks: [] // New: Initialize for task dependencies
+        dependsOn: [], 
+        blocksTasks: [] 
     };
     tasks.unshift(newTask);
     saveTasks();
@@ -273,7 +294,6 @@ function handleEditTask(event) {
         return;
     }
     tasks = tasks.map(task => task.id === taskId ? { ...task, text: taskText, dueDate: dueDate || null, time: time || null, priority: priority, label: label || '', notes: notes || '', projectId: projectId, isReminderSet, reminderDate, reminderTime, reminderEmail, estimatedHours: estHours, estimatedMinutes: estMinutes, attachments: task.attachments || [],
-        // Preserve existing dependencies, UI for editing these will be added later
         dependsOn: task.dependsOn || [],
         blocksTasks: task.blocksTasks || []
     } : task);
@@ -295,17 +315,10 @@ function toggleComplete(taskId) {
 
     const taskToToggle = tasks[taskIndex];
 
-    // Check for dependencies if the feature is enabled and we are marking as incomplete
     if (featureFlags.taskDependenciesFeature && !taskToToggle.completed) {
-        // If we are trying to mark a task as NOT completed,
-        // and it blocks other tasks that are not yet completed, this is usually fine.
-        // However, if this task DEPENDS ON other tasks that are NOT completed,
-        // it shouldn't have been completable in the first place.
-        // For now, we allow toggling, but more complex logic might be needed.
     }
 
-    // Check if completing this task is allowed (if it depends on incomplete tasks)
-    if (featureFlags.taskDependenciesFeature && !taskToToggle.completed) { // Trying to complete it
+    if (featureFlags.taskDependenciesFeature && !taskToToggle.completed) { 
         if (taskToToggle.dependsOn && taskToToggle.dependsOn.length > 0) {
             const incompleteDependencies = taskToToggle.dependsOn.some(depId => {
                 const dependentTask = tasks.find(t => t.id === depId);
@@ -317,8 +330,8 @@ function toggleComplete(taskId) {
                     .filter(name => name)
                     .join(', ');
                 showMessage(`Cannot complete this task. It depends on incomplete task(s): ${depTaskNames}.`, 'error');
-                refreshTaskView(); // Re-render to ensure checkbox state is correct
-                return; // Prevent completion
+                refreshTaskView(); 
+                return; 
             }
         }
     }
@@ -344,19 +357,15 @@ function toggleComplete(taskId) {
          if(task && window.AppFeatures.TaskTimerSystem.setupTimerForModal) window.AppFeatures.TaskTimerSystem.setupTimerForModal(task);
     }
 
-    // New: If a task is completed, check tasks that depend on it.
-    // This is a simple check; more complex UI updates (e.g., notifications) could be added.
     if (featureFlags.taskDependenciesFeature && tasks[taskIndex].completed) {
         tasks.forEach(potentialDependentTask => {
             if (potentialDependentTask.dependsOn.includes(taskId)) {
-                // Check if all dependencies for potentialDependentTask are now met
                 const allDependenciesMet = potentialDependentTask.dependsOn.every(depId => {
                     const depTask = tasks.find(t => t.id === depId);
                     return depTask && depTask.completed;
                 });
                 if (allDependenciesMet) {
                     console.log(`Task "${potentialDependentTask.text}" can now be started as its dependency "${tasks[taskIndex].text}" is complete.`);
-                    // Optionally, trigger a notification or UI highlight for potentialDependentTask
                 }
             }
         });
@@ -369,14 +378,11 @@ function deleteTask(taskId) {
     }
     tasks = tasks.filter(task => task.id !== taskId);
 
-    // New: Update dependencies if a task is deleted
     if (featureFlags.taskDependenciesFeature) {
         tasks.forEach(task => {
-            // Remove the deleted task from 'dependsOn' arrays
             if (task.dependsOn.includes(taskId)) {
                 task.dependsOn = task.dependsOn.filter(id => id !== taskId);
             }
-            // Remove the deleted task from 'blocksTasks' arrays (less critical as the blocker is gone)
              if (task.blocksTasks.includes(taskId)) {
                 task.blocksTasks = task.blocksTasks.filter(id => id !== taskId);
             }
@@ -442,12 +448,9 @@ function clearCompletedTasks() {
 
     tasks = tasksToKeep;
 
-    // New: Update dependencies if completed tasks are cleared
     if (featureFlags.taskDependenciesFeature) {
         tasks.forEach(task => {
-            // Remove cleared tasks from 'dependsOn' arrays
             task.dependsOn = task.dependsOn.filter(id => !clearedTaskIds.includes(id));
-            // Remove cleared tasks from 'blocksTasks' arrays
             task.blocksTasks = task.blocksTasks.filter(id => !clearedTaskIds.includes(id));
         });
     }
@@ -471,7 +474,7 @@ function handleAddNewLabel(event) {
     }
     uniqueLabels.push(labelName);
     uniqueLabels.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
-    saveTasks(); // This calls updateUniqueLabels
+    saveTasks(); 
     populateDatalist(existingLabelsDatalist);
     populateDatalist(existingLabelsEditDatalist);
     populateManageLabelsList();
@@ -486,11 +489,11 @@ function handleDeleteLabel(labelToDelete) {
         }
         return task;
     });
-    saveTasks(); // This calls updateUniqueLabels
-    populateManageLabelsList(); // Re-renders the list in the manage labels modal
-    populateDatalist(existingLabelsDatalist); // Update datalists in add/edit modals
+    saveTasks(); 
+    populateManageLabelsList(); 
+    populateDatalist(existingLabelsDatalist); 
     populateDatalist(existingLabelsEditDatalist);
-    refreshTaskView(); // Update the main task display
+    refreshTaskView(); 
     showMessage(`Label "${labelToDelete}" deleted. Tasks using it have been unlabelled.`, 'success');
 }
 
@@ -502,7 +505,6 @@ function handleAddSubTaskViewEdit() {
         modalSubTaskInputViewEdit.focus();
         return;
     }
-    // Assuming addSubTaskLogic is globally available or part of AppFeatures.SubTasks
     if (window.AppFeatures?.SubTasks?.addSubTaskLogic(editingTaskId, subTaskText)) {
         renderSubTasksForEditModal(editingTaskId, modalSubTasksListViewEdit);
         modalSubTaskInputViewEdit.value = '';
@@ -510,7 +512,7 @@ function handleAddSubTaskViewEdit() {
         if (currentViewTaskId === editingTaskId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) {
             renderSubTasksForViewModal(editingTaskId, modalSubTasksListViewDetails, viewSubTaskProgress, noSubTasksMessageViewDetails);
         }
-        refreshTaskView(); // To update main list if subtask count is shown there
+        refreshTaskView(); 
     } else {
         showMessage('Failed to add sub-task.', 'error');
     }
@@ -684,6 +686,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         //     console.log("[OnInit] Initializing Smarter Search Feature Module...");
         //     window.AppFeatures.SmarterSearch.initialize();
         // }
+        // New: Initialize Bulk Actions Feature (placeholder for now)
+        // if (window.AppFeatures.BulkActions?.initialize) {
+        //     console.log("[OnInit] Initializing Bulk Actions Feature Module...");
+        //     window.AppFeatures.BulkActions.initialize();
+        // }
     }
 
     applyActiveFeatures(); 
@@ -704,3 +711,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupEventListeners(); 
     console.log("Todo App Initialized (after DOMContentLoaded).");
 });
+

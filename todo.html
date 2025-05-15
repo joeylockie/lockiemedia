@@ -650,6 +650,42 @@
                         </button>
                     </div>
                 </div>
+
+                <div id="bulkActionControlsContainer" class="bulk-actions-feature-element hidden bg-slate-100 dark:bg-slate-800 p-3 sm:p-4 rounded-lg shadow-md mb-4">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="selectAllTasksCheckbox" class="form-checkbox h-5 w-5 text-blue-600 rounded border-slate-400 dark:border-slate-500 focus:ring-blue-500 mr-3">
+                            <label for="selectAllTasksCheckbox" class="text-sm font-medium text-slate-700 dark:text-slate-200">Select All</label>
+                            <span id="bulkActionSelectionCount" class="ml-3 text-sm text-slate-500 dark:text-slate-400">0 selected</span>
+                        </div>
+                        <div class="flex flex-wrap gap-2 mt-2 sm:mt-0">
+                            <button id="bulkCompleteBtn" title="Mark selected as complete" class="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-medium rounded-md shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                                <i class="fas fa-check-double mr-1"></i> Complete
+                            </button>
+                            <button id="bulkDeleteBtn" title="Delete selected tasks" class="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded-md shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                                <i class="fas fa-trash-alt mr-1"></i> Delete
+                            </button>
+                            <div class="relative project-feature-element">
+                                <select id="bulkAssignProjectDropdown" title="Assign project to selected" class="px-3 py-1.5 text-xs bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <option value="">Assign Project...</option>
+                                    </select>
+                            </div>
+                             <div class="relative">
+                                <select id="bulkChangePriorityDropdown" title="Change priority of selected" class="px-3 py-1.5 text-xs bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <option value="">Change Priority...</option>
+                                    <option value="high">High</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="low">Low</option>
+                                </select>
+                            </div>
+                             <div class="relative">
+                                <input type="text" id="bulkChangeLabelInput" list="existingLabelsBulkAction" placeholder="Set Label..." title="Set label for selected" class="px-3 py-1.5 text-xs w-32 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <datalist id="existingLabelsBulkAction"></datalist>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <ul id="taskList" class="space-y-3 sm:space-y-3.5">
                     </ul>
                 <div id="kanbanBoardContainer" class="hidden"></div>
@@ -676,12 +712,14 @@
     <script src="feature_advanced_recurrence.js"></script>
     <script src="feature_file_attachments.js"></script>
     <script src="feature_integrations_services.js"></script>
-    <script src="task_timer_system.js"></script> <script src="feature_kanban_board.js"></script>
+    <script src="task_timer_system.js"></script>
+    <script src="feature_kanban_board.js"></script>
     <script src="feature_projects.js"></script>
     <script src="feature_data_management.js"></script>
     <script src="feature_calendar_view.js"></script>
     <script src="feature_task_dependencies.js"></script>
-    <script src="feature_smarter_search.js"></script> <script src="ui_rendering.js"></script>
+    <script src="feature_smarter_search.js"></script>
+    <script src="ui_rendering.js"></script>
     <script src="ui_event_handlers.js"></script>
 </body>
 </html>

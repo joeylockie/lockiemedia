@@ -15,5 +15,6 @@
   "exportDataFeature": false,
   "calendarViewFeature": false,
   "taskDependenciesFeature": false,
-  "smarterSearchFeature": true
+  "smarterSearchFeature": false,
+  "bulkActionsFeature": true
 }

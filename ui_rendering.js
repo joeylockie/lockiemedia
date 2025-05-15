@@ -52,8 +52,12 @@ let taskDependenciesSectionAdd, dependsOnContainerAdd, blocksTasksContainerAdd;
 let taskDependenciesSectionViewEdit, dependsOnContainerViewEdit, blocksTasksContainerViewEdit;
 let viewTaskDependenciesSection, viewTaskDependsOnList, viewTaskBlocksTasksList;
 
-// New: Smarter Search DOM Elements (Placeholders)
+// Smarter Search DOM Elements
 let smarterSearchContainer, smarterSearchAdvancedToggleBtn, smarterSearchOptionsDiv;
+
+// New: Bulk Actions DOM Elements
+let bulkActionControlsContainer, selectAllTasksCheckbox, bulkCompleteBtn, bulkDeleteBtn;
+let bulkAssignProjectDropdown, bulkChangePriorityDropdown, bulkChangeLabelInput;
 
 
 /**
@@ -76,7 +80,7 @@ function initializeDOMElements() {
     sortByDueDateBtn = document.getElementById('sortByDueDateBtn');
     sortByPriorityBtn = document.getElementById('sortByPriorityBtn');
     sortByLabelBtn = document.getElementById('sortByLabelBtn');
-    taskSearchInput = document.getElementById('taskSearchInput'); // This is the existing search input
+    taskSearchInput = document.getElementById('taskSearchInput');
     taskList = document.getElementById('taskList');
     emptyState = document.getElementById('emptyState');
     noMatchingTasks = document.getElementById('noMatchingTasks');
@@ -233,37 +237,37 @@ function initializeDOMElements() {
     viewTaskDependsOnList = document.getElementById('viewTaskDependsOnList');
     viewTaskBlocksTasksList = document.getElementById('viewTaskBlocksTasksList');
 
-    // New: Initialize Smarter Search DOM Elements (Placeholders)
-    // These IDs are hypothetical. You'll need to add actual HTML elements with these IDs
-    // in todo.html if you want to use them.
-    smarterSearchContainer = document.getElementById('smarterSearchContainer'); // e.g., a main div for all smarter search UI
-    smarterSearchAdvancedToggleBtn = document.getElementById('smarterSearchAdvancedToggleBtn'); // e.g., a button to show/hide advanced options
-    smarterSearchOptionsDiv = document.getElementById('smarterSearchOptionsDiv'); // e.g., a div to hold advanced filter checkboxes, date ranges etc.
+    // Initialize Smarter Search DOM Elements
+    smarterSearchContainer = document.getElementById('smarterSearchContainer');
+    smarterSearchAdvancedToggleBtn = document.getElementById('smarterSearchAdvancedToggleBtn');
+    smarterSearchOptionsDiv = document.getElementById('smarterSearchOptionsDiv');
+
+    // New: Initialize Bulk Actions DOM Elements
+    bulkActionControlsContainer = document.getElementById('bulkActionControlsContainer');
+    selectAllTasksCheckbox = document.getElementById('selectAllTasksCheckbox');
+    bulkCompleteBtn = document.getElementById('bulkCompleteBtn');
+    bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+    bulkAssignProjectDropdown = document.getElementById('bulkAssignProjectDropdown');
+    bulkChangePriorityDropdown = document.getElementById('bulkChangePriorityDropdown');
+    bulkChangeLabelInput = document.getElementById('bulkChangeLabelInput');
 
 
     // Add checks for newly added elements
     if (!settingsManageProjectsBtn) console.warn('[DOM Init Warning] Element "settingsManageProjectsBtn" not found.');
-    if (!manageProjectsModal) console.warn('[DOM Init Warning] Element "manageProjectsModal" not found.');
-    if (!modalProjectSelectAdd) console.warn('[DOM Init Warning] Element "modalProjectSelectAdd" not found.');
-    if (!modalProjectSelectViewEdit) console.warn('[DOM Init Warning] Element "modalProjectSelectViewEdit" not found.');
-    if (!projectFilterContainer) console.warn('[DOM Init Warning] Element "projectFilterContainer" not found.');
-    if (!viewTaskProject) console.warn('[DOM Init Warning] Element "viewTaskProject" not found.');
-    if (!calendarViewToggleBtn) console.warn('[DOM Init Warning] Element "calendarViewToggleBtn" not found.');
-    if (!calendarViewToggleBtnText) console.warn('[DOM Init Warning] Element "calendarViewToggleBtnText" not found.');
-    if (!calendarViewContainer) console.warn('[DOM Init Warning] Element "calendarViewContainer" not found.');
-    if (!taskDependenciesSectionAdd) console.warn('[DOM Init Warning] Element "taskDependenciesSectionAdd" not found.');
-    if (!dependsOnContainerAdd) console.warn('[DOM Init Warning] Element "dependsOnContainerAdd" not found.');
-    if (!blocksTasksContainerAdd) console.warn('[DOM Init Warning] Element "blocksTasksContainerAdd" not found.');
-    if (!taskDependenciesSectionViewEdit) console.warn('[DOM Init Warning] Element "taskDependenciesSectionViewEdit" not found.');
-    if (!dependsOnContainerViewEdit) console.warn('[DOM Init Warning] Element "dependsOnContainerViewEdit" not found.');
-    if (!blocksTasksContainerViewEdit) console.warn('[DOM Init Warning] Element "blocksTasksContainerViewEdit" not found.');
-    if (!viewTaskDependenciesSection) console.warn('[DOM Init Warning] Element "viewTaskDependenciesSection" not found.');
-    if (!viewTaskDependsOnList) console.warn('[DOM Init Warning] Element "viewTaskDependsOnList" not found.');
+    // ... (other existing checks) ...
     if (!viewTaskBlocksTasksList) console.warn('[DOM Init Warning] Element "viewTaskBlocksTasksList" not found.');
-    // New: Checks for Smarter Search elements
     if (!smarterSearchContainer) console.warn('[DOM Init Warning] Placeholder element "smarterSearchContainer" not found.');
     if (!smarterSearchAdvancedToggleBtn) console.warn('[DOM Init Warning] Placeholder element "smarterSearchAdvancedToggleBtn" not found.');
     if (!smarterSearchOptionsDiv) console.warn('[DOM Init Warning] Placeholder element "smarterSearchOptionsDiv" not found.');
+
+    // New: Checks for Bulk Action elements
+    if (!bulkActionControlsContainer) console.warn('[DOM Init Warning] Element "bulkActionControlsContainer" not found. This is expected if HTML is not yet updated.');
+    if (!selectAllTasksCheckbox) console.warn('[DOM Init Warning] Element "selectAllTasksCheckbox" not found. This is expected if HTML is not yet updated.');
+    if (!bulkCompleteBtn) console.warn('[DOM Init Warning] Element "bulkCompleteBtn" not found. This is expected if HTML is not yet updated.');
+    if (!bulkDeleteBtn) console.warn('[DOM Init Warning] Element "bulkDeleteBtn" not found. This is expected if HTML is not yet updated.');
+    if (!bulkAssignProjectDropdown) console.warn('[DOM Init Warning] Element "bulkAssignProjectDropdown" not found. This is expected if HTML is not yet updated.');
+    if (!bulkChangePriorityDropdown) console.warn('[DOM Init Warning] Element "bulkChangePriorityDropdown" not found. This is expected if HTML is not yet updated.');
+    if (!bulkChangeLabelInput) console.warn('[DOM Init Warning] Element "bulkChangeLabelInput" not found. This is expected if HTML is not yet updated.');
 
 
     console.log('[DOM Init] Finished initializing DOM elements.');
@@ -415,6 +419,7 @@ function refreshTaskView() {
         renderTaskListView();
     }
     updateClearCompletedButtonState();
+    renderBulkActionControls(); // New: Call to render/update bulk action controls
 }
 
 function renderTaskListView() {
@@ -471,18 +476,12 @@ function renderTaskListView() {
     }
 
     if (currentSearchTerm) {
-        // If Smarter Search is ON, the actual filtering might be handled by the SmarterSearch feature module.
-        // For now, we keep the basic search logic.
-        // if (featureFlags.smarterSearchFeature && window.AppFeatures?.SmarterSearch?.filterTasks) {
-        //     filteredTasks = window.AppFeatures.SmarterSearch.filterTasks(filteredTasks, currentSearchTerm);
-        // } else {
             filteredTasks = filteredTasks.filter(task =>
                 task.text.toLowerCase().includes(currentSearchTerm) ||
                 (task.label && task.label.toLowerCase().includes(currentSearchTerm)) ||
                 (task.notes && task.notes.toLowerCase().includes(currentSearchTerm)) ||
                 (featureFlags.projectFeature && task.projectId && projects.find(p => p.id === task.projectId)?.name.toLowerCase().includes(currentSearchTerm))
             );
-        // }
     }
 
 
@@ -537,26 +536,48 @@ function renderTaskListView() {
             li.classList.add('border-l-4', 'border-amber-500');
         }
 
-
         const mainContentClickableArea = document.createElement('div');
         mainContentClickableArea.className = 'task-item-clickable-area flex items-start flex-grow min-w-0 mr-2 rounded-l-lg';
         mainContentClickableArea.addEventListener('click', (event) => {
-            if (event.target.type === 'checkbox' || event.target.closest('.task-actions')) {
+            // Prevent opening view modal if a checkbox or action button within the item was clicked
+            if (event.target.type === 'checkbox' || event.target.closest('.task-actions') || event.target.closest('.bulk-select-checkbox-container')) {
                 return;
             }
             openViewTaskDetailsModal(task.id);
         });
 
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.checked = task.completed;
-        checkbox.className = 'form-checkbox h-5 w-5 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 dark:focus:ring-sky-500 mt-0.5 mr-2 sm:mr-3 cursor-pointer flex-shrink-0';
-        checkbox.addEventListener('change', () => toggleComplete(task.id));
+        // New: Bulk Action Checkbox Container
+        const bulkSelectCheckboxContainer = document.createElement('div');
+        bulkSelectCheckboxContainer.className = 'bulk-select-checkbox-container flex-shrink-0 mr-2 sm:mr-3 bulk-actions-feature-element';
+        if (featureFlags.bulkActionsFeature) {
+            const bulkCheckbox = document.createElement('input');
+            bulkCheckbox.type = 'checkbox';
+            bulkCheckbox.className = 'form-checkbox h-5 w-5 text-blue-500 rounded border-slate-400 dark:border-slate-500 focus:ring-blue-400 dark:focus:ring-blue-500 mt-0.5 cursor-pointer';
+            bulkCheckbox.checked = typeof getSelectedTaskIdsForBulkAction === 'function' && getSelectedTaskIdsForBulkAction().includes(task.id);
+            bulkCheckbox.title = "Select for bulk action";
+            bulkCheckbox.addEventListener('change', () => {
+                if (typeof toggleTaskSelectionForBulkAction === 'function') {
+                    toggleTaskSelectionForBulkAction(task.id);
+                }
+                // After toggling, re-render bulk action controls to update their state (e.g., enable/disable buttons)
+                renderBulkActionControls();
+            });
+            bulkSelectCheckboxContainer.appendChild(bulkCheckbox);
+        } else {
+            bulkSelectCheckboxContainer.classList.add('hidden');
+        }
+
+
+        const completeCheckbox = document.createElement('input');
+        completeCheckbox.type = 'checkbox';
+        completeCheckbox.checked = task.completed;
+        completeCheckbox.className = 'form-checkbox h-5 w-5 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 dark:focus:ring-sky-500 mt-0.5 mr-2 sm:mr-3 cursor-pointer flex-shrink-0';
+        completeCheckbox.addEventListener('change', () => toggleComplete(task.id));
 
         if (hasOpenPrerequisites) {
-            checkbox.disabled = true;
-            checkbox.title = "This task is blocked by incomplete prerequisites.";
-            checkbox.classList.add('opacity-50', 'cursor-not-allowed');
+            completeCheckbox.disabled = true;
+            completeCheckbox.title = "This task is blocked by incomplete prerequisites.";
+            completeCheckbox.classList.add('opacity-50', 'cursor-not-allowed');
         }
 
 
@@ -629,9 +650,10 @@ function renderTaskListView() {
         if (detailsContainer.hasChildNodes()) {
             textDetailsDiv.appendChild(detailsContainer);
         }
-
-        mainContentClickableArea.appendChild(checkbox);
-        mainContentClickableArea.appendChild(textDetailsDiv);
+        
+        mainContentClickableArea.appendChild(bulkSelectCheckboxContainer); // Add bulk select checkbox
+        mainContentClickableArea.appendChild(completeCheckbox); // Then complete checkbox
+        mainContentClickableArea.appendChild(textDetailsDiv); // Then task details
 
         const actionsDiv = document.createElement('div');
         actionsDiv.className = 'task-actions flex-shrink-0 self-start';
@@ -668,20 +690,65 @@ function renderTaskListView() {
     });
 }
 
+// New: Function to render/update bulk action controls
+function renderBulkActionControls() {
+    if (!bulkActionControlsContainer) {
+        // Attempt to get it again in case it was added to HTML after initial DOM load
+        bulkActionControlsContainer = document.getElementById('bulkActionControlsContainer');
+        if (!bulkActionControlsContainer) {
+            // console.warn("renderBulkActionControls: bulkActionControlsContainer not found.");
+            return; // Silently return if not found, as HTML might not be updated yet
+        }
+    }
+
+    if (!featureFlags.bulkActionsFeature) {
+        bulkActionControlsContainer.classList.add('hidden');
+        return;
+    }
+
+    const selectedIds = (typeof getSelectedTaskIdsForBulkAction === 'function') ? getSelectedTaskIdsForBulkAction() : [];
+    const hasSelection = selectedIds.length > 0;
+
+    bulkActionControlsContainer.classList.toggle('hidden', !hasSelection);
+    bulkActionControlsContainer.classList.add('bulk-actions-feature-element'); // Ensure it's tagged for feature flag toggling
+
+    if (hasSelection) {
+        // Update count or other info in the controls if needed
+        const selectionCountSpan = bulkActionControlsContainer.querySelector('#bulkActionSelectionCount');
+        if (selectionCountSpan) {
+            selectionCountSpan.textContent = `${selectedIds.length} selected`;
+        }
+
+        // Enable/disable buttons based on selection (already handled by hiding container if no selection)
+        if (bulkCompleteBtn) bulkCompleteBtn.disabled = !hasSelection;
+        if (bulkDeleteBtn) bulkDeleteBtn.disabled = !hasSelection;
+        // Add similar logic for other bulk action buttons/dropdowns if they exist
+    }
+
+    // Update "Select All" checkbox state
+    if (selectAllTasksCheckbox) {
+        const visibleTasksOnPage = Array.from(taskList.querySelectorAll('.task-item:not(.hidden)')) // Assuming hidden tasks are not selectable
+                                       .map(item => parseInt(item.dataset.taskId));
+        const allVisibleSelected = visibleTasksOnPage.length > 0 && visibleTasksOnPage.every(id => selectedIds.includes(id));
+        selectAllTasksCheckbox.checked = allVisibleSelected;
+        selectAllTasksCheckbox.indeterminate = !allVisibleSelected && selectedIds.some(id => visibleTasksOnPage.includes(id));
+        selectAllTasksCheckbox.classList.toggle('hidden', !featureFlags.bulkActionsFeature || visibleTasksOnPage.length === 0);
+    }
+}
+
+
 // New: Function to render task dependencies in the View Task Details Modal
 function renderTaskDependenciesForViewModal(task) {
     if (!featureFlags.taskDependenciesFeature || !viewTaskDependsOnList || !viewTaskBlocksTasksList) {
-        // Ensure the whole section is hidden if the feature is off or elements are missing
         if(viewTaskDependenciesSection) viewTaskDependenciesSection.classList.add('hidden');
         return;
     }
 
     if(viewTaskDependenciesSection) viewTaskDependenciesSection.classList.remove('hidden');
 
-    viewTaskDependsOnList.innerHTML = ''; // Clear previous
-    viewTaskBlocksTasksList.innerHTML = ''; // Clear previous
+    viewTaskDependsOnList.innerHTML = ''; 
+    viewTaskBlocksTasksList.innerHTML = ''; 
 
-    // Populate "Depends On" list
     if (task.dependsOn && task.dependsOn.length > 0) {
         task.dependsOn.forEach(depId => {
             const dependentTask = tasks.find(t => t.id === depId);
@@ -690,7 +757,7 @@ function renderTaskDependenciesForViewModal(task) {
             if (dependentTask && dependentTask.completed) {
                 li.classList.add('line-through', 'text-slate-400', 'dark:text-slate-500');
             } else if (dependentTask) {
-                 li.classList.add('text-amber-600', 'dark:text-amber-400'); // Highlight incomplete dependencies
+                 li.classList.add('text-amber-600', 'dark:text-amber-400'); 
             }
             viewTaskDependsOnList.appendChild(li);
         });
@@ -701,13 +768,11 @@ function renderTaskDependenciesForViewModal(task) {
         viewTaskDependsOnList.appendChild(li);
     }
 
-    // Populate "Blocks Tasks" list
     if (task.blocksTasks && task.blocksTasks.length > 0) {
         task.blocksTasks.forEach(blockedId => {
             const blockedTask = tasks.find(t => t.id === blockedId);
             const li = document.createElement('li');
             li.textContent = blockedTask ? blockedTask.text : `Task ID: ${blockedId} (Not found)`;
-            // Optionally, add styling for tasks this one blocks
             viewTaskBlocksTasksList.appendChild(li);
         });
     } else {
@@ -729,10 +794,6 @@ function renderCalendarView() {
     const kbc = document.getElementById('kanbanBoardContainer');
     if (kbc) kbc.classList.add('hidden');
     calendarViewContainer.classList.remove('hidden');
-
-    // if (window.AppFeatures?.CalendarView?.renderFullCalendar) {
-    //     window.AppFeatures.CalendarView.renderFullCalendar(calendarViewContainer, tasks);
-    // }
 }
 
 

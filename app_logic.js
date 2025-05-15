@@ -12,6 +12,7 @@ let uniqueLabels = [];
 let uniqueProjects = []; // For project names in dropdowns etc.
 let tooltipTimeout = null;
 let currentTaskViewMode = 'list'; // 'list', 'kanban', or 'calendar'
+let selectedTaskIdsForBulkAction = []; // New: For Bulk Actions feature
 
 // Default feature flags, will be overridden by features.json and then by localStorage
 let featureFlags = {
@@ -30,8 +31,9 @@ let featureFlags = {
     projectFeature: false,
     exportDataFeature: false,
     calendarViewFeature: false,
-    taskDependenciesFeature: false, // New: Task Dependencies Feature flag
-    smarterSearchFeature: false // New: Smarter Search Feature flag
+    taskDependenciesFeature: false,
+    smarterSearchFeature: false,
+    bulkActionsFeature: false // New: Bulk Actions Feature flag
 };
 
 let kanbanColumns = [
@@ -89,7 +91,7 @@ async function loadFeatureFlags() {
         'fileAttachments', 'integrationsServices', 'userAccounts', 'collaborationSharing',
         'crossDeviceSync', 'tooltipsGuide', 'subTasksFeature', 'kanbanBoardFeature',
         'projectFeature', 'exportDataFeature', 'calendarViewFeature', 'taskDependenciesFeature',
-        'smarterSearchFeature' // New: Added smarterSearchFeature
+        'smarterSearchFeature', 'bulkActionsFeature' // New: Added bulkActionsFeature
     ];
     allKnownFlagKeys.forEach(key => {
         if (typeof featureFlags[key] !== 'boolean') {
@@ -103,7 +105,8 @@ async function loadFeatureFlags() {
     console.log(`[Flags] Export Data Feature is: ${featureFlags.exportDataFeature}`);
     console.log(`[Flags] Calendar View Feature is: ${featureFlags.calendarViewFeature}`);
     console.log(`[Flags] Task Dependencies Feature is: ${featureFlags.taskDependenciesFeature}`);
-    console.log(`[Flags] Smarter Search Feature is: ${featureFlags.smarterSearchFeature}`); // New: Log smarter search feature status
+    console.log(`[Flags] Smarter Search Feature is: ${featureFlags.smarterSearchFeature}`);
+    console.log(`[Flags] Bulk Actions Feature is: ${featureFlags.bulkActionsFeature}`); // New: Log bulk actions feature status
 }
 
 
@@ -201,8 +204,8 @@ function initializeTasks() {
         syncVersion: task.syncVersion || 0,
         kanbanColumnId: task.kanbanColumnId || defaultKanbanColumn,
         projectId: task.projectId || null,
-        dependsOn: task.dependsOn || [], // New: IDs of tasks this task depends on
-        blocksTasks: task.blocksTasks || []  // New: IDs of tasks this task blocks
+        dependsOn: task.dependsOn || [],
+        blocksTasks: task.blocksTasks || []
     }));
 }
 
@@ -508,4 +511,38 @@ function prepareDataForExport() {
             // You could add other settings here like currentFilter, currentSort if desired
         }
     };
+}
+
+// --- Bulk Action State Management (New) ---
+/**
+ * Toggles the selection state of a task for bulk actions.
+ * @param {number} taskId - The ID of the task to select/deselect.
+ */
+function toggleTaskSelectionForBulkAction(taskId) {
+    const index = selectedTaskIdsForBulkAction.indexOf(taskId);
+    if (index > -1) {
+        selectedTaskIdsForBulkAction.splice(index, 1); // Deselect
+    } else {
+        selectedTaskIdsForBulkAction.push(taskId); // Select
+    }
+    console.log("Selected tasks for bulk action:", selectedTaskIdsForBulkAction);
+    // This function might trigger UI updates for bulk action controls in the future
+    // e.g., by calling a function in ui_rendering.js or a dedicated bulk actions feature module
+}
+
+/**
+ * Clears all selected tasks for bulk actions.
+ */
+function clearBulkActionSelections() {
+    selectedTaskIdsForBulkAction = [];
+    console.log("Bulk action selections cleared.");
+    // This function might trigger UI updates for bulk action controls in the future
+}
+
+/**
+ * Gets the array of currently selected task IDs.
+ * @returns {number[]} An array of task IDs.
+ */
+function getSelectedTaskIdsForBulkAction() {
+    return [...selectedTaskIdsForBulkAction];
 }
