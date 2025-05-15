@@ -16,5 +16,5 @@
   "calendarViewFeature": false,
   "taskDependenciesFeature": false,
   "smarterSearchFeature": false,
-  "bulkActionsFeature": true
+  "bulkActionsFeature": false
 }
