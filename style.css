@@ -173,7 +173,14 @@ body { font-family: 'Inter', sans-serif; }
 .cross-device-sync-element,
 .tooltips-guide-element,
 .sub-tasks-feature-element,
-.kanban-board-feature-element /* Added for Kanban elements if needed for global hide/show */
+.kanban-board-feature-element, /* Added for Kanban elements if needed for global hide/show */
+.project-feature-element, /* For Project specific elements */
+.export-data-feature-element, /* For Export Data elements */
+.calendar-view-feature-element, /* For Calendar View elements */
+.task-dependencies-feature-element, /* For Task Dependency elements */
+.smarter-search-feature-element, /* For Smarter Search elements */
+.bulk-actions-feature-element, /* For Bulk Action elements */
+.pomodoro-timer-hybrid-feature-element /* For Pomodoro Timer Hybrid elements */
 { display: block; } /* Default, JS hides if feature off */
 
 
@@ -335,3 +342,6 @@ body { font-family: 'Inter', sans-serif; }
     background-color: #4b5563; /* gray-600 */
 }
 
+/* Additional styles for Pomodoro Timer if needed can go here */
+/* For example, styling for the sidebar display if Tailwind isn't enough */
+/* #sidebarPomodoroTimerDisplay { ... } */

@@ -7,7 +7,7 @@
 // - Rendering functions from ui_rendering.js (e.g., refreshTaskView, showMessage, initializeDOMElements, styleInitialSmartViewButtons).
 // - Modal interaction functions from modal_interactions.js (e.g., openAddModal, closeAddModal).
 // - Core logic functions from app_logic.js (e.g., saveTasks, tasks array, featureFlags, setTaskViewMode, projects array, uniqueProjects, selectedTaskIdsForBulkAction, clearBulkActionSelections).
-// - Feature-specific modules (e.g., window.AppFeatures.TaskTimerSystem, window.AppFeatures.KanbanBoard, window.AppFeatures.Projects, window.AppFeatures.DataManagement).
+// - Feature-specific modules (e.g., window.AppFeatures.TaskTimerSystem, window.AppFeatures.KanbanBoard, window.AppFeatures.Projects, window.AppFeatures.DataManagement, window.AppFeatures.PomodoroTimerHybrid).
 
 // --- Temporary State for UI Interactions (scoped to this file) ---
 let tempSubTasksForAddModal = [];
@@ -45,12 +45,13 @@ function populateFeatureFlagsModal() {
         calendarViewFeature: "Calendar View",
         taskDependenciesFeature: "Task Dependencies (Soon)",
         smarterSearchFeature: "Smarter Search (Soon)",
-        bulkActionsFeature: "Bulk Task Actions (Soon)" // New: Bulk Actions friendly name
+        bulkActionsFeature: "Bulk Task Actions (Soon)",
+        pomodoroTimerHybridFeature: "Pomodoro Timer Hybrid" // New: Pomodoro friendly name
     };
     const featureOrder = [
-        'projectFeature', 'kanbanBoardFeature', 'calendarViewFeature',
+        'projectFeature', 'kanbanBoardFeature', 'calendarViewFeature', 'pomodoroTimerHybridFeature', // New: Added pomodoro
         'subTasksFeature', 'taskDependenciesFeature', 'smarterSearchFeature',
-        'bulkActionsFeature', // New: Added bulkActionsFeature to the order
+        'bulkActionsFeature', 
         'taskTimerSystem', 'reminderFeature',
         'tooltipsGuide', 'exportDataFeature',
         'testButtonFeature', 'advancedRecurrence', 'fileAttachments',
@@ -75,26 +76,31 @@ function populateFeatureFlagsModal() {
                 featureFlags[key] = checkbox.checked;
                 console.log(`Feature ${key} toggled to ${featureFlags[key]}`);
                 localStorage.setItem('userFeatureFlags', JSON.stringify(featureFlags));
-                applyActiveFeatures(); // This will handle UI updates including view mode changes
+                applyActiveFeatures(); 
 
-                // Specific logic for view-changing features when they are disabled
                 if (key === 'kanbanBoardFeature' && !featureFlags.kanbanBoardFeature && currentTaskViewMode === 'kanban') {
                     setTaskViewMode('list');
                 }
                 if (key === 'calendarViewFeature' && !featureFlags.calendarViewFeature && currentTaskViewMode === 'calendar') {
                     setTaskViewMode('list');
                 }
+                if (key === 'pomodoroTimerHybridFeature' && !featureFlags.pomodoroTimerHybridFeature && currentTaskViewMode === 'pomodoro') {
+                    setTaskViewMode('list');
+                     if (window.AppFeatures && window.AppFeatures.PomodoroTimerHybrid && window.AppFeatures.PomodoroTimerHybrid.stop) {
+                        window.AppFeatures.PomodoroTimerHybrid.stop(); // Stop timer if feature disabled
+                    }
+                }
                 if (key === 'projectFeature' && !featureFlags.projectFeature && currentFilter.startsWith('project_')) {
                     setFilter('inbox');
                 }
-                // New: If bulk actions are disabled, clear any selections and hide UI
                 if (key === 'bulkActionsFeature' && !featureFlags.bulkActionsFeature) {
                     if (typeof clearBulkActionSelections === 'function') {
                         clearBulkActionSelections();
                     }
-                    // Add logic here to hide any bulk action UI elements if they become visible
+                    const bulkActionControls = document.getElementById('bulkActionControlsContainer');
+                    if (bulkActionControls) bulkActionControls.classList.add('hidden');
                 }
-                refreshTaskView(); // Refresh the view after any potential mode/filter change
+                refreshTaskView(); 
             });
             const toggleLabel = document.createElement('label');
             toggleLabel.htmlFor = `toggle-${key}`;
@@ -112,7 +118,7 @@ function populateFeatureFlagsModal() {
  * Calls feature-specific UI update functions if available, otherwise directly manipulates DOM.
  */
 function applyActiveFeatures() {
-    console.log('[ApplyFeatures] Starting applyActiveFeatures. Calendar Flag:', featureFlags.calendarViewFeature);
+    console.log('[ApplyFeatures] Starting applyActiveFeatures. Pomodoro Flag:', featureFlags.pomodoroTimerHybridFeature);
     const toggleElements = (selector, isEnabled) => {
         document.querySelectorAll(selector).forEach(el => el.classList.toggle('hidden', !isEnabled));
     };
@@ -148,8 +154,8 @@ function applyActiveFeatures() {
     }
 
     // Calendar View Feature UI
-    const calendarViewToggleBtn = document.getElementById('calendarViewToggleBtn');
-    if (calendarViewToggleBtn) calendarViewToggleBtn.classList.toggle('hidden', !featureFlags.calendarViewFeature);
+    const calendarViewToggleBtnLocal = document.getElementById('calendarViewToggleBtn'); // Use local var
+    if (calendarViewToggleBtnLocal) calendarViewToggleBtnLocal.classList.toggle('hidden', !featureFlags.calendarViewFeature);
     toggleElements('.calendar-view-feature-element', featureFlags.calendarViewFeature);
     if (!featureFlags.calendarViewFeature && currentTaskViewMode === 'calendar') {
         setTaskViewMode('list');
@@ -157,29 +163,38 @@ function applyActiveFeatures() {
 
     // Task Dependencies Feature UI
     toggleElements('.task-dependencies-feature-element', featureFlags.taskDependenciesFeature);
-    // if (window.AppFeatures?.TaskDependencies?.updateUIVisibility) window.AppFeatures.TaskDependencies.updateUIVisibility(featureFlags.taskDependenciesFeature);
 
     // Smarter Search Feature UI
     toggleElements('.smarter-search-feature-element', featureFlags.smarterSearchFeature);
-    // if (window.AppFeatures?.SmarterSearch?.updateUIVisibility) window.AppFeatures.SmarterSearch.updateUIVisibility(featureFlags.smarterSearchFeature);
 
-    // New: Bulk Actions Feature UI
+    // Bulk Actions Feature UI
     toggleElements('.bulk-actions-feature-element', featureFlags.bulkActionsFeature);
-    // if (window.AppFeatures?.BulkActions?.updateUIVisibility) window.AppFeatures.BulkActions.updateUIVisibility(featureFlags.bulkActionsFeature);
     if (!featureFlags.bulkActionsFeature) {
         if (typeof clearBulkActionSelections === 'function') {
-            clearBulkActionSelections(); // Clear any selections if feature is turned off
+            clearBulkActionSelections(); 
         }
-        // Hide any specific bulk action UI controls if they are visible
-        const bulkActionControls = document.getElementById('bulkActionControlsContainer'); // Assuming this ID for future UI
+        const bulkActionControls = document.getElementById('bulkActionControlsContainer'); 
         if (bulkActionControls) bulkActionControls.classList.add('hidden');
     }
 
+    // Pomodoro Timer Hybrid Feature UI
+    if (window.AppFeatures?.PomodoroTimerHybrid?.updateUIVisibility) {
+        window.AppFeatures.PomodoroTimerHybrid.updateUIVisibility(featureFlags.pomodoroTimerHybridFeature);
+    } else {
+        toggleElements('.pomodoro-timer-hybrid-feature-element', featureFlags.pomodoroTimerHybridFeature);
+    }
+    if (!featureFlags.pomodoroTimerHybridFeature && currentTaskViewMode === 'pomodoro') {
+        setTaskViewMode('list');
+        if (window.AppFeatures && window.AppFeatures.PomodoroTimerHybrid && window.AppFeatures.PomodoroTimerHybrid.stop) {
+            window.AppFeatures.PomodoroTimerHybrid.stop(); // Stop timer if feature disabled
+        }
+    }
 
-    refreshTaskView(); // This should handle rendering the correct view (list, kanban, or eventually calendar)
-    if (currentViewTaskId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) openViewTaskDetailsModal(currentViewTaskId); // Re-open view modal if it was open
+
+    refreshTaskView(); 
+    if (currentViewTaskId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) openViewTaskDetailsModal(currentViewTaskId); 
     const featureFlagsModalElement = document.getElementById('featureFlagsModal');
-    if (featureFlagsModalElement && !featureFlagsModalElement.classList.contains('hidden')) populateFeatureFlagsModal(); // Refresh feature flags modal if open
+    if (featureFlagsModalElement && !featureFlagsModalElement.classList.contains('hidden')) populateFeatureFlagsModal(); 
     console.log('[ApplyFeatures] Finished applyActiveFeatures.');
 }
 
@@ -565,8 +580,8 @@ function setupEventListeners() {
     // Settings Modal Buttons
     if (settingsClearCompletedBtn) settingsClearCompletedBtn.addEventListener('click', clearCompletedTasks);
     if (settingsManageLabelsBtn) settingsManageLabelsBtn.addEventListener('click', () => { closeSettingsModal(); openManageLabelsModal(); });
-    const settingsManageProjectsBtn = document.getElementById('settingsManageProjectsBtn');
-    if (settingsManageProjectsBtn) settingsManageProjectsBtn.addEventListener('click', () => { if (featureFlags.projectFeature && window.AppFeatures?.Projects) { closeSettingsModal(); window.AppFeatures.Projects.openManageProjectsModal(); } else { showMessage('Enable Project Feature in Feature Flags.', 'error'); } });
+    const settingsManageProjectsBtnLocal = document.getElementById('settingsManageProjectsBtn'); // Use local
+    if (settingsManageProjectsBtnLocal) settingsManageProjectsBtnLocal.addEventListener('click', () => { if (featureFlags.projectFeature && window.AppFeatures?.Projects) { closeSettingsModal(); window.AppFeatures.Projects.openManageProjectsModal(); } else { showMessage('Enable Project Feature in Feature Flags.', 'error'); } });
     if (settingsManageRemindersBtn) { settingsManageRemindersBtn.addEventListener('click', () => { if(featureFlags.reminderFeature) { showMessage('Manage Reminders - Coming soon!', 'info'); } else { showMessage('Enable Reminder System in Feature Flags.', 'error'); }});}
     if (settingsTaskReviewBtn) { settingsTaskReviewBtn.addEventListener('click', () => { closeSettingsModal(); openTaskReviewModal(); });}
     if (settingsTooltipsGuideBtn) { settingsTooltipsGuideBtn.addEventListener('click', () => {closeSettingsModal(); openTooltipsGuideModal(); }); }
@@ -600,12 +615,21 @@ function setupEventListeners() {
 
     // Smart View & Project Filters
     if (smartViewButtonsContainer) smartViewButtonsContainer.addEventListener('click', (event) => { const button = event.target.closest('.smart-view-btn'); if (button && button.dataset.filter && !button.dataset.filter.startsWith('project_')) setFilter(button.dataset.filter); });
-    const projectFilterContainer = document.getElementById('projectFilterContainer');
-    if (projectFilterContainer) projectFilterContainer.addEventListener('click', (event) => { const button = event.target.closest('.smart-view-btn'); if (button && button.dataset.filter && button.dataset.filter.startsWith('project_')) setFilter(button.dataset.filter); });
+    const projectFilterContainerLocal = document.getElementById('projectFilterContainer'); // Use local
+    if (projectFilterContainerLocal) projectFilterContainerLocal.addEventListener('click', (event) => { const button = event.target.closest('.smart-view-btn'); if (button && button.dataset.filter && button.dataset.filter.startsWith('project_')) setFilter(button.dataset.filter); });
 
     // Search, Sidebar, Sort
     if (taskSearchInput) taskSearchInput.addEventListener('input', (event) => { setAppSearchTerm(event.target.value.trim().toLowerCase()); refreshTaskView(); });
-    if (sidebarToggleBtn) sidebarToggleBtn.addEventListener('click', () => { const isCurrentlyMinimized = taskSidebar.classList.contains('sidebar-minimized'); setSidebarMinimized(!isCurrentlyMinimized); });
+    if (sidebarToggleBtn) {
+        sidebarToggleBtn.addEventListener('click', () => {
+            const isCurrentlyMinimized = taskSidebar.classList.contains('sidebar-minimized');
+            setSidebarMinimized(!isCurrentlyMinimized);
+            // After toggling, update Pomodoro sidebar display if the feature is active
+            if (featureFlags.pomodoroTimerHybridFeature && window.AppFeatures && window.AppFeatures.PomodoroTimerHybrid && typeof window.AppFeatures.PomodoroTimerHybrid.updateSidebarDisplay === 'function') {
+                window.AppFeatures.PomodoroTimerHybrid.updateSidebarDisplay();
+            }
+        });
+    }
     if (sidebarIconOnlyButtons) sidebarIconOnlyButtons.forEach(button => { button.addEventListener('mouseenter', (event) => { if (!taskSidebar || !taskSidebar.classList.contains('sidebar-minimized')) return; clearTimeout(tooltipTimeout); tooltipTimeout = setTimeout(() => { const tooltipText = button.title || button.querySelector('.sidebar-text-content')?.textContent.trim(); if (tooltipText) showTooltip(event.currentTarget, tooltipText); }, 500); }); button.addEventListener('mouseleave', () => { hideTooltip(); }); });
     if (sortByDueDateBtn) sortByDueDateBtn.addEventListener('click', () => { setAppCurrentSort(currentSort === 'dueDate' ? 'default' : 'dueDate'); updateSortButtonStates(); refreshTaskView(); });
     if (sortByPriorityBtn) sortByPriorityBtn.addEventListener('click', () => { setAppCurrentSort(currentSort === 'priority' ? 'default' : 'priority'); updateSortButtonStates(); refreshTaskView(); });
@@ -617,11 +641,11 @@ function setupEventListeners() {
     if (modalAddSubTaskBtnAdd) modalAddSubTaskBtnAdd.addEventListener('click', handleAddTempSubTaskForAddModal);
     if (modalSubTaskInputAdd) modalSubTaskInputAdd.addEventListener('keypress', (event) => { if (event.key === 'Enter') { event.preventDefault(); handleAddTempSubTaskForAddModal(); } });
 
-    // View Toggle Buttons (Kanban, Calendar)
-    if (kanbanViewToggleBtn) kanbanViewToggleBtn.addEventListener('click', () => { if (!featureFlags.kanbanBoardFeature) return; if (currentTaskViewMode === 'list') setTaskViewMode('kanban'); else setTaskViewMode('list'); refreshTaskView(); });
-    const calendarViewToggleBtn = document.getElementById('calendarViewToggleBtn');
-    if (calendarViewToggleBtn) {
-        calendarViewToggleBtn.addEventListener('click', () => {
+    // View Toggle Buttons (Kanban, Calendar, Pomodoro)
+    if (kanbanViewToggleBtn) kanbanViewToggleBtn.addEventListener('click', () => { if (!featureFlags.kanbanBoardFeature) return; if (currentTaskViewMode === 'list' || currentTaskViewMode === 'calendar' || currentTaskViewMode === 'pomodoro') setTaskViewMode('kanban'); else setTaskViewMode('list'); refreshTaskView(); if (window.AppFeatures?.PomodoroTimerHybrid?.handleViewChange) window.AppFeatures.PomodoroTimerHybrid.handleViewChange(currentTaskViewMode); });
+    const calendarViewToggleBtnLocal = document.getElementById('calendarViewToggleBtn'); // Use local
+    if (calendarViewToggleBtnLocal) {
+        calendarViewToggleBtnLocal.addEventListener('click', () => {
             if (!featureFlags.calendarViewFeature) return;
             if (currentTaskViewMode !== 'calendar') {
                 setTaskViewMode('calendar');
@@ -629,6 +653,26 @@ function setupEventListeners() {
                 setTaskViewMode('list');
             }
             refreshTaskView();
+            if (window.AppFeatures?.PomodoroTimerHybrid?.handleViewChange) window.AppFeatures.PomodoroTimerHybrid.handleViewChange(currentTaskViewMode);
+        });
+    }
+    // New: Pomodoro View Toggle Button
+    if (pomodoroViewToggleBtn) {
+        pomodoroViewToggleBtn.addEventListener('click', () => {
+            if (!featureFlags.pomodoroTimerHybridFeature) {
+                showMessage('Pomodoro Timer feature is disabled.', 'error');
+                return;
+            }
+            if (currentTaskViewMode !== 'pomodoro') {
+                setTaskViewMode('pomodoro');
+            } else {
+                setTaskViewMode('list');
+            }
+            refreshTaskView(); // This will call the Pomodoro module's renderPomodoroPage via refreshTaskView in ui_rendering
+            // Call handleViewChange on the Pomodoro module if it exists, to let it know about the view change
+            if (window.AppFeatures && window.AppFeatures.PomodoroTimerHybrid && typeof window.AppFeatures.PomodoroTimerHybrid.handleViewChange === 'function') {
+                window.AppFeatures.PomodoroTimerHybrid.handleViewChange(currentTaskViewMode);
+            }
         });
     }
 
@@ -676,21 +720,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (window.AppFeatures.KanbanBoard?.initialize) window.AppFeatures.KanbanBoard.initialize();
         if (window.AppFeatures.Projects?.initialize) { console.log("[OnInit] Initializing Project Feature Module..."); window.AppFeatures.Projects.initialize(); }
         if (window.AppFeatures.DataManagement?.initialize) { console.log("[OnInit] Initializing Data Management Feature Module..."); window.AppFeatures.DataManagement.initialize(); }
-        // New: Initialize Task Dependencies Feature (placeholder for now)
-        // if (window.AppFeatures.TaskDependencies?.initialize) {
-        //     console.log("[OnInit] Initializing Task Dependencies Feature Module...");
-        //     window.AppFeatures.TaskDependencies.initialize();
-        // }
-        // New: Initialize Smarter Search Feature (placeholder for now)
-        // if (window.AppFeatures.SmarterSearch?.initialize) {
-        //     console.log("[OnInit] Initializing Smarter Search Feature Module...");
-        //     window.AppFeatures.SmarterSearch.initialize();
-        // }
-        // New: Initialize Bulk Actions Feature (placeholder for now)
-        // if (window.AppFeatures.BulkActions?.initialize) {
-        //     console.log("[OnInit] Initializing Bulk Actions Feature Module...");
-        //     window.AppFeatures.BulkActions.initialize();
-        // }
+        // New: Initialize Pomodoro Timer Hybrid Feature
+        if (window.AppFeatures.PomodoroTimerHybrid?.initialize) {
+            console.log("[OnInit] Initializing Pomodoro Timer Hybrid Feature Module...");
+            window.AppFeatures.PomodoroTimerHybrid.initialize();
+        }
     }
 
     applyActiveFeatures(); 
@@ -711,4 +745,3 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupEventListeners(); 
     console.log("Todo App Initialized (after DOMContentLoaded).");
 });
-

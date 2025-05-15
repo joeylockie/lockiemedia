@@ -55,9 +55,14 @@ let viewTaskDependenciesSection, viewTaskDependsOnList, viewTaskBlocksTasksList;
 // Smarter Search DOM Elements
 let smarterSearchContainer, smarterSearchAdvancedToggleBtn, smarterSearchOptionsDiv;
 
-// New: Bulk Actions DOM Elements
+// Bulk Actions DOM Elements
 let bulkActionControlsContainer, selectAllTasksCheckbox, bulkCompleteBtn, bulkDeleteBtn;
 let bulkAssignProjectDropdown, bulkChangePriorityDropdown, bulkChangeLabelInput;
+
+// Pomodoro Timer Hybrid Feature DOM Elements
+let pomodoroViewToggleBtn, pomodoroViewToggleBtnText;
+let pomodoroTimerPageContainer;
+let sidebarPomodoroTimerDisplay, sidebarPomodoroState, sidebarPomodoroTime, sidebarPomodoroTask;
 
 
 /**
@@ -242,7 +247,7 @@ function initializeDOMElements() {
     smarterSearchAdvancedToggleBtn = document.getElementById('smarterSearchAdvancedToggleBtn');
     smarterSearchOptionsDiv = document.getElementById('smarterSearchOptionsDiv');
 
-    // New: Initialize Bulk Actions DOM Elements
+    // Initialize Bulk Actions DOM Elements
     bulkActionControlsContainer = document.getElementById('bulkActionControlsContainer');
     selectAllTasksCheckbox = document.getElementById('selectAllTasksCheckbox');
     bulkCompleteBtn = document.getElementById('bulkCompleteBtn');
@@ -251,16 +256,22 @@ function initializeDOMElements() {
     bulkChangePriorityDropdown = document.getElementById('bulkChangePriorityDropdown');
     bulkChangeLabelInput = document.getElementById('bulkChangeLabelInput');
 
+    // Initialize Pomodoro Timer Hybrid Feature DOM Elements
+    pomodoroViewToggleBtn = document.getElementById('pomodoroViewToggleBtn');
+    pomodoroViewToggleBtnText = document.getElementById('pomodoroViewToggleBtnText');
+    pomodoroTimerPageContainer = document.getElementById('pomodoroTimerPageContainer');
+    sidebarPomodoroTimerDisplay = document.getElementById('sidebarPomodoroTimerDisplay');
+    sidebarPomodoroState = document.getElementById('sidebarPomodoroState');
+    sidebarPomodoroTime = document.getElementById('sidebarPomodoroTime');
+    sidebarPomodoroTask = document.getElementById('sidebarPomodoroTask');
+
 
     // Add checks for newly added elements
     if (!settingsManageProjectsBtn) console.warn('[DOM Init Warning] Element "settingsManageProjectsBtn" not found.');
-    // ... (other existing checks) ...
     if (!viewTaskBlocksTasksList) console.warn('[DOM Init Warning] Element "viewTaskBlocksTasksList" not found.');
     if (!smarterSearchContainer) console.warn('[DOM Init Warning] Placeholder element "smarterSearchContainer" not found.');
     if (!smarterSearchAdvancedToggleBtn) console.warn('[DOM Init Warning] Placeholder element "smarterSearchAdvancedToggleBtn" not found.');
     if (!smarterSearchOptionsDiv) console.warn('[DOM Init Warning] Placeholder element "smarterSearchOptionsDiv" not found.');
-
-    // New: Checks for Bulk Action elements
     if (!bulkActionControlsContainer) console.warn('[DOM Init Warning] Element "bulkActionControlsContainer" not found. This is expected if HTML is not yet updated.');
     if (!selectAllTasksCheckbox) console.warn('[DOM Init Warning] Element "selectAllTasksCheckbox" not found. This is expected if HTML is not yet updated.');
     if (!bulkCompleteBtn) console.warn('[DOM Init Warning] Element "bulkCompleteBtn" not found. This is expected if HTML is not yet updated.');
@@ -268,6 +279,9 @@ function initializeDOMElements() {
     if (!bulkAssignProjectDropdown) console.warn('[DOM Init Warning] Element "bulkAssignProjectDropdown" not found. This is expected if HTML is not yet updated.');
     if (!bulkChangePriorityDropdown) console.warn('[DOM Init Warning] Element "bulkChangePriorityDropdown" not found. This is expected if HTML is not yet updated.');
     if (!bulkChangeLabelInput) console.warn('[DOM Init Warning] Element "bulkChangeLabelInput" not found. This is expected if HTML is not yet updated.');
+    if (!pomodoroViewToggleBtn) console.warn('[DOM Init Warning] Element "pomodoroViewToggleBtn" not found.');
+    if (!pomodoroTimerPageContainer) console.warn('[DOM Init Warning] Element "pomodoroTimerPageContainer" not found.');
+    if (!sidebarPomodoroTimerDisplay) console.warn('[DOM Init Warning] Element "sidebarPomodoroTimerDisplay" not found.');
 
 
     console.log('[DOM Init] Finished initializing DOM elements.');
@@ -315,7 +329,7 @@ function setSidebarMinimized(minimize) {
         sidebarToggleIcon.classList.remove('fa-chevron-left');
         sidebarToggleIcon.classList.add('fa-chevron-right');
         if(sidebarTextElements) sidebarTextElements.forEach(el => el.classList.add('hidden'));
-        document.querySelectorAll('.sidebar-section-title, #taskSearchInputContainer, #testFeatureButtonContainer .sidebar-text-content, #projectFilterContainer .sidebar-text-content').forEach(el => el.classList.add('hidden'));
+        document.querySelectorAll('.sidebar-section-title, #taskSearchInputContainer, #testFeatureButtonContainer .sidebar-text-content, #projectFilterContainer .sidebar-text-content, #sidebarPomodoroTimerDisplay .sidebar-text-content').forEach(el => el.classList.add('hidden'));
         if(sidebarIconOnlyButtons) sidebarIconOnlyButtons.forEach(btn => {
             btn.classList.add('justify-center');
             const icon = btn.querySelector('i');
@@ -328,6 +342,10 @@ function setSidebarMinimized(minimize) {
                 if(icon) icon.classList.remove('md:mr-2', 'md:mr-2.5', 'ml-2');
             });
         }
+        // Hide Pomodoro sidebar display explicitly when minimized
+        if (sidebarPomodoroTimerDisplay) {
+            sidebarPomodoroTimerDisplay.classList.add('hidden');
+        }
         localStorage.setItem('sidebarState', 'minimized');
     } else {
         taskSidebar.classList.remove('w-16', 'p-3', 'sidebar-minimized');
@@ -335,7 +353,13 @@ function setSidebarMinimized(minimize) {
         sidebarToggleIcon.classList.remove('fa-chevron-right');
         sidebarToggleIcon.classList.add('fa-chevron-left');
         if(sidebarTextElements) sidebarTextElements.forEach(el => el.classList.remove('hidden'));
+        // Selectively show sidebar text content, excluding the pomodoro one initially
         document.querySelectorAll('.sidebar-section-title, #taskSearchInputContainer, #testFeatureButtonContainer .sidebar-text-content, #projectFilterContainer .sidebar-text-content').forEach(el => el.classList.remove('hidden'));
+        // Handle Pomodoro text content separately by its main display logic
+        if (sidebarPomodoroTimerDisplay && !sidebarPomodoroTimerDisplay.classList.contains('hidden')) {
+             sidebarPomodoroTimerDisplay.querySelectorAll('.sidebar-text-content').forEach(el => el.classList.remove('hidden'));
+        }
+
 
         if(sidebarIconOnlyButtons) sidebarIconOnlyButtons.forEach(btn => {
             btn.classList.remove('justify-center');
@@ -362,6 +386,10 @@ function setSidebarMinimized(minimize) {
             });
         }
         localStorage.setItem('sidebarState', 'expanded');
+        // Update Pomodoro sidebar display according to its state
+        if (window.AppFeatures && window.AppFeatures.PomodoroTimerHybrid && typeof window.AppFeatures.PomodoroTimerHybrid.updateSidebarDisplay === 'function') {
+            window.AppFeatures.PomodoroTimerHybrid.updateSidebarDisplay();
+        }
     }
 }
 
@@ -397,14 +425,20 @@ function refreshTaskView() {
 
     if (taskList) taskList.classList.add('hidden');
     if (kanbanBoardContainer) kanbanBoardContainer.classList.add('hidden');
-    else {
-        const kbc = document.getElementById('kanbanBoardContainer');
-        if (kbc) kbc.classList.add('hidden');
-    }
     if (calendarViewContainer) calendarViewContainer.classList.add('hidden');
+    if (pomodoroTimerPageContainer) pomodoroTimerPageContainer.classList.add('hidden');
 
 
-    if (featureFlags.calendarViewFeature && currentTaskViewMode === 'calendar') {
+    if (featureFlags.pomodoroTimerHybridFeature && currentTaskViewMode === 'pomodoro') {
+        if (window.AppFeatures && window.AppFeatures.PomodoroTimerHybrid && typeof window.AppFeatures.PomodoroTimerHybrid.renderPomodoroPage === 'function') {
+            if(pomodoroTimerPageContainer) pomodoroTimerPageContainer.classList.remove('hidden');
+            window.AppFeatures.PomodoroTimerHybrid.renderPomodoroPage();
+        } else {
+            console.warn("PomodoroTimerHybrid feature or renderPomodoroPage function not available. Defaulting to list view.");
+            setTaskViewMode('list'); // Fallback
+            renderTaskListView();
+        }
+    } else if (featureFlags.calendarViewFeature && currentTaskViewMode === 'calendar') {
         renderCalendarView();
     } else if (featureFlags.kanbanBoardFeature && currentTaskViewMode === 'kanban') {
         if (window.AppFeatures && window.AppFeatures.KanbanBoard && typeof window.AppFeatures.KanbanBoard.renderKanbanView === 'function') {
@@ -419,7 +453,12 @@ function refreshTaskView() {
         renderTaskListView();
     }
     updateClearCompletedButtonState();
-    renderBulkActionControls(); // New: Call to render/update bulk action controls
+    renderBulkActionControls(); 
+    
+    // Update Pomodoro sidebar display after main view refresh
+    if (featureFlags.pomodoroTimerHybridFeature && window.AppFeatures && window.AppFeatures.PomodoroTimerHybrid && typeof window.AppFeatures.PomodoroTimerHybrid.updateSidebarDisplay === 'function') {
+        window.AppFeatures.PomodoroTimerHybrid.updateSidebarDisplay();
+    }
 }
 
 function renderTaskListView() {
@@ -440,8 +479,8 @@ function renderTaskListView() {
     taskList.classList.remove('hidden');
 
     if (kanbanBoardContainer) kanbanBoardContainer.classList.add('hidden');
-    else { const kbc = document.getElementById('kanbanBoardContainer'); if (kbc) kbc.classList.add('hidden');}
     if (calendarViewContainer) calendarViewContainer.classList.add('hidden');
+    if (pomodoroTimerPageContainer) pomodoroTimerPageContainer.classList.add('hidden');
 
 
     let filteredTasks = [];
@@ -539,14 +578,12 @@ function renderTaskListView() {
         const mainContentClickableArea = document.createElement('div');
         mainContentClickableArea.className = 'task-item-clickable-area flex items-start flex-grow min-w-0 mr-2 rounded-l-lg';
         mainContentClickableArea.addEventListener('click', (event) => {
-            // Prevent opening view modal if a checkbox or action button within the item was clicked
             if (event.target.type === 'checkbox' || event.target.closest('.task-actions') || event.target.closest('.bulk-select-checkbox-container')) {
                 return;
             }
             openViewTaskDetailsModal(task.id);
         });
 
-        // New: Bulk Action Checkbox Container
         const bulkSelectCheckboxContainer = document.createElement('div');
         bulkSelectCheckboxContainer.className = 'bulk-select-checkbox-container flex-shrink-0 mr-2 sm:mr-3 bulk-actions-feature-element';
         if (featureFlags.bulkActionsFeature) {
@@ -559,7 +596,6 @@ function renderTaskListView() {
                 if (typeof toggleTaskSelectionForBulkAction === 'function') {
                     toggleTaskSelectionForBulkAction(task.id);
                 }
-                // After toggling, re-render bulk action controls to update their state (e.g., enable/disable buttons)
                 renderBulkActionControls();
             });
             bulkSelectCheckboxContainer.appendChild(bulkCheckbox);
@@ -651,9 +687,9 @@ function renderTaskListView() {
             textDetailsDiv.appendChild(detailsContainer);
         }
         
-        mainContentClickableArea.appendChild(bulkSelectCheckboxContainer); // Add bulk select checkbox
-        mainContentClickableArea.appendChild(completeCheckbox); // Then complete checkbox
-        mainContentClickableArea.appendChild(textDetailsDiv); // Then task details
+        mainContentClickableArea.appendChild(bulkSelectCheckboxContainer); 
+        mainContentClickableArea.appendChild(completeCheckbox); 
+        mainContentClickableArea.appendChild(textDetailsDiv); 
 
         const actionsDiv = document.createElement('div');
         actionsDiv.className = 'task-actions flex-shrink-0 self-start';
@@ -690,14 +726,11 @@ function renderTaskListView() {
     });
 }
 
-// New: Function to render/update bulk action controls
 function renderBulkActionControls() {
     if (!bulkActionControlsContainer) {
-        // Attempt to get it again in case it was added to HTML after initial DOM load
         bulkActionControlsContainer = document.getElementById('bulkActionControlsContainer');
         if (!bulkActionControlsContainer) {
-            // console.warn("renderBulkActionControls: bulkActionControlsContainer not found.");
-            return; // Silently return if not found, as HTML might not be updated yet
+            return; 
         }
     }
 
@@ -710,25 +743,21 @@ function renderBulkActionControls() {
     const hasSelection = selectedIds.length > 0;
 
     bulkActionControlsContainer.classList.toggle('hidden', !hasSelection);
-    bulkActionControlsContainer.classList.add('bulk-actions-feature-element'); // Ensure it's tagged for feature flag toggling
+    bulkActionControlsContainer.classList.add('bulk-actions-feature-element'); 
 
     if (hasSelection) {
-        // Update count or other info in the controls if needed
         const selectionCountSpan = bulkActionControlsContainer.querySelector('#bulkActionSelectionCount');
         if (selectionCountSpan) {
             selectionCountSpan.textContent = `${selectedIds.length} selected`;
         }
-
-        // Enable/disable buttons based on selection (already handled by hiding container if no selection)
         if (bulkCompleteBtn) bulkCompleteBtn.disabled = !hasSelection;
         if (bulkDeleteBtn) bulkDeleteBtn.disabled = !hasSelection;
-        // Add similar logic for other bulk action buttons/dropdowns if they exist
     }
 
-    // Update "Select All" checkbox state
     if (selectAllTasksCheckbox) {
-        const visibleTasksOnPage = Array.from(taskList.querySelectorAll('.task-item:not(.hidden)')) // Assuming hidden tasks are not selectable
-                                       .map(item => parseInt(item.dataset.taskId));
+        const currentTaskList = taskList || document.getElementById('taskList'); // Ensure taskList is available
+        const visibleTasksOnPage = currentTaskList ? Array.from(currentTaskList.querySelectorAll('.task-item:not(.hidden)')) 
+                                       .map(item => parseInt(item.dataset.taskId)) : [];
         const allVisibleSelected = visibleTasksOnPage.length > 0 && visibleTasksOnPage.every(id => selectedIds.includes(id));
         selectAllTasksCheckbox.checked = allVisibleSelected;
         selectAllTasksCheckbox.indeterminate = !allVisibleSelected && selectedIds.some(id => visibleTasksOnPage.includes(id));
@@ -737,7 +766,6 @@ function renderBulkActionControls() {
 }
 
 
-// New: Function to render task dependencies in the View Task Details Modal
 function renderTaskDependenciesForViewModal(task) {
     if (!featureFlags.taskDependenciesFeature || !viewTaskDependsOnList || !viewTaskBlocksTasksList) {
         if(viewTaskDependenciesSection) viewTaskDependenciesSection.classList.add('hidden');
@@ -791,9 +819,11 @@ function renderCalendarView() {
     }
     console.log("Rendering Calendar View (placeholder)...");
     taskList.classList.add('hidden');
-    const kbc = document.getElementById('kanbanBoardContainer');
-    if (kbc) kbc.classList.add('hidden');
+    if (kanbanBoardContainer) kanbanBoardContainer.classList.add('hidden');
+    if (pomodoroTimerPageContainer) pomodoroTimerPageContainer.classList.add('hidden');
     calendarViewContainer.classList.remove('hidden');
+    // Actual calendar rendering logic would go here.
+    // For now, it just shows the placeholder text from todo.html.
 }
 
 
@@ -1016,7 +1046,8 @@ function updateClearCompletedButtonState() {
 function updateViewToggleButtonsState() {
     const isKanbanActive = featureFlags.kanbanBoardFeature && currentTaskViewMode === 'kanban';
     const isCalendarActive = featureFlags.calendarViewFeature && currentTaskViewMode === 'calendar';
-    const isListActive = !isKanbanActive && !isCalendarActive;
+    const isPomodoroActive = featureFlags.pomodoroTimerHybridFeature && currentTaskViewMode === 'pomodoro';
+    const isListActive = !isKanbanActive && !isCalendarActive && !isPomodoroActive;
 
     if (kanbanViewToggleBtn && kanbanViewToggleBtnText) {
         const icon = kanbanViewToggleBtn.querySelector('i');
@@ -1049,6 +1080,23 @@ function updateViewToggleButtonsState() {
             calendarViewToggleBtn.classList.toggle('dark:bg-teal-600', isCalendarActive);
         }
     }
+    
+    if (pomodoroViewToggleBtn && pomodoroViewToggleBtnText) {
+        const icon = pomodoroViewToggleBtn.querySelector('i');
+        pomodoroViewToggleBtn.classList.toggle('hidden', !featureFlags.pomodoroTimerHybridFeature);
+        if (featureFlags.pomodoroTimerHybridFeature) {
+            pomodoroViewToggleBtnText.textContent = isPomodoroActive ? 'List' : 'Pomodoro';
+            pomodoroViewToggleBtn.title = isPomodoroActive ? 'Switch to List View' : 'Switch to Pomodoro View';
+            if (icon) {
+                icon.classList.toggle('fa-stopwatch', !isPomodoroActive); // Icon for Pomodoro
+                icon.classList.toggle('fa-list-ul', isPomodoroActive);    // Icon for List
+            }
+            pomodoroViewToggleBtn.classList.toggle('bg-rose-500', isPomodoroActive); // Active color
+            pomodoroViewToggleBtn.classList.toggle('text-white', isPomodoroActive);
+            pomodoroViewToggleBtn.classList.toggle('dark:bg-rose-600', isPomodoroActive);
+        }
+    }
+
 
     const sortButtonsVisible = isListActive;
     if (sortByDueDateBtn) sortByDueDateBtn.classList.toggle('hidden', !sortButtonsVisible);
@@ -1062,7 +1110,9 @@ function updateYourTasksHeading() {
         console.warn("updateYourTasksHeading: Heading element not found.");
         return;
     }
-    if (featureFlags.calendarViewFeature && currentTaskViewMode === 'calendar') {
+    if (featureFlags.pomodoroTimerHybridFeature && currentTaskViewMode === 'pomodoro') {
+        yourTasksHeading.textContent = 'Pomodoro Timer';
+    } else if (featureFlags.calendarViewFeature && currentTaskViewMode === 'calendar') {
         yourTasksHeading.textContent = 'Calendar';
     } else if (featureFlags.kanbanBoardFeature && currentTaskViewMode === 'kanban') {
         yourTasksHeading.textContent = 'Kanban Board';

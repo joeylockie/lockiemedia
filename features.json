@@ -16,5 +16,6 @@
   "calendarViewFeature": false,
   "taskDependenciesFeature": false,
   "smarterSearchFeature": false,
-  "bulkActionsFeature": false
+  "bulkActionsFeature": false,
+  "pomodoroTimerHybridFeature": true
 }

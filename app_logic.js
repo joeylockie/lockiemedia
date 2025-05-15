@@ -11,8 +11,14 @@ let currentViewTaskId = null;
 let uniqueLabels = [];
 let uniqueProjects = []; // For project names in dropdowns etc.
 let tooltipTimeout = null;
-let currentTaskViewMode = 'list'; // 'list', 'kanban', or 'calendar'
+let currentTaskViewMode = 'list'; // 'list', 'kanban', 'calendar', or 'pomodoro'
 let selectedTaskIdsForBulkAction = []; // New: For Bulk Actions feature
+
+// Pomodoro Timer State (Placeholders)
+let isPomodoroActive = false;
+let currentPomodoroState = 'work'; // 'work', 'shortBreak', 'longBreak'
+let pomodoroTimeRemaining = 0; // in seconds
+let pomodoroCurrentTaskId = null; // Task ID associated with the current Pomodoro session
 
 // Default feature flags, will be overridden by features.json and then by localStorage
 let featureFlags = {
@@ -33,7 +39,8 @@ let featureFlags = {
     calendarViewFeature: false,
     taskDependenciesFeature: false,
     smarterSearchFeature: false,
-    bulkActionsFeature: false // New: Bulk Actions Feature flag
+    bulkActionsFeature: false, // New: Bulk Actions Feature flag
+    pomodoroTimerHybridFeature: false // New: Pomodoro Timer Hybrid Feature flag
 };
 
 let kanbanColumns = [
@@ -91,7 +98,7 @@ async function loadFeatureFlags() {
         'fileAttachments', 'integrationsServices', 'userAccounts', 'collaborationSharing',
         'crossDeviceSync', 'tooltipsGuide', 'subTasksFeature', 'kanbanBoardFeature',
         'projectFeature', 'exportDataFeature', 'calendarViewFeature', 'taskDependenciesFeature',
-        'smarterSearchFeature', 'bulkActionsFeature' // New: Added bulkActionsFeature
+        'smarterSearchFeature', 'bulkActionsFeature', 'pomodoroTimerHybridFeature' // New: Added pomodoroTimerHybridFeature
     ];
     allKnownFlagKeys.forEach(key => {
         if (typeof featureFlags[key] !== 'boolean') {
@@ -106,7 +113,8 @@ async function loadFeatureFlags() {
     console.log(`[Flags] Calendar View Feature is: ${featureFlags.calendarViewFeature}`);
     console.log(`[Flags] Task Dependencies Feature is: ${featureFlags.taskDependenciesFeature}`);
     console.log(`[Flags] Smarter Search Feature is: ${featureFlags.smarterSearchFeature}`);
-    console.log(`[Flags] Bulk Actions Feature is: ${featureFlags.bulkActionsFeature}`); // New: Log bulk actions feature status
+    console.log(`[Flags] Bulk Actions Feature is: ${featureFlags.bulkActionsFeature}`);
+    console.log(`[Flags] Pomodoro Timer Hybrid Feature is: ${featureFlags.pomodoroTimerHybridFeature}`); // New: Log pomodoro feature status
 }
 
 
@@ -410,8 +418,8 @@ function parseDateFromText(text) {
 
 // --- Task View Mode Management ---
 function setTaskViewMode(mode) {
-    // Valid modes: 'list', 'kanban', 'calendar'
-    if (['list', 'kanban', 'calendar'].includes(mode)) {
+    // Valid modes: 'list', 'kanban', 'calendar', 'pomodoro'
+    if (['list', 'kanban', 'calendar', 'pomodoro'].includes(mode)) {
         currentTaskViewMode = mode;
         console.log(`Task view mode changed to: ${currentTaskViewMode}`);
         // Potentially trigger a re-render or UI update specific to the view mode change
