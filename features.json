@@ -14,5 +14,6 @@
   "projectFeature": false,
   "exportDataFeature": false,
   "calendarViewFeature": false,
-  "taskDependenciesFeature": false
+  "taskDependenciesFeature": false,
+  "smarterSearchFeature": true
 }

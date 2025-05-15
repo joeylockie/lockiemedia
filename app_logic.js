@@ -30,7 +30,8 @@ let featureFlags = {
     projectFeature: false,
     exportDataFeature: false,
     calendarViewFeature: false,
-    taskDependenciesFeature: false // New: Task Dependencies Feature flag
+    taskDependenciesFeature: false, // New: Task Dependencies Feature flag
+    smarterSearchFeature: false // New: Smarter Search Feature flag
 };
 
 let kanbanColumns = [
@@ -87,7 +88,8 @@ async function loadFeatureFlags() {
         'testButtonFeature', 'reminderFeature', 'taskTimerSystem', 'advancedRecurrence',
         'fileAttachments', 'integrationsServices', 'userAccounts', 'collaborationSharing',
         'crossDeviceSync', 'tooltipsGuide', 'subTasksFeature', 'kanbanBoardFeature',
-        'projectFeature', 'exportDataFeature', 'calendarViewFeature', 'taskDependenciesFeature' // New: Added taskDependenciesFeature
+        'projectFeature', 'exportDataFeature', 'calendarViewFeature', 'taskDependenciesFeature',
+        'smarterSearchFeature' // New: Added smarterSearchFeature
     ];
     allKnownFlagKeys.forEach(key => {
         if (typeof featureFlags[key] !== 'boolean') {
@@ -100,7 +102,8 @@ async function loadFeatureFlags() {
     console.log(`[Flags] Project Feature is: ${featureFlags.projectFeature}`);
     console.log(`[Flags] Export Data Feature is: ${featureFlags.exportDataFeature}`);
     console.log(`[Flags] Calendar View Feature is: ${featureFlags.calendarViewFeature}`);
-    console.log(`[Flags] Task Dependencies Feature is: ${featureFlags.taskDependenciesFeature}`); // New: Log task dependencies feature status
+    console.log(`[Flags] Task Dependencies Feature is: ${featureFlags.taskDependenciesFeature}`);
+    console.log(`[Flags] Smarter Search Feature is: ${featureFlags.smarterSearchFeature}`); // New: Log smarter search feature status
 }
 
 

@@ -43,11 +43,12 @@ function populateFeatureFlagsModal() {
         projectFeature: "Projects Feature",
         exportDataFeature: "Export Data Feature",
         calendarViewFeature: "Calendar View",
-        taskDependenciesFeature: "Task Dependencies (Soon)" // New: Task Dependencies friendly name
+        taskDependenciesFeature: "Task Dependencies (Soon)",
+        smarterSearchFeature: "Smarter Search (Soon)" // New: Smarter Search friendly name
     };
     const featureOrder = [
         'projectFeature', 'kanbanBoardFeature', 'calendarViewFeature',
-        'subTasksFeature', 'taskDependenciesFeature', // New: Added taskDependenciesFeature to the order
+        'subTasksFeature', 'taskDependenciesFeature', 'smarterSearchFeature', // New: Added smarterSearchFeature to the order
         'taskTimerSystem', 'reminderFeature',
         'tooltipsGuide', 'exportDataFeature',
         'testButtonFeature', 'advancedRecurrence', 'fileAttachments',
@@ -145,11 +146,13 @@ function applyActiveFeatures() {
         setTaskViewMode('list');
     }
 
-    // New: Task Dependencies Feature UI
-    // Add a class like '.task-dependencies-feature-element' to HTML elements related to this feature.
+    // Task Dependencies Feature UI
     toggleElements('.task-dependencies-feature-element', featureFlags.taskDependenciesFeature);
-    // If a dedicated TaskDependencies module exists, call its UI update function:
     // if (window.AppFeatures?.TaskDependencies?.updateUIVisibility) window.AppFeatures.TaskDependencies.updateUIVisibility(featureFlags.taskDependenciesFeature);
+
+    // New: Smarter Search Feature UI
+    toggleElements('.smarter-search-feature-element', featureFlags.smarterSearchFeature);
+    // if (window.AppFeatures?.SmarterSearch?.updateUIVisibility) window.AppFeatures.SmarterSearch.updateUIVisibility(featureFlags.smarterSearchFeature);
 
 
     refreshTaskView(); // This should handle rendering the correct view (list, kanban, or eventually calendar)
@@ -675,6 +678,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         // if (window.AppFeatures.TaskDependencies?.initialize) {
         //     console.log("[OnInit] Initializing Task Dependencies Feature Module...");
         //     window.AppFeatures.TaskDependencies.initialize();
+        // }
+        // New: Initialize Smarter Search Feature (placeholder for now)
+        // if (window.AppFeatures.SmarterSearch?.initialize) {
+        //     console.log("[OnInit] Initializing Smarter Search Feature Module...");
+        //     window.AppFeatures.SmarterSearch.initialize();
         // }
     }
 
