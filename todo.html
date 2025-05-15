@@ -579,13 +579,12 @@
                         </button>
                     </div>
 
-                    <div id="taskSearchInputContainer">
-                        <label for="taskSearchInput" class="sidebar-text-content sidebar-section-title text-lg md:text-xl font-semibold text-slate-700 dark:text-slate-200 mb-2 md:mb-3 block">Search Tasks</label>
+                    <div id="taskSearchInputContainer" class="smarter-search-feature-element"> <label for="taskSearchInput" class="sidebar-text-content sidebar-section-title text-lg md:text-xl font-semibold text-slate-700 dark:text-slate-200 mb-2 md:mb-3 block">Search Tasks</label>
                         <div class="relative">
                             <input type="text" id="taskSearchInput" placeholder="Search by title..." class="w-full p-2.5 pl-10 border-2 bg-white text-slate-900 placeholder-slate-400 border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-400 dark:border-slate-600">
                             <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 dark:text-slate-500"></i>
                         </div>
-                    </div>
+                        </div>
 
                     <div>
                         <h2 class="sidebar-text-content sidebar-section-title text-lg md:text-xl font-semibold text-slate-700 dark:text-slate-200 mb-2 md:mb-3">Smart Views</h2>
@@ -653,6 +652,8 @@
                 </div>
                 <ul id="taskList" class="space-y-3 sm:space-y-3.5">
                     </ul>
+                <div id="kanbanBoardContainer" class="hidden"></div>
+
                 <div id="calendarViewContainer" class="hidden calendar-view-feature-element">
                     <p class="text-center text-slate-500 dark:text-slate-400 p-8">Calendar View Coming Soon!</p>
                 </div>
@@ -675,12 +676,12 @@
     <script src="feature_advanced_recurrence.js"></script>
     <script src="feature_file_attachments.js"></script>
     <script src="feature_integrations_services.js"></script>
-    <script src="task_timer_system.js"></script>
-    <script src="feature_kanban_board.js"></script>
+    <script src="task_timer_system.js"></script> <script src="feature_kanban_board.js"></script>
     <script src="feature_projects.js"></script>
     <script src="feature_data_management.js"></script>
     <script src="feature_calendar_view.js"></script>
-    <script src="feature_task_dependencies.js"></script> <script src="ui_rendering.js"></script>
+    <script src="feature_task_dependencies.js"></script>
+    <script src="feature_smarter_search.js"></script> <script src="ui_rendering.js"></script>
     <script src="ui_event_handlers.js"></script>
 </body>
 </html>

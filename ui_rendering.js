@@ -34,7 +34,7 @@ let subTasksSectionViewDetails, viewSubTaskProgress, modalSubTasksListViewDetail
 let subTasksSectionAdd, modalSubTaskInputAdd, modalAddSubTaskBtnAdd, modalSubTasksListAdd;
 let featureFlagsListContainer;
 let kanbanViewToggleBtn, kanbanViewToggleBtnText, yourTasksHeading, mainContentArea;
-let kanbanBoardContainer; 
+let kanbanBoardContainer;
 
 // Project Feature DOM Elements
 let settingsManageProjectsBtn;
@@ -47,10 +47,13 @@ let viewTaskProject;
 // Calendar View DOM Elements
 let calendarViewToggleBtn, calendarViewToggleBtnText, calendarViewContainer;
 
-// New: Task Dependencies DOM Elements
+// Task Dependencies DOM Elements
 let taskDependenciesSectionAdd, dependsOnContainerAdd, blocksTasksContainerAdd;
 let taskDependenciesSectionViewEdit, dependsOnContainerViewEdit, blocksTasksContainerViewEdit;
 let viewTaskDependenciesSection, viewTaskDependsOnList, viewTaskBlocksTasksList;
+
+// New: Smarter Search DOM Elements (Placeholders)
+let smarterSearchContainer, smarterSearchAdvancedToggleBtn, smarterSearchOptionsDiv;
 
 
 /**
@@ -62,7 +65,7 @@ function initializeDOMElements() {
 
     mainContentArea = document.querySelector('main');
     kanbanViewToggleBtn = document.getElementById('kanbanViewToggleBtn');
-    kanbanViewToggleBtnText = document.getElementById('kanbanViewToggleBtnText'); 
+    kanbanViewToggleBtnText = document.getElementById('kanbanViewToggleBtnText');
     smartViewButtonsContainer = document.getElementById('smartViewButtonsContainer');
     taskSidebar = document.getElementById('taskSidebar');
     sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
@@ -73,8 +76,8 @@ function initializeDOMElements() {
     sortByDueDateBtn = document.getElementById('sortByDueDateBtn');
     sortByPriorityBtn = document.getElementById('sortByPriorityBtn');
     sortByLabelBtn = document.getElementById('sortByLabelBtn');
-    taskSearchInput = document.getElementById('taskSearchInput');
-    taskList = document.getElementById('taskList'); 
+    taskSearchInput = document.getElementById('taskSearchInput'); // This is the existing search input
+    taskList = document.getElementById('taskList');
     emptyState = document.getElementById('emptyState');
     noMatchingTasks = document.getElementById('noMatchingTasks');
     smartViewButtons = smartViewButtonsContainer ? smartViewButtonsContainer.querySelectorAll('.smart-view-btn') : [];
@@ -198,7 +201,7 @@ function initializeDOMElements() {
     modalSubTasksListAdd = document.getElementById('modalSubTasksListAdd');
     featureFlagsListContainer = document.getElementById('featureFlagsListContainer');
     yourTasksHeading = document.getElementById('yourTasksHeading');
-    kanbanBoardContainer = document.getElementById('kanbanBoardContainer'); 
+    kanbanBoardContainer = document.getElementById('kanbanBoardContainer');
 
     // Initialize Project Feature Elements
     settingsManageProjectsBtn = document.getElementById('settingsManageProjectsBtn');
@@ -219,7 +222,7 @@ function initializeDOMElements() {
     calendarViewToggleBtnText = document.getElementById('calendarViewToggleBtnText');
     calendarViewContainer = document.getElementById('calendarViewContainer');
 
-    // New: Initialize Task Dependencies Elements
+    // Initialize Task Dependencies Elements
     taskDependenciesSectionAdd = document.getElementById('taskDependenciesSectionAdd');
     dependsOnContainerAdd = document.getElementById('dependsOnContainerAdd');
     blocksTasksContainerAdd = document.getElementById('blocksTasksContainerAdd');
@@ -229,6 +232,13 @@ function initializeDOMElements() {
     viewTaskDependenciesSection = document.getElementById('viewTaskDependenciesSection');
     viewTaskDependsOnList = document.getElementById('viewTaskDependsOnList');
     viewTaskBlocksTasksList = document.getElementById('viewTaskBlocksTasksList');
+
+    // New: Initialize Smarter Search DOM Elements (Placeholders)
+    // These IDs are hypothetical. You'll need to add actual HTML elements with these IDs
+    // in todo.html if you want to use them.
+    smarterSearchContainer = document.getElementById('smarterSearchContainer'); // e.g., a main div for all smarter search UI
+    smarterSearchAdvancedToggleBtn = document.getElementById('smarterSearchAdvancedToggleBtn'); // e.g., a button to show/hide advanced options
+    smarterSearchOptionsDiv = document.getElementById('smarterSearchOptionsDiv'); // e.g., a div to hold advanced filter checkboxes, date ranges etc.
 
 
     // Add checks for newly added elements
@@ -241,7 +251,6 @@ function initializeDOMElements() {
     if (!calendarViewToggleBtn) console.warn('[DOM Init Warning] Element "calendarViewToggleBtn" not found.');
     if (!calendarViewToggleBtnText) console.warn('[DOM Init Warning] Element "calendarViewToggleBtnText" not found.');
     if (!calendarViewContainer) console.warn('[DOM Init Warning] Element "calendarViewContainer" not found.');
-    // New checks for task dependencies
     if (!taskDependenciesSectionAdd) console.warn('[DOM Init Warning] Element "taskDependenciesSectionAdd" not found.');
     if (!dependsOnContainerAdd) console.warn('[DOM Init Warning] Element "dependsOnContainerAdd" not found.');
     if (!blocksTasksContainerAdd) console.warn('[DOM Init Warning] Element "blocksTasksContainerAdd" not found.');
@@ -251,6 +260,10 @@ function initializeDOMElements() {
     if (!viewTaskDependenciesSection) console.warn('[DOM Init Warning] Element "viewTaskDependenciesSection" not found.');
     if (!viewTaskDependsOnList) console.warn('[DOM Init Warning] Element "viewTaskDependsOnList" not found.');
     if (!viewTaskBlocksTasksList) console.warn('[DOM Init Warning] Element "viewTaskBlocksTasksList" not found.');
+    // New: Checks for Smarter Search elements
+    if (!smarterSearchContainer) console.warn('[DOM Init Warning] Placeholder element "smarterSearchContainer" not found.');
+    if (!smarterSearchAdvancedToggleBtn) console.warn('[DOM Init Warning] Placeholder element "smarterSearchAdvancedToggleBtn" not found.');
+    if (!smarterSearchOptionsDiv) console.warn('[DOM Init Warning] Placeholder element "smarterSearchOptionsDiv" not found.');
 
 
     console.log('[DOM Init] Finished initializing DOM elements.');
@@ -269,7 +282,7 @@ function showMessage(message, type = 'success') {
         messageBox.classList.add('bg-sky-100', 'text-sky-800', 'dark:bg-sky-700', 'dark:text-sky-100');
     }
     messageBox.style.display = 'block';
-    messageBox.style.zIndex = '200'; 
+    messageBox.style.zIndex = '200';
     setTimeout(() => {
         if(messageBox) messageBox.style.display = 'none';
     }, 3000);
@@ -277,8 +290,8 @@ function showMessage(message, type = 'success') {
 
 function populateDatalist(datalistElement) {
     if (!datalistElement) return;
-    datalistElement.innerHTML = ''; 
-    uniqueLabels.forEach(label => { 
+    datalistElement.innerHTML = '';
+    uniqueLabels.forEach(label => {
         const option = document.createElement('option');
         option.value = label;
         datalistElement.appendChild(option);
@@ -291,7 +304,7 @@ function setSidebarMinimized(minimize) {
         console.warn("setSidebarMinimized: One or more sidebar elements not found.");
         return;
     }
-    hideTooltip(); 
+    hideTooltip();
     if (minimize) {
         taskSidebar.classList.remove('md:w-72', 'lg:w-80', 'w-full', 'p-5', 'sm:p-6', 'md:p-5', 'sm:p-4');
         taskSidebar.classList.add('w-16', 'p-3', 'sidebar-minimized');
@@ -302,7 +315,7 @@ function setSidebarMinimized(minimize) {
         if(sidebarIconOnlyButtons) sidebarIconOnlyButtons.forEach(btn => {
             btn.classList.add('justify-center');
             const icon = btn.querySelector('i');
-            if(icon) icon.classList.remove('md:mr-2', 'md:mr-2.5', 'ml-2'); 
+            if(icon) icon.classList.remove('md:mr-2', 'md:mr-2.5', 'ml-2');
         });
         if (projectFilterContainer) {
             projectFilterContainer.querySelectorAll('.sidebar-button-icon-only').forEach(btn => {
@@ -312,9 +325,9 @@ function setSidebarMinimized(minimize) {
             });
         }
         localStorage.setItem('sidebarState', 'minimized');
-    } else { 
+    } else {
         taskSidebar.classList.remove('w-16', 'p-3', 'sidebar-minimized');
-        taskSidebar.classList.add('w-full', 'md:w-72', 'lg:w-80', 'p-3', 'sm:p-4', 'md:p-5'); 
+        taskSidebar.classList.add('w-full', 'md:w-72', 'lg:w-80', 'p-3', 'sm:p-4', 'md:p-5');
         sidebarToggleIcon.classList.remove('fa-chevron-right');
         sidebarToggleIcon.classList.add('fa-chevron-left');
         if(sidebarTextElements) sidebarTextElements.forEach(el => el.classList.remove('hidden'));
@@ -324,13 +337,13 @@ function setSidebarMinimized(minimize) {
             btn.classList.remove('justify-center');
             const icon = btn.querySelector('i');
             const textSpan = btn.querySelector('.sidebar-text-content');
-            if(icon && textSpan && !textSpan.classList.contains('hidden')) { 
+            if(icon && textSpan && !textSpan.classList.contains('hidden')) {
                  if (btn.id === 'openAddModalButton' || btn.id === 'openSettingsModalButton' || (testFeatureButton && btn.id === testFeatureButton.id)) {
                     icon.classList.add('md:mr-2');
-                } else { 
+                } else {
                     icon.classList.add('md:mr-2.5');
                 }
-                textSpan.classList.add('ml-2'); 
+                textSpan.classList.add('ml-2');
             }
         });
         if (projectFilterContainer) {
@@ -339,7 +352,7 @@ function setSidebarMinimized(minimize) {
                 const icon = btn.querySelector('i');
                 const textSpan = btn.querySelector('.sidebar-text-content');
                  if(icon && textSpan && !textSpan.classList.contains('hidden')) {
-                    icon.classList.add('md:mr-2.5'); 
+                    icon.classList.add('md:mr-2.5');
                     textSpan.classList.add('ml-2');
                 }
             });
@@ -353,14 +366,14 @@ function showTooltip(element, text) {
     if (!taskSidebar || !iconTooltip || !taskSidebar.classList.contains('sidebar-minimized')) return;
     iconTooltip.textContent = text;
     const rect = element.getBoundingClientRect();
-    iconTooltip.style.left = `${rect.right + 10}px`; 
-    iconTooltip.style.top = `${rect.top + (rect.height / 2) - (iconTooltip.offsetHeight / 2)}px`; 
+    iconTooltip.style.left = `${rect.right + 10}px`;
+    iconTooltip.style.top = `${rect.top + (rect.height / 2) - (iconTooltip.offsetHeight / 2)}px`;
     iconTooltip.style.display = 'block';
 }
 
 function hideTooltip() {
     if (!iconTooltip) return;
-    clearTimeout(tooltipTimeout); 
+    clearTimeout(tooltipTimeout);
     iconTooltip.style.display = 'none';
 }
 
@@ -368,19 +381,19 @@ function hideTooltip() {
 function refreshTaskView() {
     if (!mainContentArea) {
         console.error("[RefreshTaskView] Main content area not found. Cannot refresh task view. Attempting to re-initialize DOM elements.");
-        initializeDOMElements(); 
+        initializeDOMElements();
         if (!mainContentArea) {
             console.error("[RefreshTaskView] Re-initialization failed. mainContentArea still not found.");
             return;
         }
     }
 
-    updateViewToggleButtonsState(); 
-    updateYourTasksHeading();     
+    updateViewToggleButtonsState();
+    updateYourTasksHeading();
 
     if (taskList) taskList.classList.add('hidden');
-    if (kanbanBoardContainer) kanbanBoardContainer.classList.add('hidden'); 
-    else { 
+    if (kanbanBoardContainer) kanbanBoardContainer.classList.add('hidden');
+    else {
         const kbc = document.getElementById('kanbanBoardContainer');
         if (kbc) kbc.classList.add('hidden');
     }
@@ -394,14 +407,14 @@ function refreshTaskView() {
             window.AppFeatures.KanbanBoard.renderKanbanView();
         } else {
             console.warn("KanbanBoard feature or renderKanbanView function not available. Defaulting to list view.");
-            setTaskViewMode('list'); 
+            setTaskViewMode('list');
             renderTaskListView();
         }
-    } else { 
-        if (currentTaskViewMode !== 'list') setTaskViewMode('list'); 
+    } else {
+        if (currentTaskViewMode !== 'list') setTaskViewMode('list');
         renderTaskListView();
     }
-    updateClearCompletedButtonState(); 
+    updateClearCompletedButtonState();
 }
 
 function renderTaskListView() {
@@ -418,8 +431,8 @@ function renderTaskListView() {
         }
     }
 
-    taskList.innerHTML = ''; 
-    taskList.classList.remove('hidden'); 
+    taskList.innerHTML = '';
+    taskList.classList.remove('hidden');
 
     if (kanbanBoardContainer) kanbanBoardContainer.classList.add('hidden');
     else { const kbc = document.getElementById('kanbanBoardContainer'); if (kbc) kbc.classList.add('hidden');}
@@ -428,14 +441,14 @@ function renderTaskListView() {
 
     let filteredTasks = [];
     const today = new Date();
-    today.setHours(0, 0, 0, 0); 
+    today.setHours(0, 0, 0, 0);
 
     if (currentFilter === 'inbox') {
         filteredTasks = tasks.filter(task => !task.completed);
     } else if (currentFilter === 'today') {
         filteredTasks = tasks.filter(task => {
             if (!task.dueDate || task.completed) return false;
-            const taskDueDate = new Date(task.dueDate + 'T00:00:00'); 
+            const taskDueDate = new Date(task.dueDate + 'T00:00:00');
             return taskDueDate.getTime() === today.getTime();
         });
     } else if (currentFilter === 'upcoming') {
@@ -450,21 +463,28 @@ function renderTaskListView() {
         const projectId = parseInt(currentFilter.split('_')[1]);
         if (!isNaN(projectId)) {
             filteredTasks = tasks.filter(task => task.projectId === projectId && !task.completed);
-        } else { 
+        } else {
             filteredTasks = tasks.filter(task => !task.projectId && !task.completed);
         }
-    } else { 
+    } else {
         filteredTasks = tasks.filter(task => task.label && task.label.toLowerCase() === currentFilter.toLowerCase() && !task.completed);
     }
 
     if (currentSearchTerm) {
-        filteredTasks = filteredTasks.filter(task =>
-            task.text.toLowerCase().includes(currentSearchTerm) ||
-            (task.label && task.label.toLowerCase().includes(currentSearchTerm)) ||
-            (task.notes && task.notes.toLowerCase().includes(currentSearchTerm)) ||
-            (featureFlags.projectFeature && task.projectId && projects.find(p => p.id === task.projectId)?.name.toLowerCase().includes(currentSearchTerm))
-        );
+        // If Smarter Search is ON, the actual filtering might be handled by the SmarterSearch feature module.
+        // For now, we keep the basic search logic.
+        // if (featureFlags.smarterSearchFeature && window.AppFeatures?.SmarterSearch?.filterTasks) {
+        //     filteredTasks = window.AppFeatures.SmarterSearch.filterTasks(filteredTasks, currentSearchTerm);
+        // } else {
+            filteredTasks = filteredTasks.filter(task =>
+                task.text.toLowerCase().includes(currentSearchTerm) ||
+                (task.label && task.label.toLowerCase().includes(currentSearchTerm)) ||
+                (task.notes && task.notes.toLowerCase().includes(currentSearchTerm)) ||
+                (featureFlags.projectFeature && task.projectId && projects.find(p => p.id === task.projectId)?.name.toLowerCase().includes(currentSearchTerm))
+            );
+        // }
     }
+
 
     const priorityOrder = { high: 1, medium: 2, low: 3, default: 4 };
     if (currentSort === 'dueDate') {
@@ -472,7 +492,7 @@ function renderTaskListView() {
             const dA = a.dueDate ? new Date(a.dueDate + (a.time ? `T${a.time}` : 'T00:00:00Z')) : null;
             const dB = b.dueDate ? new Date(b.dueDate + (b.time ? `T${b.time}` : 'T00:00:00Z')) : null;
             if (dA === null && dB === null) return 0;
-            if (dA === null) return 1; 
+            if (dA === null) return 1;
             if (dB === null) return -1;
             return dA - dB;
         });
@@ -494,7 +514,7 @@ function renderTaskListView() {
             if (dB === null) return -1;
             return dA - dB;
         });
-    } else if (currentFilter === 'inbox' && currentSort === 'default') { 
+    } else if (currentFilter === 'inbox' && currentSort === 'default') {
         filteredTasks.sort((a, b) => (b.creationDate || b.id) - (a.creationDate || a.id));
     }
 
@@ -508,33 +528,31 @@ function renderTaskListView() {
         li.className = `task-item flex items-start justify-between bg-slate-100 dark:bg-slate-700 p-3 sm:p-3.5 rounded-lg shadow hover:shadow-md transition-shadow duration-300 ${task.completed ? 'opacity-60' : ''} overflow-hidden`;
         li.dataset.taskId = task.id;
 
-        // New: Check for dependencies to add visual cue
         const hasOpenPrerequisites = featureFlags.taskDependenciesFeature && task.dependsOn && task.dependsOn.some(depId => {
             const dependentTask = tasks.find(t => t.id === depId);
             return dependentTask && !dependentTask.completed;
         });
 
         if (hasOpenPrerequisites) {
-            li.classList.add('border-l-4', 'border-amber-500'); // Example: Yellow left border for blocked tasks
+            li.classList.add('border-l-4', 'border-amber-500');
         }
 
 
         const mainContentClickableArea = document.createElement('div');
-        mainContentClickableArea.className = 'task-item-clickable-area flex items-start flex-grow min-w-0 mr-2 rounded-l-lg'; 
+        mainContentClickableArea.className = 'task-item-clickable-area flex items-start flex-grow min-w-0 mr-2 rounded-l-lg';
         mainContentClickableArea.addEventListener('click', (event) => {
             if (event.target.type === 'checkbox' || event.target.closest('.task-actions')) {
                 return;
             }
-            openViewTaskDetailsModal(task.id); 
+            openViewTaskDetailsModal(task.id);
         });
 
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.checked = task.completed;
         checkbox.className = 'form-checkbox h-5 w-5 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 dark:focus:ring-sky-500 mt-0.5 mr-2 sm:mr-3 cursor-pointer flex-shrink-0';
-        checkbox.addEventListener('change', () => toggleComplete(task.id)); 
+        checkbox.addEventListener('change', () => toggleComplete(task.id));
 
-        // Disable checkbox if task has open prerequisites
         if (hasOpenPrerequisites) {
             checkbox.disabled = true;
             checkbox.title = "This task is blocked by incomplete prerequisites.";
@@ -543,7 +561,7 @@ function renderTaskListView() {
 
 
         const textDetailsDiv = document.createElement('div');
-        textDetailsDiv.className = 'flex flex-col flex-grow min-w-0'; 
+        textDetailsDiv.className = 'flex flex-col flex-grow min-w-0';
 
         const span = document.createElement('span');
         span.textContent = task.text;
@@ -555,10 +573,10 @@ function renderTaskListView() {
         detailsContainer.className = 'flex items-center flex-wrap gap-x-2 gap-y-1 mt-1 sm:mt-1.5 text-xs';
 
         if (featureFlags.projectFeature && task.projectId && task.projectId !== 0) {
-            const project = projects.find(p => p.id === task.projectId); 
+            const project = projects.find(p => p.id === task.projectId);
             if (project) {
                 const projSpan = document.createElement('span');
-                projSpan.className = 'text-purple-600 dark:text-purple-400 flex items-center project-feature-element'; 
+                projSpan.className = 'text-purple-600 dark:text-purple-400 flex items-center project-feature-element';
                 projSpan.innerHTML = `<i class="fas fa-folder mr-1"></i> ${project.name}`;
                 detailsContainer.appendChild(projSpan);
             }
@@ -567,7 +585,7 @@ function renderTaskListView() {
         if (task.priority) {
             const pB = document.createElement('span');
             pB.textContent = task.priority;
-            pB.className = `priority-badge ${getPriorityClass(task.priority)}`; 
+            pB.className = `priority-badge ${getPriorityClass(task.priority)}`;
             detailsContainer.appendChild(pB);
         }
         if (task.label) {
@@ -579,25 +597,24 @@ function renderTaskListView() {
         if (task.dueDate) {
             const dDS = document.createElement('span');
             dDS.className = 'text-slate-500 dark:text-slate-400 flex items-center';
-            let dD = formatDate(task.dueDate); 
-            if (task.time) { dD += ` ${formatTime(task.time)}`; } 
+            let dD = formatDate(task.dueDate);
+            if (task.time) { dD += ` ${formatTime(task.time)}`; }
             dDS.innerHTML = `<i class="far fa-calendar-alt mr-1"></i> ${dD}`;
             detailsContainer.appendChild(dDS);
         }
         if (featureFlags.fileAttachments && task.attachments && task.attachments.length > 0) {
             const aS = document.createElement('span');
-            aS.className = 'text-slate-500 dark:text-slate-400 flex items-center file-attachments-element'; 
+            aS.className = 'text-slate-500 dark:text-slate-400 flex items-center file-attachments-element';
             aS.innerHTML = `<i class="fas fa-paperclip mr-1"></i> ${task.attachments.length}`;
             detailsContainer.appendChild(aS);
         }
         if (featureFlags.subTasksFeature && task.subTasks && task.subTasks.length > 0) {
             const subTaskIcon = document.createElement('span');
-            subTaskIcon.className = 'text-slate-400 dark:text-slate-500 flex items-center sub-tasks-feature-element'; 
+            subTaskIcon.className = 'text-slate-400 dark:text-slate-500 flex items-center sub-tasks-feature-element';
             const completedSubTasks = task.subTasks.filter(st => st.completed).length;
             subTaskIcon.innerHTML = `<i class="fas fa-tasks mr-1" title="${completedSubTasks}/${task.subTasks.length} sub-tasks completed"></i>`;
             detailsContainer.appendChild(subTaskIcon);
         }
-        // New: Dependency Indicator Icon
         if (featureFlags.taskDependenciesFeature && ((task.dependsOn && task.dependsOn.length > 0) || (task.blocksTasks && task.blocksTasks.length > 0))) {
             const depIcon = document.createElement('span');
             depIcon.className = 'text-slate-400 dark:text-slate-500 flex items-center task-dependencies-feature-element';
@@ -617,7 +634,7 @@ function renderTaskListView() {
         mainContentClickableArea.appendChild(textDetailsDiv);
 
         const actionsDiv = document.createElement('div');
-        actionsDiv.className = 'task-actions flex-shrink-0 self-start'; 
+        actionsDiv.className = 'task-actions flex-shrink-0 self-start';
 
         const editButton = document.createElement('button');
         editButton.className = 'task-action-btn text-sky-500 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-500';
@@ -625,11 +642,11 @@ function renderTaskListView() {
         editButton.setAttribute('aria-label', 'Edit task');
         editButton.title = 'Edit task';
         editButton.addEventListener('click', () => {
-            openViewEditModal(task.id); 
+            openViewEditModal(task.id);
             if (featureFlags.projectFeature && window.AppFeatures && window.AppFeatures.Projects) {
                  window.AppFeatures.Projects.populateProjectDropdowns();
-                 if (modalProjectSelectViewEdit) { 
-                     modalProjectSelectViewEdit.value = task.projectId || "0"; 
+                 if (modalProjectSelectViewEdit) {
+                     modalProjectSelectViewEdit.value = task.projectId || "0";
                  }
             }
         });
@@ -640,12 +657,12 @@ function renderTaskListView() {
         deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
         deleteButton.setAttribute('aria-label', 'Delete task');
         deleteButton.title = 'Delete task';
-        deleteButton.addEventListener('click', () => deleteTask(task.id)); 
+        deleteButton.addEventListener('click', () => deleteTask(task.id));
         actionsDiv.appendChild(deleteButton);
 
         li.appendChild(mainContentClickableArea);
         li.appendChild(actionsDiv);
-        if (taskList) { 
+        if (taskList) {
              taskList.appendChild(li);
         }
     });
@@ -708,10 +725,10 @@ function renderCalendarView() {
         return;
     }
     console.log("Rendering Calendar View (placeholder)...");
-    taskList.classList.add('hidden'); 
-    const kbc = document.getElementById('kanbanBoardContainer'); 
-    if (kbc) kbc.classList.add('hidden'); 
-    calendarViewContainer.classList.remove('hidden'); 
+    taskList.classList.add('hidden');
+    const kbc = document.getElementById('kanbanBoardContainer');
+    if (kbc) kbc.classList.add('hidden');
+    calendarViewContainer.classList.remove('hidden');
 
     // if (window.AppFeatures?.CalendarView?.renderFullCalendar) {
     //     window.AppFeatures.CalendarView.renderFullCalendar(calendarViewContainer, tasks);
@@ -721,7 +738,7 @@ function renderCalendarView() {
 
 function renderTempSubTasksForAddModal() {
     if (!featureFlags.subTasksFeature || !modalSubTasksListAdd) return;
-    modalSubTasksListAdd.innerHTML = ''; 
+    modalSubTasksListAdd.innerHTML = '';
 
     if (tempSubTasksForAddModal.length === 0) {
         const noSubTasksLi = document.createElement('li');
@@ -741,7 +758,7 @@ function renderTempSubTasksForAddModal() {
         checkbox.className = 'form-checkbox h-4 w-4 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 mr-2 cursor-pointer';
         checkbox.addEventListener('change', () => {
             tempSubTasksForAddModal[index].completed = !tempSubTasksForAddModal[index].completed;
-            renderTempSubTasksForAddModal(); 
+            renderTempSubTasksForAddModal();
         });
 
         const textSpan = document.createElement('span');
@@ -771,8 +788,8 @@ function renderTempSubTasksForAddModal() {
 
 function renderSubTasksForEditModal(parentId, subTasksListElement) {
     if (!featureFlags.subTasksFeature || !subTasksListElement) return;
-    subTasksListElement.innerHTML = ''; 
-    const parentTask = tasks.find(t => t.id === parentId); 
+    subTasksListElement.innerHTML = '';
+    const parentTask = tasks.find(t => t.id === parentId);
 
     if (!parentTask || !parentTask.subTasks || parentTask.subTasks.length === 0) {
         const noSubTasksLi = document.createElement('li');
@@ -793,11 +810,11 @@ function renderSubTasksForEditModal(parentId, subTasksListElement) {
         checkbox.className = 'form-checkbox h-4 w-4 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 mr-2 cursor-pointer';
         checkbox.addEventListener('change', () => {
             if (window.AppFeatures?.SubTasks?.toggleSubTaskCompleteLogic(parentId, subTask.id)) {
-                renderSubTasksForEditModal(parentId, subTasksListElement); 
+                renderSubTasksForEditModal(parentId, subTasksListElement);
                 if (currentViewTaskId === parentId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) {
                     renderSubTasksForViewModal(parentId, modalSubTasksListViewDetails, viewSubTaskProgress, noSubTasksMessageViewDetails);
                 }
-                refreshTaskView(); 
+                refreshTaskView();
             }
         });
 
@@ -841,7 +858,7 @@ function renderSubTasksForEditModal(parentId, subTasksListElement) {
                         renderSubTasksForViewModal(parentId, modalSubTasksListViewDetails, viewSubTaskProgress, noSubTasksMessageViewDetails);
                     }
                     showMessage('Sub-task deleted.', 'success');
-                    refreshTaskView(); 
+                    refreshTaskView();
                 } else {
                     showMessage('Failed to delete sub-task.', 'error');
                 }
@@ -859,8 +876,8 @@ function renderSubTasksForEditModal(parentId, subTasksListElement) {
 
 function renderSubTasksForViewModal(parentId, subTasksListElement, progressElement, noSubTasksMessageElement) {
     if (!featureFlags.subTasksFeature || !subTasksListElement || !progressElement || !noSubTasksMessageElement) return;
-    subTasksListElement.innerHTML = ''; 
-    const parentTask = tasks.find(t => t.id === parentId); 
+    subTasksListElement.innerHTML = '';
+    const parentTask = tasks.find(t => t.id === parentId);
 
     if (!parentTask || !parentTask.subTasks || parentTask.subTasks.length === 0) {
         progressElement.textContent = '';
@@ -876,7 +893,7 @@ function renderSubTasksForViewModal(parentId, subTasksListElement, progressEleme
     parentTask.subTasks.forEach(subTask => {
         if (subTask.completed) completedCount++;
         const li = document.createElement('li');
-        li.className = 'flex items-center text-sm group'; 
+        li.className = 'flex items-center text-sm group';
         li.dataset.subTaskId = subTask.id;
 
         const checkbox = document.createElement('input');
@@ -889,7 +906,7 @@ function renderSubTasksForViewModal(parentId, subTasksListElement, progressEleme
                 if (editingTaskId === parentId && viewEditTaskModal && !viewEditTaskModal.classList.contains('hidden')) {
                     renderSubTasksForEditModal(parentId, modalSubTasksListViewEdit);
                 }
-                refreshTaskView(); 
+                refreshTaskView();
             }
         });
 
@@ -918,7 +935,7 @@ function updateSortButtonStates() {
 
 function updateClearCompletedButtonState() {
     if (!settingsClearCompletedBtn) return;
-    const hasCompleted = tasks.some(task => task.completed); 
+    const hasCompleted = tasks.some(task => task.completed);
     settingsClearCompletedBtn.disabled = !hasCompleted;
     settingsClearCompletedBtn.classList.toggle('opacity-50', !hasCompleted);
     settingsClearCompletedBtn.classList.toggle('cursor-not-allowed', !hasCompleted);
@@ -938,11 +955,11 @@ function updateClearCompletedButtonState() {
 function updateViewToggleButtonsState() {
     const isKanbanActive = featureFlags.kanbanBoardFeature && currentTaskViewMode === 'kanban';
     const isCalendarActive = featureFlags.calendarViewFeature && currentTaskViewMode === 'calendar';
-    const isListActive = !isKanbanActive && !isCalendarActive; 
+    const isListActive = !isKanbanActive && !isCalendarActive;
 
     if (kanbanViewToggleBtn && kanbanViewToggleBtnText) {
         const icon = kanbanViewToggleBtn.querySelector('i');
-        kanbanViewToggleBtn.classList.toggle('hidden', !featureFlags.kanbanBoardFeature); 
+        kanbanViewToggleBtn.classList.toggle('hidden', !featureFlags.kanbanBoardFeature);
         if (featureFlags.kanbanBoardFeature) {
             kanbanViewToggleBtnText.textContent = isKanbanActive ? 'List' : 'Board';
             kanbanViewToggleBtn.title = isKanbanActive ? 'Switch to List View' : 'Switch to Board View';
@@ -950,7 +967,7 @@ function updateViewToggleButtonsState() {
                 icon.classList.toggle('fa-columns', !isKanbanActive);
                 icon.classList.toggle('fa-list-ul', isKanbanActive);
             }
-            kanbanViewToggleBtn.classList.toggle('bg-purple-500', isKanbanActive); 
+            kanbanViewToggleBtn.classList.toggle('bg-purple-500', isKanbanActive);
             kanbanViewToggleBtn.classList.toggle('text-white', isKanbanActive);
             kanbanViewToggleBtn.classList.toggle('dark:bg-purple-600', isKanbanActive);
         }
@@ -958,7 +975,7 @@ function updateViewToggleButtonsState() {
 
     if (calendarViewToggleBtn && calendarViewToggleBtnText) {
         const icon = calendarViewToggleBtn.querySelector('i');
-        calendarViewToggleBtn.classList.toggle('hidden', !featureFlags.calendarViewFeature); 
+        calendarViewToggleBtn.classList.toggle('hidden', !featureFlags.calendarViewFeature);
         if (featureFlags.calendarViewFeature) {
             calendarViewToggleBtnText.textContent = isCalendarActive ? 'List' : 'Calendar';
             calendarViewToggleBtn.title = isCalendarActive ? 'Switch to List View' : 'Switch to Calendar View';
@@ -966,12 +983,12 @@ function updateViewToggleButtonsState() {
                 icon.classList.toggle('fa-calendar-week', !isCalendarActive);
                 icon.classList.toggle('fa-list-ul', isCalendarActive);
             }
-            calendarViewToggleBtn.classList.toggle('bg-teal-500', isCalendarActive); 
+            calendarViewToggleBtn.classList.toggle('bg-teal-500', isCalendarActive);
             calendarViewToggleBtn.classList.toggle('text-white', isCalendarActive);
             calendarViewToggleBtn.classList.toggle('dark:bg-teal-600', isCalendarActive);
         }
     }
-    
+
     const sortButtonsVisible = isListActive;
     if (sortByDueDateBtn) sortByDueDateBtn.classList.toggle('hidden', !sortButtonsVisible);
     if (sortByPriorityBtn) sortByPriorityBtn.classList.toggle('hidden', !sortButtonsVisible);
@@ -990,7 +1007,7 @@ function updateYourTasksHeading() {
         yourTasksHeading.textContent = 'Kanban Board';
     } else if (currentFilter.startsWith('project_')) {
          const projectId = parseInt(currentFilter.split('_')[1]);
-         const project = projects.find(p => p.id === projectId); 
+         const project = projects.find(p => p.id === projectId);
          yourTasksHeading.textContent = project ? `Project: ${project.name}` : 'Unknown Project Tasks';
     } else {
         const filterText = currentFilter.charAt(0).toUpperCase() + currentFilter.slice(1);
@@ -1003,7 +1020,7 @@ function styleInitialSmartViewButtons() {
     if (smartViewButtons && smartViewButtons.length > 0) {
         smartViewButtons.forEach(button => {
             button.classList.add('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600');
-            button.querySelector('i')?.classList.add('text-slate-500', 'dark:text-slate-400'); 
+            button.querySelector('i')?.classList.add('text-slate-500', 'dark:text-slate-400');
         });
         const initialActiveButton = Array.from(smartViewButtons).find(btn => btn.dataset.filter === currentFilter);
         if (initialActiveButton) {
