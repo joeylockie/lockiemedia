@@ -1,23 +1,19 @@
 // store.js
 // Manages application data state internally and exposes an API (AppStore) for access and modification.
-// UI presentation state is managed by ViewManager. Bulk action state is managed by BulkActionService.
+// UI presentation state is managed by ViewManager.
+// Bulk action state is managed by BulkActionService.
+// Pomodoro state is managed by PomodoroTimerHybrid feature module.
 
 (function() {
     // --- Internal State Variables (scoped to this IIFE) ---
     let _tasks = [];
     let _projects = [];
-    // UI state variables (_currentFilter, _currentSort, etc.) moved to ViewManager.js
     let _editingTaskId = null;    
     let _currentViewTaskId = null;
     let _uniqueLabels = [];
     let _uniqueProjects = [];
     let _tooltipTimeout = null; 
-    // _selectedTaskIdsForBulkAction moved to BulkActionService.js
-
-    let _isPomodoroActive = false; 
-    let _currentPomodoroState = 'work'; 
-    let _pomodoroTimeRemaining = 0; 
-    let _pomodoroCurrentTaskId = null; 
+    // Pomodoro state variables moved to pomodoro_timer.js
 
     let _kanbanColumns = [
         { id: 'todo', title: 'To Do' },
@@ -50,17 +46,8 @@
         getEditingTaskId: () => _editingTaskId,
         setCurrentViewTaskId: (id) => _currentViewTaskId = id, 
         getCurrentViewTaskId: () => _currentViewTaskId,
-        // REMOVED: getSelectedTaskIdsForBulkAction (now in BulkActionService)
+        // REMOVED: Pomodoro state getters/setters
 
-        isPomodoroActive: () => _isPomodoroActive,
-        setPomodoroActive: (isActive) => _isPomodoroActive = isActive,
-        getCurrentPomodoroState: () => _currentPomodoroState,
-        setCurrentPomodoroState: (state) => _currentPomodoroState = state,
-        getPomodoroTimeRemaining: () => _pomodoroTimeRemaining,
-        setPomodoroTimeRemaining: (time) => _pomodoroTimeRemaining = time,
-        getPomodoroCurrentTaskId: () => _pomodoroCurrentTaskId,
-        setPomodoroCurrentTaskId: (id) => _pomodoroCurrentTaskId = id,
-        
         setTasks: (newTasksArray) => { _tasks = JSON.parse(JSON.stringify(newTasksArray)); _saveTasksInternal(); },
         setProjects: (newProjectsArray) => { _projects = JSON.parse(JSON.stringify(newProjectsArray)); _saveProjectsInternal(); },
         setKanbanColumns: (newColumnsArray) => { _kanbanColumns = JSON.parse(JSON.stringify(newColumnsArray)); _saveKanbanColumnsInternal(); },
@@ -68,7 +55,6 @@
         setFeatureFlags: (loadedFlags) => { /* ... same as before ... */ if (loadedFlags && typeof loadedFlags === 'object') { _featureFlags = { ..._featureFlags, ...loadedFlags }; window.featureFlags = _featureFlags; console.log('[Store API] Feature flags updated in store:', _featureFlags); _publish('featureFlagsInitialized', { ..._featureFlags }); } else { console.error('[Store API] Invalid flags received.'); }},
 
         setEditingTaskIdInStore: (id) => { _editingTaskId = id; }, 
-        // REMOVED: setSelectedTaskIdsForBulkAction (now in BulkActionService)
         
         getTooltipTimeout: () => _tooltipTimeout,
         setTooltipTimeout: (timeoutId) => { _tooltipTimeout = timeoutId; },
@@ -82,5 +68,5 @@
         }
     };
     window.AppStore = AppStore;
-    console.log("store.js loaded, AppStore API created. UI state variables moved to ViewManager. Bulk action state moved to BulkActionService.");
+    console.log("store.js loaded, AppStore API created. Pomodoro state moved to pomodoro_timer.js.");
 })();
