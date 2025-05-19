@@ -13,37 +13,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log("[Main] DOM elements initialized.");
     } else {
         console.error("[Main] CRITICAL: initializeDOMElements function is not defined!");
+        return; 
+    }
+
+    // 3. Initialize FeatureFlagService (its IIFE might have run, but ensure loadFeatureFlags is called if needed)
+    // and then initialize the AppStore which depends on flags.
+    if (window.FeatureFlagService && typeof window.FeatureFlagService.loadFeatureFlags === 'function') {
+        await window.FeatureFlagService.loadFeatureFlags(); // Ensures flags are loaded
+        console.log("[Main] Feature flags loading process initiated/completed by FeatureFlagService.");
+        // FeatureFlagService calls AppStore.setFeatureFlags internally via window.store.setFeatureFlags
+    } else {
+        console.error("[Main] CRITICAL: FeatureFlagService.loadFeatureFlags is not available!");
+    }
+
+    // 4. Initialize Store (loads data, uses feature flags)
+    if (window.AppStore && typeof window.AppStore.initializeStore === 'function') {
+        await window.AppStore.initializeStore(); // Now explicitly calling store initialization
+        console.log("[Main] AppStore initialized.");
+    } else {
+        console.error("[Main] CRITICAL: AppStore.initializeStore is not available!");
         return;
     }
 
-    // 3. Initialize FeatureFlagService and load flags.
-    // FeatureFlagService's IIFE calls loadFeatureFlags if it's not already called.
-    // store.js's IIFE also calls loadFeatureFlags.
-    // To ensure flags are loaded before other initializations that depend on them:
-    if (window.FeatureFlagService && typeof window.FeatureFlagService.loadFeatureFlags === 'function') {
-        // Check if flags are already populated (e.g. by FeatureFlagService's own IIFE)
-        // This is a bit of a workaround for the current global script loading.
-        // A true module system would handle dependencies better.
-        let currentFlags = window.FeatureFlagService.getAllFeatureFlags ? window.FeatureFlagService.getAllFeatureFlags() : {};
-        if (!Object.keys(currentFlags).length || !Object.values(currentFlags).some(v => v === true || v === false)) { // Simple check if flags seem uninitialized
-            console.log("[Main] Explicitly calling FeatureFlagService.loadFeatureFlags()...");
-            await window.FeatureFlagService.loadFeatureFlags();
-        }
-        // store.js's IIFE will also call setStoreFeatureFlags after FeatureFlagService loads.
-    } else {
-        console.error("[Main] CRITICAL: FeatureFlagService.loadFeatureFlags is not available!");
-        // Fallback: try to load flags directly into store's global if service failed
-        if (window.featureFlags && typeof loadFeatureFlags_fallback === 'function') { // Assuming a fallback if needed
-            // await loadFeatureFlags_fallback(window.featureFlags);
-        }
-    }
-    
-    // 4. Initialize Store (loads data, uses feature flags)
-    // store.js loads its data via an IIFE which should have run by now,
-    // including awaiting feature flags.
-
     // 5. Initialize UI Rendering Event Subscriptions
-    // This should come after EventBus is available and main rendering functions are defined.
     if (typeof initializeUiRenderingSubscriptions === 'function') { // From ui_rendering.js
         initializeUiRenderingSubscriptions();
         console.log("[Main] UI Rendering event subscriptions initialized.");
@@ -51,7 +43,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error("[Main] initializeUiRenderingSubscriptions function not found!");
     }
 
-    // 6. Initialize Feature Modules (they might subscribe to events or provide services)
+    // 6. Initialize Feature Modules
     if (typeof FeatureFlagService !== 'undefined' && typeof window.AppFeatures !== 'undefined') {
         console.log("[Main] Initializing feature modules...");
         for (const featureName in window.AppFeatures) {
@@ -70,17 +62,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // 7. Apply Active Features to the UI (initial setup)
-    // This function reads feature flags and toggles UI elements accordingly.
-    // It also calls refreshTaskView internally.
     if (typeof applyActiveFeatures === 'function') { // From ui_event_handlers.js
-        applyActiveFeatures(); // This will also trigger the first refreshTaskView
+        applyActiveFeatures(); 
         console.log("[Main] Active features applied to UI (initial).");
     } else {
         console.error("[Main] applyActiveFeatures function not found!");
-        if(typeof refreshTaskView === 'function') refreshTaskView(); // Fallback
+        if(typeof refreshTaskView === 'function') refreshTaskView();
     }
 
-    // 8. Style Initial UI Elements (like smart view buttons)
+    // 8. Style Initial UI Elements
     if (typeof styleInitialSmartViewButtons === 'function') { // From ui_rendering.js
         styleInitialSmartViewButtons();
     }
@@ -92,15 +82,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // 10. Populate Project-Specific UI (if feature enabled)
-    // This ensures project filters/dropdowns are populated after initial data load & flag checks.
     if (typeof FeatureFlagService !== 'undefined' && FeatureFlagService.isFeatureEnabled('projectFeature') && window.AppFeatures?.Projects) {
         if(window.AppFeatures.Projects.populateProjectFilterList) window.AppFeatures.Projects.populateProjectFilterList();
         if(window.AppFeatures.Projects.populateProjectDropdowns) window.AppFeatures.Projects.populateProjectDropdowns();
     }
     
     // 11. Set Initial Filter UI (active buttons)
-    // refreshTaskView called by applyActiveFeatures should handle the data rendering.
-    // setFilter here ensures the UI for the filter buttons is correct.
     if (typeof ViewManager !== 'undefined' && typeof setFilter === 'function') { // setFilter from ui_event_handlers.js
         setFilter(ViewManager.getCurrentFilter());
     }
@@ -109,7 +96,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (typeof updateSortButtonStates === 'function') updateSortButtonStates();
     if (typeof updateClearCompletedButtonState === 'function') updateClearCompletedButtonState();
 
-    // 13. Setup All Global Event Listeners (forms, clicks not tied to dynamic content)
+    // 13. Setup All Global Event Listeners
     if (typeof setupEventListeners === 'function') { // From ui_event_handlers.js
         setupEventListeners();
         console.log("[Main] Global event listeners set up.");
