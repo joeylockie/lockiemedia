@@ -1,49 +1,39 @@
 // feature_integrations_services.js
+// Placeholder for Integrations with other Services Feature.
+// Now an ES6 module.
 
-// Self-invoking function to encapsulate the feature's code
-(function() {
-    // Dependencies (assumed to be globally available for now):
-    // - Services: FeatureFlagService
+import { isFeatureEnabled } from './featureFlagService.js';
+// DOM elements with '.integrations-services-element' are handled by applyActiveFeatures
 
-    /**
-     * Initializes the Integrations Services Feature.
-     * Placeholder for future initialization logic.
-     */
-    function initializeIntegrationsServicesFeature() {
-        console.log('[IntegrationsServicesFeature] Initialized (Placeholder).');
-        // Future: Load API keys, set up connections to third-party services, etc.
+/**
+ * Initializes the Integrations Services Feature.
+ * Placeholder for future initialization logic.
+ */
+function initialize() {
+    console.log('[IntegrationsServicesFeature] Initialized (Placeholder).');
+    // Future: Setup for API connections, authentication flows, etc.
+}
+
+/**
+ * Updates the visibility of UI elements related to the Integrations Services feature.
+ * @param {boolean} isEnabledParam - (Not used directly, uses imported isFeatureEnabled)
+ */
+function updateUIVisibility(isEnabledParam) {
+    if (typeof isFeatureEnabled !== 'function') {
+        console.error("[IntegrationsServicesFeature] isFeatureEnabled function not available from FeatureFlagService.");
+        return;
     }
+    const isActuallyEnabled = isFeatureEnabled('integrationsServices');
 
-    /**
-     * Updates the visibility of all Integrations Services UI elements based on the feature flag.
-     * This function is primarily for consistency. Actual UI elements (e.g., "Integrations (Soon)"
-     * button in settings) would be toggled by applyActiveFeatures using the
-     * '.integrations-services-element' class.
-     * @param {boolean} isEnabledParam - Parameter for consistency, actual check uses FeatureFlagService.
-     */
-    function updateIntegrationsServicesUIVisibility(isEnabledParam) {
-        if (typeof FeatureFlagService === 'undefined') {
-            console.error("[IntegrationsServicesFeature] FeatureFlagService not available.");
-            return;
-        }
-        const isActuallyEnabled = FeatureFlagService.isFeatureEnabled('integrationsServices');
+    // The .integrations-services-element class on UI parts (e.g., button in settings)
+    // is toggled by applyActiveFeatures in ui_event_handlers.js.
+    // This function is for consistency and any additional specific UI logic.
+    console.log(`[IntegrationsServicesFeature] UI Visibility (handled by applyActiveFeatures) set based on flag: ${isActuallyEnabled}`);
+}
 
-        // The .integrations-services-element class on UI parts is toggled by applyActiveFeatures.
-        // This function can be used if there's more complex UI logic specific to this feature's visibility.
-        console.log(`[IntegrationsServicesFeature] UI Visibility (handled by applyActiveFeatures) set based on flag: ${isActuallyEnabled}`);
-    }
+export const IntegrationsServicesFeature = {
+    initialize,
+    updateUIVisibility
+};
 
-    // Expose functions to the global scope via AppFeatures
-    if (typeof window.AppFeatures === 'undefined') {
-        window.AppFeatures = {};
-    }
-    // Ensure a specific namespace for this feature if it doesn't exist
-    if (typeof window.AppFeatures.IntegrationsServices === 'undefined') {
-        window.AppFeatures.IntegrationsServices = {};
-    }
-
-    window.AppFeatures.IntegrationsServices.initialize = initializeIntegrationsServicesFeature;
-    window.AppFeatures.IntegrationsServices.updateUIVisibility = updateIntegrationsServicesUIVisibility;
-
-    // console.log("feature_integrations_services.js loaded");
-})();
+console.log("feature_integrations_services.js loaded as ES6 module.");

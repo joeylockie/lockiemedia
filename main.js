@@ -14,7 +14,9 @@ import ModalStateService from './modalStateService.js';
 import TooltipService from './tooltipService.js';
 import { TestButtonFeature } from './feature_test_button.js';
 import { ReminderFeature } from './feature_reminder.js';
-import { AdvancedRecurrenceFeature } from './feature_advanced_recurrence.js'; // Import
+import { AdvancedRecurrenceFeature } from './feature_advanced_recurrence.js';
+import { FileAttachmentsFeature } from './feature_file_attachments.js';
+import { IntegrationsServicesFeature } from './feature_integrations_services.js'; // Import
 import * as ModalInteractions from './modal_interactions.js';
 
 
@@ -61,7 +63,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.AppFeatures.Projects = ProjectsFeature; 
     window.AppFeatures.TestButtonFeature = TestButtonFeature;
     window.AppFeatures.ReminderFeature = ReminderFeature;
-    window.AppFeatures.AdvancedRecurrenceFeature = AdvancedRecurrenceFeature; // Assign imported feature
+    window.AppFeatures.AdvancedRecurrenceFeature = AdvancedRecurrenceFeature;
+    window.AppFeatures.FileAttachmentsFeature = FileAttachmentsFeature;
+    window.AppFeatures.IntegrationsServicesFeature = IntegrationsServicesFeature; // Assign imported feature
 
     if (typeof isFeatureEnabledFromService !== 'undefined' && typeof window.AppFeatures !== 'undefined') {
         console.log("[Main] Initializing feature modules...");
@@ -71,7 +75,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 let effectiveFlagKey = flagKey;
                 if (flagKey === "reminder_feature") effectiveFlagKey = "reminderFeature";
                 if (flagKey === "test_button_feature") effectiveFlagKey = "testButtonFeature";
-                if (flagKey === "advanced_recurrence_feature") effectiveFlagKey = "advancedRecurrence"; // Map to correct flag name
+                if (flagKey === "advanced_recurrence_feature") effectiveFlagKey = "advancedRecurrence";
+                if (flagKey === "file_attachments_feature") effectiveFlagKey = "fileAttachments";
+                if (flagKey === "integrations_services_feature") effectiveFlagKey = "integrationsServices"; // Map to correct flag name
                 
                 if (isFeatureEnabledFromService(effectiveFlagKey) || !Object.keys(AppStore.getFeatureFlags()).includes(effectiveFlagKey) ) { 
                     try {
