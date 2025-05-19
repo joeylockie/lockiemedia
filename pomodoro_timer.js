@@ -4,25 +4,25 @@
 (function() {
     // --- DOM Element References (populated in initialize or renderPomodoroPage) ---
     let pomodoroPageContainer;
-    let timerDisplayOnPage; // Renamed to avoid conflict with a potential global 'timerDisplay'
-    let pomodoroStateDisplayOnPage; // Renamed
-    let startPauseButtonOnPage; // Renamed
-    let stopButtonOnPage; // Renamed
-    let resetButtonOnPage; // Renamed
-    let skipButtonOnPage; // Renamed
-    let pomodoroTaskSelectOnPage; // Renamed
+    let timerDisplayOnPage; 
+    let pomodoroStateDisplayOnPage; 
+    let startPauseButtonOnPage; 
+    let stopButtonOnPage; 
+    let resetButtonOnPage; 
+    let skipButtonOnPage; 
+    let pomodoroTaskSelectOnPage; 
 
-    // Sidebar display elements (references obtained in updateSidebarPomodoroDisplay)
-    let sidebarPomodoroDisplayEl; // Renamed to avoid conflict
-    let sidebarPomodoroStateTextEl; // Renamed
-    let sidebarPomodoroTimeTextEl; // Renamed
-    let sidebarPomodoroTaskTextEl; // Renamed
+    // Sidebar display elements
+    let sidebarPomodoroDisplayEl; 
+    let sidebarPomodoroStateTextEl; 
+    let sidebarPomodoroTimeTextEl; 
+    let sidebarPomodoroTaskTextEl; 
 
     // --- Internal Pomodoro State (Owned by this module) ---
     let _isActive = false;
     let _currentState = 'work'; // 'work', 'shortBreak', 'longBreak'
-    let _timeRemaining = 25 * 60; // Default to work duration
-    let _currentTaskId = null; // Task ID associated with the current Pomodoro session
+    let _timeRemaining = 25 * 60; 
+    let _currentTaskId = null; 
     let _sessionsCompleted = 0;
     let _currentTimerInterval = null;
 
@@ -42,7 +42,7 @@
                 state: _currentState,
                 timeRemaining: _timeRemaining,
                 currentTaskId: _currentTaskId,
-                sessionsCompleted: _sessionsCompleted // Optional: if other modules need this
+                sessionsCompleted: _sessionsCompleted
             });
         }
     }
@@ -97,7 +97,6 @@
         }
     }
 
-
     function startPomodoroSession() {
         if (_currentTimerInterval) clearInterval(_currentTimerInterval);
         _isActive = true;
@@ -110,7 +109,7 @@
                 handleSessionEnd();
             } else {
                 updateDisplayOnPage();
-                _publishStateUpdate(); // Publish state for sidebar or other listeners
+                _publishStateUpdate(); 
             }
         }, 1000);
 
@@ -137,7 +136,7 @@
         _currentTaskId = null; 
         _sessionsCompleted = 0;
         updateDisplayOnPage();
-        _publishStateUpdate(); // This will also trigger sidebar update
+        _publishStateUpdate(); 
         console.log("[Pomodoro] Session stopped and reset.");
     }
 
@@ -181,7 +180,6 @@
         
         updateDisplayOnPage();
         _publishStateUpdate();
-        // Future: Option to auto-start next session or wait for user input.
     }
 
     function skipCurrentSession() {
@@ -196,7 +194,6 @@
             console.warn("[Pomodoro] Page container not found for rendering.");
             return;
         }
-        // ... (HTML structure remains the same as previous version)
         pomodoroPageContainer.innerHTML = `
             <div class="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-800 rounded-lg shadow-xl text-center">
                 <h2 id="pomodoroStateDisplayP" class="text-3xl font-bold text-slate-700 dark:text-slate-200 mb-4">Work</h2>
@@ -231,7 +228,7 @@
         if (skipButtonOnPage) skipButtonOnPage.addEventListener('click', skipCurrentSession);
         if (pomodoroTaskSelectOnPage) { populatePomodoroTaskSelector(); pomodoroTaskSelectOnPage.addEventListener('change', (e) => { _currentTaskId = e.target.value ? parseInt(e.target.value) : null; console.log("[Pomodoro] Task linked: ", _currentTaskId); _publishStateUpdate(); }); }
         
-        updateDisplayOnPage(); // Initialize display based on current state
+        updateDisplayOnPage();
         console.log("[Pomodoro] Page rendered and event listeners attached.");
     }
 
@@ -251,16 +248,14 @@
     function initialize() {
         console.log('[Pomodoro] Initializing Pomodoro Timer Hybrid Feature...');
         pomodoroPageContainer = document.getElementById('pomodoroTimerPageContainer');
-        // Sidebar elements are fetched dynamically in updateSidebarPomodoroDisplay
-
-        // Set initial state if not already set by a previous session (e.g. from localStorage in future)
-        // For now, always reset to default work session if not active
-        if (!_isActive) {
-            _currentState = 'work';
-            _timeRemaining = SETTINGS.workDuration;
-            _currentTaskId = null;
-            _sessionsCompleted = 0;
-        }
+        
+        // Initialize internal state (could load from localStorage in future)
+        _isActive = false;
+        _currentState = 'work';
+        _timeRemaining = SETTINGS.workDuration;
+        _currentTaskId = null;
+        _sessionsCompleted = 0;
+        
         _publishStateUpdate(); // Publish initial state
         console.log('[Pomodoro] Feature Initialized with state:', { _isActive, _currentState, _timeRemaining });
     }
@@ -271,8 +266,8 @@
         const elements = document.querySelectorAll('.pomodoro-timer-hybrid-feature-element');
         elements.forEach(el => el.classList.toggle('hidden', !isActuallyEnabled));
         if (!isActuallyEnabled) {
-            if (ViewManager.getCurrentTaskViewMode() === 'pomodoro') { ViewManager.setTaskViewMode('list'); /* Event triggers refreshTaskView */ }
-            if (_isActive) stopPomodoroSession(); // Stop and reset timer if feature is disabled
+            if (ViewManager.getCurrentTaskViewMode() === 'pomodoro') { ViewManager.setTaskViewMode('list'); }
+            if (_isActive) stopPomodoroSession(); 
             if(sidebarPomodoroDisplayEl) sidebarPomodoroDisplayEl.classList.add('hidden');
         } else {
             updateSidebarPomodoroDisplay();
@@ -283,22 +278,20 @@
     function handleViewChange(newViewMode) {
         if (newViewMode === 'pomodoro') {
             renderPomodoroPage();
-            if(sidebarPomodoroDisplayEl) sidebarPomodoroDisplayEl.classList.add('hidden'); // Hide sidebar display when on pomodoro page
+            if(sidebarPomodoroDisplayEl) sidebarPomodoroDisplayEl.classList.add('hidden'); 
         } else {
             if (pomodoroPageContainer) pomodoroPageContainer.classList.add('hidden');
-            updateSidebarPomodoroDisplay(); // Show/hide sidebar display based on pomodoro state
+            updateSidebarPomodoroDisplay(); 
         }
     }
 
     if (typeof window.AppFeatures === 'undefined') window.AppFeatures = {};
     window.AppFeatures.PomodoroTimerHybrid = {
         initialize, updateUIVisibility, renderPomodoroPage, 
-        updateSidebarDisplay: updateSidebarPomodoroDisplay, // Expose for direct call if needed by sidebar logic
+        updateSidebarDisplay: updateSidebarPomodoroDisplay, 
         handleViewChange,
-        // Exposing core controls for potential external triggers (though UI buttons are primary)
         start: startPomodoroSession, pause: pausePomodoroSession, stop: stopPomodoroSession,
         skip: skipCurrentSession, reset: resetCurrentSession,
-        // Getter for current state if needed by other modules (e.g. for testing or complex interactions)
         getCurrentState: () => ({ isActive: _isActive, state: _currentState, timeRemaining: _timeRemaining, taskId: _currentTaskId })
     };
 })();
