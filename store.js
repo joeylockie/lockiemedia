@@ -1,28 +1,27 @@
 // store.js
 // This file is responsible for managing the application's state
-// and its persistence to localStorage.
+// and its persistence to localStorage. Feature flags are sourced from FeatureFlagService.
 
 // --- Application State Variables ---
 // These are defined in the global scope for now to maintain compatibility
 // with other files that expect them. This will be refactored later.
 var tasks = [];
-var projects = []; // For projects
+var projects = [];
 var currentFilter = 'inbox';
 var currentSort = 'default';
 var currentSearchTerm = '';
 var editingTaskId = null;
 var currentViewTaskId = null;
 var uniqueLabels = [];
-var uniqueProjects = []; // For project names in dropdowns etc.
-var tooltipTimeout = null; // This might be better in a UI state manager later
-var currentTaskViewMode = 'list'; // 'list', 'kanban', 'calendar', or 'pomodoro'
+var uniqueProjects = [];
+var tooltipTimeout = null;
+var currentTaskViewMode = 'list';
 var selectedTaskIdsForBulkAction = [];
 
-// Pomodoro Timer State (These might move to a dedicated Pomodoro service/store later)
 var isPomodoroActive = false;
-var currentPomodoroState = 'work'; // 'work', 'shortBreak', 'longBreak'
-var pomodoroTimeRemaining = 0; // in seconds
-var pomodoroCurrentTaskId = null; // Task ID associated with the current Pomodoro session
+var currentPomodoroState = 'work';
+var pomodoroTimeRemaining = 0;
+var pomodoroCurrentTaskId = null;
 
 var kanbanColumns = [
     { id: 'todo', title: 'To Do' },
@@ -30,90 +29,27 @@ var kanbanColumns = [
     { id: 'done', title: 'Done' }
 ];
 
-// Default feature flags, will be overridden by features.json and then by localStorage
-var featureFlags = {
-    testButtonFeature: false,
-    reminderFeature: false,
-    taskTimerSystem: false,
-    advancedRecurrence: false,
-    fileAttachments: false,
-    integrationsServices: false,
-    userAccounts: false,
-    collaborationSharing: false,
-    crossDeviceSync: false,
-    tooltipsGuide: false,
-    subTasksFeature: false,
-    kanbanBoardFeature: false,
-    projectFeature: false,
-    exportDataFeature: false,
-    calendarViewFeature: false,
-    taskDependenciesFeature: false,
-    smarterSearchFeature: false,
-    bulkActionsFeature: false,
-    pomodoroTimerHybridFeature: false
-};
+// featureFlags will be populated from FeatureFlagService after it loads.
+// We still declare it here so other files that expect `window.featureFlags` don't break immediately.
+// Its true source will be FeatureFlagService.
+var featureFlags = {};
+
 
 // --- Data Persistence and Initialization Functions ---
-
-// --- Feature Flag Management ---
-async function loadFeatureFlags() {
-    console.log('[Flags - Store] Initial default flags:', JSON.parse(JSON.stringify(featureFlags)));
-    try {
-        const response = await fetch('features.json?cachebust=' + new Date().getTime());
-        if (!response.ok) {
-            console.warn('[Flags - Store] Failed to load features.json, using default flags. Status:', response.status);
-        } else {
-            const fetchedFlagsFromFile = await response.json();
-            console.log('[Flags - Store] Flags loaded from features.json:', fetchedFlagsFromFile);
-            // Merge, giving precedence to fetchedFlagsFromFile over defaults
-            featureFlags = { ...featureFlags, ...fetchedFlagsFromFile };
-            console.log('[Flags - Store] Flags after merging features.json:', JSON.parse(JSON.stringify(featureFlags)));
-        }
-    } catch (error) {
-        console.error('[Flags - Store] Error loading or parsing features.json:', error);
-    }
-
-    const userFlagsString = localStorage.getItem('userFeatureFlags');
-    if (userFlagsString) {
-        try {
-            const userFlagsFromStorage = JSON.parse(userFlagsString);
-            console.log('[Flags - Store] User flags found in localStorage:', userFlagsFromStorage);
-            // Merge, giving precedence to userFlagsFromStorage over current featureFlags
-            featureFlags = { ...featureFlags, ...userFlagsFromStorage };
-            console.log('[Flags - Store] Flags after merging localStorage:', JSON.parse(JSON.stringify(featureFlags)));
-        } catch (e) {
-            console.error('[Flags - Store] Error parsing userFeatureFlags from localStorage:', e);
-        }
-    } else {
-        console.log('[Flags - Store] No userFeatureFlags found in localStorage.');
-    }
-
-    // Ensure all known flags are boolean
-    const allKnownFlagKeys = Object.keys(window.featureFlags); // Use initial keys as reference
-    allKnownFlagKeys.forEach(key => {
-        if (typeof featureFlags[key] !== 'boolean') {
-            console.warn(`[Flags - Store] Flag "${key}" was not a boolean after loading. Defaulting to false.`);
-            featureFlags[key] = false; // Default to false if type is incorrect
-        }
-    });
-
-    console.log('[Flags - Store] Final feature flags loaded:', JSON.parse(JSON.stringify(featureFlags)));
-}
-
 
 // --- Task Data Functions ---
 function saveTasks() {
     localStorage.setItem('todos_v3', JSON.stringify(tasks));
-    updateUniqueLabels(); // This function should now be part of store.js
+    updateUniqueLabels();
     console.log('[Store] Tasks saved to localStorage.');
 }
 
 function initializeTasks() {
     const storedTasks = JSON.parse(localStorage.getItem('todos_v3')) || [];
-    const defaultKanbanCol = kanbanColumns[0]?.id || 'todo'; // Use loaded kanbanColumns
+    const defaultKanbanCol = kanbanColumns[0]?.id || 'todo';
 
     tasks = storedTasks.map(task => ({
-        id: task.id || Date.now() + Math.random(), // Ensure unique ID
+        id: task.id || Date.now() + Math.random(),
         text: task.text || '',
         completed: task.completed || false,
         creationDate: task.creationDate || task.id,
@@ -144,11 +80,11 @@ function initializeTasks() {
         lastSynced: task.lastSynced || null,
         syncVersion: task.syncVersion || 0,
         kanbanColumnId: task.kanbanColumnId || defaultKanbanCol,
-        projectId: typeof task.projectId === 'number' ? task.projectId : 0, // Default to 0 ("No Project")
+        projectId: typeof task.projectId === 'number' ? task.projectId : 0,
         dependsOn: task.dependsOn || [],
         blocksTasks: task.blocksTasks || []
     }));
-    updateUniqueLabels(); // Initialize uniqueLabels based on loaded tasks
+    updateUniqueLabels();
     console.log('[Store] Tasks initialized/loaded.');
 }
 
@@ -166,7 +102,7 @@ function updateUniqueLabels() {
 // --- Project Data Functions ---
 function saveProjects() {
     localStorage.setItem('projects_v1', JSON.stringify(projects));
-    updateUniqueProjects(); // This function should now be part of store.js
+    updateUniqueProjects();
     console.log('[Store] Projects saved to localStorage.');
 }
 
@@ -186,10 +122,9 @@ function loadProjects() {
         }
     }
 
-    // Ensure "No Project" (id: 0) exists and is first
-    const noProjectEntry = { id: 0, name: "No Project", creationDate: Date.now() - 100000 }; // Ensure it's older
-    let finalProjects = tempProjects.filter(p => p.id !== 0); // Remove any existing "No Project"
-    finalProjects.unshift(noProjectEntry); // Add our controlled "No Project" at the beginning
+    const noProjectEntry = { id: 0, name: "No Project", creationDate: Date.now() - 100000 };
+    let finalProjects = tempProjects.filter(p => p.id !== 0);
+    finalProjects.unshift(noProjectEntry);
 
     projects = finalProjects;
     updateUniqueProjects();
@@ -198,7 +133,7 @@ function loadProjects() {
 
 function updateUniqueProjects() {
     uniqueProjects = projects
-        .filter(project => project.id !== 0) // Exclude "No Project" from the filterable list
+        .filter(project => project.id !== 0)
         .map(project => ({ id: project.id, name: project.name }))
         .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
     console.log('[Store] Unique projects updated for UI:', uniqueProjects);
@@ -212,7 +147,7 @@ function saveKanbanColumns() {
 
 function loadKanbanColumns() {
     const storedColumns = localStorage.getItem('kanbanColumns_v1');
-    const defaultColumns = [ // Define default structure here for clarity
+    const defaultColumns = [
         { id: 'todo', title: 'To Do' },
         { id: 'inprogress', title: 'In Progress' },
         { id: 'done', title: 'Done' }
@@ -222,18 +157,17 @@ function loadKanbanColumns() {
         try {
             const parsedColumns = JSON.parse(storedColumns);
             if (Array.isArray(parsedColumns) && parsedColumns.length === defaultColumns.length && parsedColumns.every(col => col && typeof col.id === 'string' && typeof col.title === 'string')) {
-                // Basic validation passed, check if IDs match defaults to preserve order/structure
                 const storedIds = parsedColumns.map(c => c.id);
                 const defaultIds = defaultColumns.map(c => c.id);
                 if (JSON.stringify(storedIds) === JSON.stringify(defaultIds)) {
                     kanbanColumns = parsedColumns.map(sc => ({
                         id: sc.id,
-                        title: sc.title // Use stored title
+                        title: sc.title
                     }));
                 } else {
                     console.warn("[Store] Stored Kanban column IDs don't match defaults. Resetting to defaults.");
                     kanbanColumns = defaultColumns;
-                    saveKanbanColumns(); // Save the corrected default structure
+                    saveKanbanColumns();
                 }
             } else {
                  console.warn("[Store] Stored Kanban columns are invalid or structure changed. Resetting to defaults.");
@@ -253,16 +187,46 @@ function loadKanbanColumns() {
     console.log('[Store] Kanban columns loaded/initialized:', kanbanColumns);
 }
 
+/**
+ * Public method for FeatureFlagService to set the flags after loading.
+ * @param {Object} loadedFlags - The feature flags object from FeatureFlagService.
+ */
+function setStoreFeatureFlags(loadedFlags) {
+    if (loadedFlags && typeof loadedFlags === 'object') {
+        Object.assign(featureFlags, loadedFlags); // Update the store's copy
+        // Ensure the global window.featureFlags is also updated for any legacy access
+        window.featureFlags = featureFlags;
+        console.log('[Store] Feature flags updated in store from FeatureFlagService:', featureFlags);
+    } else {
+        console.error('[Store] Invalid flags received from FeatureFlagService.');
+    }
+}
+
+// Expose setStoreFeatureFlags to be callable by FeatureFlagService
+// This is a bit of a workaround for direct script loading order.
+// Ideally, FeatureFlagService would be a dependency injected or imported.
+window.store = window.store || {};
+window.store.setFeatureFlags = setStoreFeatureFlags;
+
 
 // --- Initial Data Loading on Script Load ---
-// Order is important: flags, then columns/projects (as tasks might depend on them), then tasks.
+// Order is important:
+// 1. FeatureFlagService.loadFeatureFlags() must complete first.
+// 2. Then other data (columns, projects, tasks).
 (async () => {
-    await loadFeatureFlags(); // Load feature flags first
-    loadKanbanColumns();  // Load Kanban columns structure
-    loadProjects();       // Load projects
-    initializeTasks();    // Load tasks (depends on projects and kanban columns for defaults)
-    console.log("[Store] Initial data loaded.");
-})();
+    // Ensure FeatureFlagService and its loadFeatureFlags method are available
+    if (window.FeatureFlagService && typeof window.FeatureFlagService.loadFeatureFlags === 'function') {
+        await window.FeatureFlagService.loadFeatureFlags();
+        // After flags are loaded by the service, it calls store.setFeatureFlags (if available)
+        // which updates the featureFlags variable in this store.
+        // So, featureFlags should be populated by now.
+    } else {
+        console.error("[Store] FeatureFlagService.loadFeatureFlags is not available. Flags may not be loaded correctly.");
+        // Fallback or error handling if FeatureFlagService didn't load
+    }
 
-// Later, these state variables and functions will be encapsulated further,
-// and access will be through dedicated getter/setter methods or a more formal state management pattern.
+    loadKanbanColumns();
+    loadProjects();
+    initializeTasks();
+    console.log("[Store] Initial data (tasks, projects, columns) loaded after flags.");
+})();
