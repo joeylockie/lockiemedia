@@ -1,55 +1,11 @@
 // app_logic.js
-
-// --- Application State ---
-let tasks = JSON.parse(localStorage.getItem('todos_v3')) || [];
-let projects = JSON.parse(localStorage.getItem('projects_v1')) || []; // For projects
-let currentFilter = 'inbox';
-let currentSort = 'default';
-let currentSearchTerm = '';
-let editingTaskId = null;
-let currentViewTaskId = null;
-let uniqueLabels = [];
-let uniqueProjects = []; // For project names in dropdowns etc.
-let tooltipTimeout = null;
-let currentTaskViewMode = 'list'; // 'list', 'kanban', 'calendar', or 'pomodoro'
-let selectedTaskIdsForBulkAction = []; // New: For Bulk Actions feature
-
-// Pomodoro Timer State (Placeholders)
-let isPomodoroActive = false;
-let currentPomodoroState = 'work'; // 'work', 'shortBreak', 'longBreak'
-let pomodoroTimeRemaining = 0; // in seconds
-let pomodoroCurrentTaskId = null; // Task ID associated with the current Pomodoro session
-
-// Default feature flags, will be overridden by features.json and then by localStorage
-let featureFlags = {
-    testButtonFeature: false,
-    reminderFeature: false,
-    taskTimerSystem: false,
-    advancedRecurrence: false,
-    fileAttachments: false,
-    integrationsServices: false,
-    userAccounts: false,
-    collaborationSharing: false,
-    crossDeviceSync: false,
-    tooltipsGuide: false,
-    subTasksFeature: false,
-    kanbanBoardFeature: false,
-    projectFeature: false,
-    exportDataFeature: false,
-    calendarViewFeature: false,
-    taskDependenciesFeature: false,
-    smarterSearchFeature: false,
-    bulkActionsFeature: false, // New: Bulk Actions Feature flag
-    pomodoroTimerHybridFeature: false // New: Pomodoro Timer Hybrid Feature flag
-};
-
-let kanbanColumns = [
-    { id: 'todo', title: 'To Do' },
-    { id: 'inprogress', title: 'In Progress' },
-    { id: 'done', title: 'Done' }
-];
+// This file now contains core application logic, event handlers,
+// and functions that interact with the state managed in store.js
+// and utility functions from utils.js.
 
 // --- Theme Management ---
+// This can remain here as it's a direct DOM manipulation based on localStorage,
+// though eventually, it could be part of a dedicated theme service.
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
     if (localStorage.getItem('theme') !== (event.matches ? 'dark' : 'light')) {
         if (event.matches) {
@@ -62,118 +18,14 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', eve
     }
 });
 
-// --- Feature Flag Management ---
-async function loadFeatureFlags() {
-    console.log('[Flags] Initial default flags:', JSON.parse(JSON.stringify(featureFlags)));
-    try {
-        const response = await fetch('features.json?cachebust=' + new Date().getTime());
-        if (!response.ok) {
-            console.warn('[Flags] Failed to load features.json, using default flags. Status:', response.status);
-        } else {
-            const fetchedFlagsFromFile = await response.json();
-            console.log('[Flags] Flags loaded from features.json:', fetchedFlagsFromFile);
-            featureFlags = { ...featureFlags, ...fetchedFlagsFromFile };
-            console.log('[Flags] Flags after merging features.json:', JSON.parse(JSON.stringify(featureFlags)));
-        }
-    } catch (error) {
-        console.error('[Flags] Error loading or parsing features.json, using flags potentially modified by defaults only:', error);
-    }
-
-    const userFlagsString = localStorage.getItem('userFeatureFlags');
-    if (userFlagsString) {
-        try {
-            const userFlagsFromStorage = JSON.parse(userFlagsString);
-            console.log('[Flags] User flags found in localStorage:', userFlagsFromStorage);
-            featureFlags = { ...featureFlags, ...userFlagsFromStorage };
-            console.log('[Flags] Flags after merging localStorage:', JSON.parse(JSON.stringify(featureFlags)));
-        } catch (e) {
-            console.error('[Flags] Error parsing userFeatureFlags from localStorage:', e);
-        }
-    } else {
-        console.log('[Flags] No userFeatureFlags found in localStorage.');
-    }
-
-    const allKnownFlagKeys = [
-        'testButtonFeature', 'reminderFeature', 'taskTimerSystem', 'advancedRecurrence',
-        'fileAttachments', 'integrationsServices', 'userAccounts', 'collaborationSharing',
-        'crossDeviceSync', 'tooltipsGuide', 'subTasksFeature', 'kanbanBoardFeature',
-        'projectFeature', 'exportDataFeature', 'calendarViewFeature', 'taskDependenciesFeature',
-        'smarterSearchFeature', 'bulkActionsFeature', 'pomodoroTimerHybridFeature'
-    ];
-    allKnownFlagKeys.forEach(key => {
-        if (typeof featureFlags[key] !== 'boolean') {
-            console.warn(`[Flags] Flag "${key}" was not a boolean after loading. Defaulting to false.`);
-            featureFlags[key] = false;
-        }
-    });
-
-    console.log('[Flags] Final feature flags loaded:', JSON.parse(JSON.stringify(featureFlags)));
-    console.log(`[Flags] Project Feature is: ${featureFlags.projectFeature}`);
-    console.log(`[Flags] Export Data Feature is: ${featureFlags.exportDataFeature}`);
-    console.log(`[Flags] Calendar View Feature is: ${featureFlags.calendarViewFeature}`);
-    console.log(`[Flags] Task Dependencies Feature is: ${featureFlags.taskDependenciesFeature}`);
-    console.log(`[Flags] Smarter Search Feature is: ${featureFlags.smarterSearchFeature}`);
-    console.log(`[Flags] Bulk Actions Feature is: ${featureFlags.bulkActionsFeature}`);
-    console.log(`[Flags] Pomodoro Timer Hybrid Feature is: ${featureFlags.pomodoroTimerHybridFeature}`);
-}
-
-// --- Date & Time Helper Functions ---
-// These functions have been moved to utils.js:
-// getTodayDateString()
-// getDateString(date)
-// formatDate(dateString)
-// formatTime(timeString)
-// formatDuration(hours, minutes)
-// formatMillisecondsToHMS(ms)
-// Ensure utils.js is loaded before this script in todo.html
-
-// --- Core Task Data Functions ---
-function saveTasks() {
-    localStorage.setItem('todos_v3', JSON.stringify(tasks));
-    updateUniqueLabels();
-}
-
-function initializeTasks() {
-    const defaultKanbanColumn = kanbanColumns[0]?.id || 'todo';
-    tasks = tasks.map(task => ({
-        id: task.id || Date.now(),
-        text: task.text || '',
-        completed: task.completed || false,
-        creationDate: task.creationDate || task.id,
-        dueDate: task.dueDate || null,
-        time: task.time || null,
-        priority: task.priority || 'medium',
-        label: task.label || '',
-        notes: task.notes || '',
-        isReminderSet: task.isReminderSet || false,
-        reminderDate: task.reminderDate || null,
-        reminderTime: task.reminderTime || null,
-        reminderEmail: task.reminderEmail || null,
-        estimatedHours: task.estimatedHours || 0,
-        estimatedMinutes: task.estimatedMinutes || 0,
-        timerStartTime: task.timerStartTime || null,
-        timerAccumulatedTime: task.timerAccumulatedTime || 0,
-        timerIsRunning: task.timerIsRunning || false,
-        timerIsPaused: task.timerIsPaused || false,
-        actualDurationMs: task.actualDurationMs || 0,
-        attachments: task.attachments || [],
-        completedDate: task.completedDate || null,
-        subTasks: task.subTasks || [],
-        recurrenceRule: task.recurrenceRule || null,
-        recurrenceEndDate: task.recurrenceEndDate || null,
-        nextDueDate: task.nextDueDate || task.dueDate,
-        sharedWith: task.sharedWith || [],
-        owner: task.owner || null,
-        lastSynced: task.lastSynced || null,
-        syncVersion: task.syncVersion || 0,
-        kanbanColumnId: task.kanbanColumnId || defaultKanbanColumn,
-        projectId: task.projectId || null, // Ensure this is initialized, 0 for "No Project"
-        dependsOn: task.dependsOn || [],
-        blocksTasks: task.blocksTasks || []
-    }));
-}
+// --- Core Task Interaction Logic (Examples, to be expanded) ---
+// These functions will now rely on state variables (tasks, projects, etc.)
+// being globally available from store.js.
 
 function getPriorityClass(priority) {
+    // This utility could also move to utils.js if it's purely presentational
+    // or stay here if considered part of task-specific display logic.
+    // For now, keeping it as an example of a function that might remain.
     switch (priority) {
         case 'high': return 'bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100';
         case 'medium': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-600 dark:text-yellow-100';
@@ -182,97 +34,81 @@ function getPriorityClass(priority) {
     }
 }
 
-function updateUniqueLabels() {
-    const labels = new Set();
-    tasks.forEach(task => {
-        if (task.label && task.label.trim() !== '') {
-            labels.add(task.label.trim());
-        }
-    });
-    uniqueLabels = Array.from(labels).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
-}
-
-// --- Project Data Functions ---
-function saveProjects() {
-    localStorage.setItem('projects_v1', JSON.stringify(projects));
-    updateUniqueProjects();
-    console.log('[Projects] Projects saved to localStorage:', projects);
-}
-
-function loadProjects() {
-    const storedProjects = localStorage.getItem('projects_v1');
-    if (storedProjects) {
-        try {
-            const parsedProjects = JSON.parse(storedProjects);
-            if (Array.isArray(parsedProjects) && parsedProjects.every(p => p && typeof p.id === 'number' && typeof p.name === 'string')) {
-                projects = parsedProjects;
-                console.log('[Projects] Loaded projects from localStorage:', projects);
-                // Ensure "No Project" (id: 0) exists and is first
-                if (!projects.find(p => p.id === 0)) {
-                    projects.unshift({ id: 0, name: "No Project", creationDate: Date.now() -1 });
-                } else {
-                    const noProjIndex = projects.findIndex(p => p.id === 0);
-                    if (noProjIndex > 0) { // If "No Project" is not at the start
-                        const noProj = projects.splice(noProjIndex, 1)[0];
-                        projects.unshift(noProj);
-                    }
-                }
-            } else {
-                console.warn("[Projects] Stored projects data is invalid. Initializing with default.");
-                projects = [{ id: 0, name: "No Project", creationDate: Date.now() }];
-            }
-        } catch (e) {
-            console.error("[Projects] Error parsing stored projects. Initializing with default.", e);
-            projects = [{ id: 0, name: "No Project", creationDate: Date.now() }];
-        }
-    } else {
-        console.log('[Projects] No stored projects found. Initializing with default "No Project".');
-        projects = [{ id: 0, name: "No Project", creationDate: Date.now() }];
-    }
-    updateUniqueProjects();
-}
-
-function updateUniqueProjects() {
-    uniqueProjects = projects
-        .filter(project => project.id !== 0) // Exclude "No Project" from the filterable list
-        .map(project => ({ id: project.id, name: project.name })) // Keep only id and name for dropdowns
-        .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
-    console.log('[Projects] Unique projects updated for UI:', uniqueProjects);
-}
-
-
 function parseDateFromText(text) {
+    // This function uses getTodayDateString and getDateString, which are now in utils.js
+    // It also relies on the 'today' variable which should be defined using getTodayDateString()
+    // The state variables like 'tasks' are now expected to be global from store.js.
+
     let parsedDate = null;
     let remainingText = text;
-    // Assuming getTodayDateString and getDateString are now globally available from utils.js
-    const today = new Date(getTodayDateString() + 'T00:00:00'); // Ensure it's treated as start of day
+    const today = new Date(getTodayDateString() + 'T00:00:00Z'); // Use UTC for date comparisons
 
     const daysOfWeek = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
     const shortDaysOfWeek = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
     const patterns = [
-        { regex: /\b(on|due|by)\s+(\d{4}[-\/]\d{1,2}[-\/]\d{1,2})\b/i, handler: (match) => match[2].replace(/\//g, '-') },
-        { regex: /\b(on|due|by)\s+(\d{1,2}[-\/]\d{1,2}(?:[-\/]\d{2,4})?)\b/i, handler: (match) => {
+        // DD/MM/YYYY or DD-MM-YYYY (common international format)
+        { regex: /\b(on|due|by)?\s*(\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})\b/i, handler: (match) => {
             const dateStr = match[2];
             const parts = dateStr.replace(/-/g, '/').split('/');
             let year, month, day;
-            if (parts.length === 2) {
-                year = today.getFullYear();
-                month = parseInt(parts[0]);
-                day = parseInt(parts[1]);
-            } else {
+            if (parts.length === 3) { // DD/MM/YYYY or DD/MM/YY
+                day = parseInt(parts[0]);
+                month = parseInt(parts[1]);
                 year = parseInt(parts[2]);
-                if (year < 100) year += 2000;
+                if (year < 100) year += 2000; // Assume 20xx for two-digit years
+            } else { return null; } // Invalid format
+            if (isNaN(year) || isNaN(month) || isNaN(day)) return null;
+            // Basic validation for month and day
+            if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+            return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        }},
+        // YYYY-MM-DD or YYYY/MM/DD (ISO-like, robust)
+        { regex: /\b(on|due|by)?\s*(\d{4}[-\/]\d{1,2}[-\/]\d{1,2})\b/i, handler: (match) => {
+            const dateStr = match[2].replace(/\//g, '-');
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+                const year = parseInt(parts[0]);
+                const month = parseInt(parts[1]);
+                const day = parseInt(parts[2]);
+                if (month < 1 || month > 12 || day < 1 || day > 31) return null; // Basic validation
+                return dateStr;
+            }
+            return null;
+        }},
+        // MM/DD/YYYY or MM-DD-YYYY (common US format)
+        // This needs to be carefully placed to avoid conflict if DD/MM/YYYY is also possible
+        // For now, let's assume one primary date entry style or use more context.
+        // If we prioritize MM/DD:
+        { regex: /\b(on|due|by)?\s*(\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})\b/i, handler: (match) => {
+            // This pattern is ambiguous with DD/MM/YYYY. We'll assume MM/DD for this example if not YYYY-MM-DD
+            // A more robust solution would involve locale settings or more specific keywords.
+            const dateStr = match[2];
+            const parts = dateStr.replace(/-/g, '/').split('/');
+            let year, month, day;
+            if (parts.length === 3 && parseInt(parts[2]) > 31) { // Likely YYYY as last part
+                 month = parseInt(parts[0]);
+                 day = parseInt(parts[1]);
+                 year = parseInt(parts[2]);
+            } else if (parts.length === 3 && parseInt(parts[2]) <=31 && parseInt(parts[0]) <=12) { // Could be MM/DD/YY or MM/DD/YYYY
+                 month = parseInt(parts[0]);
+                 day = parseInt(parts[1]);
+                 year = parseInt(parts[2]);
+                 if (year < 100) year += 2000;
+            } else if (parts.length === 2 && parseInt(parts[0]) <=12) { // MM/DD
                 month = parseInt(parts[0]);
                 day = parseInt(parts[1]);
+                year = today.getFullYear();
             }
+             else { return null; }
             if (isNaN(year) || isNaN(month) || isNaN(day)) return null;
+            if (month < 1 || month > 12 || day < 1 || day > 31) return null;
             return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         }},
         { regex: /\b(today)\b/i, handler: () => getDateString(today) },
         { regex: /\b(tomorrow)\b/i, handler: () => {
-            const tomorrow = new Date(today);
-            tomorrow.setDate(today.getDate() + 1);
+            const tomorrow = new Date(today); // today is already UTC start of day
+            tomorrow.setUTCDate(today.getUTCDate() + 1);
             return getDateString(tomorrow);
         }},
         { regex: new RegExp(`\\b(next\\s+)?(${daysOfWeek.join('|')}|${shortDaysOfWeek.join('|')})\\b`, 'i'), handler: (match) => {
@@ -281,88 +117,82 @@ function parseDateFromText(text) {
             if (targetDayIndex === -1) targetDayIndex = shortDaysOfWeek.indexOf(dayName);
             if (targetDayIndex === -1) return null;
 
-            const currentDayIndex = today.getDay();
+            const currentDayIndex = today.getUTCDay(); // Use UTC day
             let daysToAdd = targetDayIndex - currentDayIndex;
 
-            if (match[1]) { // "next Monday"
-                daysToAdd = (daysToAdd <= 0 ? daysToAdd + 7 : daysToAdd);
-            } else { // "Monday"
-                if (daysToAdd < 0) daysToAdd += 7;
+            if (match[1] || daysToAdd <= 0) { // "next Monday" or if "Monday" has passed this week
+                daysToAdd += 7;
             }
+            // If "Monday" and today is Monday, and "next" is not specified, it means next week's Monday
+            if (!match[1] && daysToAdd === 0) {
+                 daysToAdd = 7;
+            }
+
+
             const targetDate = new Date(today);
-            targetDate.setDate(today.getDate() + daysToAdd);
+            targetDate.setUTCDate(today.getUTCDate() + daysToAdd);
             return getDateString(targetDate);
         }},
         { regex: /\b(next week)\b/i, handler: () => {
             const nextWeek = new Date(today);
-            const dayOffset = (today.getDay() === 0 ? -6 : 1);
-            nextWeek.setDate(today.getDate() - today.getDay() + dayOffset + 7);
+            // Assuming week starts on Monday (day 1 for getUTCDay() if Sunday is 0)
+            // Go to the start of the current week (Monday) and add 7 days
+            const currentDay = today.getUTCDay();
+            const daysToMonday = currentDay === 0 ? -6 : 1 - currentDay; // days to get to Monday
+            nextWeek.setUTCDate(today.getUTCDate() + daysToMonday + 7);
             return getDateString(nextWeek);
         }},
         { regex: /\b(next month)\b/i, handler: () => {
-            const nextMonthDate = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+            const nextMonthDate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 1));
             return getDateString(nextMonthDate);
         }},
         { regex: /\b(next year)\b/i, handler: () => {
-            const nextYearDate = new Date(today.getFullYear() + 1, 0, 1);
+            const nextYearDate = new Date(Date.UTC(today.getUTCFullYear() + 1, 0, 1)); // Jan 1st of next year
             return getDateString(nextYearDate);
-        }},
-        { regex: /\b(\d{4}[-\/]\d{1,2}[-\/]\d{1,2})\b/g, handler: (match) => {
-            const potentialDate = match[0].replace(/\//g, '-');
-            if (!isNaN(new Date(potentialDate + 'T00:00:00').getTime())) { // Add T00:00:00 for robust parsing
-                return potentialDate;
-            }
-            return null;
-        }},
-        { regex: /\b(\d{1,2}[-\/]\d{1,2}(?:[-\/]\d{2,4})?)\b/g, handler: (match) => {
-            const dateStr = match[0];
-            const parts = dateStr.replace(/-/g, '/').split('/');
-            let year, month, day;
-
-            if (parts.length === 2) {
-                year = today.getFullYear();
-                month = parseInt(parts[0]);
-                day = parseInt(parts[1]);
-            } else {
-                year = parseInt(parts[2]);
-                if (year < 100) year += 2000;
-                month = parseInt(parts[0]);
-                day = parseInt(parts[1]);
-            }
-            if (isNaN(year) || isNaN(month) || isNaN(day)) return null;
-            const potentialDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-             if (!isNaN(new Date(potentialDate + 'T00:00:00').getTime())) { // Add T00:00:00
-                 return potentialDate;
-            }
-            return null;
         }}
     ];
 
     for (const pattern of patterns) {
-        const regex = new RegExp(pattern.regex.source, pattern.regex.flags.replace('g', ''));
-        const match = regex.exec(remainingText);
+        const regex = new RegExp(pattern.regex.source, pattern.regex.flags.replace('g', '')); // Ensure non-global for exec
+        let matchResult;
+        // Need to handle cases where the date string might be part of the task text
+        // This loop attempts to find the date pattern and ensure it's a standalone date phrase
+        let searchIndex = 0;
+        while((matchResult = regex.exec(remainingText.substring(searchIndex))) !== null) {
+            const actualMatchIndex = matchResult.index + searchIndex;
+            const matchedString = matchResult[0];
 
-        if (match) {
-            const potentialDate = pattern.handler(match);
-            if (potentialDate && !isNaN(new Date(potentialDate + 'T00:00:00').getTime())) { // Add T00:00:00
-                const matchedString = match[0];
-                const tempRemainingText = remainingText.replace(new RegExp(matchedString.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*', 'i'), '').trim();
-                const afterMatchIndex = match.index + matchedString.length;
-                const charAfterMatch = remainingText[afterMatchIndex];
+            // Check if the match is at a word boundary
+            const precedingChar = actualMatchIndex > 0 ? remainingText[actualMatchIndex - 1] : ' ';
+            const followingChar = (actualMatchIndex + matchedString.length) < remainingText.length ? remainingText[actualMatchIndex + matchedString.length] : ' ';
 
-                if (afterMatchIndex === remainingText.length || /[\s,.?!]/.test(charAfterMatch || '')) {
+            if ((/\s/.test(precedingChar) || precedingChar === '') && (/\s/.test(followingChar) || followingChar === '')) {
+                const potentialDate = pattern.handler(matchResult);
+                if (potentialDate && !isNaN(new Date(potentialDate + 'T00:00:00Z').getTime())) {
                     parsedDate = potentialDate;
-                    remainingText = tempRemainingText.replace(/\s\s+/g, ' ').trim();
-                    break;
+                    // Remove the matched date phrase from the text
+                    remainingText = remainingText.substring(0, actualMatchIndex).trim() + " " + remainingText.substring(actualMatchIndex + matchedString.length).trim();
+                    remainingText = remainingText.replace(/\s\s+/g, ' ').trim(); // Clean up spaces
+                    // If a keyword like "on", "due", "by" was part of the match but not handled by regex, remove it
+                    const keywords = ["on ", "due ", "by "];
+                    for (const kw of keywords) {
+                        if (remainingText.toLowerCase().endsWith(kw.trim())) {
+                             remainingText = remainingText.substring(0, remainingText.length - kw.length).trim();
+                        }
+                    }
+                    return { parsedDate, remainingText }; // Found a valid date
                 }
             }
+            searchIndex = actualMatchIndex + 1; // Continue search after this match attempt
         }
     }
     return { parsedDate, remainingText };
 }
 
+
 // --- Task View Mode Management ---
 function setTaskViewMode(mode) {
+    // currentTaskViewMode is now global from store.js
     if (['list', 'kanban', 'calendar', 'pomodoro'].includes(mode)) {
         currentTaskViewMode = mode;
         console.log(`Task view mode changed to: ${currentTaskViewMode}`);
@@ -373,24 +203,29 @@ function setTaskViewMode(mode) {
 
 // --- Filtering and sorting state management ---
 function setAppCurrentFilter(filter) {
+    // currentFilter and currentSort are now global from store.js
     currentFilter = filter;
-    currentSort = 'default';
+    currentSort = 'default'; // Reset sort when filter changes
 }
 
 function setAppCurrentSort(sortType) {
+    // currentSort is now global from store.js
     currentSort = sortType;
 }
 
 function setAppSearchTerm(term) {
+    // currentSearchTerm is now global from store.js
     currentSearchTerm = term;
 }
 
 // --- Kanban Board Logic ---
 function updateKanbanColumnTitle(columnId, newTitle) {
+    // kanbanColumns and featureFlags are now global from store.js
+    // saveKanbanColumns is also global from store.js
     const columnIndex = kanbanColumns.findIndex(col => col.id === columnId);
     if (columnIndex !== -1) {
         kanbanColumns[columnIndex].title = newTitle;
-        saveKanbanColumns();
+        saveKanbanColumns(); // from store.js
         if (currentTaskViewMode === 'kanban' && featureFlags.kanbanBoardFeature) {
             if (window.AppFeatures && window.AppFeatures.KanbanBoard && typeof window.AppFeatures.KanbanBoard.renderKanbanBoard === 'function') {
                  window.AppFeatures.KanbanBoard.renderKanbanBoard();
@@ -399,43 +234,10 @@ function updateKanbanColumnTitle(columnId, newTitle) {
     }
 }
 
-function saveKanbanColumns() {
-    localStorage.setItem('kanbanColumns_v1', JSON.stringify(kanbanColumns));
-}
-
-function loadKanbanColumns() {
-    const storedColumns = localStorage.getItem('kanbanColumns_v1');
-    if (storedColumns) {
-        try {
-            const parsedColumns = JSON.parse(storedColumns);
-            if (Array.isArray(parsedColumns) && parsedColumns.every(col => col && typeof col.id === 'string' && typeof col.title === 'string')) {
-                 const defaultColumnIds = ['todo', 'inprogress', 'done'];
-                 const defaultTitles = { todo: 'To Do', inprogress: 'In Progress', done: 'Done' }; // Store initial default titles
-                 const newKanbanColumns = defaultColumnIds.map(defaultId => {
-                    const foundStored = parsedColumns.find(sc => sc.id === defaultId);
-                    return {
-                        id: defaultId,
-                        title: foundStored ? foundStored.title : defaultTitles[defaultId]
-                    };
-                 });
-                kanbanColumns = newKanbanColumns;
-                console.log('[Kanban] Loaded column titles from localStorage:', kanbanColumns);
-            } else {
-                 console.warn("[Kanban] Stored Kanban columns are invalid. Using defaults and saving them.");
-                 saveKanbanColumns();
-            }
-        } catch (e) {
-            console.error("[Kanban] Error parsing stored Kanban columns. Using defaults and saving them.", e);
-            saveKanbanColumns();
-        }
-    } else {
-        console.log('[Kanban] No stored Kanban columns found. Saving defaults.');
-        saveKanbanColumns();
-    }
-}
 
 // --- Data Management Functions (Export/Import) ---
 function prepareDataForExport() {
+    // tasks, projects, kanbanColumns, featureFlags are now global from store.js
     return {
         version: "1.0.0",
         exportDate: new Date().toISOString(),
@@ -448,8 +250,9 @@ function prepareDataForExport() {
     };
 }
 
-// --- Bulk Action State Management (New) ---
+// --- Bulk Action State Management ---
 function toggleTaskSelectionForBulkAction(taskId) {
+    // selectedTaskIdsForBulkAction is now global from store.js
     const index = selectedTaskIdsForBulkAction.indexOf(taskId);
     if (index > -1) {
         selectedTaskIdsForBulkAction.splice(index, 1);
@@ -457,13 +260,22 @@ function toggleTaskSelectionForBulkAction(taskId) {
         selectedTaskIdsForBulkAction.push(taskId);
     }
     console.log("Selected tasks for bulk action:", selectedTaskIdsForBulkAction);
+    // UI update for bulk action controls will be handled by ui_rendering.js or a feature module
 }
 
 function clearBulkActionSelections() {
+    // selectedTaskIdsForBulkAction is now global from store.js
     selectedTaskIdsForBulkAction = [];
     console.log("Bulk action selections cleared.");
+    // UI update for bulk action controls will be handled by ui_rendering.js or a feature module
 }
 
 function getSelectedTaskIdsForBulkAction() {
+    // selectedTaskIdsForBulkAction is now global from store.js
     return [...selectedTaskIdsForBulkAction];
 }
+
+// Note: The initial data loading (loadFeatureFlags, initializeTasks, loadProjects, loadKanbanColumns)
+// is now handled within store.js itself when it's loaded.
+// Other functions that were purely for data manipulation or state definition have been removed.
+// This file will shrink further as we extract services (taskService, projectService, etc.).
