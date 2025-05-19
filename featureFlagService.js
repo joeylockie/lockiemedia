@@ -63,13 +63,10 @@ async function loadFeatureFlags() {
 
     console.log('[FeatureFlagService] Final feature flags loaded and validated:', JSON.parse(JSON.stringify(_featureFlags)));
     
-    // This ensures store.js gets the flags if it loads after this async operation.
-    // The IIFE in store.js also calls this, creating a bit of a race, but setStoreFeatureFlags is idempotent.
     if (window.store && typeof window.store.setFeatureFlags === 'function') {
-        window.store.setFeatureFlags(_featureFlags); // This will publish 'featureFlagsInitialized' from store.js
+        window.store.setFeatureFlags(_featureFlags); 
     } else if (window.featureFlags) { 
         Object.assign(window.featureFlags, _featureFlags);
-        // If store.setFeatureFlags wasn't called, publish the initialization event here.
         if (window.EventBus && !window.store?.setFeatureFlags) EventBus.publish('featureFlagsInitialized', _featureFlags);
     }
 }
@@ -95,39 +92,22 @@ function setFeatureFlag(flagName, value) {
         console.log(`[FeatureFlagService] Feature flag "${flagName}" set to ${value}.`);
         localStorage.setItem('userFeatureFlags', JSON.stringify(_featureFlags));
 
-        // Update the global featureFlags object in store.js if it exists
-        if (window.featureFlags) { // This is the global variable in store.js
+        if (window.featureFlags) { 
             window.featureFlags[flagName] = value;
         }
         
-        // Publish an event that flags have been updated
         if (window.EventBus) {
             EventBus.publish('featureFlagsUpdated', { flagName, value, allFlags: { ..._featureFlags } });
         }
-
-        // Trigger UI update (applyActiveFeatures is global from ui_event_handlers.js)
-        // This is important for immediate UI reflection of flag changes.
-        if (typeof applyActiveFeatures === 'function') {
-            applyActiveFeatures();
-        }
-
+        // REMOVED: Direct call to applyActiveFeatures()
     } else {
         console.warn(`[FeatureFlagService] Attempted to set unknown feature flag: ${flagName}.`);
     }
 }
 
 window.FeatureFlagService = {
-    loadFeatureFlags, // Should be called by main.js or store.js initialization
+    loadFeatureFlags,
     isFeatureEnabled,
     getAllFeatureFlags,
     setFeatureFlag
 };
-
-// Initial load of flags when the script itself is loaded.
-// main.js will also call this, but it's safe to call multiple times if designed well.
-// The IIFE in store.js also calls this. This needs careful orchestration.
-// For now, let main.js be the primary orchestrator of the *await*.
-// (async () => {
-//     await loadFeatureFlags(); // This ensures flags are loaded when this script parses.
-// })();
-// console.log("featureFlagService.js loaded");
