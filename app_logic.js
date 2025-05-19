@@ -26,34 +26,20 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', eve
 // - currentTaskViewMode (variable in store.js, mutated by ViewManager.setTaskViewMode)
 // - setTaskViewMode(mode) (function in viewManager.js)
 // - currentFilter (variable in store.js, mutated by ViewManager.setCurrentFilter)
-// - setAppCurrentFilter(filter) (renamed to ViewManager.setCurrentFilter)
+// - setCurrentFilter(filter) (function in viewManager.js)
 // - currentSort (variable in store.js, mutated by ViewManager.setCurrentSort)
-// - setAppCurrentSort(sortType) (renamed to ViewManager.setCurrentSort)
+// - setCurrentSort(sortType) (function in viewManager.js)
 // - currentSearchTerm (variable in store.js, mutated by ViewManager.setCurrentSearchTerm)
-// - setAppSearchTerm(term) (renamed to ViewManager.setCurrentSearchTerm)
+// - setCurrentSearchTerm(term) (function in viewManager.js)
 
 
 // --- Kanban Board Logic ---
-function updateKanbanColumnTitle(columnId, newTitle) {
-    // kanbanColumns and featureFlags are global from store.js
-    // saveKanbanColumns is also global from store.js
-    // currentTaskViewMode is global from store.js (managed by ViewManager)
-    const columnIndex = kanbanColumns.findIndex(col => col.id === columnId);
-    if (columnIndex !== -1) {
-        kanbanColumns[columnIndex].title = newTitle;
-        saveKanbanColumns(); // from store.js
-        if (currentTaskViewMode === 'kanban' && featureFlags.kanbanBoardFeature) {
-            if (window.AppFeatures && window.AppFeatures.KanbanBoard && typeof window.AppFeatures.KanbanBoard.renderKanbanBoard === 'function') {
-                 window.AppFeatures.KanbanBoard.renderKanbanBoard();
-            }
-        }
-    }
-}
+// updateKanbanColumnTitle(columnId, newTitle) has been moved to feature_kanban_board.js
 
 
 // --- Data Management Functions (Export/Import) ---
 function prepareDataForExport() {
-    // tasks, projects, kanbanColumns, featureFlags are global from store.js
+    // tasks, projects, kanbanColumns, featureFlags are now global from store.js
     return {
         version: "1.0.0",
         exportDate: new Date().toISOString(),
@@ -68,7 +54,7 @@ function prepareDataForExport() {
 
 // --- Bulk Action State Management ---
 function toggleTaskSelectionForBulkAction(taskId) {
-    // selectedTaskIdsForBulkAction is global from store.js
+    // selectedTaskIdsForBulkAction is now global from store.js
     const index = selectedTaskIdsForBulkAction.indexOf(taskId);
     if (index > -1) {
         selectedTaskIdsForBulkAction.splice(index, 1);
@@ -79,18 +65,14 @@ function toggleTaskSelectionForBulkAction(taskId) {
 }
 
 function clearBulkActionSelections() {
-    // selectedTaskIdsForBulkAction is global from store.js
+    // selectedTaskIdsForBulkAction is now global from store.js
     selectedTaskIdsForBulkAction = [];
     console.log("Bulk action selections cleared.");
 }
 
 function getSelectedTaskIdsForBulkAction() {
-    // selectedTaskIdsForBulkAction is global from store.js
+    // selectedTaskIdsForBulkAction is now global from store.js
     return [...selectedTaskIdsForBulkAction];
 }
 
 // app_logic.js continues to become leaner.
-// The global state variables for UI presentation (currentFilter, currentSort, etc.)
-// still reside in store.js but their modification logic is now encapsulated in viewManager.js.
-// Next steps will involve updating UI files (ui_event_handlers.js, ui_rendering.js)
-// to use ViewManager methods instead of directly calling old app_logic.js functions or mutating globals.
