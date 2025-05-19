@@ -2,94 +2,60 @@
 
 // Self-invoking function to encapsulate the Smarter Search feature's code.
 (function() {
-    // --- DOM Element References (Example) ---
-    // let smarterSearchInput;
-    // let smarterSearchOptionsContainer;
-    // let smarterSearchApplyBtn;
-
-    // --- Feature-Specific State ---
-    // Example: let currentSmarterSearchFilters = {};
+    // Dependencies (assumed to be globally available for now):
+    // - Services: FeatureFlagService
+    // - DOM elements for smarter search UI (e.g., smarterSearchContainer) are handled by ui_rendering.js and ui_event_handlers.js
 
     /**
      * Initializes the Smarter Search feature.
-     * This function would be called once when the application loads if the feature is active.
-     * It would get references to DOM elements and set up event listeners.
+     * Placeholder for future initialization logic.
      */
-    function initialize() {
+    function initializeSmarterSearchFeature() {
+        console.log('[SmarterSearchFeature] Initialized (Placeholder).');
+        // Future: Setup event listeners for advanced search inputs, define search syntax, etc.
         // Example:
-        // smarterSearchInput = document.getElementById('smarterSearchInput'); // Assuming new ID for this input
-        // smarterSearchOptionsContainer = document.getElementById('smarterSearchOptionsContainer');
-        // smarterSearchApplyBtn = document.getElementById('smarterSearchApplyBtn');
-
-        // if (smarterSearchApplyBtn) {
-        //     smarterSearchApplyBtn.addEventListener('click', handleApplySmarterSearch);
-        // }
+        // const smarterSearchInput = document.getElementById('smarterSearchInput'); // If a dedicated input
+        // const smarterSearchOptionsContainer = document.getElementById('smarterSearchOptionsContainer');
         // if (smarterSearchInput) {
-        //     smarterSearchInput.addEventListener('keypress', (event) => {
-        //         if (event.key === 'Enter') {
-        //             handleApplySmarterSearch();
-        //         }
-        //     });
+        //     smarterSearchInput.addEventListener('input', handleSmarterSearchInput);
         // }
-
-        console.log('Smarter Search Feature Initialized (Placeholder).');
     }
 
     /**
      * Updates the visibility of UI elements related to the Smarter Search System.
-     * This is controlled by the main app based on the feature flag.
-     * @param {boolean} isEnabled - True if the feature is enabled, false otherwise.
+     * This function is primarily for consistency. Actual UI elements (e.g., advanced search options)
+     * would be toggled by applyActiveFeatures using the '.smarter-search-feature-element' class.
+     * @param {boolean} isEnabledParam - Parameter for consistency, actual check uses FeatureFlagService.
      */
-    function updateUIVisibility(isEnabled) {
-        // This function will be called by applyActiveFeatures in ui_event_handlers.js
-        // It should show or hide UI elements specific to this feature.
-        // The class 'smarter-search-feature-element' is already handled by applyActiveFeatures.
-        // This function could handle more complex UI states if needed.
+    function updateSmarterSearchUIVisibility(isEnabledParam) {
+        if (typeof FeatureFlagService === 'undefined') {
+            console.error("[SmarterSearchFeature] FeatureFlagService not available.");
+            return;
+        }
+        const isActuallyEnabled = FeatureFlagService.isFeatureEnabled('smarterSearchFeature');
 
-        // For example, if you have specific containers that are *always* part of this feature
-        // but whose content changes based on other states, you might manage that here.
-        // const elements = document.querySelectorAll('.smarter-search-specific-ui');
-        // elements.forEach(el => {
-        //     el.classList.toggle('hidden', !isEnabled);
-        // });
+        // The .smarter-search-feature-element class on UI parts (like the container for advanced options)
+        // is toggled by applyActiveFeatures in ui_event_handlers.js.
+        // This function can be used if there's more complex UI logic specific to this feature's visibility.
+        console.log(`[SmarterSearchFeature] UI Visibility (handled by applyActiveFeatures) set based on flag: ${isActuallyEnabled}`);
 
-        console.log(`Smarter Search UI Visibility set to: ${isEnabled} (Placeholder).`);
+        // Example: Toggle visibility of advanced search options UI if it's managed here
+        // const smarterSearchOptionsDiv = document.getElementById('smarterSearchOptionsDiv');
+        // if (smarterSearchOptionsDiv) {
+        //     smarterSearchOptionsDiv.classList.toggle('hidden', !isActuallyEnabled);
+        // }
     }
 
-    /**
-     * Example handler for when the user applies smarter search filters.
-     */
-    // function handleApplySmarterSearch() {
-    //     if (!featureFlags.smarterSearchFeature) return;
-    //
-    //     const searchTerm = smarterSearchInput ? smarterSearchInput.value.trim() : '';
-    //     // Logic to gather selected options from smarterSearchOptionsContainer
-    //     // ...
-    //
-    //     console.log('Applying smarter search with term:', searchTerm, 'and options:', currentSmarterSearchFilters);
-    //
-    //     // This would then likely call a function in app_logic.js or directly
-    //     // modify the 'currentSearchTerm' and potentially new filter criteria,
-    //     // then trigger a refreshTaskView().
-    //     // For example:
-    //     // setAppSearchTerm(searchTerm); // Or a more complex search object
-    //     // refreshTaskView();
-    //     // showMessage('Smarter search applied!', 'info');
-    // }
-
-
-    // --- Expose Public Interface ---
-    // Ensure AppFeatures object exists
+    // Expose public interface
     if (typeof window.AppFeatures === 'undefined') {
         window.AppFeatures = {};
     }
+    if (typeof window.AppFeatures.SmarterSearch === 'undefined') {
+        window.AppFeatures.SmarterSearch = {};
+    }
 
-    // Add this feature's public methods to AppFeatures
-    window.AppFeatures.SmarterSearch = {
-        initialize: initialize,
-        updateUIVisibility: updateUIVisibility
-        // Example:
-        // applySearch: handleApplySmarterSearch
-    };
+    window.AppFeatures.SmarterSearch.initialize = initializeSmarterSearchFeature;
+    window.AppFeatures.SmarterSearch.updateUIVisibility = updateSmarterSearchUIVisibility;
 
+    // console.log("feature_smarter_search.js loaded");
 })();
