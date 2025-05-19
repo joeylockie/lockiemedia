@@ -1,6 +1,18 @@
 // ui_event_handlers.js
 
-let tempSubTasksForAddModal = [];
+// This file handles event listeners, user interaction handlers (forms, buttons),
+// applying feature flags to UI.
+// It now uses TaskService for task data manipulations.
+
+// Dependencies:
+// - DOM elements from ui_rendering.js (initialized via initializeDOMElements).
+// - Rendering functions from ui_rendering.js (showMessage, refreshTaskView - though direct calls to refreshTaskView are reduced).
+// - Modal interaction functions from modal_interactions.js.
+// - State variables from store.js (tasks, projects, etc. - accessed by services or still globally for now).
+// - Services: ViewManager, FeatureFlagService, BulkActionService, TaskService.
+// - Feature-specific modules (window.AppFeatures...).
+
+let tempSubTasksForAddModal = []; // For collecting sub-tasks in the Add Task modal
 
 function populateFeatureFlagsModal() {
     // ... (implementation remains the same, using FeatureFlagService)
@@ -24,9 +36,7 @@ function populateFeatureFlagsModal() {
             const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.id = `toggle-${key}`; checkbox.className = 'toggle-checkbox'; checkbox.checked = currentFlags[key]; 
             checkbox.addEventListener('change', () => {
                 FeatureFlagService.setFeatureFlag(key, checkbox.checked); 
-                // Event 'featureFlagsUpdated' is published by setFeatureFlag.
-                // applyActiveFeatures subscribes to it.
-                // View adjustments are handled by applyActiveFeatures or specific event handlers.
+                // 'featureFlagsUpdated' event published by setFeatureFlag triggers applyActiveFeatures
             });
             const toggleLabel = document.createElement('label'); toggleLabel.htmlFor = `toggle-${key}`; toggleLabel.className = 'toggle-label';
             toggleContainer.appendChild(checkbox); toggleContainer.appendChild(toggleLabel);
@@ -37,17 +47,14 @@ function populateFeatureFlagsModal() {
 
 function applyActiveFeatures() {
     // ... (implementation remains the same, using FeatureFlagService.isFeatureEnabled())
-    // This function is now also a subscriber to 'featureFlagsUpdated'.
+    // This function is now also a subscriber to 'featureFlagsUpdated' (set up at the bottom of this file).
     if (typeof FeatureFlagService === 'undefined') {
         console.error("[ApplyFeatures] FeatureFlagService not available.");
         return;
     }
     console.log('[ApplyFeatures] Applying active features based on current flags.');
     const toggleElements = (selector, isEnabled) => { document.querySelectorAll(selector).forEach(el => el.classList.toggle('hidden', !isEnabled)); };
-
-    // Example for one feature, repeat for others
     if (window.AppFeatures?.updateTestButtonUIVisibility) window.AppFeatures.updateTestButtonUIVisibility(FeatureFlagService.isFeatureEnabled('testButtonFeature')); else if (testFeatureButtonContainer) testFeatureButtonContainer.classList.toggle('hidden', !FeatureFlagService.isFeatureEnabled('testButtonFeature'));
-    // ... (all other feature UI toggles as in previous version) ...
     if (window.AppFeatures?.TaskTimerSystem?.updateUIVisibility) window.AppFeatures.TaskTimerSystem.updateUIVisibility(FeatureFlagService.isFeatureEnabled('taskTimerSystem')); else { toggleElements('.task-timer-system-element', FeatureFlagService.isFeatureEnabled('taskTimerSystem')); if (settingsTaskReviewBtn) settingsTaskReviewBtn.classList.toggle('hidden', !FeatureFlagService.isFeatureEnabled('taskTimerSystem')); }
     if (window.AppFeatures?.updateReminderUIVisibility) window.AppFeatures.updateReminderUIVisibility(FeatureFlagService.isFeatureEnabled('reminderFeature')); else toggleElements('.reminder-feature-element', FeatureFlagService.isFeatureEnabled('reminderFeature'));
     toggleElements('.advanced-recurrence-element', FeatureFlagService.isFeatureEnabled('advancedRecurrence'));
@@ -71,210 +78,272 @@ function applyActiveFeatures() {
     toggleElements('.bulk-actions-feature-element', FeatureFlagService.isFeatureEnabled('bulkActionsFeature'));
     if (!FeatureFlagService.isFeatureEnabled('bulkActionsFeature')) { if (typeof BulkActionService !== 'undefined' && BulkActionService.clearSelections) { BulkActionService.clearSelections(); } const bulkActionControls = document.getElementById('bulkActionControlsContainer'); if (bulkActionControls) bulkActionControls.classList.add('hidden'); }
     if (window.AppFeatures?.PomodoroTimerHybrid?.updateUIVisibility) { window.AppFeatures.PomodoroTimerHybrid.updateUIVisibility(FeatureFlagService.isFeatureEnabled('pomodoroTimerHybridFeature')); } else { toggleElements('.pomodoro-timer-hybrid-feature-element', FeatureFlagService.isFeatureEnabled('pomodoroTimerHybridFeature')); }
-
-
-    // Crucially, refreshTaskView is called to update the main display based on new feature states
     if(typeof refreshTaskView === 'function') refreshTaskView();
-    
-    // If a modal that depends on feature flags is open, it might need a specific refresh.
-    // For example, the feature flags modal itself.
     const featureFlagsModalElement = document.getElementById('featureFlagsModal');
     if (featureFlagsModalElement && !featureFlagsModalElement.classList.contains('hidden') && typeof populateFeatureFlagsModal === 'function') {
-        populateFeatureFlagsModal(); // Refresh the feature flags modal itself if it's open
+        populateFeatureFlagsModal();
     }
     console.log('[ApplyFeatures] Finished applying active features.');
 }
 
-
 function handleAddTask(event) {
     event.preventDefault();
-    // ... (logic to gather task data remains the same) ...
+    // Gather data from modal form elements (modalTaskInputAdd, etc.)
     const rawTaskText = modalTaskInputAdd.value.trim();
+    if (rawTaskText === '') {
+        if(typeof showMessage === 'function') showMessage('Task description cannot be empty!', 'error');
+        modalTaskInputAdd.focus();
+        return;
+    }
     const explicitDueDate = modalDueDateInputAdd.value;
     const time = modalTimeInputAdd.value;
     const priority = modalPriorityInputAdd.value;
     const label = modalLabelInputAdd.value.trim();
     const notes = modalNotesInputAdd.value.trim();
     let projectId = 0;
-    if (FeatureFlagService.isFeatureEnabled('projectFeature') && modalProjectSelectAdd) { projectId = parseInt(modalProjectSelectAdd.value) || 0;}
-    let estHours = 0, estMinutes = 0;
-    if (FeatureFlagService.isFeatureEnabled('taskTimerSystem') && window.AppFeatures?.TaskTimerSystem) { const estimates = window.AppFeatures.TaskTimerSystem.getEstimatesFromAddModal(); estHours = estimates.estHours; estMinutes = estimates.estMinutes;}
-    let isReminderSet = false, reminderDate = null, reminderTime = null, reminderEmail = null;
-    if (FeatureFlagService.isFeatureEnabled('reminderFeature') && modalRemindMeAdd) { isReminderSet = modalRemindMeAdd.checked; if (isReminderSet) { reminderDate = modalReminderDateAdd.value; reminderTime = modalReminderTimeAdd.value; reminderEmail = modalReminderEmailAdd.value.trim(); if (!reminderDate || !reminderTime || !reminderEmail || !/^\S+@\S+\.\S+$/.test(reminderEmail)) { if(typeof showMessage === 'function') showMessage('Please provide valid reminder details (date, time, and a valid email).', 'error'); return;}}}
-    if (rawTaskText === '') { if(typeof showMessage === 'function') showMessage('Task description cannot be empty!', 'error'); modalTaskInputAdd.focus(); return;}
-    let finalDueDate = explicitDueDate; let finalTaskText = rawTaskText;
-    if (!explicitDueDate && typeof parseDateFromText === 'function') { const { parsedDate: dateFromDesc, remainingText: textAfterDate } = parseDateFromText(rawTaskText); if (dateFromDesc) { finalDueDate = dateFromDesc; finalTaskText = textAfterDate.trim() || rawTaskText; }}
-    const subTasksToSave = FeatureFlagService.isFeatureEnabled('subTasksFeature') ? tempSubTasksForAddModal.map(st => ({ id: Date.now() + Math.random(), text: st.text, completed: st.completed, creationDate: Date.now() })) : [];
-    const defaultKanbanColumn = (typeof kanbanColumns !== 'undefined' && kanbanColumns[0]?.id) || 'todo';
-    const newTask = { id: Date.now(), text: finalTaskText, completed: false, creationDate: Date.now(), dueDate: finalDueDate || null, time: time || null, priority: priority, label: label || '', notes: notes || '', projectId: projectId, isReminderSet, reminderDate, reminderTime, reminderEmail, estimatedHours: estHours, estimatedMinutes: estMinutes, timerStartTime: null, timerAccumulatedTime: 0, timerIsRunning: false, timerIsPaused: false, actualDurationMs: 0, attachments: [], completedDate: null, subTasks: subTasksToSave, recurrenceRule: null, recurrenceEndDate: null, nextDueDate: finalDueDate || null, kanbanColumnId: defaultKanbanColumn, dependsOn: [], blocksTasks: [] };
-    
-    if(typeof tasks !== 'undefined' && typeof saveTasks === 'function') {
-        tasks.unshift(newTask); 
-        saveTasks(); // This will publish 'tasksChanged', which ui_rendering subscribes to.
-    } else { /* ... error handling ... */ }
-    
-    // If filter needs to change, ViewManager will publish 'filterChanged', triggering refresh.
-    const currentFilterVal = ViewManager.getCurrentFilter();
-    if (currentFilterVal === 'completed' || (currentFilterVal.startsWith('project_') && projectId !== parseInt(currentFilterVal.split('_')[1]))) {
-        ViewManager.setCurrentFilter('inbox');
+    if (FeatureFlagService.isFeatureEnabled('projectFeature') && modalProjectSelectAdd) {
+        projectId = parseInt(modalProjectSelectAdd.value) || 0;
     }
-    // No explicit refreshTaskView() here if events are handled.
-    // However, if setFilter doesn't trigger a refresh that covers this, one might be needed.
-    // For now, assuming store.saveTasks() -> tasksChanged -> refreshTaskView is sufficient for the list.
-    // And ViewManager.setCurrentFilter() -> filterChanged -> refreshTaskView for filter changes.
+    let estHours = 0, estMinutes = 0;
+    if (FeatureFlagService.isFeatureEnabled('taskTimerSystem') && window.AppFeatures?.TaskTimerSystem?.getEstimatesFromAddModal) {
+        const estimates = window.AppFeatures.TaskTimerSystem.getEstimatesFromAddModal();
+        estHours = estimates.estHours;
+        estMinutes = estimates.estMinutes;
+    }
+    let isReminderSet = false, reminderDate = null, reminderTime = null, reminderEmail = null;
+    if (FeatureFlagService.isFeatureEnabled('reminderFeature') && modalRemindMeAdd) {
+        isReminderSet = modalRemindMeAdd.checked;
+        if (isReminderSet) {
+            reminderDate = modalReminderDateAdd.value;
+            reminderTime = modalReminderTimeAdd.value;
+            reminderEmail = modalReminderEmailAdd.value.trim();
+            if (!reminderDate || !reminderTime || !reminderEmail || !/^\S+@\S+\.\S+$/.test(reminderEmail)) {
+                if(typeof showMessage === 'function') showMessage('Please provide valid reminder details.', 'error');
+                return;
+            }
+        }
+    }
 
-    if(typeof closeAddModal === 'function') closeAddModal();
-    if(typeof showMessage === 'function') showMessage('Task added successfully!', 'success');
-    tempSubTasksForAddModal = []; 
+    let finalDueDate = explicitDueDate;
+    let finalTaskText = rawTaskText;
+    // Use TaskService.parseDateFromText
+    if (!explicitDueDate && typeof TaskService !== 'undefined' && typeof TaskService.parseDateFromText === 'function') {
+        const { parsedDate: dateFromDesc, remainingText: textAfterDate } = TaskService.parseDateFromText(rawTaskText);
+        if (dateFromDesc) {
+            finalDueDate = dateFromDesc;
+            finalTaskText = textAfterDate.trim() || rawTaskText;
+        }
+    }
+
+    const subTasksToSave = FeatureFlagService.isFeatureEnabled('subTasksFeature') ? tempSubTasksForAddModal.map(st => ({ id: Date.now() + Math.random(), text: st.text, completed: st.completed, creationDate: Date.now() })) : [];
+    
+    const taskData = {
+        text: finalTaskText,
+        dueDate: finalDueDate || null,
+        time: time || null,
+        priority: priority,
+        label: label || '',
+        notes: notes || '',
+        projectId: projectId,
+        isReminderSet, reminderDate, reminderTime, reminderEmail,
+        estimatedHours: estHours, estimatedMinutes: estMinutes,
+        subTasks: subTasksToSave
+        // Other properties like ID, creationDate, completed, kanbanColumnId will be set by TaskService.addTask
+    };
+
+    if (typeof TaskService !== 'undefined' && typeof TaskService.addTask === 'function') {
+        const newTask = TaskService.addTask(taskData); // TaskService handles saving and publishing 'tasksChanged'
+        if (newTask) {
+            // If filter needs to change, ViewManager will publish 'filterChanged', triggering refresh.
+            const currentFilterVal = ViewManager.getCurrentFilter();
+            if (currentFilterVal === 'completed' || (currentFilterVal.startsWith('project_') && projectId !== parseInt(currentFilterVal.split('_')[1]))) {
+                ViewManager.setCurrentFilter('inbox'); // This will trigger a refresh via event
+            }
+            // else, the 'tasksChanged' event from saveTasks (called by TaskService.addTask) will trigger refreshTaskView.
+
+            if(typeof closeAddModal === 'function') closeAddModal();
+            if(typeof showMessage === 'function') showMessage('Task added successfully!', 'success');
+            tempSubTasksForAddModal = [];
+        } else {
+            if(typeof showMessage === 'function') showMessage('Failed to add task.', 'error');
+        }
+    } else {
+        console.error("[HandleAddTask] TaskService.addTask is not available.");
+        if(typeof showMessage === 'function') showMessage('Error adding task. Service not available.', 'error');
+    }
 }
 
 function handleEditTask(event) {
     event.preventDefault();
-    // ... (logic to gather task data remains the same) ...
-    const taskId = parseInt(modalViewEditTaskId.value); /* ... gather other fields ... */
-    const taskText = modalTaskInputViewEdit.value.trim(); const dueDate = modalDueDateInputViewEdit.value; const time = modalTimeInputViewEdit.value; const priority = modalPriorityInputViewEdit.value; const label = modalLabelInputViewEdit.value.trim(); const notes = modalNotesInputViewEdit.value.trim(); let projectId = 0; const originalTaskForProject = tasks.find(t => t.id === taskId); if (FeatureFlagService.isFeatureEnabled('projectFeature') && modalProjectSelectViewEdit) { projectId = parseInt(modalProjectSelectViewEdit.value) || 0; } else if (originalTaskForProject) { projectId = originalTaskForProject.projectId || 0; } let estHours = 0, estMinutes = 0; const originalTask = tasks.find(t => t.id === taskId); if (FeatureFlagService.isFeatureEnabled('taskTimerSystem') && window.AppFeatures?.TaskTimerSystem) { const estimates = window.AppFeatures.TaskTimerSystem.getEstimatesFromEditModal(); estHours = estimates.estHours; estMinutes = estimates.estMinutes; } else if (originalTask) { estHours = originalTask.estimatedHours; estMinutes = originalTask.estimatedMinutes; } let isReminderSet = false, reminderDate = null, reminderTime = null, reminderEmail = null; if (FeatureFlagService.isFeatureEnabled('reminderFeature') && modalRemindMeViewEdit) { isReminderSet = modalRemindMeViewEdit.checked; if (isReminderSet) { reminderDate = modalReminderDateViewEdit.value; reminderTime = modalReminderTimeViewEdit.value; reminderEmail = modalReminderEmailViewEdit.value.trim(); if (!reminderDate || !reminderTime || !reminderEmail || !/^\S+@\S+\.\S+$/.test(reminderEmail)) { if(typeof showMessage === 'function') showMessage('Please provide valid reminder details.', 'error'); return; }}} if (taskText === '') { if(typeof showMessage === 'function') showMessage('Task description cannot be empty!', 'error'); modalTaskInputViewEdit.focus(); return; }
+    const taskId = parseInt(modalViewEditTaskId.value);
+    // Gather data from modal form elements
+    const taskUpdateData = {
+        text: modalTaskInputViewEdit.value.trim(),
+        dueDate: modalDueDateInputViewEdit.value || null,
+        time: modalTimeInputViewEdit.value || null,
+        priority: modalPriorityInputViewEdit.value,
+        label: modalLabelInputViewEdit.value.trim() || '',
+        notes: modalNotesInputViewEdit.value.trim() || ''
+    };
+    if (taskUpdateData.text === '') {
+        if(typeof showMessage === 'function') showMessage('Task description cannot be empty!', 'error');
+        modalTaskInputViewEdit.focus();
+        return;
+    }
 
-    if(typeof tasks !== 'undefined' && typeof saveTasks === 'function') {
-        tasks = tasks.map(task => task.id === taskId ? { /* ... updated task data ... */ ...task, text: taskText, dueDate: dueDate || null, time: time || null, priority: priority, label: label || '', notes: notes || '', projectId: projectId, isReminderSet, reminderDate, reminderTime, reminderEmail, estimatedHours: estHours, estimatedMinutes: estMinutes, attachments: task.attachments || [], dependsOn: task.dependsOn || [], blocksTasks: task.blocksTasks || [] } : task);
-        saveTasks(); // Publishes 'tasksChanged'
-    } else { /* ... error handling ... */ }
-
-    // No explicit refreshTaskView() here.
-    if(typeof closeViewEditModal === 'function') closeViewEditModal();
-    if(typeof showMessage === 'function') showMessage('Task updated successfully!', 'success');
-
-    if (FeatureFlagService.isFeatureEnabled('taskTimerSystem') && window.AppFeatures?.TaskTimerSystem && typeof currentViewTaskId !== 'undefined' && currentViewTaskId === taskId) {
-        const updatedTask = tasks.find(t => t.id === taskId);
-        if (updatedTask && window.AppFeatures.TaskTimerSystem.setupTimerForModal) {
-             window.AppFeatures.TaskTimerSystem.setupTimerForModal(updatedTask); // This updates modal UI
+    if (FeatureFlagService.isFeatureEnabled('projectFeature') && modalProjectSelectViewEdit) {
+        taskUpdateData.projectId = parseInt(modalProjectSelectViewEdit.value) || 0;
+    }
+    if (FeatureFlagService.isFeatureEnabled('taskTimerSystem') && window.AppFeatures?.TaskTimerSystem?.getEstimatesFromEditModal) {
+        const estimates = window.AppFeatures.TaskTimerSystem.getEstimatesFromEditModal();
+        taskUpdateData.estimatedHours = estimates.estHours;
+        taskUpdateData.estimatedMinutes = estimates.estMinutes;
+    }
+    if (FeatureFlagService.isFeatureEnabled('reminderFeature') && modalRemindMeViewEdit) {
+        taskUpdateData.isReminderSet = modalRemindMeViewEdit.checked;
+        if (taskUpdateData.isReminderSet) {
+            taskUpdateData.reminderDate = modalReminderDateViewEdit.value;
+            taskUpdateData.reminderTime = modalReminderTimeViewEdit.value;
+            taskUpdateData.reminderEmail = modalReminderEmailViewEdit.value.trim();
+            if (!taskUpdateData.reminderDate || !taskUpdateData.reminderTime || !taskUpdateData.reminderEmail || !/^\S+@\S+\.\S+$/.test(taskUpdateData.reminderEmail)) {
+                if(typeof showMessage === 'function') showMessage('Please provide valid reminder details.', 'error');
+                return;
+            }
+        } else {
+            taskUpdateData.reminderDate = null; taskUpdateData.reminderTime = null; taskUpdateData.reminderEmail = null;
         }
+    }
+
+    if (typeof TaskService !== 'undefined' && typeof TaskService.updateTask === 'function') {
+        const updatedTask = TaskService.updateTask(taskId, taskUpdateData); // TaskService handles saving and publishing 'tasksChanged'
+        if (updatedTask) {
+            if(typeof closeViewEditModal === 'function') closeViewEditModal();
+            if(typeof showMessage === 'function') showMessage('Task updated successfully!', 'success');
+
+            // Update timer UI in view details modal if it was open for this task
+            if (FeatureFlagService.isFeatureEnabled('taskTimerSystem') && window.AppFeatures?.TaskTimerSystem?.setupTimerForModal &&
+                typeof currentViewTaskId !== 'undefined' && currentViewTaskId === taskId) { // currentViewTaskId from store.js
+                window.AppFeatures.TaskTimerSystem.setupTimerForModal(updatedTask);
+            }
+        } else {
+            if(typeof showMessage === 'function') showMessage('Failed to update task.', 'error');
+        }
+    } else {
+        console.error("[HandleEditTask] TaskService.updateTask is not available.");
+        if(typeof showMessage === 'function') showMessage('Error updating task. Service not available.', 'error');
     }
 }
 
 function toggleComplete(taskId) {
-    // ... (logic for dependency checks remains the same) ...
-    const taskIndex = tasks.findIndex(t => t.id === taskId); if (taskIndex === -1) return;
-    const taskToToggle = tasks[taskIndex];
-    if (FeatureFlagService.isFeatureEnabled('taskDependenciesFeature') && !taskToToggle.completed) { /* ... dependency check ... */ if (taskToToggle.dependsOn && taskToToggle.dependsOn.length > 0) { const incompleteDependencies = taskToToggle.dependsOn.some(depId => { const dependentTask = tasks.find(t => t.id === depId); return dependentTask && !dependentTask.completed; }); if (incompleteDependencies) { const depTaskNames = taskToToggle.dependsOn.map(depId => tasks.find(t => t.id === depId)?.text).filter(name => name).join(', '); if(typeof showMessage === 'function') showMessage(`Cannot complete task. Depends on: ${depTaskNames}.`, 'error'); return; /* No refresh needed if action blocked */ }}}
+    if (typeof TaskService !== 'undefined' && typeof TaskService.toggleTaskComplete === 'function') {
+        const result = TaskService.toggleTaskComplete(taskId); // TaskService handles logic, saving, and publishing 'tasksChanged'
+        
+        if (result && result._blocked) { // Check if the service indicated blockage
+             const taskToToggle = tasks.find(t => t.id === taskId); // tasks from store.js
+             const depTaskNames = taskToToggle.dependsOn
+                    .map(depId => tasks.find(t => t.id === depId)?.text)
+                    .filter(name => name)
+                    .join(', ');
+            if(typeof showMessage === 'function') showMessage(`Cannot complete task. Depends on: ${depTaskNames}.`, 'error');
+        } else if (!result) {
+            if(typeof showMessage === 'function') showMessage('Failed to update task completion status.', 'error');
+        }
+        // UI refresh is handled by 'tasksChanged' event subscriber in ui_rendering.js
 
-    tasks[taskIndex].completed = !tasks[taskIndex].completed;
-    tasks[taskIndex].completedDate = tasks[taskIndex].completed ? Date.now() : null;
-    if (tasks[taskIndex].completed && FeatureFlagService.isFeatureEnabled('kanbanBoardFeature')) { /* ... update kanbanColumnId ... */ const doneColumn = (typeof kanbanColumns !== 'undefined') ? kanbanColumns.find(col => col.id === 'done') : null; if (doneColumn) tasks[taskIndex].kanbanColumnId = doneColumn.id; }
-    else if (!tasks[taskIndex].completed && FeatureFlagService.isFeatureEnabled('kanbanBoardFeature') && tasks[taskIndex].kanbanColumnId === 'done') { const defaultColumn = (typeof kanbanColumns !== 'undefined' && kanbanColumns[0]?.id) || 'todo'; tasks[taskIndex].kanbanColumnId = defaultColumn; }
-    if (FeatureFlagService.isFeatureEnabled('taskTimerSystem') && window.AppFeatures?.TaskTimerSystem) { window.AppFeatures.TaskTimerSystem.handleTaskCompletion(taskId, tasks[taskIndex].completed); }
-    
-    if(typeof saveTasks === 'function') saveTasks(); // Publishes 'tasksChanged'
-    // No explicit refreshTaskView() here.
+        // Update timer UI in view details modal if it was open for this task
+        if (FeatureFlagService.isFeatureEnabled('taskTimerSystem') && window.AppFeatures?.TaskTimerSystem?.setupTimerForModal &&
+            typeof currentViewTaskId !== 'undefined' && currentViewTaskId === taskId && result && !result._blocked) {
+            const task = tasks.find(t => t.id === taskId);
+            if(task) window.AppFeatures.TaskTimerSystem.setupTimerForModal(task);
+        }
 
-    if (FeatureFlagService.isFeatureEnabled('taskTimerSystem') && window.AppFeatures?.TaskTimerSystem && typeof currentViewTaskId !== 'undefined' && currentViewTaskId === taskId) {
-         const task = tasks.find(t => t.id === taskId);
-         if(task && window.AppFeatures.TaskTimerSystem.setupTimerForModal) window.AppFeatures.TaskTimerSystem.setupTimerForModal(task);
+    } else {
+        console.error("[ToggleComplete] TaskService.toggleTaskComplete is not available.");
+        if(typeof showMessage === 'function') showMessage('Error toggling task. Service not available.', 'error');
     }
-    // ... (dependency unblocking logic)
 }
 
 function deleteTask(taskId) {
-    // ... (timer clearing logic remains the same) ...
-    if (FeatureFlagService.isFeatureEnabled('taskTimerSystem') && window.AppFeatures?.TaskTimerSystem && typeof currentViewTaskId !== 'undefined' && currentViewTaskId === taskId) { window.AppFeatures.TaskTimerSystem.clearTimerOnModalClose(); }
-    tasks = tasks.filter(task => task.id !== taskId);
-    if (FeatureFlagService.isFeatureEnabled('taskDependenciesFeature')) { /* ... update dependencies ... */ tasks.forEach(task => { if (task.dependsOn && task.dependsOn.includes(taskId)) { task.dependsOn = task.dependsOn.filter(id => id !== taskId); } if (task.blocksTasks && task.blocksTasks.includes(taskId)) { task.blocksTasks = task.blocksTasks.filter(id => id !== taskId); } });}
-    
-    if(typeof saveTasks === 'function') saveTasks(); // Publishes 'tasksChanged'
-    // No explicit refreshTaskView() here.
-    if(typeof showMessage === 'function') showMessage('Task deleted.', 'error');
+    // Clear timer if this task's details modal was open
+    if (FeatureFlagService.isFeatureEnabled('taskTimerSystem') && window.AppFeatures?.TaskTimerSystem?.clearTimerOnModalClose &&
+        typeof currentViewTaskId !== 'undefined' && currentViewTaskId === taskId) {
+        window.AppFeatures.TaskTimerSystem.clearTimerOnModalClose();
+    }
+
+    if (typeof TaskService !== 'undefined' && typeof TaskService.deleteTaskById === 'function') {
+        if (TaskService.deleteTaskById(taskId)) { // TaskService handles saving and publishing 'tasksChanged'
+            if(typeof showMessage === 'function') showMessage('Task deleted.', 'error'); // 'error' class for red color, but it's a success
+        } else {
+            if(typeof showMessage === 'function') showMessage('Failed to delete task.', 'error');
+        }
+    } else {
+        console.error("[DeleteTask] TaskService.deleteTaskById is not available.");
+        if(typeof showMessage === 'function') showMessage('Error deleting task. Service not available.', 'error');
+    }
+    // UI refresh is handled by 'tasksChanged' event
 }
 
 function setFilter(filter) {
-    if (typeof ViewManager === 'undefined' || typeof ViewManager.setCurrentFilter !== 'function') {
-        console.error("[SetFilter] ViewManager or ViewManager.setCurrentFilter is not available.");
-        // Fallback for safety, though should not be needed with correct script order
-        if (typeof currentFilter !== 'undefined' && typeof currentSort !== 'undefined') { currentFilter = filter; currentSort = 'default'; if(typeof refreshTaskView === 'function') refreshTaskView(); }
-        return;
-    }
-    ViewManager.setCurrentFilter(filter); // This publishes 'filterChanged'
-    // refreshTaskView() is called by the 'filterChanged' event subscriber in ui_rendering.js.
-    // Direct UI updates for button styles are still needed here.
-    if(typeof updateSortButtonStates === 'function') updateSortButtonStates();
-    if (smartViewButtons) { /* ... class toggling for active smart view button ... */ 
-        smartViewButtons.forEach(button => { const isActive = button.dataset.filter === filter; const baseInactiveClasses = ['bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600']; const iconInactiveClasses = ['text-slate-500', 'dark:text-slate-400']; const activeClasses = ['bg-sky-500', 'text-white', 'font-semibold', 'dark:bg-sky-600', 'dark:text-sky-50']; const iconActiveClasses = ['text-sky-100', 'dark:text-sky-200']; button.classList.remove(...baseInactiveClasses, ...activeClasses); button.querySelector('i')?.classList.remove(...iconInactiveClasses, ...iconActiveClasses); if (isActive) { button.classList.add(...activeClasses); button.querySelector('i')?.classList.add(...iconActiveClasses); } else { button.classList.add(...baseInactiveClasses); button.querySelector('i')?.classList.add(...iconInactiveClasses); }});
-    }
-    if (FeatureFlagService.isFeatureEnabled('projectFeature') && window.AppFeatures?.Projects) {
-        const projectFilterButtons = document.querySelectorAll('#projectFilterContainer .smart-view-btn');
-        projectFilterButtons.forEach(button => { const isActive = button.dataset.filter === filter; /* ... class toggling for project buttons ... */ 
-            const baseInactiveClasses = ['bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600']; const iconInactiveClasses = ['text-slate-500', 'dark:text-slate-400']; const activeClasses = ['bg-purple-500', 'text-white', 'font-semibold', 'dark:bg-purple-600', 'dark:text-purple-50']; const iconActiveClasses = ['text-purple-100', 'dark:text-purple-200']; button.classList.remove(...baseInactiveClasses, ...activeClasses); button.querySelector('i')?.classList.remove(...iconInactiveClasses, ...iconActiveClasses); if (isActive) { button.classList.add(...activeClasses); button.querySelector('i')?.classList.add(...iconActiveClasses); } else { button.classList.add(...baseInactiveClasses); button.querySelector('i')?.classList.add(...iconInactiveClasses); }
-        });
-    }
+    // ... (Implementation remains the same, uses ViewManager.setCurrentFilter)
+    // ViewManager.setCurrentFilter publishes 'filterChanged', which ui_rendering.js listens to.
+    if (typeof ViewManager === 'undefined' || typeof ViewManager.setCurrentFilter !== 'function') { console.error("[SetFilter] ViewManager or ViewManager.setCurrentFilter is not available."); if (typeof currentFilter !== 'undefined' && typeof currentSort !== 'undefined') { currentFilter = filter; currentSort = 'default'; if(typeof refreshTaskView === 'function') refreshTaskView(); } return; }
+    ViewManager.setCurrentFilter(filter); 
+    if(typeof updateSortButtonStates === 'function') updateSortButtonStates(); 
+    if (smartViewButtons) { smartViewButtons.forEach(button => { const isActive = button.dataset.filter === filter; const baseInactiveClasses = ['bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600']; const iconInactiveClasses = ['text-slate-500', 'dark:text-slate-400']; const activeClasses = ['bg-sky-500', 'text-white', 'font-semibold', 'dark:bg-sky-600', 'dark:text-sky-50']; const iconActiveClasses = ['text-sky-100', 'dark:text-sky-200']; button.classList.remove(...baseInactiveClasses, ...activeClasses); button.querySelector('i')?.classList.remove(...iconInactiveClasses, ...iconActiveClasses); if (isActive) { button.classList.add(...activeClasses); button.querySelector('i')?.classList.add(...iconActiveClasses); } else { button.classList.add(...baseInactiveClasses); button.querySelector('i')?.classList.add(...iconInactiveClasses); }}); }
+    if (FeatureFlagService.isFeatureEnabled('projectFeature') && window.AppFeatures?.Projects) { const projectFilterButtons = document.querySelectorAll('#projectFilterContainer .smart-view-btn'); projectFilterButtons.forEach(button => { const isActive = button.dataset.filter === filter; const baseInactiveClasses = ['bg-slate-200', 'text-slate-700', 'hover:bg-slate-300', 'dark:bg-slate-700', 'dark:text-slate-300', 'dark:hover:bg-slate-600']; const iconInactiveClasses = ['text-slate-500', 'dark:text-slate-400']; const activeClasses = ['bg-purple-500', 'text-white', 'font-semibold', 'dark:bg-purple-600', 'dark:text-purple-50']; const iconActiveClasses = ['text-purple-100', 'dark:text-purple-200']; button.classList.remove(...baseInactiveClasses, ...activeClasses); button.querySelector('i')?.classList.remove(...iconInactiveClasses, ...iconActiveClasses); if (isActive) { button.classList.add(...activeClasses); button.querySelector('i')?.classList.add(...iconActiveClasses); } else { button.classList.add(...baseInactiveClasses); button.querySelector('i')?.classList.add(...iconInactiveClasses); } }); }
+    // No explicit refreshTaskView() here, handled by 'filterChanged' event
 }
 
 function clearCompletedTasks() {
-    // ... (logic remains the same) ...
-    const completedCount = tasks.filter(task => task.completed).length; if (completedCount === 0) { if(typeof showMessage === 'function') showMessage('No completed tasks to clear.', 'error'); return; } const tasksToKeep = tasks.filter(task => !task.completed); const clearedTaskIds = tasks.filter(task => task.completed).map(task => task.id); tasks = tasksToKeep; if (FeatureFlagService.isFeatureEnabled('taskDependenciesFeature')) { tasks.forEach(task => { task.dependsOn = task.dependsOn ? task.dependsOn.filter(id => !clearedTaskIds.includes(id)) : []; task.blocksTasks = task.blocksTasks ? task.blocksTasks.filter(id => !clearedTaskIds.includes(id)) : []; }); }
-    if(typeof saveTasks === 'function') saveTasks(); // Publishes 'tasksChanged'
-    // No explicit refreshTaskView() here.
-    if(typeof showMessage === 'function') showMessage(`${completedCount} completed task${completedCount > 1 ? 's' : ''} cleared.`, 'success');
+    // tasks from store.js
+    if (typeof tasks === 'undefined' || typeof TaskService === 'undefined' || typeof TaskService.deleteTaskById !== 'function') {
+        console.error("[ClearCompletedTasks] Core dependencies (tasks, TaskService.deleteTaskById) not available.");
+        if(typeof showMessage === 'function') showMessage('Error clearing tasks. Service not available.', 'error');
+        return;
+    }
+    const completedTasks = tasks.filter(task => task.completed);
+    if (completedTasks.length === 0) {
+        if(typeof showMessage === 'function') showMessage('No completed tasks to clear.', 'info'); // Changed to 'info'
+        return;
+    }
+    
+    let clearedCount = 0;
+    completedTasks.forEach(task => {
+        if (TaskService.deleteTaskById(task.id)) { // TaskService.deleteTaskById calls saveTasks, publishing events
+            clearedCount++;
+        }
+    });
+
+    if (clearedCount > 0) {
+        if(typeof showMessage === 'function') showMessage(`${clearedCount} completed task${clearedCount > 1 ? 's' : ''} cleared.`, 'success');
+    } else {
+        if(typeof showMessage === 'function') showMessage('Could not clear completed tasks.', 'error');
+    }
+    // No explicit refreshTaskView() here, 'tasksChanged' event from multiple deleteTaskById calls will trigger it.
     if(typeof closeSettingsModal === 'function') closeSettingsModal();
 }
 
-function handleAddNewLabel(event) {
-    event.preventDefault();
-    // ... (logic remains the same) ...
-    const labelName = newLabelInput.value.trim(); if (labelName === '') { if(typeof showMessage === 'function') showMessage('Label name cannot be empty.', 'error'); return; } if (typeof uniqueLabels !== 'undefined' && uniqueLabels.some(l => l.toLowerCase() === labelName.toLowerCase())) { if(typeof showMessage === 'function') showMessage(`Label "${labelName}" already exists.`, 'error'); return; } if(typeof uniqueLabels !== 'undefined') uniqueLabels.push(labelName); if(typeof uniqueLabels !== 'undefined') uniqueLabels.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
-    if(typeof saveTasks === 'function') saveTasks(); // Publishes 'tasksChanged' and 'labelsChanged' (via updateUniqueLabels)
-    // No explicit refreshTaskView() here.
-    // populateDatalist and populateManageLabelsList will be called by 'labelsChanged' subscriber in ui_rendering.js
-    newLabelInput.value = '';
-    if(typeof showMessage === 'function') showMessage(`Label "${labelName}" added.`, 'success');
-}
-
-function handleDeleteLabel(labelToDelete) {
-    // ... (logic remains the same) ...
-    if(typeof tasks !== 'undefined') { tasks = tasks.map(task => { if (task.label && task.label.toLowerCase() === labelToDelete.toLowerCase()) { return { ...task, label: '' }; } return task; });}
-    if(typeof saveTasks === 'function') saveTasks(); // Publishes 'tasksChanged' and 'labelsChanged'
-    // No explicit refreshTaskView() here.
-    // populateManageLabelsList and populateDatalist will be called by 'labelsChanged' subscriber
-    if(typeof showMessage === 'function') showMessage(`Label "${labelToDelete}" deleted.`, 'success');
-}
-
-function handleAddSubTaskViewEdit() {
-    // ... (logic remains the same, calls AppFeatures.SubTasks.add which calls saveTasks) ...
-    if (!FeatureFlagService.isFeatureEnabled('subTasksFeature') || typeof editingTaskId === 'undefined' || !editingTaskId || !modalSubTaskInputViewEdit) return; const subTaskText = modalSubTaskInputViewEdit.value.trim(); if (subTaskText === '') { if(typeof showMessage === 'function') showMessage('Sub-task description cannot be empty.', 'error'); modalSubTaskInputViewEdit.focus(); return; }
-    if (window.AppFeatures?.SubTasks?.add(editingTaskId, subTaskText)) { // This calls saveTasks, publishing 'tasksChanged'
-        // renderSubTasksForEditModal and renderSubTasksForViewModal are UI updates, should ideally also listen to events or be called by tasksChanged if subtask display is part of main task rendering.
-        // For now, keeping direct calls for these modal-specific sub-renderings.
-        if(typeof renderSubTasksForEditModal === 'function') renderSubTasksForEditModal(editingTaskId, modalSubTasksListViewEdit); 
-        modalSubTaskInputViewEdit.value = '';
-        if(typeof showMessage === 'function') showMessage('Sub-task added.', 'success');
-        if (typeof currentViewTaskId !== 'undefined' && currentViewTaskId === editingTaskId && typeof viewTaskDetailsModal !== 'undefined' && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) {
-            if(typeof renderSubTasksForViewModal === 'function') renderSubTasksForViewModal(editingTaskId, modalSubTasksListViewDetails, viewSubTaskProgress, noSubTasksMessageViewDetails); 
-        }
-        // No explicit refreshTaskView() here as 'tasksChanged' from saveTasks should handle it.
-    } else { if(typeof showMessage === 'function') showMessage('Failed to add sub-task.', 'error'); }
-}
-
-function handleAddTempSubTaskForAddModal() {
-    // ... (logic remains the same, does not call saveTasks, only updates local temp state) ...
-    // This function only updates a temporary array for the Add Task modal.
-    // The actual save happens in handleAddTask.
-    if (!FeatureFlagService.isFeatureEnabled('subTasksFeature') || !modalSubTaskInputAdd) return; const subTaskText = modalSubTaskInputAdd.value.trim(); if (subTaskText === '') { if(typeof showMessage === 'function') showMessage('Sub-task description cannot be empty.', 'error'); modalSubTaskInputAdd.focus(); return; } tempSubTasksForAddModal.push({ text: subTaskText, completed: false }); if(typeof renderTempSubTasksForAddModal === 'function') renderTempSubTasksForAddModal(); modalSubTaskInputAdd.value = '';
-}
+// ... (handleAddNewLabel, handleDeleteLabel, handleAddSubTaskViewEdit, handleAddTempSubTaskForAddModal remain the same for now)
+// They already call saveTasks() which publishes 'tasksChanged' and 'labelsChanged'
+function handleAddNewLabel(event) { event.preventDefault(); const labelName = newLabelInput.value.trim(); if (labelName === '') { if(typeof showMessage === 'function') showMessage('Label name cannot be empty.', 'error'); return; } if (typeof uniqueLabels !== 'undefined' && uniqueLabels.some(l => l.toLowerCase() === labelName.toLowerCase())) { if(typeof showMessage === 'function') showMessage(`Label "${labelName}" already exists.`, 'error'); return; } if(typeof uniqueLabels !== 'undefined') uniqueLabels.push(labelName); if(typeof uniqueLabels !== 'undefined') uniqueLabels.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase())); if(typeof saveTasks === 'function') saveTasks(); newLabelInput.value = ''; if(typeof showMessage === 'function') showMessage(`Label "${labelName}" added.`, 'success');}
+function handleDeleteLabel(labelToDelete) { if(typeof tasks !== 'undefined') { tasks = tasks.map(task => { if (task.label && task.label.toLowerCase() === labelToDelete.toLowerCase()) { return { ...task, label: '' }; } return task; });} if(typeof saveTasks === 'function') saveTasks(); if(typeof showMessage === 'function') showMessage(`Label "${labelToDelete}" deleted.`, 'success');}
+function handleAddSubTaskViewEdit() { if (!FeatureFlagService.isFeatureEnabled('subTasksFeature') || typeof editingTaskId === 'undefined' || !editingTaskId || !modalSubTaskInputViewEdit) return; const subTaskText = modalSubTaskInputViewEdit.value.trim(); if (subTaskText === '') { if(typeof showMessage === 'function') showMessage('Sub-task description cannot be empty.', 'error'); modalSubTaskInputViewEdit.focus(); return; } if (window.AppFeatures?.SubTasks?.add(editingTaskId, subTaskText)) { if(typeof renderSubTasksForEditModal === 'function') renderSubTasksForEditModal(editingTaskId, modalSubTasksListViewEdit); modalSubTaskInputViewEdit.value = ''; if(typeof showMessage === 'function') showMessage('Sub-task added.', 'success'); if (typeof currentViewTaskId !== 'undefined' && currentViewTaskId === editingTaskId && typeof viewTaskDetailsModal !== 'undefined' && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) { if(typeof renderSubTasksForViewModal === 'function') renderSubTasksForViewModal(editingTaskId, modalSubTasksListViewDetails, viewSubTaskProgress, noSubTasksMessageViewDetails); } } else { if(typeof showMessage === 'function') showMessage('Failed to add sub-task.', 'error'); }}
+function handleAddTempSubTaskForAddModal() { if (!FeatureFlagService.isFeatureEnabled('subTasksFeature') || !modalSubTaskInputAdd) return; const subTaskText = modalSubTaskInputAdd.value.trim(); if (subTaskText === '') { if(typeof showMessage === 'function') showMessage('Sub-task description cannot be empty.', 'error'); modalSubTaskInputAdd.focus(); return; } tempSubTasksForAddModal.push({ text: subTaskText, completed: false }); if(typeof renderTempSubTasksForAddModal === 'function') renderTempSubTasksForAddModal(); modalSubTaskInputAdd.value = '';}
 
 
 // --- Event Listeners Setup (called by main.js) ---
 function setupEventListeners() {
-    // ... (event listener setup code remains the same)
-    // Search, Sidebar, Sort, View Toggle buttons now use ViewManager, which publishes events.
-    // The refreshTaskView calls in those handlers are removed as ui_rendering.js subscribes to the events.
-    if (taskSearchInput) taskSearchInput.addEventListener('input', (event) => { ViewManager.setCurrentSearchTerm(event.target.value.trim()); /* refreshTaskView handled by event */ });
-    if (sidebarToggleBtn) { /* ... */ } // No refreshTaskView needed here
-    if (sidebarIconOnlyButtons) { /* ... */ }
-    if (sortByDueDateBtn) sortByDueDateBtn.addEventListener('click', () => { ViewManager.setCurrentSort(ViewManager.getCurrentSort() === 'dueDate' ? 'default' : 'dueDate'); /* refreshTaskView handled by event */ });
-    if (sortByPriorityBtn) sortByPriorityBtn.addEventListener('click', () => { ViewManager.setCurrentSort(ViewManager.getCurrentSort() === 'priority' ? 'default' : 'priority'); /* refreshTaskView handled by event */ });
-    if (sortByLabelBtn) sortByLabelBtn.addEventListener('click', () => { ViewManager.setCurrentSort(ViewManager.getCurrentSort() === 'label' ? 'default' : 'label'); /* refreshTaskView handled by event */ });
-    if (kanbanViewToggleBtn) kanbanViewToggleBtn.addEventListener('click', () => { if (!FeatureFlagService.isFeatureEnabled('kanbanBoardFeature')) return; ViewManager.setTaskViewMode(ViewManager.getCurrentTaskViewMode() === 'kanban' ? 'list' : 'kanban'); /* refreshTaskView handled by event */ if (window.AppFeatures?.PomodoroTimerHybrid?.handleViewChange) window.AppFeatures.PomodoroTimerHybrid.handleViewChange(ViewManager.getCurrentTaskViewMode()); });
-    const calendarViewToggleBtnLocal = document.getElementById('calendarViewToggleBtn');
-    if (calendarViewToggleBtnLocal) { calendarViewToggleBtnLocal.addEventListener('click', () => { if (!FeatureFlagService.isFeatureEnabled('calendarViewFeature')) return; ViewManager.setTaskViewMode(ViewManager.getCurrentTaskViewMode() === 'calendar' ? 'list' : 'calendar'); /* refreshTaskView handled by event */ if (window.AppFeatures?.PomodoroTimerHybrid?.handleViewChange) window.AppFeatures.PomodoroTimerHybrid.handleViewChange(ViewManager.getCurrentTaskViewMode()); }); }
-    if (pomodoroViewToggleBtn) { pomodoroViewToggleBtn.addEventListener('click', () => { if (!FeatureFlagService.isFeatureEnabled('pomodoroTimerHybridFeature')) { if(typeof showMessage === 'function') showMessage('Pomodoro Timer feature is disabled.', 'error'); return; } ViewManager.setTaskViewMode(ViewManager.getCurrentTaskViewMode() === 'pomodoro' ? 'list' : 'pomodoro'); /* refreshTaskView handled by event */ if (window.AppFeatures?.PomodoroTimerHybrid?.handleViewChange) { window.AppFeatures.PomodoroTimerHybrid.handleViewChange(ViewManager.getCurrentTaskViewMode()); } }); }
-    // ... (rest of setupEventListeners remains the same)
+    // ... (event listener setup code remains the same as in your last version)
+    // Calls to ViewManager.setCurrentSort, ViewManager.setCurrentSearchTerm, ViewManager.setTaskViewMode
+    // will publish events that ui_rendering.js listens to for refreshing the view.
+    if (taskSearchInput) taskSearchInput.addEventListener('input', (event) => { ViewManager.setCurrentSearchTerm(event.target.value.trim()); });
+    if (sortByDueDateBtn) sortByDueDateBtn.addEventListener('click', () => { ViewManager.setCurrentSort(ViewManager.getCurrentSort() === 'dueDate' ? 'default' : 'dueDate'); });
+    if (sortByPriorityBtn) sortByPriorityBtn.addEventListener('click', () => { ViewManager.setCurrentSort(ViewManager.getCurrentSort() === 'priority' ? 'default' : 'priority'); });
+    if (sortByLabelBtn) sortByLabelBtn.addEventListener('click', () => { ViewManager.setCurrentSort(ViewManager.getCurrentSort() === 'label' ? 'default' : 'label'); });
+    if (kanbanViewToggleBtn) kanbanViewToggleBtn.addEventListener('click', () => { if (!FeatureFlagService.isFeatureEnabled('kanbanBoardFeature')) return; ViewManager.setTaskViewMode(ViewManager.getCurrentTaskViewMode() === 'kanban' ? 'list' : 'kanban'); if (window.AppFeatures?.PomodoroTimerHybrid?.handleViewChange) window.AppFeatures.PomodoroTimerHybrid.handleViewChange(ViewManager.getCurrentTaskViewMode()); });
+    const calendarViewToggleBtnLocal = document.getElementById('calendarViewToggleBtn'); if (calendarViewToggleBtnLocal) { calendarViewToggleBtnLocal.addEventListener('click', () => { if (!FeatureFlagService.isFeatureEnabled('calendarViewFeature')) return; ViewManager.setTaskViewMode(ViewManager.getCurrentTaskViewMode() === 'calendar' ? 'list' : 'calendar'); if (window.AppFeatures?.PomodoroTimerHybrid?.handleViewChange) window.AppFeatures.PomodoroTimerHybrid.handleViewChange(ViewManager.getCurrentTaskViewMode()); }); }
+    if (pomodoroViewToggleBtn) { pomodoroViewToggleBtn.addEventListener('click', () => { if (!FeatureFlagService.isFeatureEnabled('pomodoroTimerHybridFeature')) { if(typeof showMessage === 'function') showMessage('Pomodoro Timer feature is disabled.', 'error'); return; } ViewManager.setTaskViewMode(ViewManager.getCurrentTaskViewMode() === 'pomodoro' ? 'list' : 'pomodoro'); if (window.AppFeatures?.PomodoroTimerHybrid?.handleViewChange) { window.AppFeatures.PomodoroTimerHybrid.handleViewChange(ViewManager.getCurrentTaskViewMode()); } }); }
+    // ... (rest of setupEventListeners implementation remains the same)
     if (openAddModalButton) openAddModalButton.addEventListener('click', () => { openAddModal(); if (FeatureFlagService.isFeatureEnabled('projectFeature') && window.AppFeatures?.Projects) window.AppFeatures.Projects.populateProjectDropdowns(); });
     if (closeAddModalBtn) closeAddModalBtn.addEventListener('click', closeAddModal); if (cancelAddModalBtn) cancelAddModalBtn.addEventListener('click', closeAddModal); if (modalTodoFormAdd) modalTodoFormAdd.addEventListener('submit', handleAddTask); if (addTaskModal) addTaskModal.addEventListener('click', (event) => { if (event.target === addTaskModal) closeAddModal(); });
     if (closeViewEditModalBtn) closeViewEditModalBtn.addEventListener('click', closeViewEditModal); if (cancelViewEditModalBtn) cancelViewEditModalBtn.addEventListener('click', closeViewEditModal); if (modalTodoFormViewEdit) modalTodoFormViewEdit.addEventListener('submit', handleEditTask); if (viewEditTaskModal) viewEditTaskModal.addEventListener('click', (event) => { if (event.target === viewEditTaskModal) closeViewEditModal(); });
@@ -293,19 +362,12 @@ function setupEventListeners() {
     console.log("[Event Handlers] All event listeners set up.");
 }
 
-// Initialize event subscriptions for UI updates
-// This should be called after EventBus is available and ui_rendering functions are defined.
-// Moved to main.js to be called after DOMContentLoaded and initializations.
-// if (typeof EventBus !== 'undefined' && typeof initializeUiRenderingSubscriptions === 'function') {
-//     initializeUiRenderingSubscriptions();
-// }
-
-// Subscription for feature flag changes to re-apply UI rules
+// Subscribe to 'featureFlagsUpdated' to re-apply UI rules
 if (typeof EventBus !== 'undefined' && typeof applyActiveFeatures === 'function') {
-    EventBus.subscribe('featureFlagsUpdated', () => {
-        console.log("[Event Handlers] Event received: featureFlagsUpdated. Re-applying active features.");
+    EventBus.subscribe('featureFlagsUpdated', (data) => {
+        console.log("[Event Handlers] Event received: featureFlagsUpdated. Re-applying active features.", data);
         applyActiveFeatures();
-        // Also, if the feature flags modal is open, refresh it.
+        // If the feature flags modal is open, refresh its content
         const featureFlagsModalElement = document.getElementById('featureFlagsModal');
         if (featureFlagsModalElement && !featureFlagsModalElement.classList.contains('hidden') && typeof populateFeatureFlagsModal === 'function') {
             populateFeatureFlagsModal();
