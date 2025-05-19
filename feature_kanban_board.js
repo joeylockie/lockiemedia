@@ -4,26 +4,33 @@
 (function() {
     console.log('[KanbanFeatureFile] feature_kanban_board.js script STARTING to execute.');
 
-    let draggedTask = null;
+    let draggedTask = null; // Holds the DOM element of the task being dragged
 
     /**
-     * Initializes the Kanban board feature, primarily by loading column data.
+     * Initializes the Kanban board feature.
      * Note: loadKanbanColumns is now called directly in store.js on initial load.
      */
     function initializeKanbanBoardFeature() {
-        // loadKanbanColumns(); // This is now handled by store.js
-        console.log('[KanbanFeatureFile] Kanban Board Feature Initialized (from initializeKanbanBoardFeature).');
+        console.log('[KanbanFeatureFile] Kanban Board Feature Initialized.');
+        // Any specific event listeners unique to Kanban board elements not handled by
+        // dynamic rendering (like setupDragAndDropListeners) could be added here.
     }
 
     /**
-     * Updates the UI visibility based on whether the Kanban feature is enabled.
-     * @param {boolean} isEnabled - Whether the Kanban feature flag is true.
+     * Updates the UI visibility of elements specifically managed by this module,
+     * if any, based on whether the Kanban feature is enabled.
+     * @param {boolean} isEnabledParam - Parameter for consistency, actual check uses FeatureFlagService.
      */
-    function updateKanbanBoardUIVisibility(isEnabled) {
-        console.log(`[KanbanFeatureFile] updateKanbanBoardUIVisibility called with isEnabled: ${isEnabled}`);
-        // Actual rendering and visibility of the board itself is handled by refreshTaskView
-        // based on currentTaskViewMode and featureFlags.
-        // This function could handle other specific UI elements if any.
+    function updateKanbanBoardUIVisibility(isEnabledParam) {
+        if (typeof FeatureFlagService === 'undefined') {
+            console.error("[KanbanBoard] FeatureFlagService not available for UI visibility update.");
+            return;
+        }
+        const isActuallyEnabled = FeatureFlagService.isFeatureEnabled('kanbanBoardFeature');
+        console.log(`[KanbanFeatureFile] updateKanbanBoardUIVisibility called. Feature enabled: ${isActuallyEnabled}`);
+        // Most UI toggling (like the main board container and toggle button) is handled by
+        // refreshTaskView and applyActiveFeatures. This function is for any *additional*
+        // specific UI elements this module might control directly.
     }
 
     /**
@@ -32,29 +39,24 @@
      * @param {string} newTitle - The new title for the column.
      */
     function updateKanbanColumnTitle(columnId, newTitle) {
-        // Assumes kanbanColumns and saveKanbanColumns are globally available from store.js
-        // Assumes featureFlags and currentTaskViewMode are also global from store.js (or ViewManager)
-        if (typeof kanbanColumns === 'undefined' || typeof saveKanbanColumns !== 'function') {
-            console.error("[KanbanBoard] 'kanbanColumns' or 'saveKanbanColumns' not found in global scope (expected from store.js).");
+        // Assumes kanbanColumns, saveKanbanColumns, currentTaskViewMode, featureFlags are global from store.js
+        // (featureFlags in store.js is populated by FeatureFlagService)
+        if (typeof kanbanColumns === 'undefined' || typeof saveKanbanColumns !== 'function' ||
+            typeof currentTaskViewMode === 'undefined' || typeof featureFlags === 'undefined') {
+            console.error("[KanbanBoard] Core dependencies (kanbanColumns, saveKanbanColumns, currentTaskViewMode, featureFlags) not found.");
             return;
         }
-        if (typeof featureFlags === 'undefined' || typeof currentTaskViewMode === 'undefined') {
-            console.error("[KanbanBoard] 'featureFlags' or 'currentTaskViewMode' not found in global scope.");
-            return;
-        }
-
 
         const columnIndex = kanbanColumns.findIndex(col => col.id === columnId);
         if (columnIndex !== -1) {
-            if (kanbanColumns[columnIndex].title !== newTitle.trim()) {
-                kanbanColumns[columnIndex].title = newTitle.trim();
-                saveKanbanColumns(); // Save to localStorage via store.js
-                console.log(`[KanbanBoard] Column "${columnId}" title updated to "${newTitle.trim()}".`);
+            const trimmedNewTitle = newTitle.trim();
+            if (kanbanColumns[columnIndex].title !== trimmedNewTitle) {
+                kanbanColumns[columnIndex].title = trimmedNewTitle;
+                saveKanbanColumns(); // From store.js
+                console.log(`[KanbanBoard] Column "${columnId}" title updated to "${trimmedNewTitle}".`);
 
-                // If the Kanban board is currently visible, re-render it to show the new title.
-                // This check ensures we only re-render if necessary.
-                if (currentTaskViewMode === 'kanban' && featureFlags.kanbanBoardFeature) {
-                    renderKanbanBoard(); // Re-render the board
+                if (currentTaskViewMode === 'kanban' && featureFlags.kanbanBoardFeature) { // Check global flag from store.js
+                    renderKanbanBoardInternal(); // Re-render the board
                 }
             }
         } else {
@@ -62,84 +64,79 @@
         }
     }
 
-
     /**
-     * Renders the entire Kanban board view into the main content area.
+     * Internal function to render the entire Kanban board view.
+     * This is called by the public renderKanbanView and by updateKanbanColumnTitle.
      */
-    function renderKanbanBoard() {
-        console.log('[KanbanFeatureFile] renderKanbanBoard function START.');
-        // Assumes DOM elements like 'mainContentArea', 'yourTasksHeading', 'kanbanViewToggleBtn'
-        // and state like 'kanbanColumns', 'tasks', 'featureFlags' are available (from store.js or ui_rendering.js for DOM elements).
-        // Assumes helper functions like 'createKanbanColumnElement', 'setupDragAndDropListeners',
-        // 'updateYourTasksHeading', 'updateViewToggleButtonsState' (renamed from updateKanbanViewToggleButtonState) are available.
+    function renderKanbanBoardInternal() {
+        console.log('[KanbanFeatureFile] renderKanbanBoardInternal function START.');
+        // Assumes DOM elements like 'mainContentArea', 'yourTasksHeading', 'kanbanViewToggleBtn', etc.
+        // are initialized and available globally or via ui_rendering.js.
+        // Assumes state (tasks, kanbanColumns) from store.js.
+        // Assumes helper functions (createKanbanColumnElement, etc.) are defined below.
 
-        const mainContentArea = document.querySelector('main'); // Consider getting this from ui_rendering.js if it's initialized there
-        if (!mainContentArea) {
-            console.error("[KanbanFeatureFile] Kanban: Main content area not found to render board.");
+        const currentMainContentArea = mainContentArea || document.querySelector('main');
+        if (!currentMainContentArea) {
+            console.error("[KanbanFeatureFile] Main content area not found to render board.");
             return;
         }
-        mainContentArea.innerHTML = ''; // Clear previous content (list view, calendar, etc.)
-        console.log('[KanbanFeatureFile] Main content area cleared for Kanban board.');
+        currentMainContentArea.innerHTML = ''; // Clear previous content
 
-        // --- Re-create the header structure (Heading + Buttons) ---
+        // --- Re-create the header structure ---
         const headerDiv = document.createElement('div');
         headerDiv.className = 'flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 md:mb-6';
 
-        const headingEl = document.getElementById('yourTasksHeading') || document.createElement('h2');
-        headingEl.id = 'yourTasksHeading';
+        // Use existing 'yourTasksHeading' if available, otherwise create it.
+        const headingEl = yourTasksHeading || document.createElement('h2');
+        headingEl.id = 'yourTasksHeading'; // Ensure ID for other functions
         headingEl.className = 'text-xl sm:text-2xl md:text-3xl font-semibold text-slate-800 dark:text-slate-100';
-        // Text content will be set by updateYourTasksHeading (from ui_rendering.js)
         headerDiv.appendChild(headingEl);
-        if (!document.getElementById('yourTasksHeading')) yourTasksHeading = headingEl; // Ensure global reference if created new
+        if (!yourTasksHeading) yourTasksHeading = headingEl; // Update global ref if newly created
 
         const buttonsDiv = document.createElement('div');
         buttonsDiv.className = 'flex gap-2 mt-3 sm:mt-0 flex-wrap items-center';
-
-        // View toggle buttons (Pomodoro, Calendar, Kanban/List)
-        // These buttons should be created/managed by ui_rendering.js and ui_event_handlers.js
-        // For now, we append existing ones if they are found globally.
-        const pomodoroBtn = document.getElementById('pomodoroViewToggleBtn');
-        if (pomodoroBtn) buttonsDiv.appendChild(pomodoroBtn);
-
-        const calendarBtn = document.getElementById('calendarViewToggleBtn');
-        if (calendarBtn) buttonsDiv.appendChild(calendarBtn);
-
-        const kanbanBtn = document.getElementById('kanbanViewToggleBtn'); // This is the Kanban/List toggle
-        if (kanbanBtn) buttonsDiv.appendChild(kanbanBtn);
-
+        // Append existing toggle buttons (their visibility is managed by updateViewToggleButtonsState)
+        if (pomodoroViewToggleBtn) buttonsDiv.appendChild(pomodoroViewToggleBtn);
+        if (calendarViewToggleBtn) buttonsDiv.appendChild(calendarViewToggleBtn);
+        if (kanbanViewToggleBtn) buttonsDiv.appendChild(kanbanViewToggleBtn);
         headerDiv.appendChild(buttonsDiv);
-        mainContentArea.appendChild(headerDiv);
-        console.log('[KanbanFeatureFile] Header structure added to main content area.');
+        currentMainContentArea.appendChild(headerDiv);
         // --- End Header Structure ---
 
-        const kanbanContainer = document.createElement('div');
-        kanbanContainer.id = 'kanbanBoardContainer'; // This ID is used by ui_rendering to hide/show
-        kanbanContainer.className = 'flex flex-col sm:flex-row gap-4 p-0 overflow-x-auto min-h-[calc(100vh-250px)]';
-        kanbanContainer.classList.remove('hidden'); // Ensure it's visible
-
-        if (typeof kanbanColumns === 'undefined' || !Array.isArray(kanbanColumns)) {
-            console.error("[KanbanBoard] 'kanbanColumns' is not defined or not an array (expected from store.js). Cannot render columns.");
-            return;
+        // The global kanbanBoardContainer (from ui_rendering.js) is the one to populate or ensure exists.
+        // If it's not guaranteed to be a direct child of main, we might need to recreate it.
+        // For now, assuming it's correctly handled/re-created by refreshTaskView if needed.
+        // If this function completely rebuilds 'main', then kanbanBoardContainer needs to be re-created.
+        const boardContainer = document.getElementById('kanbanBoardContainer') || document.createElement('div');
+        boardContainer.id = 'kanbanBoardContainer';
+        boardContainer.className = 'flex flex-col sm:flex-row gap-4 p-0 overflow-x-auto min-h-[calc(100vh-250px)]';
+        boardContainer.innerHTML = ''; // Clear previous columns
+        boardContainer.classList.remove('hidden');
+        if (!document.getElementById('kanbanBoardContainer')) { // If it wasn't in DOM, append it
+            currentMainContentArea.appendChild(boardContainer);
+            kanbanBoardContainer = boardContainer; // Update global reference
         }
 
+
+        if (typeof kanbanColumns === 'undefined' || !Array.isArray(kanbanColumns)) {
+            console.error("[KanbanBoard] 'kanbanColumns' is not defined (expected from store.js).");
+            return;
+        }
         kanbanColumns.forEach(column => {
             const columnEl = createKanbanColumnElement(column);
-            kanbanContainer.appendChild(columnEl);
+            boardContainer.appendChild(columnEl);
         });
-        mainContentArea.appendChild(kanbanContainer);
-        console.log('[KanbanFeatureFile] Kanban container and columns added.');
 
         setupDragAndDropListeners();
-        console.log('[KanbanFeatureFile] Drag and drop listeners set up.');
 
-        // Update heading and button states after rendering
         if (typeof updateYourTasksHeading === 'function') updateYourTasksHeading();
-        if (typeof updateViewToggleButtonsState === 'function') updateViewToggleButtonsState(); // General function for all view toggles
-        console.log('[KanbanFeatureFile] Heading and toggle button state updated.');
+        if (typeof updateViewToggleButtonsState === 'function') updateViewToggleButtonsState();
+        console.log('[KanbanFeatureFile] Kanban board rendered internally.');
     }
 
-
     function createKanbanColumnElement(column) {
+        // ... (implementation remains largely the same, ensure it uses global 'tasks' from store.js)
+        // ... and calls the local 'updateKanbanColumnTitle' for edits.
         const columnWrapper = document.createElement('div');
         columnWrapper.className = 'kanban-column flex-shrink-0 w-full sm:w-72 md:w-80 bg-slate-200 dark:bg-slate-800 rounded-lg shadow-md flex flex-col';
         columnWrapper.dataset.columnId = column.id;
@@ -151,11 +148,11 @@
         titleInput.value = column.title;
         titleInput.className = 'kanban-column-title-input text-lg font-semibold text-slate-700 dark:text-slate-200 bg-transparent border-none focus:ring-2 focus:ring-sky-500 rounded p-1 w-full';
         titleInput.addEventListener('change', (e) => {
-            updateKanbanColumnTitle(column.id, e.target.value); // Call the moved function
+            updateKanbanColumnTitle(column.id, e.target.value); // Call local function
         });
         titleInput.addEventListener('blur', (e) => {
-             if (e.target.value !== column.title) {
-                updateKanbanColumnTitle(column.id, e.target.value); // Call the moved function
+             if (e.target.value.trim() !== column.title) { // Only update if changed
+                updateKanbanColumnTitle(column.id, e.target.value);
              }
         });
         header.appendChild(titleInput);
@@ -165,30 +162,28 @@
         taskListUl.dataset.columnId = column.id;
 
         if (typeof tasks === 'undefined' || !Array.isArray(tasks)) {
-            console.error("[KanbanBoard] 'tasks' is not defined or not an array (expected from store.js). Cannot render tasks in columns.");
-            columnWrapper.appendChild(header);
-            columnWrapper.appendChild(taskListUl);
-            return columnWrapper; // Return column even if tasks are missing
+            console.error("[KanbanBoard] 'tasks' array not found (expected from store.js).");
+        } else {
+            const tasksInColumn = tasks.filter(task => {
+                if (column.id === 'done') {
+                     return task.completed || task.kanbanColumnId === 'done';
+                }
+                return task.kanbanColumnId === column.id && !task.completed;
+            });
+
+            tasksInColumn.forEach(task => {
+                const taskEl = createKanbanTaskElement(task);
+                taskListUl.appendChild(taskEl);
+            });
         }
-
-        const tasksInColumn = tasks.filter(task => {
-            if (column.id === 'done') {
-                 return task.completed || task.kanbanColumnId === 'done';
-            }
-            return task.kanbanColumnId === column.id && !task.completed;
-        });
-
-        tasksInColumn.forEach(task => {
-            const taskEl = createKanbanTaskElement(task);
-            taskListUl.appendChild(taskEl);
-        });
-
         columnWrapper.appendChild(header);
         columnWrapper.appendChild(taskListUl);
         return columnWrapper;
     }
 
     function createKanbanTaskElement(task) {
+        // ... (implementation remains largely the same)
+        // Ensure it uses global FeatureFlagService, taskService.getPriorityClass, utils.formatDate/formatTime
         const taskCard = document.createElement('li');
         taskCard.className = `kanban-task-card bg-white dark:bg-slate-700 p-3 rounded-md shadow hover:shadow-lg transition-shadow cursor-grab active:cursor-grabbing ${task.completed ? 'opacity-70' : ''}`;
         taskCard.draggable = true;
@@ -202,28 +197,28 @@
         const detailsContainer = document.createElement('div');
         detailsContainer.className = 'flex flex-wrap items-center gap-x-2 gap-y-1 text-xs mt-1';
 
-        // Assumes getPriorityClass, formatDate, formatTime are available (from taskService.js or utils.js)
-        if (task.priority && typeof getPriorityClass === 'function') {
+        if (task.priority && typeof getPriorityClass === 'function') { // getPriorityClass from taskService.js
             const pB = document.createElement('span');
             pB.textContent = task.priority;
             pB.className = `priority-badge ${getPriorityClass(task.priority)}`;
             detailsContainer.appendChild(pB);
         }
+        // ... (other details like label, due date, sub-tasks using FeatureFlagService)
         if (task.label) {
             const lB = document.createElement('span');
             lB.textContent = task.label;
             lB.className = 'label-badge';
             detailsContainer.appendChild(lB);
         }
-        if (task.dueDate && typeof formatDate === 'function') {
+        if (task.dueDate && typeof formatDate === 'function') { // formatDate from utils.js
             const dDS = document.createElement('span');
             dDS.className = 'text-slate-500 dark:text-slate-400 flex items-center';
             let dD = formatDate(task.dueDate);
-            if (task.time && typeof formatTime === 'function') { dD += ` ${formatTime(task.time)}`; }
+            if (task.time && typeof formatTime === 'function') { dD += ` ${formatTime(task.time)}`; } // formatTime from utils.js
             dDS.innerHTML = `<i class="far fa-calendar-alt mr-1"></i> ${dD}`;
             detailsContainer.appendChild(dDS);
         }
-        if (typeof featureFlags !== 'undefined' && featureFlags.subTasksFeature && task.subTasks && task.subTasks.length > 0) {
+        if (typeof FeatureFlagService !== 'undefined' && FeatureFlagService.isFeatureEnabled('subTasksFeature') && task.subTasks && task.subTasks.length > 0) {
             const subTaskIcon = document.createElement('span');
             subTaskIcon.className = 'text-slate-400 dark:text-slate-500 flex items-center sub-tasks-feature-element';
             const completedSubTasks = task.subTasks.filter(st => st.completed).length;
@@ -231,18 +226,20 @@
             detailsContainer.appendChild(subTaskIcon);
         }
 
+
         if (detailsContainer.hasChildNodes()) {
             taskCard.appendChild(detailsContainer);
         }
 
         taskCard.addEventListener('click', (event) => {
             if (event.target.closest('button, input, select, textarea, a')) return;
-            if (typeof openViewTaskDetailsModal === 'function') openViewTaskDetailsModal(task.id);
+            if (typeof openViewTaskDetailsModal === 'function') openViewTaskDetailsModal(task.id); // global from modal_interactions.js
         });
         return taskCard;
     }
 
     function setupDragAndDropListeners() {
+        // ... (implementation remains the same)
         const taskCards = document.querySelectorAll('.kanban-task-card');
         const columns = document.querySelectorAll('.kanban-task-list');
 
@@ -256,27 +253,28 @@
             column.addEventListener('dragleave', handleDragLeave);
             column.addEventListener('drop', handleDrop);
         });
-        console.log(`[KanbanFeatureFile] Added D&D listeners to ${taskCards.length} cards and ${columns.length} columns.`);
     }
 
+    // --- Drag and Drop Event Handlers ---
     function handleDragStart(event) {
+        // ... (implementation remains the same)
         draggedTask = event.target;
         event.dataTransfer.setData('text/plain', event.target.dataset.taskId);
         event.dataTransfer.effectAllowed = 'move';
         setTimeout(() => {
             event.target.classList.add('opacity-50', 'border-dashed', 'border-sky-500');
         }, 0);
-        console.log(`[Kanban D&D] Drag Start: Task ID ${event.target.dataset.taskId}`);
     }
 
     function handleDragEnd(event) {
-        event.target.classList.remove('opacity-50', 'border-dashed', 'border-sky-500');
+        // ... (implementation remains the same)
+        if(event.target) event.target.classList.remove('opacity-50', 'border-dashed', 'border-sky-500');
         draggedTask = null;
         document.querySelectorAll('.kanban-task-list').forEach(col => col.classList.remove('bg-slate-300', 'dark:bg-slate-700/70'));
-        console.log(`[Kanban D&D] Drag End: Task ID ${event.target.dataset.taskId}`);
     }
 
     function handleDragOver(event) {
+        // ... (implementation remains the same)
         event.preventDefault();
         const columnUl = event.target.closest('.kanban-task-list');
         if (columnUl) {
@@ -288,6 +286,7 @@
     }
 
     function handleDragLeave(event) {
+        // ... (implementation remains the same)
         const columnUl = event.target.closest('.kanban-task-list');
         if (columnUl) {
             columnUl.classList.remove('bg-slate-300', 'dark:bg-slate-700/70');
@@ -299,17 +298,26 @@
         const targetColumnUl = event.target.closest('.kanban-task-list');
 
         if (!targetColumnUl || !draggedTask) {
-            console.warn("[Kanban D&D] Drop failed: No target column or dragged task.");
-            if(draggedTask) handleDragEnd({target: draggedTask});
+            if(draggedTask) handleDragEnd({target: draggedTask}); // Clean up style
             return;
         }
 
         const targetColumnId = targetColumnUl.dataset.columnId;
         const taskId = parseInt(draggedTask.dataset.taskId);
-        const taskIndex = tasks.findIndex(t => t.id === taskId);
+        // tasks, saveTasks are global from store.js
+        // featureFlags is global from store.js (populated by FeatureFlagService)
+        // showMessage is global from ui_rendering.js
+        // kanbanColumns is global from store.js
+        if (typeof tasks === 'undefined' || typeof saveTasks !== 'function' || typeof featureFlags === 'undefined' || typeof kanbanColumns === 'undefined') {
+            console.error("[KanbanDrop] Core dependencies (tasks, saveTasks, featureFlags, kanbanColumns) not available.");
+            handleDragEnd({target: draggedTask}); // Clean up style
+            return;
+        }
 
+        const taskIndex = tasks.findIndex(t => t.id === taskId);
         if (taskIndex === -1) {
             console.error("[Kanban D&D] Dropped task not found in tasks array.");
+            handleDragEnd({target: draggedTask}); // Clean up style
             return;
         }
 
@@ -317,63 +325,70 @@
         targetColumnUl.classList.remove('bg-slate-300', 'dark:bg-slate-700/70');
 
         if (originalColumnId === targetColumnId && targetColumnId !== 'done') {
-             console.log(`[Kanban D&D] Task ${taskId} dropped in the same column (${targetColumnId}). No change.`);
+             // No actual change needed if dropped in the same non-done column
+             handleDragEnd({target: draggedTask}); // Just clean up style
              return;
         }
-
-        console.log(`[Kanban D&D] Drop: Task ID ${taskId} onto Column ID ${targetColumnId}`);
+        
         tasks[taskIndex].kanbanColumnId = targetColumnId;
 
         if (targetColumnId === 'done') {
             if (!tasks[taskIndex].completed) {
                 tasks[taskIndex].completed = true;
                 tasks[taskIndex].completedDate = Date.now();
-                console.log(`[Kanban D&D] Task ${taskId} marked as completed.`);
-                if (typeof featureFlags !== 'undefined' && featureFlags.taskTimerSystem && window.AppFeatures && window.AppFeatures.TaskTimerSystem) {
+                if (featureFlags.taskTimerSystem && window.AppFeatures?.TaskTimerSystem?.handleTaskCompletion) {
                     window.AppFeatures.TaskTimerSystem.handleTaskCompletion(taskId, true);
                 }
             }
-        } else {
+        } else { // Moved to a non-done column
             if (tasks[taskIndex].completed) {
                 tasks[taskIndex].completed = false;
                 tasks[taskIndex].completedDate = null;
-                console.log(`[Kanban D&D] Task ${taskId} marked as not completed.`);
+                 // If timer was running and task uncompleted, it should continue or be paused based on its previous state.
+                 // For simplicity, taskTimerSystem.handleTaskCompletion(taskId, false) might not be needed
+                 // unless it specifically resets timers for uncompleted tasks.
             }
         }
-
-        if (typeof saveTasks === 'function') saveTasks();
-        else console.error("[KanbanBoard] 'saveTasks' function not found (expected from store.js).");
-
-        renderKanbanBoard(); // Re-render the entire board
+        saveTasks();
+        renderKanbanBoardInternal(); // Re-render the board
 
         if (typeof showMessage === 'function') {
-            const targetCol = (typeof kanbanColumns !== 'undefined') ? kanbanColumns.find(c => c.id === targetColumnId) : null;
+            const targetCol = kanbanColumns.find(c => c.id === targetColumnId);
             showMessage(`Task moved to "${targetCol?.title || targetColumnId}"`, 'success');
         }
+        // handleDragEnd is implicitly called by the browser after 'drop', but explicit call ensures cleanup
+        // No, dragend fires on the source element naturally.
     }
 
-    // Public function to trigger rendering the Kanban view.
+    /**
+     * Public function to trigger rendering the Kanban view.
+     * Called by refreshTaskView when mode is 'kanban'.
+     */
     function publicRenderKanbanView() {
-        console.log('[KanbanFeatureFile] publicRenderKanbanView called. Rendering board...');
-        if (typeof featureFlags === 'undefined' || !featureFlags.kanbanBoardFeature) {
-             console.warn("[KanbanFeatureFile] publicRenderKanbanView called but feature flag is off or featureFlags not defined.");
+        console.log('[KanbanFeatureFile] publicRenderKanbanView called.');
+        if (typeof FeatureFlagService === 'undefined' || !FeatureFlagService.isFeatureEnabled('kanbanBoardFeature')) {
+             console.warn("[KanbanFeatureFile] publicRenderKanbanView called but feature flag is off or FeatureFlagService not available.");
+             // Optionally, switch to list view if Kanban is disabled but attempted to render
+             // if (typeof ViewManager !== 'undefined' && typeof renderTaskListView === 'function') {
+             //     ViewManager.setTaskViewMode('list');
+             //     renderTaskListView();
+             // }
              return;
         }
-        renderKanbanBoard();
+        renderKanbanBoardInternal();
     }
 
+    // Expose public interface
     if (typeof window.AppFeatures === 'undefined') {
         window.AppFeatures = {};
     }
-
     window.AppFeatures.KanbanBoard = {
         initialize: initializeKanbanBoardFeature,
         updateUIVisibility: updateKanbanBoardUIVisibility,
-        renderKanbanView: publicRenderKanbanView, // Expose the main render function
-        // updateKanbanColumnTitle is now internal to this module, called by event listeners
-        // No need to expose renderKanbanBoard directly if publicRenderKanbanView calls it.
+        renderKanbanView: publicRenderKanbanView
+        // updateKanbanColumnTitle is internal, called by event listeners within this module
     };
 
-    console.log('[KanbanFeatureFile] window.AppFeatures.KanbanBoard DEFINED:', window.AppFeatures.KanbanBoard);
+    console.log('[KanbanFeatureFile] window.AppFeatures.KanbanBoard DEFINED.');
     console.log('[KanbanFeatureFile] feature_kanban_board.js script FINISHED executing.');
 })();
