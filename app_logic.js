@@ -1,7 +1,7 @@
 // app_logic.js
 // This file now contains core application logic, event handlers,
 // and functions that interact with the state managed in store.js
-// and utility functions from utils.js and services like taskService.js.
+// and utility functions from utils.js and services like taskService.js and viewManager.js.
 
 // --- Theme Management ---
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
@@ -17,43 +17,27 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', eve
 });
 
 // --- Core Task Interaction Logic (Examples, to be expanded) ---
-
 // getPriorityClass(priority) has been moved to taskService.js
 // parseDateFromText(text) has been moved to taskService.js
 
 
-// --- Task View Mode Management ---
-function setTaskViewMode(mode) {
-    // currentTaskViewMode is now global from store.js
-    if (['list', 'kanban', 'calendar', 'pomodoro'].includes(mode)) {
-        currentTaskViewMode = mode;
-        console.log(`Task view mode changed to: ${currentTaskViewMode}`);
-    } else {
-        console.warn(`Attempted to set invalid task view mode: ${mode}`);
-    }
-}
+// --- Task View Mode, Filtering, Sorting, and Search Term state management ---
+// These are now conceptually managed by viewManager.js
+// - currentTaskViewMode (variable in store.js, mutated by ViewManager.setTaskViewMode)
+// - setTaskViewMode(mode) (function in viewManager.js)
+// - currentFilter (variable in store.js, mutated by ViewManager.setCurrentFilter)
+// - setAppCurrentFilter(filter) (renamed to ViewManager.setCurrentFilter)
+// - currentSort (variable in store.js, mutated by ViewManager.setCurrentSort)
+// - setAppCurrentSort(sortType) (renamed to ViewManager.setCurrentSort)
+// - currentSearchTerm (variable in store.js, mutated by ViewManager.setCurrentSearchTerm)
+// - setAppSearchTerm(term) (renamed to ViewManager.setCurrentSearchTerm)
 
-// --- Filtering and sorting state management ---
-function setAppCurrentFilter(filter) {
-    // currentFilter and currentSort are now global from store.js
-    currentFilter = filter;
-    currentSort = 'default'; // Reset sort when filter changes
-}
-
-function setAppCurrentSort(sortType) {
-    // currentSort is now global from store.js
-    currentSort = sortType;
-}
-
-function setAppSearchTerm(term) {
-    // currentSearchTerm is now global from store.js
-    currentSearchTerm = term;
-}
 
 // --- Kanban Board Logic ---
 function updateKanbanColumnTitle(columnId, newTitle) {
-    // kanbanColumns and featureFlags are now global from store.js
+    // kanbanColumns and featureFlags are global from store.js
     // saveKanbanColumns is also global from store.js
+    // currentTaskViewMode is global from store.js (managed by ViewManager)
     const columnIndex = kanbanColumns.findIndex(col => col.id === columnId);
     if (columnIndex !== -1) {
         kanbanColumns[columnIndex].title = newTitle;
@@ -69,7 +53,7 @@ function updateKanbanColumnTitle(columnId, newTitle) {
 
 // --- Data Management Functions (Export/Import) ---
 function prepareDataForExport() {
-    // tasks, projects, kanbanColumns, featureFlags are now global from store.js
+    // tasks, projects, kanbanColumns, featureFlags are global from store.js
     return {
         version: "1.0.0",
         exportDate: new Date().toISOString(),
@@ -84,7 +68,7 @@ function prepareDataForExport() {
 
 // --- Bulk Action State Management ---
 function toggleTaskSelectionForBulkAction(taskId) {
-    // selectedTaskIdsForBulkAction is now global from store.js
+    // selectedTaskIdsForBulkAction is global from store.js
     const index = selectedTaskIdsForBulkAction.indexOf(taskId);
     if (index > -1) {
         selectedTaskIdsForBulkAction.splice(index, 1);
@@ -95,16 +79,18 @@ function toggleTaskSelectionForBulkAction(taskId) {
 }
 
 function clearBulkActionSelections() {
-    // selectedTaskIdsForBulkAction is now global from store.js
+    // selectedTaskIdsForBulkAction is global from store.js
     selectedTaskIdsForBulkAction = [];
     console.log("Bulk action selections cleared.");
 }
 
 function getSelectedTaskIdsForBulkAction() {
-    // selectedTaskIdsForBulkAction is now global from store.js
+    // selectedTaskIdsForBulkAction is global from store.js
     return [...selectedTaskIdsForBulkAction];
 }
 
-// app_logic.js is becoming much leaner.
-// Its remaining responsibilities will be further reduced as we introduce more services
-// and refine how UI event handlers interact with the application core.
+// app_logic.js continues to become leaner.
+// The global state variables for UI presentation (currentFilter, currentSort, etc.)
+// still reside in store.js but their modification logic is now encapsulated in viewManager.js.
+// Next steps will involve updating UI files (ui_event_handlers.js, ui_rendering.js)
+// to use ViewManager methods instead of directly calling old app_logic.js functions or mutating globals.
