@@ -2,18 +2,15 @@
 // This file contains services related to task data and operations.
 // It relies on AppStore for state management, FeatureFlagService, and utils.js.
 
-// Import necessary utility functions
 import { getTodayDateString, getDateString } from './utils.js'; 
-// Note: formatDate and formatTime are used by ui_rendering.js, not directly here anymore
-// unless parseDateFromText had a very complex scenario needing them, which it doesn't.
+import AppStore from './store.js';
+// We'll import isFeatureEnabled directly where needed, or the whole service if many functions are used.
+// For now, let's assume FeatureFlagService is globally available via window for a moment,
+// or we import specific functions. Let's import isFeatureEnabled.
+import { isFeatureEnabled } from './featureFlagService.js';
 
-/**
- * Determines the CSS class string for a given task priority.
- * @param {string} priority - The priority of the task (e.g., 'high', 'medium', 'low').
- * @returns {string} Tailwind CSS classes for the priority.
- */
+
 export function getPriorityClass(priority) {
-    // This function is purely presentational and doesn't depend on AppStore directly.
     switch (priority) {
         case 'high': return 'bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100';
         case 'medium': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-600 dark:text-yellow-100';
@@ -22,30 +19,21 @@ export function getPriorityClass(priority) {
     }
 }
 
-/**
- * Parses a date from a task's text description using natural language.
- * Relies on getTodayDateString and getDateString from utils.js.
- * @param {string} text - The text to parse for a date.
- * @returns {{parsedDate: string|null, remainingText: string}} An object.
- */
 export function parseDateFromText(text) {
-    // getTodayDateString and getDateString are now imported.
     let parsedDate = null;
     let remainingText = text;
-    const today = new Date(getTodayDateString() + 'T00:00:00Z'); // Use imported function
-
+    const today = new Date(getTodayDateString() + 'T00:00:00Z'); 
     const daysOfWeek = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
     const shortDaysOfWeek = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
-
-    const patterns = [
-        { regex: /\b(next week)\b/i, handler: () => { const nextWeek = new Date(today); nextWeek.setUTCDate(today.getUTCDate() + (7 - today.getUTCDay() + 1) % 7 + (today.getUTCDay() === 0 ? 1:0) ); if (nextWeek <= today) nextWeek.setUTCDate(nextWeek.getUTCDate() + 7); return getDateString(nextWeek); /* Use imported */ }},
-        { regex: /\b(next month)\b/i, handler: () => { const nextMonthDate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 1)); return getDateString(nextMonthDate); /* Use imported */ }},
-        { regex: /\b(next year)\b/i, handler: () => { const nextYearDate = new Date(Date.UTC(today.getUTCFullYear() + 1, 0, 1)); return getDateString(nextYearDate); /* Use imported */ }},
+    const patterns = [ 
+        { regex: /\b(next week)\b/i, handler: () => { const nextWeek = new Date(today); nextWeek.setUTCDate(today.getUTCDate() + (7 - today.getUTCDay() + 1) % 7 + (today.getUTCDay() === 0 ? 1:0) ); if (nextWeek <= today) nextWeek.setUTCDate(nextWeek.getUTCDate() + 7); return getDateString(nextWeek); }},
+        { regex: /\b(next month)\b/i, handler: () => { const nextMonthDate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 1)); return getDateString(nextMonthDate); }},
+        { regex: /\b(next year)\b/i, handler: () => { const nextYearDate = new Date(Date.UTC(today.getUTCFullYear() + 1, 0, 1)); return getDateString(nextYearDate); }},
         { regex: /\b(?:on|due|by)\s+(\d{4}[-\/]\d{1,2}[-\/]\d{1,2})\b/i, handler: (match) => { const dateStr = match[1].replace(/\//g, '-'); const parts = dateStr.split('-'); if (parts.length === 3) { const year = parseInt(parts[0]); const month = parseInt(parts[1]); const day = parseInt(parts[2]); if (month < 1 || month > 12 || day < 1 || day > 31) return null; return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`; } return null; }},
         { regex: /\b(?:on|due|by)\s+(\d{1,2}[-\/]\d{1,2}[-\/](\d{2,4}))\b/i, handler: (match) => { const dateStr = match[1]; const yearStr = match[2]; const parts = dateStr.replace(/-/g, '/').split('/'); let year = parseInt(yearStr); let month, day; if (parts.length === 3) { if (parseInt(parts[0]) > 12 && parseInt(parts[1]) <= 12) { day = parseInt(parts[0]); month = parseInt(parts[1]); } else { month = parseInt(parts[0]); day = parseInt(parts[1]); } } else { return null; } if (year < 100) year += 2000; if (isNaN(year) || isNaN(month) || isNaN(day) || month < 1 || month > 12 || day < 1 || day > 31) return null; return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`; }},
-        { regex: new RegExp(`\\b(next\\s+)?(${daysOfWeek.join('|')}|${shortDaysOfWeek.join('|')})\\b`, 'i'), handler: (match) => { const dayName = match[2].toLowerCase(); let targetDayIndex = daysOfWeek.indexOf(dayName); if (targetDayIndex === -1) targetDayIndex = shortDaysOfWeek.indexOf(dayName); if (targetDayIndex === -1) return null; const currentDayIndex = today.getUTCDay(); let daysToAdd = targetDayIndex - currentDayIndex; if (match[1] || daysToAdd <= 0) { daysToAdd += 7; } if (!match[1] && daysToAdd === 0) { daysToAdd = 7; } const targetDate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + daysToAdd)); return getDateString(targetDate); /* Use imported */ }},
-        { regex: /\b(today)\b/i, handler: () => getDateString(today) /* Use imported */ },
-        { regex: /\b(tomorrow)\b/i, handler: () => { const tomorrow = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 1)); return getDateString(tomorrow); /* Use imported */ }},
+        { regex: new RegExp(`\\b(next\\s+)?(${daysOfWeek.join('|')}|${shortDaysOfWeek.join('|')})\\b`, 'i'), handler: (match) => { const dayName = match[2].toLowerCase(); let targetDayIndex = daysOfWeek.indexOf(dayName); if (targetDayIndex === -1) targetDayIndex = shortDaysOfWeek.indexOf(dayName); if (targetDayIndex === -1) return null; const currentDayIndex = today.getUTCDay(); let daysToAdd = targetDayIndex - currentDayIndex; if (match[1] || daysToAdd <= 0) { daysToAdd += 7; } if (!match[1] && daysToAdd === 0) { daysToAdd = 7; } const targetDate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + daysToAdd)); return getDateString(targetDate); }},
+        { regex: /\b(today)\b/i, handler: () => getDateString(today) },
+        { regex: /\b(tomorrow)\b/i, handler: () => { const tomorrow = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 1)); return getDateString(tomorrow); }},
         { regex: /\b(\d{4}[-\/]\d{1,2}[-\/]\d{1,2})\b/i, handler: (match) => { const dateStr = match[1].replace(/\//g, '-'); const parts = dateStr.split('-'); if (parts.length === 3) { const year = parseInt(parts[0]); const month = parseInt(parts[1]); const day = parseInt(parts[2]); if (month < 1 || month > 12 || day < 1 || day > 31) return null; return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`; } return null; }},
         { regex: /\b(\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})\b/i, handler: (match) => { const dateStr = match[1]; const parts = dateStr.replace(/-/g, '/').split('/'); let year, month, day; if (parts.length === 3) { year = parseInt(parts[2]); if (year < 100) year += 2000; if (parseInt(parts[0]) > 12 && parseInt(parts[1]) <= 12) { day = parseInt(parts[0]); month = parseInt(parts[1]); } else if (parseInt(parts[0]) <=12 && parseInt(parts[1]) <=31) { month = parseInt(parts[0]); day = parseInt(parts[1]); } else { return null; } } else { return null; } if (isNaN(year) || isNaN(month) || isNaN(day) || month < 1 || month > 12 || day < 1 || day > 31) return null; return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`; }},
         { regex: /\b(\d{1,2}[-\/]\d{1,2})\b/i, handler: (match) => { const dateStr = match[1]; const parts = dateStr.replace(/-/g, '/').split('/'); let month, day; if (parts.length === 2) { if (parseInt(parts[0]) > 12 && parseInt(parts[1]) <= 12) { day = parseInt(parts[0]); month = parseInt(parts[1]); } else if (parseInt(parts[0]) <=12 && parseInt(parts[1]) <=31) { month = parseInt(parts[0]); day = parseInt(parts[1]); } else { return null; } } else { return null; } const year = today.getUTCFullYear(); if (isNaN(month) || isNaN(day) || month < 1 || month > 12 || day < 1 || day > 31) return null; return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`; }}
@@ -54,167 +42,77 @@ export function parseDateFromText(text) {
     return { parsedDate, remainingText };
 }
 
-/**
- * Adds a new task to the application.
- * @param {object} taskData - An object containing all properties for the new task.
- * @returns {object|null} The newly created task object or null if failed.
- */
 export function addTask(taskData) {
-    // Now uses AppStore for data access and modification
-    if (typeof AppStore === 'undefined' || typeof AppStore.getTasks !== 'function' || typeof AppStore.setTasks !== 'function' || typeof AppStore.getKanbanColumns !== 'function') {
-        console.error("[TaskService] AppStore API not available for addTask.");
-        return null;
-    }
-
-    let currentTasks = AppStore.getTasks(); // Get tasks via AppStore
-    const currentKanbanColumns = AppStore.getKanbanColumns(); // Get kanban columns via AppStore
+    if (!AppStore) { console.error("[TaskService] AppStore not available for addTask."); return null; }
+    let currentTasks = AppStore.getTasks();
+    const currentKanbanColumns = AppStore.getKanbanColumns();
     const defaultKanbanColumn = currentKanbanColumns[0]?.id || 'todo';
-
-    const newTask = {
-        id: Date.now(), 
-        creationDate: Date.now(),
-        completed: false,
-        kanbanColumnId: defaultKanbanColumn,
-        ...taskData,
-        dueDate: taskData.dueDate || null,
-        time: taskData.time || null,
-        priority: taskData.priority || 'medium',
-        label: taskData.label || '',
-        notes: taskData.notes || '',
-        projectId: typeof taskData.projectId === 'number' ? taskData.projectId : 0,
-        isReminderSet: taskData.isReminderSet || false,
-        reminderDate: taskData.reminderDate || null,
-        reminderTime: taskData.reminderTime || null,
-        reminderEmail: taskData.reminderEmail || null,
-        estimatedHours: taskData.estimatedHours || 0,
-        estimatedMinutes: taskData.estimatedMinutes || 0,
-        timerStartTime: null,
-        timerAccumulatedTime: 0,
-        timerIsRunning: false,
-        timerIsPaused: false,
-        actualDurationMs: 0,
-        attachments: taskData.attachments || [],
-        completedDate: null,
-        subTasks: taskData.subTasks || [],
-        dependsOn: taskData.dependsOn || [],
-        blocksTasks: taskData.blocksTasks || []
-    };
-
+    const newTask = { id: Date.now(), creationDate: Date.now(), completed: false, kanbanColumnId: defaultKanbanColumn, ...taskData, dueDate: taskData.dueDate || null, time: taskData.time || null, priority: taskData.priority || 'medium', label: taskData.label || '', notes: taskData.notes || '', projectId: typeof taskData.projectId === 'number' ? taskData.projectId : 0, isReminderSet: taskData.isReminderSet || false, reminderDate: taskData.reminderDate || null, reminderTime: taskData.reminderTime || null, reminderEmail: taskData.reminderEmail || null, estimatedHours: taskData.estimatedHours || 0, estimatedMinutes: taskData.estimatedMinutes || 0, timerStartTime: null, timerAccumulatedTime: 0, timerIsRunning: false, timerIsPaused: false, actualDurationMs: 0, attachments: taskData.attachments || [], completedDate: null, subTasks: taskData.subTasks || [], dependsOn: taskData.dependsOn || [], blocksTasks: taskData.blocksTasks || [] };
     currentTasks.unshift(newTask);
-    AppStore.setTasks(currentTasks); // Update tasks in AppStore
+    AppStore.setTasks(currentTasks);
     console.log("[TaskService] Task added:", newTask);
     return newTask;
 }
 
-/**
- * Updates an existing task.
- * @param {number} taskId - The ID of the task to update.
- * @param {object} taskUpdateData - An object containing properties to update.
- * @returns {object|null} The updated task object or null if not found/failed.
- */
 export function updateTask(taskId, taskUpdateData) {
-    // Uses AppStore
-    if (typeof AppStore === 'undefined' || typeof AppStore.getTasks !== 'function' || typeof AppStore.setTasks !== 'function') {
-        console.error("[TaskService] AppStore API not available for updateTask.");
-        return null;
-    }
+    if (!AppStore) { console.error("[TaskService] AppStore not available for updateTask."); return null; }
     let currentTasks = AppStore.getTasks();
     const taskIndex = currentTasks.findIndex(t => t.id === taskId);
-
-    if (taskIndex === -1) {
-        console.error(`[TaskService] Task with ID ${taskId} not found for update.`);
-        return null;
-    }
-    
+    if (taskIndex === -1) { console.error(`[TaskService] Task with ID ${taskId} not found for update.`); return null; }
     currentTasks[taskIndex] = { ...currentTasks[taskIndex], ...taskUpdateData };
     AppStore.setTasks(currentTasks);
     console.log("[TaskService] Task updated:", currentTasks[taskIndex]);
     return currentTasks[taskIndex];
 }
 
-/**
- * Toggles the completion status of a task.
- * @param {number} taskId - The ID of the task to toggle.
- * @returns {object|null} The updated task object or null if not found/failed (or { _blocked: true }).
- */
 export function toggleTaskComplete(taskId) {
-    // Uses AppStore and FeatureFlagService
-    if (typeof AppStore === 'undefined' || typeof AppStore.getTasks !== 'function' || typeof AppStore.setTasks !== 'function' ||
-        typeof FeatureFlagService === 'undefined' || typeof AppStore.getKanbanColumns !== 'function') {
-        console.error("[TaskService] Core dependencies not available for toggleTaskComplete.");
+    if (!AppStore || typeof FeatureFlagService === 'undefined') { // Check FeatureFlagService for consistency
+        console.error("[TaskService] AppStore or FeatureFlagService not available for toggleTaskComplete.");
         return null;
     }
     let currentTasks = AppStore.getTasks();
     const taskIndex = currentTasks.findIndex(t => t.id === taskId);
-
-    if (taskIndex === -1) {
-        console.error(`[TaskService] Task with ID ${taskId} not found for toggle complete.`);
-        return null;
-    }
-
+    if (taskIndex === -1) { console.error(`[TaskService] Task with ID ${taskId} not found for toggle complete.`); return null; }
     const taskToToggle = currentTasks[taskIndex];
-
-    if (FeatureFlagService.isFeatureEnabled('taskDependenciesFeature') && !taskToToggle.completed) {
+    if (isFeatureEnabled('taskDependenciesFeature') && !taskToToggle.completed) { // Use imported isFeatureEnabled
         if (taskToToggle.dependsOn && taskToToggle.dependsOn.length > 0) {
             const incompleteDependencies = taskToToggle.dependsOn.some(depId => {
                 const dependentTask = currentTasks.find(t => t.id === depId);
                 return dependentTask && !dependentTask.completed;
             });
-            if (incompleteDependencies) {
-                console.warn(`[TaskService] Cannot complete task ${taskId}. It has incomplete dependencies.`);
-                return { ...taskToToggle, _blocked: true }; 
-            }
+            if (incompleteDependencies) { console.warn(`[TaskService] Cannot complete task ${taskId}. It has incomplete dependencies.`); return { ...taskToToggle, _blocked: true }; }
         }
     }
-
     currentTasks[taskIndex].completed = !currentTasks[taskIndex].completed;
     currentTasks[taskIndex].completedDate = currentTasks[taskIndex].completed ? Date.now() : null;
-
-    if (FeatureFlagService.isFeatureEnabled('kanbanBoardFeature')) {
+    if (isFeatureEnabled('kanbanBoardFeature')) { // Use imported isFeatureEnabled
         const currentKanbanColumns = AppStore.getKanbanColumns();
-        if (currentTasks[taskIndex].completed) {
-            const doneColumn = currentKanbanColumns.find(col => col.id === 'done');
-            if (doneColumn) currentTasks[taskIndex].kanbanColumnId = doneColumn.id;
-        } else if (currentTasks[taskIndex].kanbanColumnId === 'done') { 
-            const defaultColumn = currentKanbanColumns[0]?.id || 'todo';
-            currentTasks[taskIndex].kanbanColumnId = defaultColumn;
-        }
+        if (currentTasks[taskIndex].completed) { const doneColumn = currentKanbanColumns.find(col => col.id === 'done'); if (doneColumn) currentTasks[taskIndex].kanbanColumnId = doneColumn.id;
+        } else if (currentTasks[taskIndex].kanbanColumnId === 'done') { const defaultColumn = currentKanbanColumns[0]?.id || 'todo'; currentTasks[taskIndex].kanbanColumnId = defaultColumn; }
     }
-
-    if (FeatureFlagService.isFeatureEnabled('taskTimerSystem') && window.AppFeatures?.TaskTimerSystem?.handleTaskCompletion) {
+    if (isFeatureEnabled('taskTimerSystem') && window.AppFeatures?.TaskTimerSystem?.handleTaskCompletion) {
         window.AppFeatures.TaskTimerSystem.handleTaskCompletion(taskId, currentTasks[taskIndex].completed);
     }
-
     AppStore.setTasks(currentTasks);
     console.log(`[TaskService] Task ${taskId} completion toggled to: ${currentTasks[taskIndex].completed}`);
     return currentTasks[taskIndex];
 }
 
-/**
- * Deletes a task by its ID.
- * @param {number} taskId - The ID of the task to delete.
- * @returns {boolean} True if deletion was successful, false otherwise.
- */
 export function deleteTaskById(taskId) {
-    // Uses AppStore and FeatureFlagService
-    if (typeof AppStore === 'undefined' || typeof AppStore.getTasks !== 'function' || typeof AppStore.setTasks !== 'function' ||
-        typeof FeatureFlagService === 'undefined') {
-        console.error("[TaskService] Core dependencies not available for deleteTaskById.");
+    if (!AppStore || typeof FeatureFlagService === 'undefined') { // Check FeatureFlagService
+        console.error("[TaskService] AppStore or FeatureFlagService not available for deleteTaskById.");
         return false;
     }
-
     let currentTasks = AppStore.getTasks();
     const initialLength = currentTasks.length;
     let updatedTasks = currentTasks.filter(task => task.id !== taskId);
-
-    if (FeatureFlagService.isFeatureEnabled('taskDependenciesFeature')) {
+    if (isFeatureEnabled('taskDependenciesFeature')) { // Use imported isFeatureEnabled
         updatedTasks = updatedTasks.map(task => {
             const newDependsOn = task.dependsOn ? task.dependsOn.filter(id => id !== taskId) : [];
             const newBlocksTasks = task.blocksTasks ? task.blocksTasks.filter(id => id !== taskId) : [];
             return { ...task, dependsOn: newDependsOn, blocksTasks: newBlocksTasks };
         });
     }
-    
     if (updatedTasks.length < initialLength) {
         AppStore.setTasks(updatedTasks);
         console.log(`[TaskService] Task ${taskId} deleted.`);
@@ -224,4 +122,4 @@ export function deleteTaskById(taskId) {
     return false;
 }
 
-console.log("taskService.js loaded as ES6 module, now using AppStore API and importing from utils.js.");
+console.log("taskService.js loaded as ES6 module.");
