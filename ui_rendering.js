@@ -66,8 +66,19 @@ function showMessage(message, type = 'success') { /* ... same as before ... */ }
 function populateDatalist(datalistElement) { /* ... same as before, uses AppStore.getUniqueLabels() ... */ }
 function setSidebarMinimized(minimize) { /* ... same as before ... */ }
 function showTooltip(element, text) { /* ... same as before, uses FeatureFlagService ... */ }
-function hideTooltip() { /* ... same as before, uses AppStore for tooltipTimeout ... */ }
-
+function hideTooltip() {
+    if (!iconTooltip) return;
+    // Use TooltipService to clear the timeout
+    if (typeof TooltipService !== 'undefined' && typeof TooltipService.clearTooltipTimeout === 'function') {
+        TooltipService.clearTooltipTimeout();
+    } else {
+        // Fallback or warning if TooltipService is not available
+        // This might happen if script load order is an issue, but should be fine with current setup.
+        console.warn("[UI Rendering] TooltipService not available to clear timeout.");
+        // If a global _tooltipTimeout was previously used and cleared here, that logic is now removed.
+    }
+    iconTooltip.style.display = 'none';
+}
 // --- Task Rendering ---
 function refreshTaskView() { /* ... same as before, uses ViewManager, FeatureFlagService, AppStore.getTasks() ... */ }
 function renderTaskListView() { /* ... same as before, uses ViewManager, AppStore.getTasks(), AppStore.getProjects(), FeatureFlagService, TaskService.getPriorityClass, utils.formatDate/Time, BulkActionService.getSelectedIds() ... */ }
