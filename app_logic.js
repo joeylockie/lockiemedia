@@ -1,7 +1,7 @@
 // app_logic.js
 // This file now contains core application logic, event handlers,
 // and functions that interact with the state managed in store.js
-// and utility functions from utils.js and services like taskService.js and viewManager.js.
+// and utility functions from utils.js and services.
 
 // --- Theme Management ---
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
@@ -23,14 +23,6 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', eve
 
 // --- Task View Mode, Filtering, Sorting, and Search Term state management ---
 // These are now conceptually managed by viewManager.js
-// - currentTaskViewMode (variable in store.js, mutated by ViewManager.setTaskViewMode)
-// - setTaskViewMode(mode) (function in viewManager.js)
-// - currentFilter (variable in store.js, mutated by ViewManager.setCurrentFilter)
-// - setCurrentFilter(filter) (function in viewManager.js)
-// - currentSort (variable in store.js, mutated by ViewManager.setCurrentSort)
-// - setCurrentSort(sortType) (function in viewManager.js)
-// - currentSearchTerm (variable in store.js, mutated by ViewManager.setCurrentSearchTerm)
-// - setCurrentSearchTerm(term) (function in viewManager.js)
 
 
 // --- Kanban Board Logic ---
@@ -38,19 +30,8 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', eve
 
 
 // --- Data Management Functions (Export/Import) ---
-function prepareDataForExport() {
-    // tasks, projects, kanbanColumns, featureFlags are now global from store.js
-    return {
-        version: "1.0.0",
-        exportDate: new Date().toISOString(),
-        data: {
-            tasks: tasks,
-            projects: projects,
-            kanbanColumns: kanbanColumns,
-            featureFlags: featureFlags
-        }
-    };
-}
+// prepareDataForExport() has been moved to feature_data_management.js
+
 
 // --- Bulk Action State Management ---
 function toggleTaskSelectionForBulkAction(taskId) {
@@ -75,4 +56,6 @@ function getSelectedTaskIdsForBulkAction() {
     return [...selectedTaskIdsForBulkAction];
 }
 
-// app_logic.js continues to become leaner.
+// app_logic.js is now very lean. The remaining functions are for bulk actions
+// and theme management. Bulk actions might also move to a dedicated service later.
+// console.log("app_logic.js loaded");
