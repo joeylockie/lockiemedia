@@ -120,34 +120,33 @@ function handleAddTempSubTaskForAddModal() { /* ... same as before ... */ }
 
 function setupEventListeners() {
     // ... (Most event listeners remain the same)
-    // Ensure editFromViewModalBtn and deleteFromViewModalBtn use ModalStateService.getCurrentViewTaskId()
-    if (editFromViewModalBtn) {
-        editFromViewModalBtn.addEventListener('click', () => {
-            const taskIdToEdit = ModalStateService.getCurrentViewTaskId(); // Use ModalStateService
-            if (taskIdToEdit !== null) {
-                if(typeof closeViewTaskDetailsModal === 'function') closeViewTaskDetailsModal();
-                if(typeof openViewEditModal === 'function') openViewEditModal(taskIdToEdit); 
-                if (FeatureFlagService.isFeatureEnabled('projectFeature') && window.AppFeatures?.Projects) {
-                    window.AppFeatures.Projects.populateProjectDropdowns();
-                    const task = AppStore.getTasks().find(t => t.id === taskIdToEdit); 
-                    if (task && modalProjectSelectViewEdit) modalProjectSelectViewEdit.value = task.projectId || "0";
-                }
-            }
+
+    if (sidebarIconOnlyButtons && typeof TooltipService !== 'undefined') { // Check for TooltipService
+        sidebarIconOnlyButtons.forEach(button => {
+            button.addEventListener('mouseenter', (event) => {
+                if (!taskSidebar || !taskSidebar.classList.contains('sidebar-minimized')) return;
+                
+                TooltipService.clearTooltipTimeout(); // Use service
+                const timeoutId = setTimeout(() => {
+                    const tooltipText = button.title || button.querySelector('.sidebar-text-content')?.textContent.trim();
+                    if (tooltipText && typeof showTooltip === 'function') { // showTooltip from ui_rendering.js
+                        showTooltip(event.currentTarget, tooltipText);
+                    }
+                }, 500);
+                TooltipService.setTooltipTimeout(timeoutId); // Use service
+            });
+            button.addEventListener('mouseleave', () => {
+                TooltipService.clearTooltipTimeout(); // Use service
+                if(typeof hideTooltip === 'function') hideTooltip(); // from ui_rendering.js
+            });
         });
+    } else if (!TooltipService) {
+        console.warn("[Event Handlers] TooltipService not available for sidebar icon listeners.");
     }
-    if(deleteFromViewModalBtn) {
-        deleteFromViewModalBtn.addEventListener('click', () => {
-            const taskIdToDelete = ModalStateService.getCurrentViewTaskId(); // Use ModalStateService
-            if (taskIdToDelete !== null) {
-                deleteTask(taskIdToDelete); // deleteTask now uses TaskService & ModalStateService internally
-                if(typeof closeViewTaskDetailsModal === 'function') closeViewTaskDetailsModal();
-            }
-        });
-    }
-    // ... (rest of setupEventListeners as in previous version, ensuring ViewManager is used for filter/sort/search/view mode changes)
+
+    // ... (rest of setupEventListeners as in ui_event_handlers_js_refactor_08_modalstate_final)
     if (taskSearchInput) taskSearchInput.addEventListener('input', (event) => { ViewManager.setCurrentSearchTerm(event.target.value.trim()); });
     if (sidebarToggleBtn) { sidebarToggleBtn.addEventListener('click', () => { const isCurrentlyMinimized = taskSidebar.classList.contains('sidebar-minimized'); if(typeof setSidebarMinimized === 'function') setSidebarMinimized(!isCurrentlyMinimized); if (FeatureFlagService.isFeatureEnabled('pomodoroTimerHybridFeature') && window.AppFeatures?.PomodoroTimerHybrid?.updateSidebarDisplay) { window.AppFeatures.PomodoroTimerHybrid.updateSidebarDisplay(); } }); }
-    if (sidebarIconOnlyButtons) { sidebarIconOnlyButtons.forEach(button => { button.addEventListener('mouseenter', (event) => { if (!taskSidebar || !taskSidebar.classList.contains('sidebar-minimized')) return; if(typeof AppStore !== 'undefined' && AppStore.getTooltipTimeout && AppStore.clearTooltipTimeout) { const currentTimeout = AppStore.getTooltipTimeout(); if(currentTimeout) clearTimeout(currentTimeout); AppStore.clearTooltipTimeout(); AppStore.setTooltipTimeout(setTimeout(() => { const tooltipText = button.title || button.querySelector('.sidebar-text-content')?.textContent.trim(); if (tooltipText && typeof showTooltip === 'function') showTooltip(event.currentTarget, tooltipText); }, 500));} }); button.addEventListener('mouseleave', () => { if(typeof hideTooltip === 'function') hideTooltip(); }); }); }
     if (sortByDueDateBtn) sortByDueDateBtn.addEventListener('click', () => { ViewManager.setCurrentSort(ViewManager.getCurrentSort() === 'dueDate' ? 'default' : 'dueDate'); });
     if (sortByPriorityBtn) sortByPriorityBtn.addEventListener('click', () => { ViewManager.setCurrentSort(ViewManager.getCurrentSort() === 'priority' ? 'default' : 'priority'); });
     if (sortByLabelBtn) sortByLabelBtn.addEventListener('click', () => { ViewManager.setCurrentSort(ViewManager.getCurrentSort() === 'label' ? 'default' : 'label'); });
@@ -157,7 +156,7 @@ function setupEventListeners() {
     if (openAddModalButton) openAddModalButton.addEventListener('click', () => { openAddModal(); if (FeatureFlagService.isFeatureEnabled('projectFeature') && window.AppFeatures?.Projects) window.AppFeatures.Projects.populateProjectDropdowns(); });
     if (closeAddModalBtn) closeAddModalBtn.addEventListener('click', closeAddModal); if (cancelAddModalBtn) cancelAddModalBtn.addEventListener('click', closeAddModal); if (modalTodoFormAdd) modalTodoFormAdd.addEventListener('submit', handleAddTask); if (addTaskModal) addTaskModal.addEventListener('click', (event) => { if (event.target === addTaskModal) closeAddModal(); });
     if (closeViewEditModalBtn) closeViewEditModalBtn.addEventListener('click', closeViewEditModal); if (cancelViewEditModalBtn) cancelViewEditModalBtn.addEventListener('click', closeViewEditModal); if (modalTodoFormViewEdit) modalTodoFormViewEdit.addEventListener('submit', handleEditTask); if (viewEditTaskModal) viewEditTaskModal.addEventListener('click', (event) => { if (event.target === viewEditTaskModal) closeViewEditModal(); });
-    if (closeViewDetailsModalBtn) closeViewDetailsModalBtn.addEventListener('click', closeViewTaskDetailsModal); if (closeViewDetailsSecondaryBtn) closeViewDetailsSecondaryBtn.addEventListener('click', closeViewTaskDetailsModal); /* editFromViewModalBtn and deleteFromViewModalBtn handled above */ if (viewTaskDetailsModal) viewTaskDetailsModal.addEventListener('click', (event) => { if (event.target === viewTaskDetailsModal) closeViewTaskDetailsModal(); });
+    if (closeViewDetailsModalBtn) closeViewDetailsModalBtn.addEventListener('click', closeViewTaskDetailsModal); if (closeViewDetailsSecondaryBtn) closeViewDetailsSecondaryBtn.addEventListener('click', closeViewTaskDetailsModal); if (editFromViewModalBtn) { editFromViewModalBtn.addEventListener('click', () => { const taskIdToEdit = ModalStateService.getCurrentViewTaskId(); if (taskIdToEdit !== null) { if(typeof closeViewTaskDetailsModal === 'function') closeViewTaskDetailsModal(); if(typeof openViewEditModal === 'function') openViewEditModal(taskIdToEdit); if (FeatureFlagService.isFeatureEnabled('projectFeature') && window.AppFeatures?.Projects) { window.AppFeatures.Projects.populateProjectDropdowns(); const task = AppStore.getTasks().find(t => t.id === taskIdToEdit); if (task && modalProjectSelectViewEdit) modalProjectSelectViewEdit.value = task.projectId || "0"; } } }); } if(deleteFromViewModalBtn) { deleteFromViewModalBtn.addEventListener('click', () => { const taskIdToDelete = ModalStateService.getCurrentViewTaskId(); if (taskIdToDelete !== null) { deleteTask(taskIdToDelete); if(typeof closeViewTaskDetailsModal === 'function') closeViewTaskDetailsModal(); } }); } if (viewTaskDetailsModal) viewTaskDetailsModal.addEventListener('click', (event) => { if (event.target === viewTaskDetailsModal) closeViewTaskDetailsModal(); });
     if (closeManageLabelsModalBtn) closeManageLabelsModalBtn.addEventListener('click', closeManageLabelsModal); if (closeManageLabelsSecondaryBtn) closeManageLabelsSecondaryBtn.addEventListener('click', closeManageLabelsModal); if (addNewLabelForm) addNewLabelForm.addEventListener('submit', handleAddNewLabel); if (manageLabelsModal) manageLabelsModal.addEventListener('click', (event) => { if (event.target === manageLabelsModal) closeManageLabelsModal(); });
     if (openSettingsModalButton) openSettingsModalButton.addEventListener('click', openSettingsModal); if (closeSettingsModalBtn) closeSettingsModalBtn.addEventListener('click', closeSettingsModal); if (closeSettingsSecondaryBtn) closeSettingsSecondaryBtn.addEventListener('click', closeSettingsModal); if (settingsModal) settingsModal.addEventListener('click', (event) => { if (event.target === settingsModal) closeSettingsModal(); });
     if (settingsClearCompletedBtn) settingsClearCompletedBtn.addEventListener('click', clearCompletedTasks); if (settingsManageLabelsBtn) settingsManageLabelsBtn.addEventListener('click', () => { closeSettingsModal(); openManageLabelsModal(); }); const settingsManageProjectsBtnLocal = document.getElementById('settingsManageProjectsBtn'); if (settingsManageProjectsBtnLocal) settingsManageProjectsBtnLocal.addEventListener('click', () => { if (FeatureFlagService.isFeatureEnabled('projectFeature') && window.AppFeatures?.Projects) { closeSettingsModal(); window.AppFeatures.Projects.openManageProjectsModal(); } else { showMessage('Enable Project Feature in Feature Flags.', 'error'); } }); if (settingsManageRemindersBtn) { settingsManageRemindersBtn.addEventListener('click', () => { if(FeatureFlagService.isFeatureEnabled('reminderFeature')) { showMessage('Manage Reminders - Coming soon!', 'info'); } else { showMessage('Enable Reminder System in Feature Flags.', 'error'); }});} if (settingsTaskReviewBtn) { settingsTaskReviewBtn.addEventListener('click', () => { closeSettingsModal(); openTaskReviewModal(); });} if (settingsTooltipsGuideBtn) { settingsTooltipsGuideBtn.addEventListener('click', () => {closeSettingsModal(); openTooltipsGuideModal(); }); } const nonFunctionalFeatureMessageHandler = (featureName) => { showMessage(`${featureName} feature is not yet implemented. Coming soon!`, 'info'); }; if (settingsIntegrationsBtn) settingsIntegrationsBtn.addEventListener('click', () => nonFunctionalFeatureMessageHandler('Integrations')); if (settingsUserAccountsBtn) settingsUserAccountsBtn.addEventListener('click', () => nonFunctionalFeatureMessageHandler('User Accounts')); if (settingsCollaborationBtn) settingsCollaborationBtn.addEventListener('click', () => nonFunctionalFeatureMessageHandler('Collaboration')); if (settingsSyncBackupBtn) settingsSyncBackupBtn.addEventListener('click', () => nonFunctionalFeatureMessageHandler('Sync & Backup'));
