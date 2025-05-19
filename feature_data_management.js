@@ -3,16 +3,14 @@
 // Self-invoking function to encapsulate the Data Management (Export/Import) feature's code
 (function() {
     // --- DOM Element References ---
-    // The button for exporting data will be in the settings modal.
-    // We'll get its reference in the initialize function or when it's needed.
     let settingsExportDataBtn;
 
     /**
      * Initializes the Data Management Feature.
-     * For now, this mainly involves getting a reference to the export button.
+     * Sets up event listener for the export button.
      */
     function initializeDataManagementFeature() {
-        settingsExportDataBtn = document.getElementById('settingsExportDataBtn'); // This ID will be added to todo.html
+        settingsExportDataBtn = document.getElementById('settingsExportDataBtn');
 
         if (settingsExportDataBtn) {
             settingsExportDataBtn.addEventListener('click', handleExportData);
@@ -27,40 +25,80 @@
      * @param {boolean} isExportEnabled - True if the export feature is enabled.
      * @param {boolean} isImportEnabled - True if the import feature is enabled (for future use).
      */
-    function updateUIVisibility(isExportEnabled, isImportEnabled = false) { // Added isImportEnabled for future
+    function updateUIVisibility(isExportEnabled, isImportEnabled = false) {
+        // Assumes featureFlags is globally available from store.js or FeatureFlagService
+        if (typeof featureFlags === 'undefined') {
+            console.error("[DataManagement] 'featureFlags' not available globally.");
+            return;
+        }
+
         if (settingsExportDataBtn) {
-            settingsExportDataBtn.classList.toggle('hidden', !isExportEnabled);
+            settingsExportDataBtn.classList.toggle('hidden', !featureFlags.exportDataFeature); // Use the actual flag
         }
         // Example for future import button:
         // const settingsImportDataBtn = document.getElementById('settingsImportDataBtn');
         // if (settingsImportDataBtn) {
-        //     settingsImportDataBtn.classList.toggle('hidden', !isImportEnabled);
+        //     settingsImportDataBtn.classList.toggle('hidden', !isImportEnabled); // Or !featureFlags.importDataFeature
         // }
-        console.log(`Data Management UI Visibility - Export: ${isExportEnabled}`);
+        console.log(`[DataManagement] UI Visibility - Export: ${featureFlags.exportDataFeature}`);
     }
+
+    /**
+     * Prepares all application data for export.
+     * This function itself doesn't trigger download but returns the data object.
+     * Relies on global state variables from store.js.
+     * @returns {object} An object containing all data to be exported.
+     */
+    function prepareDataForExport() {
+        // Access global state variables (tasks, projects, etc.) defined in store.js
+        if (typeof tasks === 'undefined' || typeof projects === 'undefined' ||
+            typeof kanbanColumns === 'undefined' || typeof featureFlags === 'undefined') {
+            console.error("[DataManagement] Global state variables (tasks, projects, kanbanColumns, featureFlags) are not defined. Ensure store.js is loaded and initialized.");
+            return {
+                error: "Missing core data for export.",
+                version: "1.0.0",
+                exportDate: new Date().toISOString(),
+                data: {}
+            };
+        }
+
+        return {
+            version: "1.0.0", // Version of the export format
+            exportDate: new Date().toISOString(),
+            data: {
+                tasks: tasks,
+                projects: projects,
+                kanbanColumns: kanbanColumns,
+                // Use a snapshot of feature flags from FeatureFlagService if available, otherwise global
+                featureFlags: (window.FeatureFlagService && typeof window.FeatureFlagService.getAllFeatureFlags === 'function')
+                                ? window.FeatureFlagService.getAllFeatureFlags()
+                                : featureFlags
+            }
+        };
+    }
+
 
     /**
      * Handles the data export process.
      * Gathers data, converts to JSON, and triggers a download.
      */
     function handleExportData() {
-        if (!featureFlags.exportDataFeature) {
+        // Assumes featureFlags is globally available from store.js or FeatureFlagService
+        if (typeof featureFlags === 'undefined' || !featureFlags.exportDataFeature) {
             if (typeof showMessage === 'function') {
                 showMessage('Export feature is not enabled.', 'error');
             }
             return;
         }
 
-        if (typeof prepareDataForExport !== 'function') {
-            console.error('[DataManagement] prepareDataForExport function is not defined in app_logic.js.');
-            if (typeof showMessage === 'function') {
-                showMessage('Error preparing data for export. Function missing.', 'error');
-            }
-            return;
-        }
-
         try {
-            const allData = prepareDataForExport(); // Get data from app_logic.js
+            const allData = prepareDataForExport(); // Get data using the local function
+            if (allData.error) {
+                console.error('[DataManagement] Error preparing data for export:', allData.error);
+                if (typeof showMessage === 'function') showMessage(allData.error, 'error');
+                return;
+            }
+
             const jsonData = JSON.stringify(allData, null, 2); // Pretty print JSON with 2 spaces
 
             const blob = new Blob([jsonData], { type: 'application/json' });
@@ -69,7 +107,6 @@
             const a = document.createElement('a');
             a.href = url;
 
-            // Generate filename with current date
             const now = new Date();
             const year = now.getFullYear();
             const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -88,7 +125,8 @@
                 showMessage('Data exported successfully!', 'success');
             }
             // Close settings modal if open
-            if (typeof closeSettingsModal === 'function' && settingsModal && !settingsModal.classList.contains('hidden')) {
+            // Assumes settingsModal and closeSettingsModal are globally available (from modal_interactions.js or ui_event_handlers.js)
+            if (typeof closeSettingsModal === 'function' && typeof settingsModal !== 'undefined' && settingsModal && !settingsModal.classList.contains('hidden')) {
                 closeSettingsModal();
             }
 
@@ -104,13 +142,15 @@
     if (typeof window.AppFeatures === 'undefined') {
         window.AppFeatures = {};
     }
-    // Ensure a specific namespace for this feature if it doesn't exist
     if (typeof window.AppFeatures.DataManagement === 'undefined') {
         window.AppFeatures.DataManagement = {};
     }
 
     window.AppFeatures.DataManagement.initialize = initializeDataManagementFeature;
     window.AppFeatures.DataManagement.updateUIVisibility = updateUIVisibility;
-    window.AppFeatures.DataManagement.handleExportData = handleExportData; // Expose if needed directly, though usually called by event listener
+    // prepareDataForExport is now internal to this module, used by handleExportData.
+    // handleExportData is called by the event listener set up in initialize.
+    // No need to expose them further unless other modules need to call them directly.
 
+    // console.log("feature_data_management.js loaded");
 })();
