@@ -3,13 +3,13 @@
 // UI presentation state is managed by ViewManager.
 // Bulk action state is managed by BulkActionService.
 // Pomodoro state is managed by PomodoroTimerHybrid feature module.
+// Modal-specific task IDs (editing, viewing) are managed by ModalStateService.
 
 (function() {
     // --- Internal State Variables (scoped to this IIFE) ---
     let _tasks = [];
     let _projects = [];
-    let _editingTaskId = null;    
-    let _currentViewTaskId = null;
+    // _editingTaskId, _currentViewTaskId moved to ModalStateService.js
     let _uniqueLabels = [];
     let _uniqueProjects = [];
     let _tooltipTimeout = null; 
@@ -43,18 +43,26 @@
         getUniqueLabels: () => [..._uniqueLabels],
         getUniqueProjects: () => [..._uniqueProjects],
         
-        getEditingTaskId: () => _editingTaskId,
-        setCurrentViewTaskId: (id) => _currentViewTaskId = id, 
-        getCurrentViewTaskId: () => _currentViewTaskId,
-        // REMOVED: Pomodoro state getters/setters
+        // REMOVED: getEditingTaskId, setCurrentViewTaskId, getCurrentViewTaskId, setEditingTaskIdInStore
+        // These are now in ModalStateService.
 
+        // Pomodoro State (will move to PomodoroService later, or already in pomodoro_timer.js)
+        // For now, keeping these direct setters if pomodoro_timer.js still uses them directly on AppStore.
+        // Ideally, pomodoro_timer.js owns this state entirely.
+        isPomodoroActive: () => _isPomodoroActive, // Should be from PomodoroTimerHybrid.getCurrentState()
+        setPomodoroActive: (isActive) => _isPomodoroActive = isActive,
+        getCurrentPomodoroState: () => _currentPomodoroState, // Should be from PomodoroTimerHybrid.getCurrentState()
+        setCurrentPomodoroState: (state) => _currentPomodoroState = state,
+        getPomodoroTimeRemaining: () => _pomodoroTimeRemaining, // Should be from PomodoroTimerHybrid.getCurrentState()
+        setPomodoroTimeRemaining: (time) => _pomodoroTimeRemaining = time,
+        getPomodoroCurrentTaskId: () => _pomodoroCurrentTaskId, // Should be from PomodoroTimerHybrid.getCurrentState()
+        setPomodoroCurrentTaskId: (id) => _pomodoroCurrentTaskId = id,
+        
         setTasks: (newTasksArray) => { _tasks = JSON.parse(JSON.stringify(newTasksArray)); _saveTasksInternal(); },
         setProjects: (newProjectsArray) => { _projects = JSON.parse(JSON.stringify(newProjectsArray)); _saveProjectsInternal(); },
         setKanbanColumns: (newColumnsArray) => { _kanbanColumns = JSON.parse(JSON.stringify(newColumnsArray)); _saveKanbanColumnsInternal(); },
         
         setFeatureFlags: (loadedFlags) => { /* ... same as before ... */ if (loadedFlags && typeof loadedFlags === 'object') { _featureFlags = { ..._featureFlags, ...loadedFlags }; window.featureFlags = _featureFlags; console.log('[Store API] Feature flags updated in store:', _featureFlags); _publish('featureFlagsInitialized', { ..._featureFlags }); } else { console.error('[Store API] Invalid flags received.'); }},
-
-        setEditingTaskIdInStore: (id) => { _editingTaskId = id; }, 
         
         getTooltipTimeout: () => _tooltipTimeout,
         setTooltipTimeout: (timeoutId) => { _tooltipTimeout = timeoutId; },
@@ -68,5 +76,5 @@
         }
     };
     window.AppStore = AppStore;
-    console.log("store.js loaded, AppStore API created. Pomodoro state moved to pomodoro_timer.js.");
+    console.log("store.js loaded, AppStore API created. Modal task IDs moved to ModalStateService.");
 })();
