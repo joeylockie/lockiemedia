@@ -1,93 +1,121 @@
 // viewManager.js
-// Manages UI state like current view mode, filters, sort order, and search terms.
-// Publishes events when these states change.
+// Manages UI presentation state (current view mode, active filters, sort order, search terms)
+// and publishes events when these states change.
 
-// Assumes state variables (currentTaskViewMode, currentFilter, etc.) are global from store.js
-// Assumes EventBus is global from eventBus.js
+(function() {
+    // --- Internal State Variables (scoped to this IIFE) ---
+    let _currentFilter = 'inbox';
+    let _currentSort = 'default';
+    let _currentSearchTerm = '';
+    let _currentTaskViewMode = 'list';
 
-function setTaskViewMode(mode) {
-    if (typeof currentTaskViewMode === 'undefined' || typeof EventBus === 'undefined') {
-        console.error("[ViewManager] 'currentTaskViewMode' or 'EventBus' not defined.");
-        return;
-    }
-    if (['list', 'kanban', 'calendar', 'pomodoro'].includes(mode)) {
-        if (currentTaskViewMode !== mode) {
-            currentTaskViewMode = mode;
-            console.log(`[ViewManager] Task view mode changed to: ${currentTaskViewMode}`);
-            EventBus.publish('viewModeChanged', currentTaskViewMode);
+    // Assumes EventBus is global from eventBus.js
+    function _publish(eventName, data) {
+        if (window.EventBus && typeof window.EventBus.publish === 'function') {
+            EventBus.publish(eventName, data);
+        } else {
+            console.warn(`[ViewManager] EventBus not available to publish event: ${eventName}`);
         }
-    } else {
-        console.warn(`[ViewManager] Attempted to set invalid task view mode: ${mode}`);
     }
-}
 
-function getCurrentTaskViewMode() {
-    if (typeof currentTaskViewMode !== 'undefined') return currentTaskViewMode;
-    return 'list'; // Fallback
-}
-
-function setCurrentFilter(filter) {
-    if (typeof currentFilter === 'undefined' || typeof currentSort === 'undefined' || typeof EventBus === 'undefined') {
-        console.error("[ViewManager] 'currentFilter', 'currentSort', or 'EventBus' not defined.");
-        return;
+    /**
+     * Sets the current task view mode (e.g., 'list', 'kanban').
+     * @param {string} mode - The view mode to set.
+     */
+    function setTaskViewMode(mode) {
+        if (['list', 'kanban', 'calendar', 'pomodoro'].includes(mode)) {
+            if (_currentTaskViewMode !== mode) {
+                _currentTaskViewMode = mode;
+                console.log(`[ViewManager] Task view mode changed to: ${_currentTaskViewMode}`);
+                _publish('viewModeChanged', _currentTaskViewMode);
+            }
+        } else {
+            console.warn(`[ViewManager] Attempted to set invalid task view mode: ${mode}`);
+        }
     }
-    if (currentFilter !== filter) {
-        currentFilter = filter;
-        currentSort = 'default'; // Reset sort when filter changes
-        console.log(`[ViewManager] Current filter set to: ${currentFilter}, sort reset to 'default'.`);
-        EventBus.publish('filterChanged', { filter: currentFilter, sort: currentSort });
+
+    /**
+     * Gets the current task view mode.
+     * @returns {string} The current task view mode.
+     */
+    function getCurrentTaskViewMode() {
+        return _currentTaskViewMode;
     }
-}
 
-function getCurrentFilter() {
-    if (typeof currentFilter !== 'undefined') return currentFilter;
-    return 'inbox'; // Fallback
-}
-
-function setCurrentSort(sortType) {
-    if (typeof currentSort === 'undefined' || typeof EventBus === 'undefined') {
-        console.error("[ViewManager] 'currentSort' or 'EventBus' not defined.");
-        return;
+    /**
+     * Sets the current filter for displaying tasks.
+     * Also resets the sort order to 'default' when the filter changes.
+     * @param {string} filter - The filter to apply (e.g., 'inbox', 'today', 'project_123').
+     */
+    function setCurrentFilter(filter) {
+        if (_currentFilter !== filter) {
+            _currentFilter = filter;
+            _currentSort = 'default'; // Reset sort when filter changes
+            console.log(`[ViewManager] Current filter set to: ${_currentFilter}, sort reset to 'default'.`);
+            _publish('filterChanged', { filter: _currentFilter, sort: _currentSort });
+        }
     }
-    if (currentSort !== sortType) {
-        currentSort = sortType;
-        console.log(`[ViewManager] Current sort set to: ${currentSort}`);
-        EventBus.publish('sortChanged', currentSort);
+
+    /**
+     * Gets the current active filter.
+     * @returns {string} The current filter.
+     */
+    function getCurrentFilter() {
+        return _currentFilter;
     }
-}
 
-function getCurrentSort() {
-    if (typeof currentSort !== 'undefined') return currentSort;
-    return 'default'; // Fallback
-}
-
-function setCurrentSearchTerm(term) {
-    if (typeof currentSearchTerm === 'undefined' || typeof EventBus === 'undefined') {
-        console.error("[ViewManager] 'currentSearchTerm' or 'EventBus' not defined.");
-        return;
+    /**
+     * Sets the current sort order for tasks.
+     * @param {string} sortType - The sort type (e.g., 'dueDate', 'priority', 'default').
+     */
+    function setCurrentSort(sortType) {
+        if (_currentSort !== sortType) {
+            _currentSort = sortType;
+            console.log(`[ViewManager] Current sort set to: ${_currentSort}`);
+            _publish('sortChanged', _currentSort);
+        }
     }
-    const newTerm = term.toLowerCase();
-    if (currentSearchTerm !== newTerm) {
-        currentSearchTerm = newTerm;
-        console.log(`[ViewManager] Current search term set to: "${currentSearchTerm}"`);
-        EventBus.publish('searchTermChanged', currentSearchTerm);
+
+    /**
+     * Gets the current sort order.
+     * @returns {string} The current sort type.
+     */
+    function getCurrentSort() {
+        return _currentSort;
     }
-}
 
-function getCurrentSearchTerm() {
-    if (typeof currentSearchTerm !== 'undefined') return currentSearchTerm;
-    return ''; // Fallback
-}
+    /**
+     * Sets the current search term.
+     * @param {string} term - The search term.
+     */
+    function setCurrentSearchTerm(term) {
+        const newTerm = term.toLowerCase();
+        if (_currentSearchTerm !== newTerm) {
+            _currentSearchTerm = newTerm;
+            console.log(`[ViewManager] Current search term set to: "${_currentSearchTerm}"`);
+            _publish('searchTermChanged', _currentSearchTerm);
+        }
+    }
 
-window.ViewManager = {
-    setTaskViewMode,
-    getCurrentTaskViewMode,
-    setCurrentFilter,
-    getCurrentFilter,
-    setCurrentSort,
-    getCurrentSort,
-    setCurrentSearchTerm,
-    getCurrentSearchTerm
-};
+    /**
+     * Gets the current search term.
+     * @returns {string} The current search term.
+     */
+    function getCurrentSearchTerm() {
+        return _currentSearchTerm;
+    }
 
-// console.log("viewManager.js loaded");
+    // Expose public interface
+    window.ViewManager = {
+        setTaskViewMode,
+        getCurrentTaskViewMode,
+        setCurrentFilter,
+        getCurrentFilter,
+        setCurrentSort,
+        getCurrentSort,
+        setCurrentSearchTerm,
+        getCurrentSearchTerm
+    };
+
+    console.log("viewManager.js loaded, now owns its UI state.");
+})();
