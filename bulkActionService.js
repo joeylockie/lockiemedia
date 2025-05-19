@@ -1,70 +1,52 @@
 // bulkActionService.js
 // This service manages the state and logic for bulk task actions.
-// It relies on the 'selectedTaskIdsForBulkAction' array from store.js.
+// It relies on the 'selectedTaskIdsForBulkAction' array from store.js and EventBus.
 
-/**
- * Toggles the selection state of a task for bulk actions.
- * @param {number} taskId - The ID of the task to select/deselect.
- */
 function toggleTaskSelectionForBulkAction(taskId) {
-    // Assumes selectedTaskIdsForBulkAction is a global array from store.js
-    if (typeof selectedTaskIdsForBulkAction === 'undefined') {
-        console.error("[BulkActionService] 'selectedTaskIdsForBulkAction' is not defined. Ensure store.js is loaded.");
+    if (typeof selectedTaskIdsForBulkAction === 'undefined' || typeof EventBus === 'undefined') {
+        console.error("[BulkActionService] 'selectedTaskIdsForBulkAction' or 'EventBus' not defined.");
         return;
     }
 
     const index = selectedTaskIdsForBulkAction.indexOf(taskId);
     if (index > -1) {
-        selectedTaskIdsForBulkAction.splice(index, 1); // Deselect
+        selectedTaskIdsForBulkAction.splice(index, 1);
     } else {
-        selectedTaskIdsForBulkAction.push(taskId); // Select
+        selectedTaskIdsForBulkAction.push(taskId);
     }
     console.log("[BulkActionService] Selected tasks for bulk action:", selectedTaskIdsForBulkAction);
+    EventBus.publish('bulkSelectionChanged', [...selectedTaskIdsForBulkAction]);
 
-    // Future: This service might emit an event 'bulkSelectionChanged'
-    // or directly call a UI update function for bulk action controls.
-    // For now, UI updates are likely triggered elsewhere after this call.
-    if (typeof renderBulkActionControls === 'function') { // Check if ui_rendering function is available
-        renderBulkActionControls();
-    }
+    // UI update for controls is now handled by subscriber to 'bulkSelectionChanged' (e.g., in ui_rendering.js)
+    // if (typeof renderBulkActionControls === 'function') {
+    //     renderBulkActionControls();
+    // }
 }
 
-/**
- * Clears all selected tasks for bulk actions.
- */
 function clearBulkActionSelections() {
-    // Assumes selectedTaskIdsForBulkAction is a global array from store.js
-    if (typeof selectedTaskIdsForBulkAction === 'undefined') {
-        console.error("[BulkActionService] 'selectedTaskIdsForBulkAction' is not defined. Ensure store.js is loaded.");
+    if (typeof selectedTaskIdsForBulkAction === 'undefined' || typeof EventBus === 'undefined') {
+        console.error("[BulkActionService] 'selectedTaskIdsForBulkAction' or 'EventBus' not defined.");
         return;
     }
-    selectedTaskIdsForBulkAction = []; // Re-assign to clear
-    // Update the global variable in store.js if it's not directly this one
-    // For now, we assume this direct modification is okay due to global scope.
-    // A better approach would be: store.setSelectedTaskIdsForBulkAction([]);
-    window.selectedTaskIdsForBulkAction = []; // Make sure the global in store.js is updated
-
-    console.log("[BulkActionService] Bulk action selections cleared.");
-
-    if (typeof renderBulkActionControls === 'function') {
-        renderBulkActionControls();
+    if (selectedTaskIdsForBulkAction.length > 0) { // Only publish if there was a change
+        selectedTaskIdsForBulkAction = [];
+        window.selectedTaskIdsForBulkAction = []; // Ensure global in store.js is updated
+        console.log("[BulkActionService] Bulk action selections cleared.");
+        EventBus.publish('bulkSelectionChanged', []);
     }
+    // UI update for controls is now handled by subscriber
+    // if (typeof renderBulkActionControls === 'function') {
+    //     renderBulkActionControls();
+    // }
 }
 
-/**
- * Gets a copy of the array of currently selected task IDs for bulk actions.
- * @returns {number[]} An array of task IDs.
- */
 function getSelectedTaskIdsForBulkAction() {
-    // Assumes selectedTaskIdsForBulkAction is a global array from store.js
     if (typeof selectedTaskIdsForBulkAction === 'undefined') {
-        console.error("[BulkActionService] 'selectedTaskIdsForBulkAction' is not defined. Ensure store.js is loaded.");
         return [];
     }
-    return [...selectedTaskIdsForBulkAction]; // Return a copy
+    return [...selectedTaskIdsForBulkAction];
 }
 
-// Expose public interface (globally for now)
 window.BulkActionService = {
     toggleTaskSelection: toggleTaskSelectionForBulkAction,
     clearSelections: clearBulkActionSelections,
