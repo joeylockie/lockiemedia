@@ -2,35 +2,36 @@
 
 // Self-invoking function to encapsulate the feature's code
 (function() {
+    // Dependencies (assumed to be globally available for now):
+    // - Services: FeatureFlagService
+
     /**
      * Initializes the File Attachments Feature.
-     * This function would set up any specific event listeners or UI modifications
-     * needed for the file attachment functionality.
-     * For now, it's a placeholder as the feature is "Coming Soon" in the UI.
-     * This function should be called if the 'fileAttachments' flag is true.
+     * Placeholder for future initialization logic.
      */
     function initializeFileAttachmentsFeature() {
-        // Placeholder for future initialization logic
-        // e.g., setting up file input listeners, drag & drop handlers, etc.
-        console.log('File Attachments Feature Initialized (Placeholder).');
-
-        // Example: If you had a specific file input element to enhance:
-        // const fileInputElement = document.getElementById('actualFileInput');
-        // if (fileInputElement) {
-        //     fileInputElement.addEventListener('change', handleFileSelection);
-        // }
+        console.log('[FileAttachmentsFeature] Initialized (Placeholder).');
+        // Future: Setup for file input elements, drag & drop areas for attachments,
+        // and interactions with a backend or local storage for saving files.
     }
 
     /**
      * Updates the visibility of all File Attachments UI elements based on the feature flag.
-     * @param {boolean} isEnabled - True if the feature is enabled, false otherwise.
+     * This function is primarily for consistency. Actual UI elements (e.g., "Attachments (Coming Soon)"
+     * sections in modals, attachment icons on task items) would be toggled by applyActiveFeatures
+     * using the '.file-attachments-element' class.
+     * @param {boolean} isEnabledParam - Parameter for consistency, actual check uses FeatureFlagService.
      */
-    function updateFileAttachmentsUIVisibility(isEnabled) {
-        const attachmentElements = document.querySelectorAll('.file-attachments-element');
-        attachmentElements.forEach(el => {
-            el.classList.toggle('hidden', !isEnabled);
-        });
-        console.log(`File Attachments UI Visibility set to: ${isEnabled}`);
+    function updateFileAttachmentsUIVisibility(isEnabledParam) {
+        if (typeof FeatureFlagService === 'undefined') {
+            console.error("[FileAttachmentsFeature] FeatureFlagService not available.");
+            return;
+        }
+        const isActuallyEnabled = FeatureFlagService.isFeatureEnabled('fileAttachments');
+
+        // The .file-attachments-element class on UI parts is toggled by applyActiveFeatures.
+        // This function can be used if there's more complex UI logic specific to this feature's visibility.
+        console.log(`[FileAttachmentsFeature] UI Visibility (handled by applyActiveFeatures) set based on flag: ${isActuallyEnabled}`);
     }
 
     // Expose functions to the global scope via AppFeatures
@@ -45,4 +46,5 @@
     window.AppFeatures.FileAttachments.initialize = initializeFileAttachmentsFeature;
     window.AppFeatures.FileAttachments.updateUIVisibility = updateFileAttachmentsUIVisibility;
 
+    // console.log("feature_file_attachments.js loaded");
 })();
