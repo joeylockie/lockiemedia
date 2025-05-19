@@ -8,7 +8,8 @@ import * as TaskService from './taskService.js';
 import * as ProjectServiceModule from './projectService.js'; 
 import { ProjectsFeature } from './feature_projects.js';
 import * as LabelServiceModule from './labelService.js';
-import ViewManager from './viewManager.js'; // Import ViewManager
+import ViewManager from './viewManager.js';
+import * as BulkActionServiceModule from './bulkActionService.js'; // Import BulkActionService
 
 // Make services/features globally available for non-module scripts during transition
 if (typeof window.isFeatureEnabled === 'undefined') window.isFeatureEnabled = isFeatureEnabledFromService;
@@ -17,7 +18,8 @@ if (typeof window.EventBus === 'undefined') window.EventBus = EventBus;
 if (typeof window.TaskService === 'undefined') window.TaskService = TaskService;
 if (typeof window.ProjectService === 'undefined') window.ProjectService = ProjectServiceModule;
 if (typeof window.LabelService === 'undefined') window.LabelService = LabelServiceModule;
-if (typeof window.ViewManager === 'undefined') window.ViewManager = ViewManager; // Make ViewManager global for now
+if (typeof window.ViewManager === 'undefined') window.ViewManager = ViewManager;
+if (typeof window.BulkActionService === 'undefined') window.BulkActionService = BulkActionServiceModule; // Make BulkActionService global
 
 document.addEventListener('DOMContentLoaded', async () => {
     console.log("[Main] DOMContentLoaded event fired. Starting application initialization...");
@@ -50,11 +52,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 catch (e) { console.error(`[Main] Error initializing feature ${featureName}:`, e); }
             }
         }
-        // Initialize other non-AppFeatures modules if they have an init function
-        if (window.ViewManager && typeof window.ViewManager.initialize === 'function') { // ViewManager doesn't have one yet
-            // window.ViewManager.initialize();
-        }
-
         console.log("[Main] Feature modules initialization process completed.");
     }
 
@@ -76,7 +73,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     // 10. Set Initial Filter UI (active buttons)
-    // ViewManager is now imported and made global temporarily by main.js
     if (typeof ViewManager !== 'undefined' && typeof setFilter === 'function') { 
         setFilter(ViewManager.getCurrentFilter());
     }
