@@ -2,48 +2,44 @@
 
 // Self-invoking function to encapsulate the feature's code
 (function() {
+    // Dependencies (assumed to be globally available for now):
+    // - Services: FeatureFlagService
+
     /**
      * Initializes the User Accounts Feature.
-     * This function would set up any specific event listeners, UI modifications,
-     * or logic needed for user account management (e.g., login/logout buttons,
-     * user profile display).
-     * This function should be called if the 'userAccounts' flag is true.
+     * Placeholder for future initialization logic.
      */
     function initializeUserAccountsFeature() {
-        // Placeholder for future initialization logic
-        // e.g., attaching event listeners to login/logout buttons,
+        console.log('[UserAccountsFeature] Initialized (Placeholder).');
+        // Future: Setup for login/logout buttons, user profile display,
         // checking for existing user sessions, etc.
-        console.log('User Accounts Feature Initialized (Placeholder).');
-
-        // Example: You might want to show a "Login" button or "User Profile" section
-        // const loginButton = document.getElementById('loginButton');
-        // if (loginButton) {
-        //     loginButton.addEventListener('click', handleLogin);
-        // }
-        // const userProfileSection = document.getElementById('userProfileSection');
-        // if (userProfileSection) {
-        //     // Logic to display user info or a guest view
-        // }
     }
 
     /**
      * Updates the visibility of all User Accounts UI elements based on the feature flag.
-     * @param {boolean} isEnabled - True if the feature is enabled, false otherwise.
+     * This function is primarily for consistency. Actual UI elements (e.g., "User Accounts (Soon)"
+     * button in settings, login/profile links) would be toggled by applyActiveFeatures using the
+     * '.user-accounts-element' class.
+     * @param {boolean} isEnabledParam - Parameter for consistency, actual check uses FeatureFlagService.
      */
-    function updateUserAccountsUIVisibility(isEnabled) {
-        const userAccountsElements = document.querySelectorAll('.user-accounts-element');
-        userAccountsElements.forEach(el => {
-            el.classList.toggle('hidden', !isEnabled);
-        });
-        console.log(`User Accounts UI Visibility set to: ${isEnabled}`);
+    function updateUserAccountsUIVisibility(isEnabledParam) {
+        if (typeof FeatureFlagService === 'undefined') {
+            console.error("[UserAccountsFeature] FeatureFlagService not available.");
+            return;
+        }
+        const isActuallyEnabled = FeatureFlagService.isFeatureEnabled('userAccounts');
 
-        // Example: Show/hide login/logout buttons, user profile links, etc.
+        // The .user-accounts-element class on UI parts is toggled by applyActiveFeatures.
+        // This function can be used if there's more complex UI logic specific to this feature's visibility.
+        console.log(`[UserAccountsFeature] UI Visibility (handled by applyActiveFeatures) set based on flag: ${isActuallyEnabled}`);
+
+        // Example:
         // const loginButtonContainer = document.getElementById('loginButtonContainer');
         // if (loginButtonContainer) {
-        //     loginButtonContainer.classList.toggle('hidden', !isEnabled);
+        //     loginButtonContainer.classList.toggle('hidden', !isActuallyEnabled);
         // }
         // const userSpecificContent = document.querySelectorAll('.user-specific-content');
-        // userSpecificContent.forEach(el => el.classList.toggle('hidden', !isEnabled));
+        // userSpecificContent.forEach(el => el.classList.toggle('hidden', !isActuallyEnabled));
     }
 
     // Expose functions to the global scope via AppFeatures
@@ -58,4 +54,5 @@
     window.AppFeatures.UserAccounts.initialize = initializeUserAccountsFeature;
     window.AppFeatures.UserAccounts.updateUIVisibility = updateUserAccountsUIVisibility;
 
+    // console.log("feature_user_accounts.js loaded");
 })();
