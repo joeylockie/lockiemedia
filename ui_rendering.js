@@ -212,17 +212,38 @@ function styleInitialSmartViewButtons() { /* ... same as before, uses ViewManage
  * Initializes subscriptions to events from the EventBus.
  */
 function initializeUiRenderingSubscriptions() {
-    if (typeof EventBus === 'undefined') { console.error("[UI Rendering] EventBus not available."); return; }
-    EventBus.subscribe('tasksChanged', (updatedTasks) => { console.log("[UI Rendering] Event: tasksChanged. Refreshing."); refreshTaskView(); updateClearCompletedButtonState(); });
-    EventBus.subscribe('projectsChanged', (updatedProjects) => { console.log("[UI Rendering] Event: projectsChanged. Refreshing."); refreshTaskView(); });
-    EventBus.subscribe('uniqueProjectsChanged', (newUniqueProjects) => { console.log("[UI Rendering] Event: uniqueProjectsChanged. Repopulating project UI."); if (window.AppFeatures?.Projects?.populateProjectFilterList) window.AppFeatures.Projects.populateProjectFilterList(); if (window.AppFeatures?.Projects?.populateProjectDropdowns) window.AppFeatures.Projects.populateProjectDropdowns(); });
-    EventBus.subscribe('kanbanColumnsChanged', (updatedColumns) => { console.log("[UI Rendering] Event: kanbanColumnsChanged."); if (ViewManager.getCurrentTaskViewMode() === 'kanban' && FeatureFlagService.isFeatureEnabled('kanbanBoardFeature')) { refreshTaskView(); } });
-    EventBus.subscribe('filterChanged', (eventData) => { console.log("[UI Rendering] Event: filterChanged. Refreshing."); refreshTaskView(); updateYourTasksHeading(); updateSortButtonStates(); });
-    EventBus.subscribe('sortChanged', (newSort) => { console.log("[UI Rendering] Event: sortChanged. Refreshing."); refreshTaskView(); updateSortButtonStates(); });
-    EventBus.subscribe('searchTermChanged', (newSearchTerm) => { console.log("[UI Rendering] Event: searchTermChanged. Refreshing."); refreshTaskView(); });
-    EventBus.subscribe('viewModeChanged', (newViewMode) => { console.log("[UI Rendering] Event: viewModeChanged. Refreshing."); refreshTaskView(); updateViewToggleButtonsState(); updateYourTasksHeading(); });
-    EventBus.subscribe('featureFlagsUpdated', (updateData) => { console.log("[UI Rendering] Event: featureFlagsUpdated. Some UI states might need refresh."); updateViewToggleButtonsState(); /* applyActiveFeatures in ui_event_handlers also listens and calls refreshTaskView */ });
-    EventBus.subscribe('labelsChanged', (newLabels) => { console.log("[UI Rendering] Event: labelsChanged. Populating datalists."); if(existingLabelsDatalist) populateDatalist(existingLabelsDatalist); if(existingLabelsEditDatalist) populateDatalist(existingLabelsEditDatalist); if (manageLabelsModal && !manageLabelsModal.classList.contains('hidden') && typeof populateManageLabelsList === 'function') { populateManageLabelsList(); } });
-    EventBus.subscribe('bulkSelectionChanged', (selectedIds) => { console.log("[UI Rendering] Event: bulkSelectionChanged. Rendering controls."); renderBulkActionControls(); });
+    if (typeof EventBus === 'undefined') {
+        console.error("[UI Rendering] EventBus not available for subscriptions.");
+        return;
+    }
+
+    // ... (subscriptions for tasksChanged, projectsChanged, uniqueProjectsChanged, kanbanColumnsChanged,
+    //      filterChanged, sortChanged, searchTermChanged, viewModeChanged, featureFlagsUpdated,
+    //      labelsChanged, bulkSelectionChanged remain the same as before) ...
+    EventBus.subscribe('tasksChanged', (updatedTasks) => { console.log("[UI Rendering] Event received: tasksChanged. Refreshing view."); refreshTaskView(); updateClearCompletedButtonState(); });
+    EventBus.subscribe('projectsChanged', (updatedProjects) => { console.log("[UI Rendering] Event received: projectsChanged. Refreshing view."); refreshTaskView(); });
+    EventBus.subscribe('uniqueProjectsChanged', (newUniqueProjects) => { console.log("[UI Rendering] Event received: uniqueProjectsChanged. Repopulating project UI."); if (window.AppFeatures?.Projects?.populateProjectFilterList) window.AppFeatures.Projects.populateProjectFilterList(); if (window.AppFeatures?.Projects?.populateProjectDropdowns) window.AppFeatures.Projects.populateProjectDropdowns(); });
+    EventBus.subscribe('kanbanColumnsChanged', (updatedColumns) => { console.log("[UI Rendering] Event received: kanbanColumnsChanged."); if (ViewManager.getCurrentTaskViewMode() === 'kanban' && FeatureFlagService.isFeatureEnabled('kanbanBoardFeature')) { refreshTaskView(); } });
+    EventBus.subscribe('filterChanged', (eventData) => { console.log("[UI Rendering] Event received: filterChanged. Refreshing view and heading."); refreshTaskView(); updateYourTasksHeading(); updateSortButtonStates(); });
+    EventBus.subscribe('sortChanged', (newSort) => { console.log("[UI Rendering] Event received: sortChanged. Refreshing view and sort buttons."); refreshTaskView(); updateSortButtonStates(); });
+    EventBus.subscribe('searchTermChanged', (newSearchTerm) => { console.log("[UI Rendering] Event received: searchTermChanged. Refreshing view."); refreshTaskView(); });
+    EventBus.subscribe('viewModeChanged', (newViewMode) => { console.log("[UI Rendering] Event received: viewModeChanged. Refreshing view and UI states."); refreshTaskView(); updateViewToggleButtonsState(); updateYourTasksHeading(); });
+    EventBus.subscribe('featureFlagsUpdated', (updateData) => { console.log("[UI Rendering] Event received: featureFlagsUpdated. Certain UI states might need refresh."); updateViewToggleButtonsState(); });
+    EventBus.subscribe('labelsChanged', (newLabels) => { console.log("[UI Rendering] Event received: labelsChanged. Populating datalists."); if(existingLabelsDatalist) populateDatalist(existingLabelsDatalist); if(existingLabelsEditDatalist) populateDatalist(existingLabelsEditDatalist); if (manageLabelsModal && !manageLabelsModal.classList.contains('hidden') && typeof populateManageLabelsList === 'function') { populateManageLabelsList(); } });
+    EventBus.subscribe('bulkSelectionChanged', (selectedIds) => { console.log("[UI Rendering] Event received: bulkSelectionChanged. Rendering controls."); renderBulkActionControls(); });
+
+
+    // NEW: Subscribe to Pomodoro state updates for the sidebar
+    EventBus.subscribe('pomodoroStateUpdated', (pomodoroData) => {
+        // pomodoroData will be { isActive, state, timeRemaining, currentTaskId }
+        console.log("[UI Rendering] Event received: pomodoroStateUpdated.", pomodoroData);
+        if (window.AppFeatures?.PomodoroTimerHybrid?.updateSidebarDisplay) {
+            // The PomodoroTimerHybrid module's updateSidebarDisplay function
+            // should now internally use the state passed via pomodoroData or get it from its own internal state.
+            // For now, we assume it can access its own internal state correctly.
+            window.AppFeatures.PomodoroTimerHybrid.updateSidebarDisplay();
+        }
+    });
+    
     console.log("[UI Rendering] Event subscriptions initialized.");
 }
