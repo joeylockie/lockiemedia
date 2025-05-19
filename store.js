@@ -9,11 +9,10 @@
     // --- Internal State Variables (scoped to this IIFE) ---
     let _tasks = [];
     let _projects = [];
-    // _editingTaskId, _currentViewTaskId moved to ModalStateService.js
     let _uniqueLabels = [];
     let _uniqueProjects = [];
     let _tooltipTimeout = null; 
-    // Pomodoro state variables moved to pomodoro_timer.js
+    // Pomodoro state variables (_isPomodoroActive, _currentPomodoroState, etc.) removed.
 
     let _kanbanColumns = [
         { id: 'todo', title: 'To Do' },
@@ -43,20 +42,7 @@
         getUniqueLabels: () => [..._uniqueLabels],
         getUniqueProjects: () => [..._uniqueProjects],
         
-        // REMOVED: getEditingTaskId, setCurrentViewTaskId, getCurrentViewTaskId, setEditingTaskIdInStore
-        // These are now in ModalStateService.
-
-        // Pomodoro State (will move to PomodoroService later, or already in pomodoro_timer.js)
-        // For now, keeping these direct setters if pomodoro_timer.js still uses them directly on AppStore.
-        // Ideally, pomodoro_timer.js owns this state entirely.
-        isPomodoroActive: () => _isPomodoroActive, // Should be from PomodoroTimerHybrid.getCurrentState()
-        setPomodoroActive: (isActive) => _isPomodoroActive = isActive,
-        getCurrentPomodoroState: () => _currentPomodoroState, // Should be from PomodoroTimerHybrid.getCurrentState()
-        setCurrentPomodoroState: (state) => _currentPomodoroState = state,
-        getPomodoroTimeRemaining: () => _pomodoroTimeRemaining, // Should be from PomodoroTimerHybrid.getCurrentState()
-        setPomodoroTimeRemaining: (time) => _pomodoroTimeRemaining = time,
-        getPomodoroCurrentTaskId: () => _pomodoroCurrentTaskId, // Should be from PomodoroTimerHybrid.getCurrentState()
-        setPomodoroCurrentTaskId: (id) => _pomodoroCurrentTaskId = id,
+        // REMOVED: Pomodoro state getters/setters. These are now fully managed by pomodoro_timer.js
         
         setTasks: (newTasksArray) => { _tasks = JSON.parse(JSON.stringify(newTasksArray)); _saveTasksInternal(); },
         setProjects: (newProjectsArray) => { _projects = JSON.parse(JSON.stringify(newProjectsArray)); _saveProjectsInternal(); },
@@ -76,5 +62,5 @@
         }
     };
     window.AppStore = AppStore;
-    console.log("store.js loaded, AppStore API created. Modal task IDs moved to ModalStateService.");
+    console.log("store.js loaded, AppStore API created. Pomodoro state fully moved to pomodoro_timer.js.");
 })();
