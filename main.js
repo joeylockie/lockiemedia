@@ -11,7 +11,19 @@ import * as LabelServiceModule from './labelService.js';
 import ViewManager from './viewManager.js';
 import * as BulkActionServiceModule from './bulkActionService.js';
 import ModalStateService from './modalStateService.js';
-import TooltipService from './tooltipService.js'; // Import TooltipService
+import TooltipService from './tooltipService.js';
+// Import functions from modal_interactions.js
+import { 
+    openAddModal, closeAddModal, 
+    openViewEditModal, closeViewEditModal, 
+    openViewTaskDetailsModal, closeViewTaskDetailsModal,
+    openManageLabelsModal, closeManageLabelsModal, populateManageLabelsList,
+    openSettingsModal, closeSettingsModal,
+    openTaskReviewModal, closeTaskReviewModal, populateTaskReviewModal,
+    openTooltipsGuideModal, closeTooltipsGuideModal
+    // Note: populateManageProjectsModal is part of ProjectsFeature now
+} from './modal_interactions.js';
+
 
 // Make services/features globally available for non-module scripts during transition
 if (typeof window.isFeatureEnabled === 'undefined') window.isFeatureEnabled = isFeatureEnabledFromService;
@@ -23,7 +35,25 @@ if (typeof window.LabelService === 'undefined') window.LabelService = LabelServi
 if (typeof window.ViewManager === 'undefined') window.ViewManager = ViewManager;
 if (typeof window.BulkActionService === 'undefined') window.BulkActionService = BulkActionServiceModule;
 if (typeof window.ModalStateService === 'undefined') window.ModalStateService = ModalStateService;
-if (typeof window.TooltipService === 'undefined') window.TooltipService = TooltipService; // Make TooltipService global
+if (typeof window.TooltipService === 'undefined') window.TooltipService = TooltipService;
+
+// Make modal interaction functions global for transition
+window.openAddModal = openAddModal;
+window.closeAddModal = closeAddModal;
+window.openViewEditModal = openViewEditModal;
+window.closeViewEditModal = closeViewEditModal;
+window.openViewTaskDetailsModal = openViewTaskDetailsModal;
+window.closeViewTaskDetailsModal = closeViewTaskDetailsModal;
+window.openManageLabelsModal = openManageLabelsModal;
+window.closeManageLabelsModal = closeManageLabelsModal;
+window.populateManageLabelsList = populateManageLabelsList; // Still used by ui_event_handlers
+window.openSettingsModal = openSettingsModal;
+window.closeSettingsModal = closeSettingsModal;
+window.openTaskReviewModal = openTaskReviewModal;
+window.closeTaskReviewModal = closeTaskReviewModal;
+window.populateTaskReviewModal = populateTaskReviewModal; // Still used by modal_interactions
+window.openTooltipsGuideModal = openTooltipsGuideModal;
+window.closeTooltipsGuideModal = closeTooltipsGuideModal;
 
 
 document.addEventListener('DOMContentLoaded', async () => {
