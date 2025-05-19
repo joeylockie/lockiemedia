@@ -3,6 +3,7 @@
 
 import EventBus from './eventBus.js'; // Already a module
 import AppStore from './store.js'; // Already a module
+import { ProjectsFeature } from './feature_projects.js'; // Import the feature object
 import { loadFeatureFlags, isFeatureEnabled as isFeatureEnabledFromService } from './featureFlagService.js'; // Already a module
 // We'll import other services as needed by main.js or by other modules that main.js calls.
 // For now, ui_rendering and ui_event_handlers are still global-style.
@@ -60,25 +61,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error("[Main] initializeUiRenderingSubscriptions function not found!");
     }
 
-    // 5. Initialize Feature Modules (window.AppFeatures - still global for now)
-    // These modules might now need to import services like FeatureFlagService or AppStore
-    // We will refactor them one by one.
-    if (typeof window.AppFeatures !== 'undefined') {
-        console.log("[Main] Initializing feature modules...");
-        for (const featureName in window.AppFeatures) {
-            if (window.AppFeatures.hasOwnProperty(featureName) &&
-                window.AppFeatures[featureName] &&
-                typeof window.AppFeatures[featureName].initialize === 'function') {
-                try {
-                    console.log(`[Main] Initializing ${featureName}...`);
-                    window.AppFeatures[featureName].initialize();
-                } catch (e) {
-                    console.error(`[Main] Error initializing feature ${featureName}:`, e);
-                }
-            }
+   // 5. Initialize Feature Modules
+if (typeof window.AppFeatures === 'undefined') {
+    window.AppFeatures = {}; // Ensure AppFeatures object exists
+}
+window.AppFeatures.Projects = ProjectsFeature; // Assign imported feature
+
+if (typeof FeatureFlagService !== 'undefined' /* using imported isFeatureEnabledFromService */ && typeof window.AppFeatures !== 'undefined') {
+    console.log("[Main] Initializing feature modules...");
+    // Initialize ProjectsFeature explicitly if its initialize function needs to be called
+    if (window.AppFeatures.Projects && typeof window.AppFeatures.Projects.initialize === 'function') {
+        try {
+            console.log("[Main] Initializing ProjectsFeature...");
+            window.AppFeatures.Projects.initialize();
+        } catch (e) {
+            console.error("[Main] Error initializing ProjectsFeature:", e);
         }
-        console.log("[Main] Feature modules initialization process completed.");
     }
+    // ... (loop for other AppFeatures, or initialize them explicitly after import) ...
+}
 
     // 6. Apply Active Features to the UI (initial setup) (from ui_event_handlers.js - still global)
     if (typeof applyActiveFeatures === 'function') { 
