@@ -4,6 +4,7 @@
 // Bulk action state is managed by BulkActionService.
 // Pomodoro state is managed by PomodoroTimerHybrid feature module.
 // Modal-specific task IDs (editing, viewing) are managed by ModalStateService.
+// Tooltip timeout is managed by TooltipService.
 
 (function() {
     // --- Internal State Variables (scoped to this IIFE) ---
@@ -11,8 +12,7 @@
     let _projects = [];
     let _uniqueLabels = [];
     let _uniqueProjects = [];
-    let _tooltipTimeout = null; 
-    // Pomodoro state variables (_isPomodoroActive, _currentPomodoroState, etc.) removed.
+    // _tooltipTimeout moved to TooltipService.js
 
     let _kanbanColumns = [
         { id: 'todo', title: 'To Do' },
@@ -42,7 +42,8 @@
         getUniqueLabels: () => [..._uniqueLabels],
         getUniqueProjects: () => [..._uniqueProjects],
         
-        // REMOVED: Pomodoro state getters/setters. These are now fully managed by pomodoro_timer.js
+        // REMOVED: Pomodoro state getters/setters.
+        // REMOVED: Modal state getters/setters for editingTaskId, currentViewTaskId.
         
         setTasks: (newTasksArray) => { _tasks = JSON.parse(JSON.stringify(newTasksArray)); _saveTasksInternal(); },
         setProjects: (newProjectsArray) => { _projects = JSON.parse(JSON.stringify(newProjectsArray)); _saveProjectsInternal(); },
@@ -50,9 +51,7 @@
         
         setFeatureFlags: (loadedFlags) => { /* ... same as before ... */ if (loadedFlags && typeof loadedFlags === 'object') { _featureFlags = { ..._featureFlags, ...loadedFlags }; window.featureFlags = _featureFlags; console.log('[Store API] Feature flags updated in store:', _featureFlags); _publish('featureFlagsInitialized', { ..._featureFlags }); } else { console.error('[Store API] Invalid flags received.'); }},
         
-        getTooltipTimeout: () => _tooltipTimeout,
-        setTooltipTimeout: (timeoutId) => { _tooltipTimeout = timeoutId; },
-        clearTooltipTimeout: () => { if(_tooltipTimeout) clearTimeout(_tooltipTimeout); _tooltipTimeout = null; },
+        // REMOVED: getTooltipTimeout, setTooltipTimeout, clearTooltipTimeout (now in TooltipService)
 
         initializeStore: async () => { /* ... same as before ... */ 
             const storedKanbanCols = localStorage.getItem('kanbanColumns_v1'); const defaultKanbanCols = [ { id: 'todo', title: 'To Do' }, { id: 'inprogress', title: 'In Progress' }, { id: 'done', title: 'Done' }]; if (storedKanbanCols) { try { const parsed = JSON.parse(storedKanbanCols); if(Array.isArray(parsed) && parsed.length === 3 && parsed.every(col => col.id && col.title)) _kanbanColumns = parsed; else _kanbanColumns = defaultKanbanCols;} catch(e){ _kanbanColumns = defaultKanbanCols;} } else { _kanbanColumns = defaultKanbanCols; } _saveKanbanColumnsInternal(); 
@@ -62,5 +61,5 @@
         }
     };
     window.AppStore = AppStore;
-    console.log("store.js loaded, AppStore API created. Pomodoro state fully moved to pomodoro_timer.js.");
+    console.log("store.js loaded, AppStore API created. Tooltip timeout state moved to TooltipService.");
 })();
