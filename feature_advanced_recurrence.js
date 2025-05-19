@@ -2,44 +2,46 @@
 
 // Self-invoking function to encapsulate the feature's code
 (function() {
+    // Dependencies (assumed to be globally available for now):
+    // - Services: FeatureFlagService
+
     /**
      * Initializes the Advanced Recurrence Feature.
-     * This function would set up any specific event listeners or UI modifications
-     * needed for the advanced recurrence functionality.
-     * For now, it's a placeholder as the feature is "Coming Soon".
-     * This function should be called if the 'advancedRecurrence' flag is true.
+     * Placeholder for future initialization logic.
      */
     function initializeAdvancedRecurrenceFeature() {
-        // Placeholder for future initialization logic
-        // e.g., attaching event listeners to recurrence UI elements,
-        // populating recurrence options, etc.
-        console.log('Advanced Recurrence Feature Initialized (Placeholder).');
-
-        // Example: If there were interactive elements for recurrence,
-        // you might set them up here.
-        // const recurrencePatternSelect = document.getElementById('recurrencePatternSelect');
-        // if (recurrencePatternSelect) {
-        //     recurrencePatternSelect.addEventListener('change', handleRecurrencePatternChange);
-        // }
+        console.log('[AdvancedRecurrenceFeature] Initialized (Placeholder).');
+        // Future: Attach event listeners to recurrence UI elements if any are globally present
+        // or need dynamic setup beyond what applyActiveFeatures handles.
     }
 
     /**
      * Updates the visibility of all Advanced Recurrence UI elements based on the feature flag.
-     * @param {boolean} isEnabled - True if the feature is enabled, false otherwise.
+     * This function is primarily for consistency in the feature module pattern.
+     * The actual toggling of UI elements (like the section in modals) is typically handled
+     * by applyActiveFeatures in ui_event_handlers.js using the class '.advanced-recurrence-element'.
+     * @param {boolean} isEnabledParam - Parameter for consistency, actual check uses FeatureFlagService.
      */
-    function updateAdvancedRecurrenceUIVisibility(isEnabled) {
-        const recurrenceElements = document.querySelectorAll('.advanced-recurrence-element');
-        recurrenceElements.forEach(el => {
-            el.classList.toggle('hidden', !isEnabled);
-        });
-        console.log(`Advanced Recurrence UI Visibility set to: ${isEnabled}`);
+    function updateAdvancedRecurrenceUIVisibility(isEnabledParam) {
+        if (typeof FeatureFlagService === 'undefined') {
+            console.error("[AdvancedRecurrenceFeature] FeatureFlagService not available.");
+            return;
+        }
+        const isActuallyEnabled = FeatureFlagService.isFeatureEnabled('advancedRecurrence');
+
+        // The .advanced-recurrence-element class on UI parts is toggled by applyActiveFeatures.
+        // This function can be used if there's more complex UI logic specific to this feature's visibility.
+        console.log(`[AdvancedRecurrenceFeature] UI Visibility (handled by applyActiveFeatures) set based on flag: ${isActuallyEnabled}`);
     }
 
     // Expose functions to the global scope via AppFeatures
     if (typeof window.AppFeatures === 'undefined') {
         window.AppFeatures = {};
     }
+    // Ensure a specific namespace for this feature if it doesn't exist
+    // The original file exposed these directly on AppFeatures, maintaining that for now.
     window.AppFeatures.initializeAdvancedRecurrenceFeature = initializeAdvancedRecurrenceFeature;
     window.AppFeatures.updateAdvancedRecurrenceUIVisibility = updateAdvancedRecurrenceUIVisibility;
 
+    // console.log("feature_advanced_recurrence.js loaded");
 })();
