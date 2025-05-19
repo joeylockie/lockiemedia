@@ -1,14 +1,32 @@
 // main.js
 // Main entry point for the application.
 
+import EventBus from './eventBus.js'; // Already a module
+import AppStore from './store.js'; // Already a module
+import { loadFeatureFlags, isFeatureEnabled as isFeatureEnabledFromService } from './featureFlagService.js'; // Already a module
+// We'll import other services as needed by main.js or by other modules that main.js calls.
+// For now, ui_rendering and ui_event_handlers are still global-style.
+
+// Make FeatureFlagService.isFeatureEnabled globally available for non-module scripts temporarily
+// This is a bridge until all files are modules.
+if (typeof window.isFeatureEnabled === 'undefined') {
+    window.isFeatureEnabled = isFeatureEnabledFromService;
+}
+// Similarly for AppStore, if non-module scripts need it directly (should be minimized)
+if (typeof window.AppStore === 'undefined') {
+    window.AppStore = AppStore;
+}
+// And EventBus
+if (typeof window.EventBus === 'undefined') {
+    window.EventBus = EventBus;
+}
+
+
 document.addEventListener('DOMContentLoaded', async () => {
     console.log("[Main] DOMContentLoaded event fired. Starting application initialization...");
 
-    // 0. EventBus is loaded via script tag, available globally.
-    // 1. Utilities are loaded via script tag, available globally.
-
-    // 2. Initialize DOM Element References
-    if (typeof initializeDOMElements === 'function') { // From ui_rendering.js
+    // 1. Initialize DOM Element References (from ui_rendering.js - still global for now)
+    if (typeof initializeDOMElements === 'function') {
         initializeDOMElements();
         console.log("[Main] DOM elements initialized.");
     } else {
@@ -16,35 +34,36 @@ document.addEventListener('DOMContentLoaded', async () => {
         return; 
     }
 
-    // 3. Initialize FeatureFlagService (its IIFE might have run, but ensure loadFeatureFlags is called if needed)
-    // and then initialize the AppStore which depends on flags.
-    if (window.FeatureFlagService && typeof window.FeatureFlagService.loadFeatureFlags === 'function') {
-        await window.FeatureFlagService.loadFeatureFlags(); // Ensures flags are loaded
+    // 2. Initialize FeatureFlagService and load flags.
+    try {
+        await loadFeatureFlags(); // Use imported function
         console.log("[Main] Feature flags loading process initiated/completed by FeatureFlagService.");
-        // FeatureFlagService calls AppStore.setFeatureFlags internally via window.store.setFeatureFlags
-    } else {
-        console.error("[Main] CRITICAL: FeatureFlagService.loadFeatureFlags is not available!");
+    } catch (e) {
+        console.error("[Main] CRITICAL: Error loading feature flags!", e);
+        return; // Stop if flags can't load
     }
-
-    // 4. Initialize Store (loads data, uses feature flags)
-    if (window.AppStore && typeof window.AppStore.initializeStore === 'function') {
-        await window.AppStore.initializeStore(); // Now explicitly calling store initialization
+    
+    // 3. Initialize Store (loads data, uses feature flags which are now set in AppStore by loadFeatureFlags)
+    if (AppStore && typeof AppStore.initializeStore === 'function') {
+        await AppStore.initializeStore();
         console.log("[Main] AppStore initialized.");
     } else {
         console.error("[Main] CRITICAL: AppStore.initializeStore is not available!");
         return;
     }
 
-    // 5. Initialize UI Rendering Event Subscriptions
-    if (typeof initializeUiRenderingSubscriptions === 'function') { // From ui_rendering.js
+    // 4. Initialize UI Rendering Event Subscriptions (from ui_rendering.js - still global for now)
+    if (typeof initializeUiRenderingSubscriptions === 'function') {
         initializeUiRenderingSubscriptions();
         console.log("[Main] UI Rendering event subscriptions initialized.");
     } else {
         console.error("[Main] initializeUiRenderingSubscriptions function not found!");
     }
 
-    // 6. Initialize Feature Modules
-    if (typeof FeatureFlagService !== 'undefined' && typeof window.AppFeatures !== 'undefined') {
+    // 5. Initialize Feature Modules (window.AppFeatures - still global for now)
+    // These modules might now need to import services like FeatureFlagService or AppStore
+    // We will refactor them one by one.
+    if (typeof window.AppFeatures !== 'undefined') {
         console.log("[Main] Initializing feature modules...");
         for (const featureName in window.AppFeatures) {
             if (window.AppFeatures.hasOwnProperty(featureName) &&
@@ -61,8 +80,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log("[Main] Feature modules initialization process completed.");
     }
 
-    // 7. Apply Active Features to the UI (initial setup)
-    if (typeof applyActiveFeatures === 'function') { // From ui_event_handlers.js
+    // 6. Apply Active Features to the UI (initial setup) (from ui_event_handlers.js - still global)
+    if (typeof applyActiveFeatures === 'function') { 
         applyActiveFeatures(); 
         console.log("[Main] Active features applied to UI (initial).");
     } else {
@@ -70,34 +89,36 @@ document.addEventListener('DOMContentLoaded', async () => {
         if(typeof refreshTaskView === 'function') refreshTaskView();
     }
 
-    // 8. Style Initial UI Elements
-    if (typeof styleInitialSmartViewButtons === 'function') { // From ui_rendering.js
+    // 7. Style Initial UI Elements (from ui_rendering.js - still global)
+    if (typeof styleInitialSmartViewButtons === 'function') { 
         styleInitialSmartViewButtons();
     }
 
-    // 9. Set Initial Sidebar State
+    // 8. Set Initial Sidebar State (from ui_rendering.js - still global)
     const savedSidebarState = localStorage.getItem('sidebarState');
-    if (typeof setSidebarMinimized === 'function') { // From ui_rendering.js
+    if (typeof setSidebarMinimized === 'function') { 
         setSidebarMinimized(savedSidebarState === 'minimized');
     }
 
-    // 10. Populate Project-Specific UI (if feature enabled)
-    if (typeof FeatureFlagService !== 'undefined' && FeatureFlagService.isFeatureEnabled('projectFeature') && window.AppFeatures?.Projects) {
+    // 9. Populate Project-Specific UI (if feature enabled)
+    // AppFeatures.Projects is still global for now.
+    if (isFeatureEnabledFromService('projectFeature') && window.AppFeatures?.Projects) {
         if(window.AppFeatures.Projects.populateProjectFilterList) window.AppFeatures.Projects.populateProjectFilterList();
         if(window.AppFeatures.Projects.populateProjectDropdowns) window.AppFeatures.Projects.populateProjectDropdowns();
     }
     
-    // 11. Set Initial Filter UI (active buttons)
-    if (typeof ViewManager !== 'undefined' && typeof setFilter === 'function') { // setFilter from ui_event_handlers.js
-        setFilter(ViewManager.getCurrentFilter());
+    // 10. Set Initial Filter UI (active buttons) (setFilter from ui_event_handlers.js - still global)
+    // ViewManager is still global for now.
+    if (typeof window.ViewManager !== 'undefined' && typeof setFilter === 'function') { 
+        setFilter(window.ViewManager.getCurrentFilter());
     }
 
-    // 12. Update other initial button states
+    // 11. Update other initial button states (from ui_rendering.js - still global)
     if (typeof updateSortButtonStates === 'function') updateSortButtonStates();
     if (typeof updateClearCompletedButtonState === 'function') updateClearCompletedButtonState();
 
-    // 13. Setup All Global Event Listeners
-    if (typeof setupEventListeners === 'function') { // From ui_event_handlers.js
+    // 12. Setup All Global Event Listeners (from ui_event_handlers.js - still global)
+    if (typeof setupEventListeners === 'function') { 
         setupEventListeners();
         console.log("[Main] Global event listeners set up.");
     } else {
