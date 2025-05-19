@@ -13,7 +13,7 @@ import * as BulkActionServiceModule from './bulkActionService.js';
 import ModalStateService from './modalStateService.js';
 import TooltipService from './tooltipService.js';
 import { TestButtonFeature } from './feature_test_button.js';
-// Import functions from modal_interactions.js
+import { ReminderFeature } from './feature_reminder.js'; // Import ReminderFeature
 import * as ModalInteractions from './modal_interactions.js';
 
 
@@ -29,9 +29,8 @@ if (typeof window.BulkActionService === 'undefined') window.BulkActionService = 
 if (typeof window.ModalStateService === 'undefined') window.ModalStateService = ModalStateService;
 if (typeof window.TooltipService === 'undefined') window.TooltipService = TooltipService;
 
-// Make modal interaction functions global for transition
-for (const key in ModalInteractions) {
-    if (typeof window[key] === 'undefined') {
+for (const key in ModalInteractions) { // Make modal interaction functions global
+    if (typeof window[key] === 'undefined' && typeof ModalInteractions[key] === 'function') {
         window[key] = ModalInteractions[key];
     }
 }
@@ -59,14 +58,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 5. Initialize Feature Modules
     if (typeof window.AppFeatures === 'undefined') window.AppFeatures = {};
     window.AppFeatures.Projects = ProjectsFeature; 
-    window.AppFeatures.TestButtonFeature = TestButtonFeature; // Assign imported feature
+    window.AppFeatures.TestButtonFeature = TestButtonFeature;
+    window.AppFeatures.ReminderFeature = ReminderFeature; // Assign imported feature
 
     if (typeof isFeatureEnabledFromService !== 'undefined' && typeof window.AppFeatures !== 'undefined') {
         console.log("[Main] Initializing feature modules...");
         for (const featureName in window.AppFeatures) {
             if (window.AppFeatures.hasOwnProperty(featureName) && window.AppFeatures[featureName] && typeof window.AppFeatures[featureName].initialize === 'function') {
-                try { console.log(`[Main] Initializing ${featureName}...`); window.AppFeatures[featureName].initialize(); } 
-                catch (e) { console.error(`[Main] Error initializing feature ${featureName}:`, e); }
+                // Only initialize if the specific feature flag is enabled (or if no specific flag exists for it)
+                // Convert CamelCase featureName to snake_case for flag lookup
+                const flagKey = featureName.replace(/([A-Z])/g, "_$1").toLowerCase().replace(/^_/, '').replace(/_feature$/, 'Feature');
+                
+                // A bit of a heuristic to map object key to flag name
+                let effectiveFlagKey = flagKey;
+                if (flagKey === "reminder_feature") effectiveFlagKey = "reminderFeature";
+                if (flagKey === "test_button_feature") effectiveFlagKey = "testButtonFeature";
+                // Add more mappings if needed, or standardize AppFeatures keys to match flag keys more directly.
+
+                if (isFeatureEnabledFromService(effectiveFlagKey) || !Object.keys(AppStore.getFeatureFlags()).includes(effectiveFlagKey) ) { // Initialize if flag is true OR if no such flag exists (core feature)
+                    try {
+                        console.log(`[Main] Initializing ${featureName} (flag: ${effectiveFlagKey}, enabled: ${isFeatureEnabledFromService(effectiveFlagKey)})...`);
+                        window.AppFeatures[featureName].initialize();
+                    } catch (e) {
+                        console.error(`[Main] Error initializing feature ${featureName}:`, e);
+                    }
+                } else {
+                     console.log(`[Main] Skipping initialization of ${featureName} as its flag (${effectiveFlagKey}) is disabled.`);
+                }
             }
         }
         console.log("[Main] Feature modules initialization process completed.");
