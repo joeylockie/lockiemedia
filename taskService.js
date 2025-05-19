@@ -1,7 +1,6 @@
 // taskService.js
 // This file contains services related to task data and operations.
-// It relies on utility functions from utils.js and state/persistence from store.js.
-// It also uses FeatureFlagService for feature-specific logic within task operations.
+// It relies on AppStore for state management, FeatureFlagService, and utils.js.
 
 /**
  * Determines the CSS class string for a given task priority.
@@ -9,6 +8,7 @@
  * @returns {string} Tailwind CSS classes for the priority.
  */
 function getPriorityClass(priority) {
+    // This function is purely presentational and doesn't depend on AppStore directly.
     switch (priority) {
         case 'high': return 'bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100';
         case 'medium': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-600 dark:text-yellow-100';
@@ -23,6 +23,7 @@ function getPriorityClass(priority) {
  * @returns {{parsedDate: string|null, remainingText: string}} An object.
  */
 function parseDateFromText(text) {
+    // This function uses global utils.js functions and doesn't depend on AppStore directly.
     // ... (Implementation from previous step remains the same)
     if (typeof getTodayDateString !== 'function' || typeof getDateString !== 'function') {
         console.error("[TaskService] Date utility functions not found.");
@@ -32,8 +33,8 @@ function parseDateFromText(text) {
     const today = new Date(getTodayDateString() + 'T00:00:00Z');
     const daysOfWeek = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
     const shortDaysOfWeek = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
-    const patterns = [ /* ... patterns from previous step ... */ 
-        { regex: /\b(next week)\b/i, handler: () => { const nextWeek = new Date(today); const currentDay = today.getUTCDay(); const daysToMonday = currentDay === 0 ? 1 : (8 - currentDay); nextWeek.setUTCDate(today.getUTCDate() + daysToMonday + 6); nextWeek.setUTCDate(today.getUTCDate() + (7 - today.getUTCDay() + 1) % 7 + (today.getUTCDay() === 0 ? 1:0) ); if (nextWeek <= today) nextWeek.setUTCDate(nextWeek.getUTCDate() + 7); return getDateString(nextWeek); }},
+    const patterns = [ 
+        { regex: /\b(next week)\b/i, handler: () => { const nextWeek = new Date(today); const currentDay = today.getUTCDay(); nextWeek.setUTCDate(today.getUTCDate() + (7 - today.getUTCDay() + 1) % 7 + (today.getUTCDay() === 0 ? 1:0) ); if (nextWeek <= today) nextWeek.setUTCDate(nextWeek.getUTCDate() + 7); return getDateString(nextWeek); }},
         { regex: /\b(next month)\b/i, handler: () => { const nextMonthDate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 1)); return getDateString(nextMonthDate); }},
         { regex: /\b(next year)\b/i, handler: () => { const nextYearDate = new Date(Date.UTC(today.getUTCFullYear() + 1, 0, 1)); return getDateString(nextYearDate); }},
         { regex: /\b(?:on|due|by)\s+(\d{4}[-\/]\d{1,2}[-\/]\d{1,2})\b/i, handler: (match) => { const dateStr = match[1].replace(/\//g, '-'); const parts = dateStr.split('-'); if (parts.length === 3) { const year = parseInt(parts[0]); const month = parseInt(parts[1]); const day = parseInt(parts[2]); if (month < 1 || month > 12 || day < 1 || day > 31) return null; return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`; } return null; }},
@@ -55,22 +56,21 @@ function parseDateFromText(text) {
  * @returns {object|null} The newly created task object or null if failed.
  */
 function addTask(taskData) {
-    // Assumes tasks array and saveTasks function are global from store.js
-    // Assumes kanbanColumns is global from store.js
-    if (typeof tasks === 'undefined' || typeof saveTasks !== 'function' || typeof kanbanColumns === 'undefined') {
-        console.error("[TaskService] Core dependencies (tasks, saveTasks, kanbanColumns) not available for addTask.");
+    if (typeof AppStore === 'undefined' || typeof AppStore.getTasks !== 'function' || typeof AppStore.setTasks !== 'function' || typeof AppStore.getKanbanColumns !== 'function') {
+        console.error("[TaskService] AppStore API not available for addTask.");
         return null;
     }
 
-    const defaultKanbanColumn = kanbanColumns[0]?.id || 'todo';
+    let currentTasks = AppStore.getTasks();
+    const currentKanbanColumns = AppStore.getKanbanColumns();
+    const defaultKanbanColumn = currentKanbanColumns[0]?.id || 'todo';
+
     const newTask = {
-        id: Date.now(), // Simple ID
+        id: Date.now(), 
         creationDate: Date.now(),
         completed: false,
         kanbanColumnId: defaultKanbanColumn,
-        // Spread taskData to include all passed properties
         ...taskData,
-        // Ensure certain properties have defaults if not provided in taskData
         dueDate: taskData.dueDate || null,
         time: taskData.time || null,
         priority: taskData.priority || 'medium',
@@ -95,8 +95,8 @@ function addTask(taskData) {
         blocksTasks: taskData.blocksTasks || []
     };
 
-    tasks.unshift(newTask);
-    saveTasks(); // This will publish 'tasksChanged' event via store.js
+    currentTasks.unshift(newTask);
+    AppStore.setTasks(currentTasks); // This calls saveTasks and publishes 'tasksChanged'
     console.log("[TaskService] Task added:", newTask);
     return newTask;
 }
@@ -108,78 +108,79 @@ function addTask(taskData) {
  * @returns {object|null} The updated task object or null if not found/failed.
  */
 function updateTask(taskId, taskUpdateData) {
-    if (typeof tasks === 'undefined' || typeof saveTasks !== 'function') {
-        console.error("[TaskService] Core dependencies not available for updateTask.");
+    if (typeof AppStore === 'undefined' || typeof AppStore.getTasks !== 'function' || typeof AppStore.setTasks !== 'function') {
+        console.error("[TaskService] AppStore API not available for updateTask.");
         return null;
     }
-    const taskIndex = tasks.findIndex(t => t.id === taskId);
+    let currentTasks = AppStore.getTasks();
+    const taskIndex = currentTasks.findIndex(t => t.id === taskId);
+
     if (taskIndex === -1) {
         console.error(`[TaskService] Task with ID ${taskId} not found for update.`);
         return null;
     }
-    // Merge existing task with update data
-    tasks[taskIndex] = { ...tasks[taskIndex], ...taskUpdateData };
-    saveTasks(); // Publishes 'tasksChanged'
-    console.log("[TaskService] Task updated:", tasks[taskIndex]);
-    return tasks[taskIndex];
+    
+    currentTasks[taskIndex] = { ...currentTasks[taskIndex], ...taskUpdateData };
+    AppStore.setTasks(currentTasks); // This calls saveTasks and publishes 'tasksChanged'
+    console.log("[TaskService] Task updated:", currentTasks[taskIndex]);
+    return currentTasks[taskIndex];
 }
 
 /**
  * Toggles the completion status of a task.
  * @param {number} taskId - The ID of the task to toggle.
- * @returns {object|null} The updated task object or null if not found.
+ * @returns {object|null} The updated task object or null if not found/failed (or { _blocked: true }).
  */
 function toggleTaskComplete(taskId) {
-    if (typeof tasks === 'undefined' || typeof saveTasks !== 'function' || typeof FeatureFlagService === 'undefined') {
+    if (typeof AppStore === 'undefined' || typeof AppStore.getTasks !== 'function' || typeof AppStore.setTasks !== 'function' ||
+        typeof FeatureFlagService === 'undefined' || typeof AppStore.getKanbanColumns !== 'function') {
         console.error("[TaskService] Core dependencies not available for toggleTaskComplete.");
         return null;
     }
-    const taskIndex = tasks.findIndex(t => t.id === taskId);
+    let currentTasks = AppStore.getTasks();
+    const taskIndex = currentTasks.findIndex(t => t.id === taskId);
+
     if (taskIndex === -1) {
         console.error(`[TaskService] Task with ID ${taskId} not found for toggle complete.`);
         return null;
     }
 
-    const taskToToggle = tasks[taskIndex];
+    const taskToToggle = currentTasks[taskIndex];
 
-    // Dependency Check (if feature enabled)
     if (FeatureFlagService.isFeatureEnabled('taskDependenciesFeature') && !taskToToggle.completed) {
         if (taskToToggle.dependsOn && taskToToggle.dependsOn.length > 0) {
             const incompleteDependencies = taskToToggle.dependsOn.some(depId => {
-                const dependentTask = tasks.find(t => t.id === depId);
+                const dependentTask = currentTasks.find(t => t.id === depId);
                 return dependentTask && !dependentTask.completed;
             });
             if (incompleteDependencies) {
-                // This message should ideally be shown by the UI layer (event handler)
                 console.warn(`[TaskService] Cannot complete task ${taskId}. It has incomplete dependencies.`);
-                // Return the task unchanged, or a specific status indicating blockage
-                return { ...taskToToggle, _blocked: true }; // Indicate blockage
+                return { ...taskToToggle, _blocked: true }; 
             }
         }
     }
 
-    tasks[taskIndex].completed = !tasks[taskIndex].completed;
-    tasks[taskIndex].completedDate = tasks[taskIndex].completed ? Date.now() : null;
+    currentTasks[taskIndex].completed = !currentTasks[taskIndex].completed;
+    currentTasks[taskIndex].completedDate = currentTasks[taskIndex].completed ? Date.now() : null;
 
-    // Kanban Column Update (if feature enabled)
-    if (FeatureFlagService.isFeatureEnabled('kanbanBoardFeature') && typeof kanbanColumns !== 'undefined') {
-        if (tasks[taskIndex].completed) {
-            const doneColumn = kanbanColumns.find(col => col.id === 'done');
-            if (doneColumn) tasks[taskIndex].kanbanColumnId = doneColumn.id;
-        } else if (tasks[taskIndex].kanbanColumnId === 'done') { // Moved out of done
-            const defaultColumn = kanbanColumns[0]?.id || 'todo';
-            tasks[taskIndex].kanbanColumnId = defaultColumn;
+    if (FeatureFlagService.isFeatureEnabled('kanbanBoardFeature')) {
+        const currentKanbanColumns = AppStore.getKanbanColumns();
+        if (currentTasks[taskIndex].completed) {
+            const doneColumn = currentKanbanColumns.find(col => col.id === 'done');
+            if (doneColumn) currentTasks[taskIndex].kanbanColumnId = doneColumn.id;
+        } else if (currentTasks[taskIndex].kanbanColumnId === 'done') { 
+            const defaultColumn = currentKanbanColumns[0]?.id || 'todo';
+            currentTasks[taskIndex].kanbanColumnId = defaultColumn;
         }
     }
 
-    // Task Timer System Interaction (if feature enabled)
     if (FeatureFlagService.isFeatureEnabled('taskTimerSystem') && window.AppFeatures?.TaskTimerSystem?.handleTaskCompletion) {
-        window.AppFeatures.TaskTimerSystem.handleTaskCompletion(taskId, tasks[taskIndex].completed);
+        window.AppFeatures.TaskTimerSystem.handleTaskCompletion(taskId, currentTasks[taskIndex].completed);
     }
 
-    saveTasks(); // Publishes 'tasksChanged'
-    console.log(`[TaskService] Task ${taskId} completion toggled to: ${tasks[taskIndex].completed}`);
-    return tasks[taskIndex];
+    AppStore.setTasks(currentTasks); // This calls saveTasks and publishes 'tasksChanged'
+    console.log(`[TaskService] Task ${taskId} completion toggled to: ${currentTasks[taskIndex].completed}`);
+    return currentTasks[taskIndex];
 }
 
 /**
@@ -188,35 +189,32 @@ function toggleTaskComplete(taskId) {
  * @returns {boolean} True if deletion was successful, false otherwise.
  */
 function deleteTaskById(taskId) {
-    if (typeof tasks === 'undefined' || typeof saveTasks !== 'function' || typeof FeatureFlagService === 'undefined') {
+    if (typeof AppStore === 'undefined' || typeof AppStore.getTasks !== 'function' || typeof AppStore.setTasks !== 'function' ||
+        typeof FeatureFlagService === 'undefined') {
         console.error("[TaskService] Core dependencies not available for deleteTaskById.");
         return false;
     }
 
-    const initialLength = tasks.length;
-    tasks = tasks.filter(task => task.id !== taskId); // tasks is global from store.js
+    let currentTasks = AppStore.getTasks();
+    const initialLength = currentTasks.length;
+    let updatedTasks = currentTasks.filter(task => task.id !== taskId);
 
-    // Update dependencies in other tasks if the deleted task was a dependency
     if (FeatureFlagService.isFeatureEnabled('taskDependenciesFeature')) {
-        tasks.forEach(task => {
-            if (task.dependsOn && task.dependsOn.includes(taskId)) {
-                task.dependsOn = task.dependsOn.filter(id => id !== taskId);
-            }
-            if (task.blocksTasks && task.blocksTasks.includes(taskId)) {
-                task.blocksTasks = task.blocksTasks.filter(id => id !== taskId);
-            }
+        updatedTasks = updatedTasks.map(task => {
+            const newDependsOn = task.dependsOn ? task.dependsOn.filter(id => id !== taskId) : [];
+            const newBlocksTasks = task.blocksTasks ? task.blocksTasks.filter(id => id !== taskId) : [];
+            return { ...task, dependsOn: newDependsOn, blocksTasks: newBlocksTasks };
         });
     }
     
-    if (tasks.length < initialLength) {
-        saveTasks(); // Publishes 'tasksChanged'
+    if (updatedTasks.length < initialLength) {
+        AppStore.setTasks(updatedTasks); // This calls saveTasks and publishes 'tasksChanged'
         console.log(`[TaskService] Task ${taskId} deleted.`);
         return true;
     }
     console.warn(`[TaskService] Task ${taskId} not found for deletion.`);
     return false;
 }
-
 
 // Expose public interface
 window.TaskService = {
@@ -228,4 +226,4 @@ window.TaskService = {
     deleteTaskById
 };
 
-// console.log("taskService.js loaded");
+// console.log("taskService.js loaded, now using AppStore API.");
