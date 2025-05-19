@@ -83,69 +83,13 @@ function renderSubTasksForEditModal(parentId, subTasksListElement) {
     const parentTask = currentTasks.find(t => t.id === parentId);
 
     // Ensure we are rendering for the currently edited task
-    if (ModalStateService.getEditingTaskId() !== parentId) {
+    if (ModalStateService.getEditingTaskId() !== parentId) { // Use ModalStateService
         console.warn("[RenderSubTasksEdit] Attempting to render sub-tasks for a task not currently being edited. ParentID:", parentId, "Actual Editing ID:", ModalStateService.getEditingTaskId());
-        // return; // Or clear the list if it's for a different task
+        return; 
     }
-
-    if (!parentTask || !parentTask.subTasks || parentTask.subTasks.length === 0) {
-        subTasksListElement.innerHTML = '<li class="text-slate-500 dark:text-slate-400 text-xs text-center py-2">No sub-tasks yet. Add one above!</li>';
-        return;
-    }
-
-    parentTask.subTasks.forEach(subTask => {
-        const li = document.createElement('li');
-        li.className = 'flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-700/50 rounded-md text-sm group';
-        li.dataset.subTaskId = subTask.id;
-
-        const checkbox = document.createElement('input'); /* ... as before ... */
-        checkbox.type = 'checkbox'; checkbox.checked = subTask.completed; checkbox.className = 'form-checkbox h-4 w-4 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 mr-2 cursor-pointer';
-        checkbox.addEventListener('change', () => {
-            if (window.AppFeatures?.SubTasks?.toggleComplete(parentId, subTask.id)) {
-                // Re-render this specific list. Event 'tasksChanged' will refresh main view.
-                renderSubTasksForEditModal(parentId, subTasksListElement);
-                // If view details modal is also open for this task, refresh its sub-tasks too
-                if (ModalStateService.getCurrentViewTaskId() === parentId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) {
-                    renderSubTasksForViewModal(parentId, modalSubTasksListViewDetails, viewSubTaskProgress, noSubTasksMessageViewDetails);
-                }
-                if(typeof showMessage === 'function') showMessage('Sub-task status updated.', 'info');
-            }
-        });
-
-        const textSpan = document.createElement('span'); /* ... as before ... */
-        textSpan.textContent = subTask.text; textSpan.className = `flex-grow break-all ${subTask.completed ? 'line-through text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-200'}`;
-
-        const actionsDiv = document.createElement('div'); /* ... as before ... */
-        actionsDiv.className = 'ml-2 flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200';
-        const editBtn = document.createElement('button'); editBtn.type = 'button'; editBtn.innerHTML = '<i class="fas fa-pencil-alt text-xs text-sky-500 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300"></i>'; editBtn.className = 'p-1'; editBtn.title = 'Edit sub-task';
-        editBtn.addEventListener('click', () => {
-            const newText = prompt('Edit sub-task:', subTask.text);
-            if (newText !== null && newText.trim() !== '') {
-                if (window.AppFeatures?.SubTasks?.edit(parentId, subTask.id, newText.trim())) {
-                    renderSubTasksForEditModal(parentId, subTasksListElement);
-                    if (ModalStateService.getCurrentViewTaskId() === parentId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) {
-                        renderSubTasksForViewModal(parentId, modalSubTasksListViewDetails, viewSubTaskProgress, noSubTasksMessageViewDetails);
-                    }
-                    if(typeof showMessage === 'function') showMessage('Sub-task updated.', 'success');
-                } else { if(typeof showMessage === 'function') showMessage('Failed to update sub-task.', 'error'); }
-            }
-        });
-        const deleteBtn = document.createElement('button'); deleteBtn.type = 'button'; deleteBtn.innerHTML = '<i class="fas fa-trash-alt text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"></i>'; deleteBtn.className = 'p-1'; deleteBtn.title = 'Delete sub-task';
-        deleteBtn.addEventListener('click', () => {
-            if (confirm(`Are you sure you want to delete sub-task: "${subTask.text}"?`)) {
-                if (window.AppFeatures?.SubTasks?.delete(parentId, subTask.id)) {
-                    renderSubTasksForEditModal(parentId, subTasksListElement);
-                     if (ModalStateService.getCurrentViewTaskId() === parentId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) {
-                        renderSubTasksForViewModal(parentId, modalSubTasksListViewDetails, viewSubTaskProgress, noSubTasksMessageViewDetails);
-                    }
-                    if(typeof showMessage === 'function') showMessage('Sub-task deleted.', 'success');
-                } else { if(typeof showMessage === 'function') showMessage('Failed to delete sub-task.', 'error');}
-            }
-        });
-        actionsDiv.appendChild(editBtn); actionsDiv.appendChild(deleteBtn);
-        li.appendChild(checkbox); li.appendChild(textSpan); li.appendChild(actionsDiv);
-        subTasksListElement.appendChild(li);
-    });
+    // ... (rest of the function as in ui_rendering_js_refactor_06_modalstate)
+    if (!parentTask || !parentTask.subTasks || parentTask.subTasks.length === 0) { subTasksListElement.innerHTML = '<li class="text-slate-500 dark:text-slate-400 text-xs text-center py-2">No sub-tasks yet. Add one above!</li>'; return; }
+    parentTask.subTasks.forEach(subTask => { const li = document.createElement('li'); li.className = 'flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-700/50 rounded-md text-sm group'; li.dataset.subTaskId = subTask.id; const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.checked = subTask.completed; checkbox.className = 'form-checkbox h-4 w-4 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 mr-2 cursor-pointer'; checkbox.addEventListener('change', () => { if (window.AppFeatures?.SubTasks?.toggleComplete(parentId, subTask.id)) { renderSubTasksForEditModal(parentId, subTasksListElement); if (ModalStateService.getCurrentViewTaskId() === parentId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) { renderSubTasksForViewModal(parentId, modalSubTasksListViewDetails, viewSubTaskProgress, noSubTasksMessageViewDetails); } if(typeof showMessage === 'function') showMessage('Sub-task status updated.', 'info'); } }); const textSpan = document.createElement('span'); textSpan.textContent = subTask.text; textSpan.className = `flex-grow break-all ${subTask.completed ? 'line-through text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-200'}`; const actionsDiv = document.createElement('div'); actionsDiv.className = 'ml-2 flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200'; const editBtn = document.createElement('button'); editBtn.type = 'button'; editBtn.innerHTML = '<i class="fas fa-pencil-alt text-xs text-sky-500 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300"></i>'; editBtn.className = 'p-1'; editBtn.title = 'Edit sub-task'; editBtn.addEventListener('click', () => { const newText = prompt('Edit sub-task:', subTask.text); if (newText !== null && newText.trim() !== '') { if (window.AppFeatures?.SubTasks?.edit(parentId, subTask.id, newText.trim())) { renderSubTasksForEditModal(parentId, subTasksListElement); if (ModalStateService.getCurrentViewTaskId() === parentId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) { renderSubTasksForViewModal(parentId, modalSubTasksListViewDetails, viewSubTaskProgress, noSubTasksMessageViewDetails); } if(typeof showMessage === 'function') showMessage('Sub-task updated.', 'success'); } else { if(typeof showMessage === 'function') showMessage('Failed to update sub-task.', 'error'); } } }); const deleteBtn = document.createElement('button'); deleteBtn.type = 'button'; deleteBtn.innerHTML = '<i class="fas fa-trash-alt text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"></i>'; deleteBtn.className = 'p-1'; deleteBtn.title = 'Delete sub-task'; deleteBtn.addEventListener('click', () => { if (confirm(`Are you sure you want to delete sub-task: "${subTask.text}"?`)) { if (window.AppFeatures?.SubTasks?.delete(parentId, subTask.id)) { renderSubTasksForEditModal(parentId, subTasksListElement); if (ModalStateService.getCurrentViewTaskId() === parentId && viewTaskDetailsModal && !viewTaskDetailsModal.classList.contains('hidden')) { renderSubTasksForViewModal(parentId, modalSubTasksListViewDetails, viewSubTaskProgress, noSubTasksMessageViewDetails); } if(typeof showMessage === 'function') showMessage('Sub-task deleted.', 'success'); } else { if(typeof showMessage === 'function') showMessage('Failed to delete sub-task.', 'error');} } }); actionsDiv.appendChild(editBtn); actionsDiv.appendChild(deleteBtn); li.appendChild(checkbox); li.appendChild(textSpan); li.appendChild(actionsDiv); subTasksListElement.appendChild(li); });
 }
 
 function renderSubTasksForViewModal(parentId, subTasksListElement, progressElement, noSubTasksMessageElement) {
@@ -155,43 +99,12 @@ function renderSubTasksForViewModal(parentId, subTasksListElement, progressEleme
     const currentTasks = AppStore.getTasks();
     const parentTask = currentTasks.find(t => t.id === parentId);
 
-    // Ensure we are rendering for the currently viewed task
-    if (ModalStateService.getCurrentViewTaskId() !== parentId) {
+    if (ModalStateService.getCurrentViewTaskId() !== parentId) { // Use ModalStateService
          console.warn("[RenderSubTasksView] Attempting to render sub-tasks for a task not currently being viewed. ParentID:", parentId, "Actual Viewing ID:", ModalStateService.getCurrentViewTaskId());
-        // return; // Or clear the list
+        return; 
     }
-
-    if (!parentTask || !parentTask.subTasks || parentTask.subTasks.length === 0) {
-        progressElement.textContent = '';
-        noSubTasksMessageElement.classList.remove('hidden');
-        subTasksListElement.classList.add('hidden');
-        return;
-    }
-
-    noSubTasksMessageElement.classList.add('hidden');
-    subTasksListElement.classList.remove('hidden');
-    let completedCount = 0;
-
-    parentTask.subTasks.forEach(subTask => {
-        if (subTask.completed) completedCount++;
-        const li = document.createElement('li'); /* ... as before ... */
-        li.className = 'flex items-center text-sm group py-1'; li.dataset.subTaskId = subTask.id;
-        const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.checked = subTask.completed; checkbox.className = 'form-checkbox h-4 w-4 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 mr-2 cursor-pointer flex-shrink-0';
-        checkbox.addEventListener('change', () => {
-            if (window.AppFeatures?.SubTasks?.toggleComplete(parentId, subTask.id)) {
-                renderSubTasksForViewModal(parentId, subTasksListElement, progressElement, noSubTasksMessageElement);
-                // If edit modal is also open for this task, update its sub-task list
-                if (ModalStateService.getEditingTaskId() === parentId && viewEditTaskModal && !viewEditTaskModal.classList.contains('hidden')) {
-                    renderSubTasksForEditModal(parentId, modalSubTasksListViewEdit);
-                }
-                if(typeof showMessage === 'function') showMessage('Sub-task status updated.', 'info');
-            }
-        });
-        const textSpan = document.createElement('span'); textSpan.textContent = subTask.text; textSpan.className = `flex-grow break-all ${subTask.completed ? 'line-through text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-300'}`;
-        li.appendChild(checkbox); li.appendChild(textSpan);
-        subTasksListElement.appendChild(li);
-    });
-    progressElement.textContent = `${completedCount}/${parentTask.subTasks.length} completed`;
+    // ... (rest of the function as in ui_rendering_js_refactor_06_modalstate)
+    if (!parentTask || !parentTask.subTasks || parentTask.subTasks.length === 0) { progressElement.textContent = ''; noSubTasksMessageElement.classList.remove('hidden'); subTasksListElement.classList.add('hidden'); return; } noSubTasksMessageElement.classList.add('hidden'); subTasksListElement.classList.remove('hidden'); let completedCount = 0; parentTask.subTasks.forEach(subTask => { if (subTask.completed) completedCount++; const li = document.createElement('li'); li.className = 'flex items-center text-sm group py-1'; li.dataset.subTaskId = subTask.id; const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.checked = subTask.completed; checkbox.className = 'form-checkbox h-4 w-4 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 mr-2 cursor-pointer flex-shrink-0'; checkbox.addEventListener('change', () => { if (window.AppFeatures?.SubTasks?.toggleComplete(parentId, subTask.id)) { renderSubTasksForViewModal(parentId, subTasksListElement, progressElement, noSubTasksMessageElement); if (ModalStateService.getEditingTaskId() === parentId && viewEditTaskModal && !viewEditTaskModal.classList.contains('hidden')) { renderSubTasksForEditModal(parentId, modalSubTasksListViewEdit); } if(typeof showMessage === 'function') showMessage('Sub-task status updated.', 'info'); } }); const textSpan = document.createElement('span'); textSpan.textContent = subTask.text; textSpan.className = `flex-grow break-all ${subTask.completed ? 'line-through text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-300'}`; li.appendChild(checkbox); li.appendChild(textSpan); subTasksListElement.appendChild(li); }); progressElement.textContent = `${completedCount}/${parentTask.subTasks.length} completed`;
 }
 
 function updateSortButtonStates() { /* ... same as before, uses ViewManager.getCurrentSort() ... */ }
