@@ -368,17 +368,28 @@ function setSidebarMinimized(minimize) {
 
 
 function showTooltip(element, text) {
-    if (!taskSidebar || !iconTooltip || !taskSidebar.classList.contains('sidebar-minimized')) return;
+    // ADD THIS CHECK: Only show tooltips if the feature is enabled and sidebar is minimized
+    if (typeof FeatureFlagService === 'undefined' || !FeatureFlagService.isFeatureEnabled('tooltipsGuide') || 
+        !taskSidebar || !iconTooltip || !taskSidebar.classList.contains('sidebar-minimized')) {
+        if (iconTooltip && iconTooltip.style.display === 'block') { // Ensure it's hidden if conditions aren't met
+            hideTooltip();
+        }
+        return;
+    }
+
     iconTooltip.textContent = text;
     const rect = element.getBoundingClientRect();
-    iconTooltip.style.left = `${rect.right + 10}px`; // Position to the right of the element
-    iconTooltip.style.top = `${rect.top + (rect.height / 2) - (iconTooltip.offsetHeight / 2)}px`; // Vertically centered
+    iconTooltip.style.left = `${rect.right + 10}px`;
+    iconTooltip.style.top = `${rect.top + (rect.height / 2) - (iconTooltip.offsetHeight / 2)}px`;
     iconTooltip.style.display = 'block';
 }
 
 function hideTooltip() {
     if (!iconTooltip) return;
-    clearTimeout(tooltipTimeout); // Assuming tooltipTimeout is managed elsewhere (e.g., store.js or directly)
+    // tooltipTimeout is a global variable from store.js, used by sidebar hover in ui_event_handlers.js
+    if (typeof tooltipTimeout !== 'undefined' && tooltipTimeout !== null) {
+      clearTimeout(tooltipTimeout);
+    }
     iconTooltip.style.display = 'none';
 }
 
