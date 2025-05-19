@@ -2,45 +2,35 @@
 
 // Self-invoking function to encapsulate the feature's code
 (function() {
+    // Dependencies (assumed to be globally available for now):
+    // - Services: FeatureFlagService
+
     /**
      * Initializes the Collaboration Sharing Feature.
-     * This function would set up any specific event listeners, UI modifications,
-     * or logic needed for collaboration and sharing tasks (e.g., share buttons,
-     * user selection UI, real-time updates if applicable).
-     * This function should be called if the 'collaborationSharing' flag is true.
+     * Placeholder for future initialization logic.
      */
     function initializeCollaborationSharingFeature() {
-        // Placeholder for future initialization logic
-        // e.g., attaching event listeners to "Share Task" buttons,
-        // initializing a connection for real-time collaboration, etc.
-        console.log('Collaboration Sharing Feature Initialized (Placeholder).');
-
-        // Example: You might enable "Share" buttons on tasks or a "Shared with me" filter
-        // const shareButtons = document.querySelectorAll('.task-share-button');
-        // shareButtons.forEach(button => {
-        //     button.addEventListener('click', handleShareTask);
-        // });
+        console.log('[CollaborationSharingFeature] Initialized (Placeholder).');
+        // Future: Setup for real-time connections, UI for sharing options, etc.
     }
 
     /**
      * Updates the visibility of all Collaboration Sharing UI elements based on the feature flag.
-     * @param {boolean} isEnabled - True if the feature is enabled, false otherwise.
+     * This function is primarily for consistency. Actual UI elements (e.g., "Share" buttons,
+     * "Shared with me" filters) would be toggled by applyActiveFeatures using the
+     * '.collaboration-sharing-element' class.
+     * @param {boolean} isEnabledParam - Parameter for consistency, actual check uses FeatureFlagService.
      */
-    function updateCollaborationSharingUIVisibility(isEnabled) {
-        const collaborationElements = document.querySelectorAll('.collaboration-sharing-element');
-        collaborationElements.forEach(el => {
-            el.classList.toggle('hidden', !isEnabled);
-        });
-        console.log(`Collaboration Sharing UI Visibility set to: ${isEnabled}`);
+    function updateCollaborationSharingUIVisibility(isEnabledParam) {
+        if (typeof FeatureFlagService === 'undefined') {
+            console.error("[CollaborationSharingFeature] FeatureFlagService not available.");
+            return;
+        }
+        const isActuallyEnabled = FeatureFlagService.isFeatureEnabled('collaborationSharing');
 
-        // Example: Show/hide "Share" icons on task items, "Shared Tasks" section in sidebar, etc.
-        // const shareIcons = document.querySelectorAll('.share-icon');
-        // shareIcons.forEach(icon => icon.classList.toggle('hidden', !isEnabled));
-        //
-        // const sharedTasksSection = document.getElementById('sharedTasksSection');
-        // if (sharedTasksSection) {
-        //     sharedTasksSection.classList.toggle('hidden', !isEnabled);
-        // }
+        // The .collaboration-sharing-element class on UI parts is toggled by applyActiveFeatures.
+        // This function can be used if there's more complex UI logic specific to this feature's visibility.
+        console.log(`[CollaborationSharingFeature] UI Visibility (handled by applyActiveFeatures) set based on flag: ${isActuallyEnabled}`);
     }
 
     // Expose functions to the global scope via AppFeatures
@@ -55,4 +45,5 @@
     window.AppFeatures.CollaborationSharing.initialize = initializeCollaborationSharingFeature;
     window.AppFeatures.CollaborationSharing.updateUIVisibility = updateCollaborationSharingUIVisibility;
 
+    // console.log("feature_collaboration_sharing.js loaded");
 })();
