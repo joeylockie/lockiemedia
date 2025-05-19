@@ -1,239 +1,218 @@
 // store.js
-// This file is responsible for managing the application's state
-// and its persistence to localStorage. Feature flags are sourced from FeatureFlagService.
-// It now publishes events when state changes.
+// Manages application state internally and exposes an API (AppStore) for access and modification.
+// Publishes events via EventBus when state changes.
 
-// --- Application State Variables ---
-var tasks = [];
-var projects = [];
-var currentFilter = 'inbox';
-var currentSort = 'default';
-var currentSearchTerm = '';
-var editingTaskId = null;
-var currentViewTaskId = null;
-var uniqueLabels = [];
-var uniqueProjects = [];
-var tooltipTimeout = null;
-var currentTaskViewMode = 'list';
-var selectedTaskIdsForBulkAction = [];
+(function() {
+    // --- Internal State Variables (scoped to this IIFE) ---
+    let _tasks = [];
+    let _projects = [];
+    let _currentFilter = 'inbox';
+    let _currentSort = 'default';
+    let _currentSearchTerm = '';
+    let _editingTaskId = null;
+    let _currentViewTaskId = null;
+    let _uniqueLabels = [];
+    let _uniqueProjects = [];
+    let _tooltipTimeout = null; // This might better belong in a UI state manager
+    let _currentTaskViewMode = 'list';
+    let _selectedTaskIdsForBulkAction = [];
 
-var isPomodoroActive = false;
-var currentPomodoroState = 'work';
-var pomodoroTimeRemaining = 0;
-var pomodoroCurrentTaskId = null;
+    let _isPomodoroActive = false;
+    let _currentPomodoroState = 'work';
+    let _pomodoroTimeRemaining = 0;
+    let _pomodoroCurrentTaskId = null;
 
-var kanbanColumns = [
-    { id: 'todo', title: 'To Do' },
-    { id: 'inprogress', title: 'In Progress' },
-    { id: 'done', title: 'Done' }
-];
-
-var featureFlags = {}; // Populated by FeatureFlagService via setStoreFeatureFlags
-
-// --- Data Persistence and Initialization Functions ---
-
-// --- Task Data Functions ---
-function saveTasks() {
-    localStorage.setItem('todos_v3', JSON.stringify(tasks));
-    updateUniqueLabels(); // This will publish 'labelsChanged'
-    console.log('[Store] Tasks saved to localStorage.');
-    if (window.EventBus) EventBus.publish('tasksChanged', tasks);
-}
-
-function initializeTasks() {
-    const storedTasks = JSON.parse(localStorage.getItem('todos_v3')) || [];
-    const defaultKanbanCol = kanbanColumns[0]?.id || 'todo';
-
-    tasks = storedTasks.map(task => ({
-        id: task.id || Date.now() + Math.random(),
-        text: task.text || '',
-        completed: task.completed || false,
-        creationDate: task.creationDate || task.id,
-        dueDate: task.dueDate || null,
-        time: task.time || null,
-        priority: task.priority || 'medium',
-        label: task.label || '',
-        notes: task.notes || '',
-        isReminderSet: task.isReminderSet || false,
-        reminderDate: task.reminderDate || null,
-        reminderTime: task.reminderTime || null,
-        reminderEmail: task.reminderEmail || null,
-        estimatedHours: task.estimatedHours || 0,
-        estimatedMinutes: task.estimatedMinutes || 0,
-        timerStartTime: task.timerStartTime || null,
-        timerAccumulatedTime: task.timerAccumulatedTime || 0,
-        timerIsRunning: task.timerIsRunning || false,
-        timerIsPaused: task.timerIsPaused || false,
-        actualDurationMs: task.actualDurationMs || 0,
-        attachments: task.attachments || [],
-        completedDate: task.completedDate || null,
-        subTasks: task.subTasks || [],
-        recurrenceRule: task.recurrenceRule || null,
-        recurrenceEndDate: task.recurrenceEndDate || null,
-        nextDueDate: task.nextDueDate || task.dueDate,
-        sharedWith: task.sharedWith || [],
-        owner: task.owner || null,
-        lastSynced: task.lastSynced || null,
-        syncVersion: task.syncVersion || 0,
-        kanbanColumnId: task.kanbanColumnId || defaultKanbanCol,
-        projectId: typeof task.projectId === 'number' ? task.projectId : 0,
-        dependsOn: task.dependsOn || [],
-        blocksTasks: task.blocksTasks || []
-    }));
-    updateUniqueLabels(); // This will publish 'labelsChanged'
-    console.log('[Store] Tasks initialized/loaded.');
-    // Event for tasks being initialized can be part of 'storeInitialized' or a specific 'tasksInitialized'
-}
-
-function updateUniqueLabels() {
-    const labels = new Set();
-    tasks.forEach(task => {
-        if (task.label && task.label.trim() !== '') {
-            labels.add(task.label.trim());
-        }
-    });
-    const oldLabels = JSON.stringify(uniqueLabels);
-    uniqueLabels = Array.from(labels).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
-    if (JSON.stringify(uniqueLabels) !== oldLabels) { // Publish only if changed
-        console.log('[Store] Unique labels updated:', uniqueLabels);
-        if (window.EventBus) EventBus.publish('labelsChanged', uniqueLabels);
-    }
-}
-
-// --- Project Data Functions ---
-function saveProjects() {
-    localStorage.setItem('projects_v1', JSON.stringify(projects));
-    updateUniqueProjects(); // This will publish 'uniqueProjectsChanged'
-    console.log('[Store] Projects saved to localStorage.');
-    if (window.EventBus) EventBus.publish('projectsChanged', projects);
-}
-
-function loadProjects() {
-    const storedProjects = localStorage.getItem('projects_v1');
-    let tempProjects = [];
-    if (storedProjects) {
-        try {
-            const parsedProjects = JSON.parse(storedProjects);
-            if (Array.isArray(parsedProjects) && parsedProjects.every(p => p && typeof p.id === 'number' && typeof p.name === 'string')) {
-                tempProjects = parsedProjects;
-            } else {
-                console.warn("[Store] Stored projects data is invalid. Initializing with default.");
-            }
-        } catch (e) {
-            console.error("[Store] Error parsing stored projects. Initializing with default.", e);
-        }
-    }
-
-    const noProjectEntry = { id: 0, name: "No Project", creationDate: Date.now() - 100000 };
-    let finalProjects = tempProjects.filter(p => p.id !== 0);
-    finalProjects.unshift(noProjectEntry);
-
-    projects = finalProjects;
-    updateUniqueProjects(); // This will publish 'uniqueProjectsChanged'
-    console.log('[Store] Projects loaded/initialized.');
-}
-
-function updateUniqueProjects() {
-    const oldUniqueProjects = JSON.stringify(uniqueProjects);
-    uniqueProjects = projects
-        .filter(project => project.id !== 0)
-        .map(project => ({ id: project.id, name: project.name }))
-        .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
-    if (JSON.stringify(uniqueProjects) !== oldUniqueProjects) { // Publish only if changed
-        console.log('[Store] Unique projects updated for UI:', uniqueProjects);
-        if (window.EventBus) EventBus.publish('uniqueProjectsChanged', uniqueProjects);
-    }
-}
-
-// --- Kanban Column Data Functions ---
-function saveKanbanColumns() {
-    localStorage.setItem('kanbanColumns_v1', JSON.stringify(kanbanColumns));
-    console.log('[Store] Kanban columns saved to localStorage.');
-    if (window.EventBus) EventBus.publish('kanbanColumnsChanged', kanbanColumns);
-}
-
-function loadKanbanColumns() {
-    const storedColumns = localStorage.getItem('kanbanColumns_v1');
-    const defaultColumns = [
+    let _kanbanColumns = [
         { id: 'todo', title: 'To Do' },
         { id: 'inprogress', title: 'In Progress' },
         { id: 'done', title: 'Done' }
     ];
 
-    if (storedColumns) {
-        try {
-            const parsedColumns = JSON.parse(storedColumns);
-            if (Array.isArray(parsedColumns) && parsedColumns.length === defaultColumns.length && parsedColumns.every(col => col && typeof col.id === 'string' && typeof col.title === 'string')) {
-                const storedIds = parsedColumns.map(c => c.id);
-                const defaultIds = defaultColumns.map(c => c.id);
-                if (JSON.stringify(storedIds) === JSON.stringify(defaultIds)) {
-                    kanbanColumns = parsedColumns.map(sc => ({
-                        id: sc.id,
-                        title: sc.title
-                    }));
-                } else {
-                    console.warn("[Store] Stored Kanban column IDs don't match defaults. Resetting to defaults.");
-                    kanbanColumns = defaultColumns;
-                    saveKanbanColumns(); // Save the corrected default structure
-                }
-            } else {
-                 console.warn("[Store] Stored Kanban columns are invalid or structure changed. Resetting to defaults.");
-                 kanbanColumns = defaultColumns;
-                 saveKanbanColumns();
-            }
-        } catch (e) {
-            console.error("[Store] Error parsing stored Kanban columns. Resetting to defaults.", e);
-            kanbanColumns = defaultColumns;
-            saveKanbanColumns();
+    let _featureFlags = {}; // Populated by FeatureFlagService
+
+    // --- Private Helper Functions ---
+    function _publish(eventName, data) {
+        if (window.EventBus && typeof window.EventBus.publish === 'function') {
+            EventBus.publish(eventName, data);
+        } else {
+            console.warn(`[Store] EventBus not available to publish event: ${eventName}`);
         }
-    } else {
-        console.log('[Store] No stored Kanban columns found. Using defaults and saving.');
-        kanbanColumns = defaultColumns;
-        saveKanbanColumns(); // This will also publish 'kanbanColumnsChanged'
-    }
-    console.log('[Store] Kanban columns loaded/initialized.');
-}
-
-/**
- * Public method for FeatureFlagService to set the flags after loading.
- * @param {Object} loadedFlags - The feature flags object from FeatureFlagService.
- */
-function setStoreFeatureFlags(loadedFlags) {
-    if (loadedFlags && typeof loadedFlags === 'object') {
-        Object.assign(featureFlags, loadedFlags);
-        window.featureFlags = featureFlags; // Ensure global access for now
-        console.log('[Store] Feature flags updated in store from FeatureFlagService:', featureFlags);
-        if (window.EventBus) EventBus.publish('featureFlagsInitialized', featureFlags); // Publish event
-    } else {
-        console.error('[Store] Invalid flags received from FeatureFlagService.');
-    }
-}
-
-window.store = window.store || {};
-window.store.setFeatureFlags = setStoreFeatureFlags;
-
-
-// --- Initial Data Loading on Script Load ---
-(async () => {
-    // FeatureFlagService.loadFeatureFlags() is called by its own IIFE when featureFlagService.js loads.
-    // It will then call store.setFeatureFlags, which publishes 'featureFlagsInitialized'.
-    // So, we just need to ensure FeatureFlagService is loaded before this script.
-
-    // Wait for flags to be potentially loaded and set by FeatureFlagService
-    // A more robust way would be to subscribe to 'featureFlagsInitialized' if needed,
-    // or have FeatureFlagService return a promise. For now, a small delay or direct call.
-    if (window.FeatureFlagService && typeof window.FeatureFlagService.loadFeatureFlags === 'function' && !Object.keys(featureFlags).some(key => featureFlags[key])) {
-        // If flags haven't been populated yet by an earlier call (e.g. from main.js), ensure they are.
-        // This is a bit defensive; ideally, main.js orchestrates this.
-        // await window.FeatureFlagService.loadFeatureFlags();
-        // The above line is problematic if FeatureFlagService already ran its IIFE.
-        // The current setup relies on FeatureFlagService's IIFE and its call to setStoreFeatureFlags.
     }
 
-    loadKanbanColumns();  // Publishes 'kanbanColumnsChanged' if saved for the first time
-    loadProjects();       // Publishes 'projectsChanged' and 'uniqueProjectsChanged'
-    initializeTasks();    // Publishes 'labelsChanged' (and 'tasksChanged' if saveTasks was called, which it isn't here directly)
-    
-    console.log("[Store] Initial data (tasks, projects, columns) loading process completed.");
-    if (window.EventBus) EventBus.publish('storeInitialized'); // Signal that initial store setup is done
+    // --- Internal Data Update and Persistence Functions ---
+    function _updateUniqueLabelsInternal() {
+        const labels = new Set();
+        _tasks.forEach(task => {
+            if (task.label && task.label.trim() !== '') {
+                labels.add(task.label.trim());
+            }
+        });
+        const oldLabelsJSON = JSON.stringify(_uniqueLabels);
+        _uniqueLabels = Array.from(labels).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+        if (JSON.stringify(_uniqueLabels) !== oldLabelsJSON) {
+            console.log('[Store] Unique labels updated:', _uniqueLabels);
+            _publish('labelsChanged', [..._uniqueLabels]);
+        }
+    }
+
+    function _updateUniqueProjectsInternal() {
+        const oldUniqueProjectsJSON = JSON.stringify(_uniqueProjects);
+        _uniqueProjects = _projects
+            .filter(project => project.id !== 0)
+            .map(project => ({ id: project.id, name: project.name }))
+            .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+        if (JSON.stringify(_uniqueProjects) !== oldUniqueProjectsJSON) {
+            console.log('[Store] Unique projects updated for UI:', _uniqueProjects);
+            _publish('uniqueProjectsChanged', [..._uniqueProjects]);
+        }
+    }
+
+    function _saveTasksInternal() {
+        localStorage.setItem('todos_v3', JSON.stringify(_tasks));
+        _updateUniqueLabelsInternal();
+        console.log('[Store] Tasks saved to localStorage.');
+        _publish('tasksChanged', [..._tasks]); // Publish with a copy
+    }
+
+    function _saveProjectsInternal() {
+        localStorage.setItem('projects_v1', JSON.stringify(_projects));
+        _updateUniqueProjectsInternal();
+        console.log('[Store] Projects saved to localStorage.');
+        _publish('projectsChanged', [..._projects]); // Publish with a copy
+    }
+
+    function _saveKanbanColumnsInternal() {
+        localStorage.setItem('kanbanColumns_v1', JSON.stringify(_kanbanColumns));
+        console.log('[Store] Kanban columns saved to localStorage.');
+        _publish('kanbanColumnsChanged', [..._kanbanColumns]); // Publish with a copy
+    }
+
+
+    // --- Public API for AppStore ---
+    const AppStore = {
+        // --- Getters for State (return copies to prevent direct modification) ---
+        getTasks: () => [..._tasks], // Return a shallow copy
+        getProjects: () => [..._projects], // Return a shallow copy
+        getKanbanColumns: () => JSON.parse(JSON.stringify(_kanbanColumns)), // Deep copy for objects
+        getFeatureFlags: () => ({ ..._featureFlags }), // Shallow copy
+        getUniqueLabels: () => [..._uniqueLabels],
+        getUniqueProjects: () => [..._uniqueProjects],
+        
+        // UI State Getters (will be fully moved to ViewManager later)
+        getCurrentFilter: () => _currentFilter,
+        getCurrentSort: () => _currentSort,
+        getCurrentSearchTerm: () => _currentSearchTerm,
+        getCurrentTaskViewMode: () => _currentTaskViewMode,
+        getEditingTaskId: () => _editingTaskId,
+        setCurrentViewTaskId: (id) => _currentViewTaskId = id, // Setter needed by modals
+        getCurrentViewTaskId: () => _currentViewTaskId,
+        getSelectedTaskIdsForBulkAction: () => [..._selectedTaskIdsForBulkAction],
+
+        // Pomodoro State Getters/Setters (will move to PomodoroService later)
+        isPomodoroActive: () => _isPomodoroActive,
+        setPomodoroActive: (isActive) => _isPomodoroActive = isActive,
+        getCurrentPomodoroState: () => _currentPomodoroState,
+        setCurrentPomodoroState: (state) => _currentPomodoroState = state,
+        getPomodoroTimeRemaining: () => _pomodoroTimeRemaining,
+        setPomodoroTimeRemaining: (time) => _pomodoroTimeRemaining = time,
+        getPomodoroCurrentTaskId: () => _pomodoroCurrentTaskId,
+        setPomodoroCurrentTaskId: (id) => _pomodoroCurrentTaskId = id,
+        
+        // --- Actions / Mutators (that also handle persistence and events) ---
+        // These will be called by services (TaskService, ProjectService, etc.)
+        
+        // For Tasks (TaskService will call these)
+        setTasks: (newTasksArray) => { // Used by services to update the whole array
+            _tasks = newTasksArray;
+            _saveTasksInternal();
+        },
+        // saveTasks is effectively the public method to persist current _tasks state
+        saveTasks: _saveTasksInternal,
+
+        // For Projects (ProjectService will call these)
+        setProjects: (newProjectsArray) => {
+            _projects = newProjectsArray;
+            _saveProjectsInternal();
+        },
+        saveProjects: _saveProjectsInternal,
+
+        // For Kanban Columns (Kanban feature module will call this)
+        setKanbanColumns: (newColumnsArray) => {
+            _kanbanColumns = newColumnsArray;
+            _saveKanbanColumnsInternal();
+        },
+        saveKanbanColumns: _saveKanbanColumnsInternal,
+
+        // For Feature Flags (called by FeatureFlagService)
+        setFeatureFlags: (loadedFlags) => {
+            if (loadedFlags && typeof loadedFlags === 'object') {
+                _featureFlags = { ..._featureFlags, ...loadedFlags }; // Merge carefully
+                 // Ensure window.featureFlags (legacy global) is also updated for now
+                window.featureFlags = _featureFlags;
+                console.log('[Store API] Feature flags updated in store:', _featureFlags);
+                _publish('featureFlagsInitialized', { ..._featureFlags });
+            } else {
+                console.error('[Store API] Invalid flags received.');
+            }
+        },
+
+        // For UI State (ViewManager will call these)
+        // These setters will eventually be removed as ViewManager takes ownership
+        setCurrentFilterInStore: (filter) => { _currentFilter = filter; /* Event published by ViewManager */ },
+        setCurrentSortInStore: (sort) => { _currentSort = sort; /* Event published by ViewManager */ },
+        setCurrentSearchTermInStore: (term) => { _currentSearchTerm = term; /* Event published by ViewManager */ },
+        setCurrentTaskViewModeInStore: (mode) => { _currentTaskViewMode = mode; /* Event published by ViewManager */ },
+        setEditingTaskIdInStore: (id) => { _editingTaskId = id; }, // Modals might still use this directly
+        
+        // For Bulk Actions (BulkActionService will call this)
+        setSelectedTaskIdsForBulkAction: (ids) => {
+            _selectedTaskIdsForBulkAction = [...ids];
+            // Event 'bulkSelectionChanged' is published by BulkActionService
+        },
+        
+        // Tooltip timeout (still a bit of an outlier, might move to a UI service)
+        getTooltipTimeout: () => _tooltipTimeout,
+        setTooltipTimeout: (timeoutId) => { _tooltipTimeout = timeoutId; },
+        clearTooltipTimeout: () => { if(_tooltipTimeout) clearTimeout(_tooltipTimeout); _tooltipTimeout = null; },
+
+
+        // --- Initialization Logic (called once at the bottom) ---
+        initializeStore: async () => {
+            // FeatureFlagService.loadFeatureFlags() is called by its own IIFE or by main.js
+            // It then calls AppStore.setFeatureFlags.
+
+            // Load Kanban Columns
+            const storedKanbanCols = localStorage.getItem('kanbanColumns_v1');
+            const defaultKanbanCols = [ { id: 'todo', title: 'To Do' }, { id: 'inprogress', title: 'In Progress' }, { id: 'done', title: 'Done' }];
+            if (storedKanbanCols) { try { /* ... parsing logic as before ... */ const parsed = JSON.parse(storedKanbanCols); if(Array.isArray(parsed) && parsed.length === 3) _kanbanColumns = parsed; else _kanbanColumns = defaultKanbanCols;} catch(e){ _kanbanColumns = defaultKanbanCols;} } else { _kanbanColumns = defaultKanbanCols; }
+            _saveKanbanColumnsInternal(); // Save and publish initial state
+
+            // Load Projects
+            const storedProjects = localStorage.getItem('projects_v1');
+            let tempProjects = [];
+            if (storedProjects) { try { const parsed = JSON.parse(storedProjects); if (Array.isArray(parsed)) tempProjects = parsed.filter(p => p && typeof p.id === 'number' && typeof p.name === 'string'); } catch (e) { console.error("[Store Init] Error parsing stored projects.", e);}}
+            const noProjectEntry = { id: 0, name: "No Project", creationDate: Date.now() - 100000 };
+            _projects = [noProjectEntry, ...tempProjects.filter(p => p.id !== 0)];
+            _saveProjectsInternal(); // Save and publish initial state (calls _updateUniqueProjectsInternal)
+
+            // Initialize Tasks
+            const storedTasks = JSON.parse(localStorage.getItem('todos_v3')) || [];
+            const defaultKanbanColId = _kanbanColumns[0]?.id || 'todo';
+            _tasks = storedTasks.map(task => ({ /* ... mapping logic as before, using defaultKanbanColId ... */
+                id: task.id || Date.now() + Math.random(), text: task.text || '', completed: task.completed || false, creationDate: task.creationDate || task.id, dueDate: task.dueDate || null, time: task.time || null, priority: task.priority || 'medium', label: task.label || '', notes: task.notes || '', isReminderSet: task.isReminderSet || false, reminderDate: task.reminderDate || null, reminderTime: task.reminderTime || null, reminderEmail: task.reminderEmail || null, estimatedHours: task.estimatedHours || 0, estimatedMinutes: task.estimatedMinutes || 0, timerStartTime: null, timerAccumulatedTime: 0, timerIsRunning: false, timerIsPaused: false, actualDurationMs: 0, attachments: task.attachments || [], completedDate: null, subTasks: task.subTasks || [], recurrenceRule: null, recurrenceEndDate: null, nextDueDate: task.nextDueDate || task.dueDate, sharedWith: task.sharedWith || [], owner: null, lastSynced: null, syncVersion: 0, kanbanColumnId: task.kanbanColumnId || defaultKanbanColId, projectId: typeof task.projectId === 'number' ? task.projectId : 0, dependsOn: task.dependsOn || [], blocksTasks: task.blocksTasks || []
+            }));
+            _saveTasksInternal(); // Save and publish initial state (calls _updateUniqueLabelsInternal)
+            
+            console.log("[Store API] Store initialized with persisted or default data.");
+            _publish('storeInitialized');
+        }
+    };
+
+    window.AppStore = AppStore;
+
+    // The IIFE in featureFlagService.js calls loadFeatureFlags, which then calls AppStore.setFeatureFlags.
+    // The main.js orchestrates the call to AppStore.initializeStore() after DOMContentLoaded.
+    // No automatic initialization here to give main.js control.
+    console.log("store.js loaded, AppStore API created.");
+
 })();
