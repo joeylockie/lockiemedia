@@ -2,50 +2,43 @@
 
 // Self-invoking function to encapsulate the feature's code
 (function() {
+    // Dependencies (assumed to be globally available for now):
+    // - Services: FeatureFlagService
+
     /**
      * Initializes the Cross-Device Sync Feature.
-     * This function would set up any specific logic needed for synchronizing tasks
-     * across different devices. This could involve setting up connections to a backend service,
-     * handling data merging, conflict resolution, etc.
-     * This function should be called if the 'crossDeviceSync' flag is true.
+     * Placeholder for future initialization logic.
      */
     function initializeCrossDeviceSyncFeature() {
-        // Placeholder for future initialization logic
-        // e.g., establishing a WebSocket connection, checking for remote updates,
-        // authenticating with a sync service.
-        console.log('Cross-Device Sync Feature Initialized (Placeholder).');
-
-        // Example: You might try to connect to a sync service here
-        // if (typeof AppSyncService !== 'undefined' && AppSyncService.isConnected()) {
-        //     AppSyncService.onRemoteUpdate(handleRemoteTaskUpdate);
-        // } else if (typeof AppSyncService !== 'undefined') {
-        //     AppSyncService.connect().then(() => {
-        //         console.log('Successfully connected to sync service.');
-        //         AppSyncService.onRemoteUpdate(handleRemoteTaskUpdate);
-        //     }).catch(error => {
-        //         console.error('Failed to connect to sync service:', error);
-        //     });
-        // }
+        console.log('[CrossDeviceSyncFeature] Initialized (Placeholder).');
+        // Future: Establish connections to a backend service, handle data merging, etc.
     }
 
     /**
      * Updates the visibility of all Cross-Device Sync UI elements based on the feature flag.
-     * This might include status indicators, manual sync buttons, or settings related to sync.
-     * @param {boolean} isEnabled - True if the feature is enabled, false otherwise.
+     * This function is primarily for consistency. Actual UI elements (e.g., "Sync & Backup (Soon)"
+     * button in settings) would be toggled by applyActiveFeatures using the
+     * '.cross-device-sync-element' class.
+     * @param {boolean} isEnabledParam - Parameter for consistency, actual check uses FeatureFlagService.
      */
-    function updateCrossDeviceSyncUIVisibility(isEnabled) {
-        const syncElements = document.querySelectorAll('.cross-device-sync-element');
-        syncElements.forEach(el => {
-            el.classList.toggle('hidden', !isEnabled);
-        });
-        console.log(`Cross-Device Sync UI Visibility set to: ${isEnabled}`);
+    function updateCrossDeviceSyncUIVisibility(isEnabledParam) {
+        if (typeof FeatureFlagService === 'undefined') {
+            console.error("[CrossDeviceSyncFeature] FeatureFlagService not available.");
+            return;
+        }
+        const isActuallyEnabled = FeatureFlagService.isFeatureEnabled('crossDeviceSync');
 
-        // Example: Show/hide a "Sync Status" icon or a "Force Sync" button
+        // The .cross-device-sync-element class on UI parts is toggled by applyActiveFeatures.
+        // This function can be used if there's more complex UI logic specific to this feature's visibility,
+        // like updating a sync status indicator.
+        console.log(`[CrossDeviceSyncFeature] UI Visibility (handled by applyActiveFeatures) set based on flag: ${isActuallyEnabled}`);
+
+        // Example:
         // const syncStatusIndicator = document.getElementById('syncStatusIndicator');
         // if (syncStatusIndicator) {
-        //     syncStatusIndicator.classList.toggle('hidden', !isEnabled);
-        //     if (isEnabled) {
-        //         // Update indicator based on actual sync status
+        //     syncStatusIndicator.classList.toggle('hidden', !isActuallyEnabled);
+        //     if (isActuallyEnabled) {
+        //         // Update indicator based on actual sync status from a sync service
         //     }
         // }
     }
@@ -62,16 +55,5 @@
     window.AppFeatures.CrossDeviceSync.initialize = initializeCrossDeviceSyncFeature;
     window.AppFeatures.CrossDeviceSync.updateUIVisibility = updateCrossDeviceSyncUIVisibility;
 
-    // Example of a function that might be called by the sync service
-    // function handleRemoteTaskUpdate(updatedTasks) {
-    //     console.log('Received remote task updates:', updatedTasks);
-    //     // Here you would merge updatedTasks with the local 'tasks' array
-    //     // This would involve conflict resolution logic.
-    //     // After merging, save tasks and re-render the UI.
-    //     // e.g., tasks = mergeTasks(tasks, updatedTasks); saveTasks(); renderApp();
-    //     if (typeof showMessage === 'function') {
-    //         showMessage('Tasks synced from another device.', 'info');
-    //     }
-    // }
-
+    // console.log("feature_cross_device_sync.js loaded");
 })();
