@@ -1,10 +1,9 @@
 // store.js
 // This file is responsible for managing the application's state
 // and its persistence to localStorage. Feature flags are sourced from FeatureFlagService.
+// It now publishes events when state changes.
 
 // --- Application State Variables ---
-// These are defined in the global scope for now to maintain compatibility
-// with other files that expect them. This will be refactored later.
 var tasks = [];
 var projects = [];
 var currentFilter = 'inbox';
@@ -29,19 +28,16 @@ var kanbanColumns = [
     { id: 'done', title: 'Done' }
 ];
 
-// featureFlags will be populated from FeatureFlagService after it loads.
-// We still declare it here so other files that expect `window.featureFlags` don't break immediately.
-// Its true source will be FeatureFlagService.
-var featureFlags = {};
-
+var featureFlags = {}; // Populated by FeatureFlagService via setStoreFeatureFlags
 
 // --- Data Persistence and Initialization Functions ---
 
 // --- Task Data Functions ---
 function saveTasks() {
     localStorage.setItem('todos_v3', JSON.stringify(tasks));
-    updateUniqueLabels();
+    updateUniqueLabels(); // This will publish 'labelsChanged'
     console.log('[Store] Tasks saved to localStorage.');
+    if (window.EventBus) EventBus.publish('tasksChanged', tasks);
 }
 
 function initializeTasks() {
@@ -84,8 +80,9 @@ function initializeTasks() {
         dependsOn: task.dependsOn || [],
         blocksTasks: task.blocksTasks || []
     }));
-    updateUniqueLabels();
+    updateUniqueLabels(); // This will publish 'labelsChanged'
     console.log('[Store] Tasks initialized/loaded.');
+    // Event for tasks being initialized can be part of 'storeInitialized' or a specific 'tasksInitialized'
 }
 
 function updateUniqueLabels() {
@@ -95,15 +92,20 @@ function updateUniqueLabels() {
             labels.add(task.label.trim());
         }
     });
+    const oldLabels = JSON.stringify(uniqueLabels);
     uniqueLabels = Array.from(labels).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
-    console.log('[Store] Unique labels updated:', uniqueLabels);
+    if (JSON.stringify(uniqueLabels) !== oldLabels) { // Publish only if changed
+        console.log('[Store] Unique labels updated:', uniqueLabels);
+        if (window.EventBus) EventBus.publish('labelsChanged', uniqueLabels);
+    }
 }
 
 // --- Project Data Functions ---
 function saveProjects() {
     localStorage.setItem('projects_v1', JSON.stringify(projects));
-    updateUniqueProjects();
+    updateUniqueProjects(); // This will publish 'uniqueProjectsChanged'
     console.log('[Store] Projects saved to localStorage.');
+    if (window.EventBus) EventBus.publish('projectsChanged', projects);
 }
 
 function loadProjects() {
@@ -127,22 +129,27 @@ function loadProjects() {
     finalProjects.unshift(noProjectEntry);
 
     projects = finalProjects;
-    updateUniqueProjects();
-    console.log('[Store] Projects loaded/initialized:', projects);
+    updateUniqueProjects(); // This will publish 'uniqueProjectsChanged'
+    console.log('[Store] Projects loaded/initialized.');
 }
 
 function updateUniqueProjects() {
+    const oldUniqueProjects = JSON.stringify(uniqueProjects);
     uniqueProjects = projects
         .filter(project => project.id !== 0)
         .map(project => ({ id: project.id, name: project.name }))
         .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
-    console.log('[Store] Unique projects updated for UI:', uniqueProjects);
+    if (JSON.stringify(uniqueProjects) !== oldUniqueProjects) { // Publish only if changed
+        console.log('[Store] Unique projects updated for UI:', uniqueProjects);
+        if (window.EventBus) EventBus.publish('uniqueProjectsChanged', uniqueProjects);
+    }
 }
 
 // --- Kanban Column Data Functions ---
 function saveKanbanColumns() {
     localStorage.setItem('kanbanColumns_v1', JSON.stringify(kanbanColumns));
     console.log('[Store] Kanban columns saved to localStorage.');
+    if (window.EventBus) EventBus.publish('kanbanColumnsChanged', kanbanColumns);
 }
 
 function loadKanbanColumns() {
@@ -167,7 +174,7 @@ function loadKanbanColumns() {
                 } else {
                     console.warn("[Store] Stored Kanban column IDs don't match defaults. Resetting to defaults.");
                     kanbanColumns = defaultColumns;
-                    saveKanbanColumns();
+                    saveKanbanColumns(); // Save the corrected default structure
                 }
             } else {
                  console.warn("[Store] Stored Kanban columns are invalid or structure changed. Resetting to defaults.");
@@ -182,9 +189,9 @@ function loadKanbanColumns() {
     } else {
         console.log('[Store] No stored Kanban columns found. Using defaults and saving.');
         kanbanColumns = defaultColumns;
-        saveKanbanColumns();
+        saveKanbanColumns(); // This will also publish 'kanbanColumnsChanged'
     }
-    console.log('[Store] Kanban columns loaded/initialized:', kanbanColumns);
+    console.log('[Store] Kanban columns loaded/initialized.');
 }
 
 /**
@@ -193,40 +200,40 @@ function loadKanbanColumns() {
  */
 function setStoreFeatureFlags(loadedFlags) {
     if (loadedFlags && typeof loadedFlags === 'object') {
-        Object.assign(featureFlags, loadedFlags); // Update the store's copy
-        // Ensure the global window.featureFlags is also updated for any legacy access
-        window.featureFlags = featureFlags;
+        Object.assign(featureFlags, loadedFlags);
+        window.featureFlags = featureFlags; // Ensure global access for now
         console.log('[Store] Feature flags updated in store from FeatureFlagService:', featureFlags);
+        if (window.EventBus) EventBus.publish('featureFlagsInitialized', featureFlags); // Publish event
     } else {
         console.error('[Store] Invalid flags received from FeatureFlagService.');
     }
 }
 
-// Expose setStoreFeatureFlags to be callable by FeatureFlagService
-// This is a bit of a workaround for direct script loading order.
-// Ideally, FeatureFlagService would be a dependency injected or imported.
 window.store = window.store || {};
 window.store.setFeatureFlags = setStoreFeatureFlags;
 
 
 // --- Initial Data Loading on Script Load ---
-// Order is important:
-// 1. FeatureFlagService.loadFeatureFlags() must complete first.
-// 2. Then other data (columns, projects, tasks).
 (async () => {
-    // Ensure FeatureFlagService and its loadFeatureFlags method are available
-    if (window.FeatureFlagService && typeof window.FeatureFlagService.loadFeatureFlags === 'function') {
-        await window.FeatureFlagService.loadFeatureFlags();
-        // After flags are loaded by the service, it calls store.setFeatureFlags (if available)
-        // which updates the featureFlags variable in this store.
-        // So, featureFlags should be populated by now.
-    } else {
-        console.error("[Store] FeatureFlagService.loadFeatureFlags is not available. Flags may not be loaded correctly.");
-        // Fallback or error handling if FeatureFlagService didn't load
+    // FeatureFlagService.loadFeatureFlags() is called by its own IIFE when featureFlagService.js loads.
+    // It will then call store.setFeatureFlags, which publishes 'featureFlagsInitialized'.
+    // So, we just need to ensure FeatureFlagService is loaded before this script.
+
+    // Wait for flags to be potentially loaded and set by FeatureFlagService
+    // A more robust way would be to subscribe to 'featureFlagsInitialized' if needed,
+    // or have FeatureFlagService return a promise. For now, a small delay or direct call.
+    if (window.FeatureFlagService && typeof window.FeatureFlagService.loadFeatureFlags === 'function' && !Object.keys(featureFlags).some(key => featureFlags[key])) {
+        // If flags haven't been populated yet by an earlier call (e.g. from main.js), ensure they are.
+        // This is a bit defensive; ideally, main.js orchestrates this.
+        // await window.FeatureFlagService.loadFeatureFlags();
+        // The above line is problematic if FeatureFlagService already ran its IIFE.
+        // The current setup relies on FeatureFlagService's IIFE and its call to setStoreFeatureFlags.
     }
 
-    loadKanbanColumns();
-    loadProjects();
-    initializeTasks();
-    console.log("[Store] Initial data (tasks, projects, columns) loaded after flags.");
+    loadKanbanColumns();  // Publishes 'kanbanColumnsChanged' if saved for the first time
+    loadProjects();       // Publishes 'projectsChanged' and 'uniqueProjectsChanged'
+    initializeTasks();    // Publishes 'labelsChanged' (and 'tasksChanged' if saveTasks was called, which it isn't here directly)
+    
+    console.log("[Store] Initial data (tasks, projects, columns) loading process completed.");
+    if (window.EventBus) EventBus.publish('storeInitialized'); // Signal that initial store setup is done
 })();
