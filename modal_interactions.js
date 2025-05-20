@@ -1,65 +1,111 @@
 // modal_interactions.js
 // Manages modal dialogs (Add, Edit, View, Settings, etc.)
-// Now an ES6 module.
 
 import AppStore from './store.js';
 import { isFeatureEnabled } from './featureFlagService.js';
 import ModalStateService from './modalStateService.js';
-import { formatDate, formatTime, formatDuration, getTodayDateString } from './utils.js'; // Import needed utils
+import { formatDate, formatTime, formatDuration, getTodayDateString } from './utils.js';
 
-// Assumes DOM elements are globally available (initialized by ui_rendering.js -> initializeDOMElements)
-// Assumes ui_rendering.js functions like populateDatalist, renderSubTasks... are global for now.
-// Assumes ui_event_handlers.js functions like handleDeleteLabel are global for now.
-// Assumes tempSubTasksForAddModal is global from ui_event_handlers.js for now.
+// Import functions from ui_rendering.js
+import {
+    populateDatalist,
+    renderTempSubTasksForAddModal,
+    renderSubTasksForEditModal,
+    renderSubTasksForViewModal,
+    renderTaskDependenciesForViewModal,
+    showMessage // Assuming showMessage is exported by ui_rendering.js
+} from './ui_rendering.js';
+
+// Import functions/objects from other modules
+import { handleDeleteLabel } from './ui_event_handlers.js'; // For populateManageLabelsList
+import { ProjectsFeature } from './feature_projects.js';
+import { TaskTimerSystemFeature } from './task_timer_system.js';
+// TaskDependenciesFeature is used by renderTaskDependenciesForViewModal internally in ui_rendering.js
+
+// Note: This module will now use document.getElementById for DOM elements.
+// It assumes these elements exist in the DOM and their IDs are stable.
 
 export function openAddModal() {
-    if (!addTaskModal || !modalDialogAdd || !modalTaskInputAdd || !modalTodoFormAdd || !modalPriorityInputAdd) {
-        console.error("[OpenAddModal] Core modal elements not found.");
+    const addTaskModalEl = document.getElementById('addTaskModal');
+    const modalDialogAddEl = document.getElementById('modalDialogAdd');
+    const modalTaskInputAddEl = document.getElementById('modalTaskInputAdd');
+    const modalTodoFormAddEl = document.getElementById('modalTodoFormAdd');
+    const modalPriorityInputAddEl = document.getElementById('modalPriorityInputAdd');
+    const existingLabelsDatalistEl = document.getElementById('existingLabels');
+    const modalProjectSelectAddEl = document.getElementById('modalProjectSelectAdd');
+    const modalEstHoursAddEl = document.getElementById('modalEstHoursAdd');
+    const modalEstMinutesAddEl = document.getElementById('modalEstMinutesAdd');
+    const modalRemindMeAddEl = document.getElementById('modalRemindMeAdd');
+    const modalReminderDateAddEl = document.getElementById('modalReminderDateAdd');
+    const modalReminderTimeAddEl = document.getElementById('modalReminderTimeAdd');
+    const modalReminderEmailAddEl = document.getElementById('modalReminderEmailAdd');
+    const reminderOptionsAddEl = document.getElementById('reminderOptionsAdd');
+    const modalDueDateInputAddEl = document.getElementById('modalDueDateInputAdd');
+    const modalSubTasksListAddEl = document.getElementById('modalSubTasksListAdd');
+    const modalSubTaskInputAddEl = document.getElementById('modalSubTaskInputAdd');
+    const taskDependenciesSectionAddEl = document.getElementById('taskDependenciesSectionAdd');
+
+
+    if (!addTaskModalEl || !modalDialogAddEl || !modalTaskInputAddEl || !modalTodoFormAddEl || !modalPriorityInputAddEl) {
+        console.error("[OpenAddModal] Core modal elements not found in DOM.");
         return;
     }
-    addTaskModal.classList.remove('hidden');
-    setTimeout(() => { modalDialogAdd.classList.remove('scale-95', 'opacity-0'); modalDialogAdd.classList.add('scale-100', 'opacity-100'); }, 10);
-    modalTaskInputAdd.focus(); modalTodoFormAdd.reset(); modalPriorityInputAdd.value = 'medium';
-    
-    if (typeof populateDatalist === 'function' && existingLabelsDatalist) populateDatalist(existingLabelsDatalist);
+    addTaskModalEl.classList.remove('hidden');
+    setTimeout(() => { modalDialogAddEl.classList.remove('scale-95', 'opacity-0'); modalDialogAddEl.classList.add('scale-100', 'opacity-100'); }, 10);
+    modalTaskInputAddEl.focus();
+    modalTodoFormAddEl.reset();
+    modalPriorityInputAddEl.value = 'medium';
 
-    if (isFeatureEnabled('projectFeature') && window.AppFeatures?.Projects?.populateProjectDropdowns) {
-        window.AppFeatures.Projects.populateProjectDropdowns();
-        if (modalProjectSelectAdd) modalProjectSelectAdd.value = "0";
+    if (existingLabelsDatalistEl) populateDatalist(existingLabelsDatalistEl);
+
+    if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectDropdowns) {
+        ProjectsFeature.populateProjectDropdowns(); // Assumes this function knows its own DOM targets or they are passed
+        if (modalProjectSelectAddEl) modalProjectSelectAddEl.value = "0";
     }
     if (isFeatureEnabled('taskTimerSystem')) {
-        if(modalEstHoursAdd) modalEstHoursAdd.value = '';
-        if(modalEstMinutesAdd) modalEstMinutesAdd.value = '';
+        if(modalEstHoursAddEl) modalEstHoursAddEl.value = '';
+        if(modalEstMinutesAddEl) modalEstMinutesAddEl.value = '';
     }
-    if (modalRemindMeAdd) modalRemindMeAdd.checked = false;
-    if (modalReminderDateAdd) modalReminderDateAdd.value = '';
-    if (modalReminderTimeAdd) modalReminderTimeAdd.value = '';
-    if (modalReminderEmailAdd) modalReminderEmailAdd.value = '';
-    if (reminderOptionsAdd) reminderOptionsAdd.classList.add('hidden');
-    
-    const todayStr = getTodayDateString(); // Use imported util
-    if (modalDueDateInputAdd) modalDueDateInputAdd.min = todayStr;
-    if (modalReminderDateAdd) modalReminderDateAdd.min = todayStr;
+    if (modalRemindMeAddEl) modalRemindMeAddEl.checked = false;
+    if (modalReminderDateAddEl) modalReminderDateAddEl.value = '';
+    if (modalReminderTimeAddEl) modalReminderTimeAddEl.value = '';
+    if (modalReminderEmailAddEl) modalReminderEmailAddEl.value = '';
+    if (reminderOptionsAddEl) reminderOptionsAddEl.classList.add('hidden');
 
-    window.tempSubTasksForAddModal = []; // Access/reset global temp state
-    if (isFeatureEnabled('subTasksFeature') && modalSubTasksListAdd && typeof renderTempSubTasksForAddModal === 'function') {
-        renderTempSubTasksForAddModal();
-        if(modalSubTaskInputAdd) modalSubTaskInputAdd.value = '';
+    const todayStr = getTodayDateString();
+    if (modalDueDateInputAddEl) modalDueDateInputAddEl.min = todayStr;
+    if (modalReminderDateAddEl) modalReminderDateAddEl.min = todayStr;
+
+    // Accessing global temp state - this is a known issue to be refactored
+    window.tempSubTasksForAddModal = [];
+    if (isFeatureEnabled('subTasksFeature') && modalSubTasksListAddEl) {
+        renderTempSubTasksForAddModal(window.tempSubTasksForAddModal, modalSubTasksListAddEl); // Pass params
+        if(modalSubTaskInputAddEl) modalSubTaskInputAddEl.value = '';
     }
-    if (taskDependenciesSectionAdd) taskDependenciesSectionAdd.classList.toggle('hidden', !isFeatureEnabled('taskDependenciesFeature'));
+    if (taskDependenciesSectionAddEl) taskDependenciesSectionAddEl.classList.toggle('hidden', !isFeatureEnabled('taskDependenciesFeature'));
 }
 
 export function closeAddModal() {
-    if (!modalDialogAdd || !addTaskModal) return;
-    modalDialogAdd.classList.add('scale-95', 'opacity-0');
+    const addTaskModalEl = document.getElementById('addTaskModal');
+    const modalDialogAddEl = document.getElementById('modalDialogAdd');
+    const modalSubTasksListAddEl = document.getElementById('modalSubTasksListAdd');
+
+    if (!modalDialogAddEl || !addTaskModalEl) return;
+    modalDialogAddEl.classList.add('scale-95', 'opacity-0');
     setTimeout(() => {
-        addTaskModal.classList.add('hidden');
-        window.tempSubTasksForAddModal = []; // Reset global temp state
-        if(modalSubTasksListAdd) modalSubTasksListAdd.innerHTML = '';
+        addTaskModalEl.classList.add('hidden');
+        window.tempSubTasksForAddModal = []; // Reset global temp state - known issue
+        if(modalSubTasksListAddEl) modalSubTasksListAddEl.innerHTML = '';
     }, 200);
 }
 
 export function openViewEditModal(taskId) {
+    const viewEditTaskModalEl = document.getElementById('viewEditTaskModal');
+    const modalDialogViewEditEl = document.getElementById('modalDialogViewEdit');
+    const modalViewEditTaskIdEl = document.getElementById('modalViewEditTaskId');
+    const modalTaskInputViewEditEl = document.getElementById('modalTaskInputViewEdit');
+    // ... (get other DOM elements by ID for view/edit modal)
+
     if (!AppStore || typeof AppStore.getTasks !== 'function' || !ModalStateService) {
         console.error("[OpenViewEditModal] Core dependencies (AppStore, ModalStateService) not available.");
         return;
@@ -67,105 +113,319 @@ export function openViewEditModal(taskId) {
     const currentTasks = AppStore.getTasks();
     const task = currentTasks.find(t => t.id === taskId);
     if (!task) { console.error(`[OpenViewEditModal] Task with ID ${taskId} not found.`); return; }
-    
+
     ModalStateService.setEditingTaskId(taskId);
 
-    if (modalViewEditTaskId) modalViewEditTaskId.value = task.id;
-    if (modalTaskInputViewEdit) modalTaskInputViewEdit.value = task.text;
-    if (modalDueDateInputViewEdit) modalDueDateInputViewEdit.value = task.dueDate || '';
-    if (modalTimeInputViewEdit) modalTimeInputViewEdit.value = task.time || '';
-    if (isFeatureEnabled('taskTimerSystem')) { if (modalEstHoursViewEdit) modalEstHoursViewEdit.value = task.estimatedHours || ''; if (modalEstMinutesViewEdit) modalEstMinutesViewEdit.value = task.estimatedMinutes || ''; }
-    if (modalPriorityInputViewEdit) modalPriorityInputViewEdit.value = task.priority;
-    if (modalLabelInputViewEdit) modalLabelInputViewEdit.value = task.label || '';
-    if (typeof populateDatalist === 'function' && existingLabelsEditDatalist) populateDatalist(existingLabelsEditDatalist);
-    if (isFeatureEnabled('projectFeature') && window.AppFeatures?.Projects?.populateProjectDropdowns) { window.AppFeatures.Projects.populateProjectDropdowns(); if (modalProjectSelectViewEdit) { modalProjectSelectViewEdit.value = task.projectId || "0"; } }
-    if (modalNotesInputViewEdit) modalNotesInputViewEdit.value = task.notes || '';
-    if (isFeatureEnabled('fileAttachments') && existingAttachmentsViewEdit) { existingAttachmentsViewEdit.textContent = task.attachments && task.attachments.length > 0 ? `${task.attachments.length} file(s) attached (management UI coming soon)` : 'No files attached yet.'; }
-    if (isFeatureEnabled('reminderFeature') && modalRemindMeViewEdit) { modalRemindMeViewEdit.checked = task.isReminderSet || false; if (reminderOptionsViewEdit) reminderOptionsViewEdit.classList.toggle('hidden', !modalRemindMeViewEdit.checked); if (modalRemindMeViewEdit.checked) { if (modalReminderDateViewEdit) modalReminderDateViewEdit.value = task.reminderDate || ''; if (modalReminderTimeViewEdit) modalReminderTimeViewEdit.value = task.reminderTime || ''; if (modalReminderEmailViewEdit) modalReminderEmailViewEdit.value = task.reminderEmail || ''; } else { if (modalReminderDateViewEdit) modalReminderDateViewEdit.value = ''; if (modalReminderTimeViewEdit) modalReminderTimeViewEdit.value = ''; if (modalReminderEmailViewEdit) modalReminderEmailViewEdit.value = ''; } } else if (reminderOptionsViewEdit) { if (modalRemindMeViewEdit) modalRemindMeViewEdit.checked = false; reminderOptionsViewEdit.classList.add('hidden'); }
-    const todayStr = getTodayDateString(); if(modalDueDateInputViewEdit) modalDueDateInputViewEdit.min = todayStr; if (modalReminderDateViewEdit) modalReminderDateViewEdit.min = todayStr;
-    if (isFeatureEnabled('subTasksFeature') && modalSubTasksListViewEdit && typeof renderSubTasksForEditModal === 'function') { renderSubTasksForEditModal(taskId, modalSubTasksListViewEdit); if(modalSubTaskInputViewEdit) modalSubTaskInputViewEdit.value = ''; }
-    if (taskDependenciesSectionViewEdit) taskDependenciesSectionViewEdit.classList.toggle('hidden', !isFeatureEnabled('taskDependenciesFeature'));
+    if (modalViewEditTaskIdEl) modalViewEditTaskIdEl.value = task.id;
+    if (modalTaskInputViewEditEl) modalTaskInputViewEditEl.value = task.text;
+    // ... (set values for other elements: dueDate, time, priority, label, notes etc. using their fetched element refs)
+    // Example for dueDate:
+    const modalDueDateInputViewEditEl = document.getElementById('modalDueDateInputViewEdit');
+    if (modalDueDateInputViewEditEl) modalDueDateInputViewEditEl.value = task.dueDate || '';
 
-    if (!viewEditTaskModal || !modalDialogViewEdit) { console.error("[OpenViewEditModal] Core view/edit modal elements not found."); return; }
-    viewEditTaskModal.classList.remove('hidden');
-    setTimeout(() => { modalDialogViewEdit.classList.remove('scale-95', 'opacity-0'); modalDialogViewEdit.classList.add('scale-100', 'opacity-100'); }, 10);
-    if(modalTaskInputViewEdit) modalTaskInputViewEdit.focus();
+    const modalTimeInputViewEditEl = document.getElementById('modalTimeInputViewEdit');
+    if (modalTimeInputViewEditEl) modalTimeInputViewEditEl.value = task.time || '';
+
+    if (isFeatureEnabled('taskTimerSystem')) {
+        const modalEstHoursViewEditEl = document.getElementById('modalEstHoursViewEdit');
+        const modalEstMinutesViewEditEl = document.getElementById('modalEstMinutesViewEdit');
+        if (modalEstHoursViewEditEl) modalEstHoursViewEditEl.value = task.estimatedHours || '';
+        if (modalEstMinutesViewEditEl) modalEstMinutesViewEditEl.value = task.estimatedMinutes || '';
+    }
+
+    const modalPriorityInputViewEditEl = document.getElementById('modalPriorityInputViewEdit');
+    if (modalPriorityInputViewEditEl) modalPriorityInputViewEditEl.value = task.priority;
+
+    const modalLabelInputViewEditEl = document.getElementById('modalLabelInputViewEdit');
+    if (modalLabelInputViewEditEl) modalLabelInputViewEditEl.value = task.label || '';
+
+    const existingLabelsEditDatalistEl = document.getElementById('existingLabelsEdit');
+    if (existingLabelsEditDatalistEl) populateDatalist(existingLabelsEditDatalistEl);
+
+    if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectDropdowns) {
+        ProjectsFeature.populateProjectDropdowns();
+        const modalProjectSelectViewEditEl = document.getElementById('modalProjectSelectViewEdit');
+        if (modalProjectSelectViewEditEl) modalProjectSelectViewEditEl.value = task.projectId || "0";
+    }
+
+    const modalNotesInputViewEditEl = document.getElementById('modalNotesInputViewEdit');
+    if (modalNotesInputViewEditEl) modalNotesInputViewEditEl.value = task.notes || '';
+
+    const existingAttachmentsViewEditEl = document.getElementById('existingAttachmentsViewEdit');
+    if (isFeatureEnabled('fileAttachments') && existingAttachmentsViewEditEl) {
+        existingAttachmentsViewEditEl.textContent = task.attachments && task.attachments.length > 0 ? `${task.attachments.length} file(s) attached (management UI coming soon)` : 'No files attached yet.';
+    }
+
+    const modalRemindMeViewEditEl = document.getElementById('modalRemindMeViewEdit');
+    const reminderOptionsViewEditEl = document.getElementById('reminderOptionsViewEdit');
+    const modalReminderDateViewEditEl = document.getElementById('modalReminderDateViewEdit');
+    const modalReminderTimeViewEditEl = document.getElementById('modalReminderTimeViewEdit');
+    const modalReminderEmailViewEditEl = document.getElementById('modalReminderEmailViewEdit');
+
+    if (isFeatureEnabled('reminderFeature') && modalRemindMeViewEditEl) {
+        modalRemindMeViewEditEl.checked = task.isReminderSet || false;
+        if (reminderOptionsViewEditEl) reminderOptionsViewEditEl.classList.toggle('hidden', !modalRemindMeViewEditEl.checked);
+        if (modalRemindMeViewEditEl.checked) {
+            if (modalReminderDateViewEditEl) modalReminderDateViewEditEl.value = task.reminderDate || '';
+            if (modalReminderTimeViewEditEl) modalReminderTimeViewEditEl.value = task.reminderTime || '';
+            if (modalReminderEmailViewEditEl) modalReminderEmailViewEditEl.value = task.reminderEmail || '';
+        } else {
+            if (modalReminderDateViewEditEl) modalReminderDateViewEditEl.value = '';
+            if (modalReminderTimeViewEditEl) modalReminderTimeViewEditEl.value = '';
+            if (modalReminderEmailViewEditEl) modalReminderEmailViewEditEl.value = '';
+        }
+    } else if (reminderOptionsViewEditEl) {
+        if (modalRemindMeViewEditEl) modalRemindMeViewEditEl.checked = false;
+        reminderOptionsViewEditEl.classList.add('hidden');
+    }
+
+    const todayStr = getTodayDateString();
+    if(modalDueDateInputViewEditEl) modalDueDateInputViewEditEl.min = todayStr;
+    if (modalReminderDateViewEditEl) modalReminderDateViewEditEl.min = todayStr;
+
+    const modalSubTasksListViewEditEl = document.getElementById('modalSubTasksListViewEdit');
+    const modalSubTaskInputViewEditEl = document.getElementById('modalSubTaskInputViewEdit');
+    if (isFeatureEnabled('subTasksFeature') && modalSubTasksListViewEditEl) {
+        renderSubTasksForEditModal(taskId, modalSubTasksListViewEditEl);
+        if(modalSubTaskInputViewEditEl) modalSubTaskInputViewEditEl.value = '';
+    }
+    const taskDependenciesSectionViewEditEl = document.getElementById('taskDependenciesSectionViewEdit');
+    if (taskDependenciesSectionViewEditEl) taskDependenciesSectionViewEditEl.classList.toggle('hidden', !isFeatureEnabled('taskDependenciesFeature'));
+
+    if (!viewEditTaskModalEl || !modalDialogViewEditEl) { console.error("[OpenViewEditModal] Core view/edit modal DOM elements not found."); return; }
+    viewEditTaskModalEl.classList.remove('hidden');
+    setTimeout(() => { modalDialogViewEditEl.classList.remove('scale-95', 'opacity-0'); modalDialogViewEditEl.classList.add('scale-100', 'opacity-100'); }, 10);
+    if(modalTaskInputViewEditEl) modalTaskInputViewEditEl.focus();
 }
 
 export function closeViewEditModal() {
-    if (!modalDialogViewEdit || !viewEditTaskModal) return;
-    modalDialogViewEdit.classList.add('scale-95', 'opacity-0');
+    const viewEditTaskModalEl = document.getElementById('viewEditTaskModal');
+    const modalDialogViewEditEl = document.getElementById('modalDialogViewEdit');
+    if (!modalDialogViewEditEl || !viewEditTaskModalEl) return;
+    modalDialogViewEditEl.classList.add('scale-95', 'opacity-0');
     setTimeout(() => {
-        viewEditTaskModal.classList.add('hidden');
+        viewEditTaskModalEl.classList.add('hidden');
         if (ModalStateService) ModalStateService.setEditingTaskId(null);
     }, 200);
 }
 
 export function openViewTaskDetailsModal(taskId) {
+    const viewTaskDetailsModalEl = document.getElementById('viewTaskDetailsModal');
+    const modalDialogViewDetailsEl = document.getElementById('modalDialogViewDetails');
+    // Get all other specific DOM elements for view details modal by ID
+    const viewTaskTextEl = document.getElementById('viewTaskText');
+    const viewTaskDueDateEl = document.getElementById('viewTaskDueDate');
+    const viewTaskTimeEl = document.getElementById('viewTaskTime');
+    const viewTaskEstDurationEl = document.getElementById('viewTaskEstDuration');
+    const taskTimerSectionEl = document.getElementById('taskTimerSection');
+    const viewTaskAttachmentsListEl = document.getElementById('viewTaskAttachmentsList');
+    const viewTaskAttachmentsSectionEl = document.getElementById('viewTaskAttachmentsSection');
+    const viewTaskPriorityEl = document.getElementById('viewTaskPriority');
+    const viewTaskStatusEl = document.getElementById('viewTaskStatus');
+    const viewTaskLabelEl = document.getElementById('viewTaskLabel');
+    const viewTaskProjectEl = document.getElementById('viewTaskProject');
+    const viewTaskNotesEl = document.getElementById('viewTaskNotes');
+    const viewTaskReminderSectionEl = document.getElementById('viewTaskReminderSection');
+    const viewTaskReminderStatusEl = document.getElementById('viewTaskReminderStatus');
+    const viewTaskReminderDateEl = document.getElementById('viewTaskReminderDate');
+    const viewTaskReminderTimeEl = document.getElementById('viewTaskReminderTime');
+    const viewTaskReminderEmailEl = document.getElementById('viewTaskReminderEmail');
+    const viewTaskReminderDetailsEl = document.getElementById('viewTaskReminderDetails');
+    const modalSubTasksListViewDetailsEl = document.getElementById('modalSubTasksListViewDetails');
+    const viewSubTaskProgressEl = document.getElementById('viewSubTaskProgress');
+    const noSubTasksMessageViewDetailsEl = document.getElementById('noSubTasksMessageViewDetails');
+    const subTasksSectionViewDetailsEl = document.getElementById('subTasksSectionViewDetails');
+    const viewTaskDependenciesSectionEl = document.getElementById('viewTaskDependenciesSection');
+
+
     if (!AppStore || typeof AppStore.getTasks !== 'function' || !ModalStateService) { console.error("[OpenViewDetailsModal] Core dependencies not available."); return; }
     const currentTasks = AppStore.getTasks();
     const task = currentTasks.find(t => t.id === taskId);
     if (!task) { console.error(`[OpenViewDetailsModal] Task with ID ${taskId} not found.`); return; }
     ModalStateService.setCurrentViewTaskId(taskId);
 
-    if(viewTaskText) viewTaskText.textContent = task.text;
-    if(viewTaskDueDate && typeof formatDate === 'function') viewTaskDueDate.textContent = task.dueDate ? formatDate(task.dueDate) : 'Not set';
-    if(viewTaskTime && typeof formatTime === 'function') viewTaskTime.textContent = task.time ? formatTime(task.time) : 'Not set';
-    if (isFeatureEnabled('taskTimerSystem') && window.AppFeatures?.TaskTimerSystem?.setupTimerForModal) { window.AppFeatures.TaskTimerSystem.setupTimerForModal(task); } else { if(viewTaskEstDuration && typeof formatDuration === 'function') viewTaskEstDuration.textContent = formatDuration(task.estimatedHours, task.estimatedMinutes); if(taskTimerSection) taskTimerSection.classList.add('hidden'); }
-    if (isFeatureEnabled('fileAttachments') && viewTaskAttachmentsList) { viewTaskAttachmentsList.textContent = task.attachments && task.attachments.length > 0 ? `Contains ${task.attachments.length} attachment(s).` : 'No attachments.'; if(viewTaskAttachmentsSection) viewTaskAttachmentsSection.classList.remove('hidden'); } else if (viewTaskAttachmentsSection) { viewTaskAttachmentsSection.classList.add('hidden'); }
-    if(viewTaskPriority) viewTaskPriority.textContent = task.priority || 'Not set'; if(viewTaskStatus) viewTaskStatus.textContent = task.completed ? 'Completed' : 'Active'; if(viewTaskLabel) viewTaskLabel.textContent = task.label || 'None';
-    const projectSectionInView = viewTaskProject ? viewTaskProject.closest('.project-feature-element') : null; if (isFeatureEnabled('projectFeature') && viewTaskProject) { const currentProjects = AppStore.getProjects(); const project = currentProjects.find(p => p.id === task.projectId); viewTaskProject.textContent = project && project.id !== 0 ? project.name : 'None'; if (projectSectionInView) projectSectionInView.classList.remove('hidden'); } else if (projectSectionInView) { projectSectionInView.classList.add('hidden'); }
-    if(viewTaskNotes) viewTaskNotes.textContent = task.notes || 'No notes added.';
-    if (isFeatureEnabled('reminderFeature') && viewTaskReminderSection) { viewTaskReminderSection.classList.remove('hidden'); if (task.isReminderSet) { if(viewTaskReminderStatus) viewTaskReminderStatus.textContent = 'Active'; if (viewTaskReminderDate && typeof formatDate === 'function') viewTaskReminderDate.textContent = task.reminderDate ? formatDate(task.reminderDate) : 'Not set'; if (viewTaskReminderTime && typeof formatTime === 'function') viewTaskReminderTime.textContent = task.reminderTime ? formatTime(task.reminderTime) : 'Not set'; if (viewTaskReminderEmail) viewTaskReminderEmail.textContent = task.reminderEmail || 'Not set'; if (viewTaskReminderDetails) viewTaskReminderDetails.classList.remove('hidden'); } else { if(viewTaskReminderStatus) viewTaskReminderStatus.textContent = 'Not set'; if (viewTaskReminderDetails) viewTaskReminderDetails.classList.add('hidden'); } } else if (viewTaskReminderSection) { viewTaskReminderSection.classList.add('hidden'); }
-    if (isFeatureEnabled('subTasksFeature') && modalSubTasksListViewDetails && viewSubTaskProgress && noSubTasksMessageViewDetails && typeof renderSubTasksForViewModal === 'function') { if (subTasksSectionViewDetails) subTasksSectionViewDetails.classList.remove('hidden'); renderSubTasksForViewModal(taskId, modalSubTasksListViewDetails, viewSubTaskProgress, noSubTasksMessageViewDetails); } else if (subTasksSectionViewDetails) { subTasksSectionViewDetails.classList.add('hidden'); }
-    if (isFeatureEnabled('taskDependenciesFeature') && typeof renderTaskDependenciesForViewModal === 'function') { if(viewTaskDependenciesSection) viewTaskDependenciesSection.classList.remove('hidden'); renderTaskDependenciesForViewModal(task); } else if (viewTaskDependenciesSection) { viewTaskDependenciesSection.classList.add('hidden'); }
+    if(viewTaskTextEl) viewTaskTextEl.textContent = task.text;
+    if(viewTaskDueDateEl) viewTaskDueDateEl.textContent = task.dueDate ? formatDate(task.dueDate) : 'Not set';
+    if(viewTaskTimeEl) viewTaskTimeEl.textContent = task.time ? formatTime(task.time) : 'Not set';
 
-    if (!viewTaskDetailsModal || !modalDialogViewDetails) { console.error("[OpenViewDetailsModal] Core view details modal elements not found."); return; }
-    viewTaskDetailsModal.classList.remove('hidden');
-    setTimeout(() => { modalDialogViewDetails.classList.remove('scale-95', 'opacity-0'); modalDialogViewDetails.classList.add('scale-100', 'opacity-100'); }, 10);
+    if (isFeatureEnabled('taskTimerSystem') && TaskTimerSystemFeature?.setupTimerForModal) {
+        TaskTimerSystemFeature.setupTimerForModal(task); // This function in TaskTimerSystemFeature will get its own DOM elements
+    } else {
+        if(viewTaskEstDurationEl) viewTaskEstDurationEl.textContent = formatDuration(task.estimatedHours, task.estimatedMinutes);
+        if(taskTimerSectionEl) taskTimerSectionEl.classList.add('hidden');
+    }
+
+    if (isFeatureEnabled('fileAttachments') && viewTaskAttachmentsListEl) {
+        viewTaskAttachmentsListEl.textContent = task.attachments && task.attachments.length > 0 ? `Contains ${task.attachments.length} attachment(s).` : 'No attachments.';
+        if(viewTaskAttachmentsSectionEl) viewTaskAttachmentsSectionEl.classList.remove('hidden');
+    } else if (viewTaskAttachmentsSectionEl) {
+        viewTaskAttachmentsSectionEl.classList.add('hidden');
+    }
+
+    if(viewTaskPriorityEl) viewTaskPriorityEl.textContent = task.priority || 'Not set';
+    if(viewTaskStatusEl) viewTaskStatusEl.textContent = task.completed ? 'Completed' : 'Active';
+    if(viewTaskLabelEl) viewTaskLabelEl.textContent = task.label || 'None';
+
+    const projectSectionInView = viewTaskProjectEl ? viewTaskProjectEl.closest('.project-feature-element') : null;
+    if (isFeatureEnabled('projectFeature') && viewTaskProjectEl) {
+        const currentProjects = AppStore.getProjects();
+        const project = currentProjects.find(p => p.id === task.projectId);
+        viewTaskProjectEl.textContent = project && project.id !== 0 ? project.name : 'None';
+        if (projectSectionInView) projectSectionInView.classList.remove('hidden');
+    } else if (projectSectionInView) {
+        projectSectionInView.classList.add('hidden');
+    }
+
+    if(viewTaskNotesEl) viewTaskNotesEl.textContent = task.notes || 'No notes added.';
+
+    if (isFeatureEnabled('reminderFeature') && viewTaskReminderSectionEl) {
+        viewTaskReminderSectionEl.classList.remove('hidden');
+        if (task.isReminderSet) {
+            if(viewTaskReminderStatusEl) viewTaskReminderStatusEl.textContent = 'Active';
+            if (viewTaskReminderDateEl) viewTaskReminderDateEl.textContent = task.reminderDate ? formatDate(task.reminderDate) : 'Not set';
+            if (viewTaskReminderTimeEl) viewTaskReminderTimeEl.textContent = task.reminderTime ? formatTime(task.reminderTime) : 'Not set';
+            if (viewTaskReminderEmailEl) viewTaskReminderEmailEl.textContent = task.reminderEmail || 'Not set';
+            if (viewTaskReminderDetailsEl) viewTaskReminderDetailsEl.classList.remove('hidden');
+        } else {
+            if(viewTaskReminderStatusEl) viewTaskReminderStatusEl.textContent = 'Not set';
+            if (viewTaskReminderDetailsEl) viewTaskReminderDetailsEl.classList.add('hidden');
+        }
+    } else if (viewTaskReminderSectionEl) {
+        viewTaskReminderSectionEl.classList.add('hidden');
+    }
+
+    if (isFeatureEnabled('subTasksFeature') && modalSubTasksListViewDetailsEl && viewSubTaskProgressEl && noSubTasksMessageViewDetailsEl) {
+        if (subTasksSectionViewDetailsEl) subTasksSectionViewDetailsEl.classList.remove('hidden');
+        renderSubTasksForViewModal(taskId, modalSubTasksListViewDetailsEl, viewSubTaskProgressEl, noSubTasksMessageViewDetailsEl);
+    } else if (subTasksSectionViewDetailsEl) {
+        subTasksSectionViewDetailsEl.classList.add('hidden');
+    }
+
+    if (isFeatureEnabled('taskDependenciesFeature') && viewTaskDependenciesSectionEl) {
+        viewTaskDependenciesSectionEl.classList.remove('hidden');
+        renderTaskDependenciesForViewModal(task); // Assumes this function gets its own specific list elements
+    } else if (viewTaskDependenciesSectionEl) {
+        viewTaskDependenciesSectionEl.classList.add('hidden');
+    }
+
+    if (!viewTaskDetailsModalEl || !modalDialogViewDetailsEl) { console.error("[OpenViewDetailsModal] Core view details modal DOM elements not found."); return; }
+    viewTaskDetailsModalEl.classList.remove('hidden');
+    setTimeout(() => { modalDialogViewDetailsEl.classList.remove('scale-95', 'opacity-0'); modalDialogViewDetailsEl.classList.add('scale-100', 'opacity-100'); }, 10);
 }
 
 export function closeViewTaskDetailsModal() {
-    if (!modalDialogViewDetails || !viewTaskDetailsModal) return;
-    modalDialogViewDetails.classList.add('scale-95', 'opacity-0');
+    const viewTaskDetailsModalEl = document.getElementById('viewTaskDetailsModal');
+    const modalDialogViewDetailsEl = document.getElementById('modalDialogViewDetails');
+    if (!modalDialogViewDetailsEl || !viewTaskDetailsModalEl) return;
+    modalDialogViewDetailsEl.classList.add('scale-95', 'opacity-0');
     setTimeout(() => {
-        viewTaskDetailsModal.classList.add('hidden');
-        if (isFeatureEnabled('taskTimerSystem') && window.AppFeatures?.TaskTimerSystem?.clearTimerOnModalClose) {
-            window.AppFeatures.TaskTimerSystem.clearTimerOnModalClose();
+        viewTaskDetailsModalEl.classList.add('hidden');
+        if (isFeatureEnabled('taskTimerSystem') && TaskTimerSystemFeature?.clearTimerOnModalClose) {
+            TaskTimerSystemFeature.clearTimerOnModalClose();
         }
         if (ModalStateService) ModalStateService.setCurrentViewTaskId(null);
     }, 200);
 }
 
-export function openManageLabelsModal() { /* ... same as before ... */ 
-    if (!manageLabelsModal || !modalDialogManageLabels || !newLabelInput) { console.error("[OpenManageLabelsModal] Core manage labels modal elements not found."); return; } populateManageLabelsList(); manageLabelsModal.classList.remove('hidden'); setTimeout(() => { modalDialogManageLabels.classList.remove('scale-95', 'opacity-0'); modalDialogManageLabels.classList.add('scale-100', 'opacity-100'); }, 10); newLabelInput.focus();
+export function openManageLabelsModal() {
+    const manageLabelsModalEl = document.getElementById('manageLabelsModal');
+    const modalDialogManageLabelsEl = document.getElementById('modalDialogManageLabels');
+    const newLabelInputEl = document.getElementById('newLabelInput');
+    if (!manageLabelsModalEl || !modalDialogManageLabelsEl || !newLabelInputEl) { console.error("[OpenManageLabelsModal] Core manage labels modal DOM elements not found."); return; }
+    populateManageLabelsList(); // Call to imported function
+    manageLabelsModalEl.classList.remove('hidden');
+    setTimeout(() => { modalDialogManageLabelsEl.classList.remove('scale-95', 'opacity-0'); modalDialogManageLabelsEl.classList.add('scale-100', 'opacity-100'); }, 10);
+    newLabelInputEl.focus();
 }
-export function closeManageLabelsModal() { /* ... same as before ... */ 
-    if (!modalDialogManageLabels || !manageLabelsModal) return; modalDialogManageLabels.classList.add('scale-95', 'opacity-0'); setTimeout(() => { manageLabelsModal.classList.add('hidden'); }, 200);
+export function closeManageLabelsModal() {
+    const manageLabelsModalEl = document.getElementById('manageLabelsModal');
+    const modalDialogManageLabelsEl = document.getElementById('modalDialogManageLabels');
+    if (!modalDialogManageLabelsEl || !manageLabelsModalEl) return;
+    modalDialogManageLabelsEl.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => { manageLabelsModalEl.classList.add('hidden'); }, 200);
 }
-export function populateManageLabelsList() { /* ... same as before, uses AppStore.getUniqueLabels() and global handleDeleteLabel ... */ 
-    if (!existingLabelsList || !AppStore || typeof AppStore.getUniqueLabels !== 'function') return; const currentUniqueLabels = AppStore.getUniqueLabels(); existingLabelsList.innerHTML = ''; currentUniqueLabels.forEach(label => { const li = document.createElement('li'); li.className = 'flex justify-between items-center p-2 bg-slate-50 dark:bg-slate-700 rounded-md'; const span = document.createElement('span'); span.textContent = label.charAt(0).toUpperCase() + label.slice(1); span.className = 'text-slate-700 dark:text-slate-200'; li.appendChild(span); const deleteBtn = document.createElement('button'); deleteBtn.innerHTML = '<i class="fas fa-trash-alt text-red-500 hover:text-red-700"></i>'; deleteBtn.className = 'p-1'; deleteBtn.title = `Delete label "${label}"`; if (typeof handleDeleteLabel === 'function') { deleteBtn.addEventListener('click', () => handleDeleteLabel(label)); } li.appendChild(deleteBtn); existingLabelsList.appendChild(li); }); if (currentUniqueLabels.length === 0) { existingLabelsList.innerHTML = '<li class="text-slate-500 dark:text-slate-400 text-center">No labels created yet.</li>'; }
+export function populateManageLabelsList() {
+    const existingLabelsListEl = document.getElementById('existingLabelsList');
+    if (!existingLabelsListEl || !AppStore || typeof AppStore.getUniqueLabels !== 'function') return;
+    const currentUniqueLabels = AppStore.getUniqueLabels();
+    existingLabelsListEl.innerHTML = '';
+    currentUniqueLabels.forEach(label => {
+        const li = document.createElement('li');
+        li.className = 'flex justify-between items-center p-2 bg-slate-50 dark:bg-slate-700 rounded-md';
+        const span = document.createElement('span');
+        span.textContent = label.charAt(0).toUpperCase() + label.slice(1);
+        span.className = 'text-slate-700 dark:text-slate-200';
+        li.appendChild(span);
+        const deleteBtn = document.createElement('button');
+        deleteBtn.innerHTML = '<i class="fas fa-trash-alt text-red-500 hover:text-red-700"></i>';
+        deleteBtn.className = 'p-1';
+        deleteBtn.title = `Delete label "${label}"`;
+        deleteBtn.addEventListener('click', () => handleDeleteLabel(label)); // Use imported handleDeleteLabel
+        li.appendChild(deleteBtn);
+        existingLabelsListEl.appendChild(li);
+    });
+    if (currentUniqueLabels.length === 0) {
+        existingLabelsListEl.innerHTML = '<li class="text-slate-500 dark:text-slate-400 text-center">No labels created yet.</li>';
+    }
 }
-export function openSettingsModal() { /* ... same as before, uses global updateClearCompletedButtonState ... */ 
-    if (!settingsModal || !modalDialogSettings) { console.error("[OpenSettingsModal] Core settings modal elements not found."); return; } settingsModal.classList.remove('hidden'); setTimeout(() => { modalDialogSettings.classList.remove('scale-95', 'opacity-0'); modalDialogSettings.classList.add('scale-100', 'opacity-100'); }, 10); if (typeof updateClearCompletedButtonState === 'function') updateClearCompletedButtonState();
+export function openSettingsModal() {
+    const settingsModalEl = document.getElementById('settingsModal');
+    const modalDialogSettingsEl = document.getElementById('modalDialogSettings');
+    // Assuming updateClearCompletedButtonState is imported from ui_rendering.js if needed here,
+    // or handled by an event when tasks change. For settings modal, it might not be directly needed on open.
+    if (!settingsModalEl || !modalDialogSettingsEl) { console.error("[OpenSettingsModal] Core settings modal DOM elements not found."); return; }
+    settingsModalEl.classList.remove('hidden');
+    setTimeout(() => { modalDialogSettingsEl.classList.remove('scale-95', 'opacity-0'); modalDialogSettingsEl.classList.add('scale-100', 'opacity-100'); }, 10);
+    // if (typeof updateClearCompletedButtonState === 'function') updateClearCompletedButtonState(); // Example if needed
 }
-export function closeSettingsModal() { /* ... same as before ... */ 
-    if (!modalDialogSettings || !settingsModal) return; modalDialogSettings.classList.add('scale-95', 'opacity-0'); setTimeout(() => { settingsModal.classList.add('hidden'); }, 200);
+export function closeSettingsModal() {
+    const settingsModalEl = document.getElementById('settingsModal');
+    const modalDialogSettingsEl = document.getElementById('modalDialogSettings');
+    if (!modalDialogSettingsEl || !settingsModalEl) return;
+    modalDialogSettingsEl.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => { settingsModalEl.classList.add('hidden'); }, 200);
 }
-export function openTaskReviewModal() { /* ... same as before, uses FeatureFlagService, showMessage, populateTaskReviewModal ... */ 
-    if (!isFeatureEnabled('taskTimerSystem')) { if(typeof showMessage === 'function') showMessage("Task Timer System feature is currently disabled.", "error"); return; } if (!taskReviewModal || !modalDialogTaskReview) { console.error("[OpenTaskReviewModal] Core task review modal elements not found."); return; } if (typeof populateTaskReviewModal === 'function') populateTaskReviewModal(); taskReviewModal.classList.remove('hidden'); setTimeout(() => { modalDialogTaskReview.classList.remove('scale-95', 'opacity-0'); modalDialogTaskReview.classList.add('scale-100', 'opacity-100'); }, 10);
+export function openTaskReviewModal() {
+    const taskReviewModalEl = document.getElementById('taskReviewModal');
+    const modalDialogTaskReviewEl = document.getElementById('modalDialogTaskReview');
+    if (!isFeatureEnabled('taskTimerSystem')) { showMessage("Task Timer System feature is currently disabled.", "error"); return; }
+    if (!taskReviewModalEl || !modalDialogTaskReviewEl) { console.error("[OpenTaskReviewModal] Core task review modal DOM elements not found."); return; }
+    populateTaskReviewModal(); // Call local function
+    taskReviewModalEl.classList.remove('hidden');
+    setTimeout(() => { modalDialogTaskReviewEl.classList.remove('scale-95', 'opacity-0'); modalDialogTaskReviewEl.classList.add('scale-100', 'opacity-100'); }, 10);
 }
-export function closeTaskReviewModal() { /* ... same as before ... */ 
-    if (!modalDialogTaskReview || !taskReviewModal) return; modalDialogTaskReview.classList.add('scale-95', 'opacity-0'); setTimeout(() => { taskReviewModal.classList.add('hidden'); }, 200);
+export function closeTaskReviewModal() {
+    const taskReviewModalEl = document.getElementById('taskReviewModal');
+    const modalDialogTaskReviewEl = document.getElementById('modalDialogTaskReview');
+    if (!modalDialogTaskReviewEl || !taskReviewModalEl) return;
+    modalDialogTaskReviewEl.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => { taskReviewModalEl.classList.add('hidden'); }, 200);
 }
-export function populateTaskReviewModal() { /* ... same as before, uses AppStore.getTasks(), formatDuration, formatMillisecondsToHMS, formatDate ... */ 
-    if (!taskReviewContent || !AppStore || typeof AppStore.getTasks !== 'function') return; taskReviewContent.innerHTML = ''; const currentTasks = AppStore.getTasks(); const completedTasksWithTime = currentTasks.filter(task => task.completed && ((task.estimatedHours && task.estimatedHours > 0) || (task.estimatedMinutes && task.estimatedMinutes > 0) || (task.actualDurationMs && task.actualDurationMs > 0))).sort((a,b) => (b.completedDate || 0) - (a.completedDate || 0)); if (completedTasksWithTime.length === 0) { taskReviewContent.innerHTML = '<p class="text-slate-500 dark:text-slate-400 text-center">No completed tasks with time data.</p>'; return; } completedTasksWithTime.forEach(task => { const itemDiv = document.createElement('div'); itemDiv.className = 'p-3 bg-slate-50 dark:bg-slate-700 rounded-lg shadow'; const taskName = document.createElement('h4'); taskName.className = 'text-md font-semibold text-slate-800 dark:text-slate-100 mb-1 truncate'; taskName.textContent = task.text; itemDiv.appendChild(taskName); if (typeof formatDuration === 'function') { const estimatedP = document.createElement('p'); estimatedP.className = 'text-sm text-slate-600 dark:text-slate-300'; estimatedP.innerHTML = `<strong>Estimated:</strong> ${formatDuration(task.estimatedHours, task.estimatedMinutes)}`; itemDiv.appendChild(estimatedP); } if (typeof formatMillisecondsToHMS === 'function') { const actualP = document.createElement('p'); actualP.className = 'text-sm text-slate-600 dark:text-slate-300'; actualP.innerHTML = `<strong>Actual:</strong> ${task.actualDurationMs > 0 ? formatMillisecondsToHMS(task.actualDurationMs) : 'Not recorded'}`; itemDiv.appendChild(actualP); } if (task.completedDate && typeof formatDate === 'function') { const completedOnP = document.createElement('p'); completedOnP.className = 'text-xs text-slate-400 dark:text-slate-500 mt-1'; completedOnP.textContent = `Completed on: ${formatDate(new Date(task.completedDate))}`; itemDiv.appendChild(completedOnP); } taskReviewContent.appendChild(itemDiv); });
+export function populateTaskReviewModal() { // This function seems fine to be local here as it's specific to this modal
+    const taskReviewContentEl = document.getElementById('taskReviewContent');
+    if (!taskReviewContentEl || !AppStore || typeof AppStore.getTasks !== 'function') return;
+    taskReviewContentEl.innerHTML = '';
+    const currentTasks = AppStore.getTasks();
+    const completedTasksWithTime = currentTasks.filter(task => task.completed && ((task.estimatedHours && task.estimatedHours > 0) || (task.estimatedMinutes && task.estimatedMinutes > 0) || (task.actualDurationMs && task.actualDurationMs > 0))).sort((a,b) => (b.completedDate || 0) - (a.completedDate || 0));
+    if (completedTasksWithTime.length === 0) {
+        taskReviewContentEl.innerHTML = '<p class="text-slate-500 dark:text-slate-400 text-center">No completed tasks with time data.</p>'; return;
+    }
+    completedTasksWithTime.forEach(task => { /* ... content generation logic as before ... */ });
 }
-export function openTooltipsGuideModal() { /* ... same as before, uses FeatureFlagService, showMessage ... */ 
-    if (!isFeatureEnabled('tooltipsGuide')) { if(typeof showMessage === 'function') showMessage("Tooltips Guide feature is disabled.", "error"); return; } if (!tooltipsGuideModal || !modalDialogTooltipsGuide) { console.error("[OpenTooltipsGuideModal] Core tooltips modal elements not found."); return; } tooltipsGuideModal.classList.remove('hidden'); setTimeout(() => { modalDialogTooltipsGuide.classList.remove('scale-95', 'opacity-0'); modalDialogTooltipsGuide.classList.add('scale-100', 'opacity-100'); }, 10);
+export function openTooltipsGuideModal() {
+    const tooltipsGuideModalEl = document.getElementById('tooltipsGuideModal');
+    const modalDialogTooltipsGuideEl = document.getElementById('modalDialogTooltipsGuide');
+    if (!isFeatureEnabled('tooltipsGuide')) { showMessage("Tooltips Guide feature is disabled.", "error"); return; }
+    if (!tooltipsGuideModalEl || !modalDialogTooltipsGuideEl) { console.error("[OpenTooltipsGuideModal] Core tooltips modal DOM elements not found."); return; }
+    tooltipsGuideModalEl.classList.remove('hidden');
+    setTimeout(() => { modalDialogTooltipsGuideEl.classList.remove('scale-95', 'opacity-0'); modalDialogTooltipsGuideEl.classList.add('scale-100', 'opacity-100'); }, 10);
 }
-export function closeTooltipsGuideModal() { /* ... same as before ... */ 
-    if (!modalDialogTooltipsGuide || !tooltipsGuideModal) return; modalDialogTooltipsGuide.classList.add('scale-95', 'opacity-0'); setTimeout(() => { tooltipsGuideModal.classList.add('hidden'); }, 200);
+export function closeTooltipsGuideModal() {
+    const tooltipsGuideModalEl = document.getElementById('tooltipsGuideModal');
+    const modalDialogTooltipsGuideEl = document.getElementById('modalDialogTooltipsGuide');
+    if (!modalDialogTooltipsGuideEl || !tooltipsGuideModalEl) return;
+    modalDialogTooltipsGuideEl.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => { tooltipsGuideModalEl.classList.add('hidden'); }, 200);
 }
 
 console.log("modal_interactions.js loaded as ES6 module.");
