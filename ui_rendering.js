@@ -5,12 +5,33 @@
 import AppStore from './store.js';
 import ViewManager from './viewManager.js';
 import { isFeatureEnabled } from './featureFlagService.js';
-import * as TaskService from './taskService.js'; // Import all as TaskService
-import * as BulkActionService from './bulkActionService.js'; // Import all as BulkActionService
+import * as TaskService from './taskService.js';
+import * as BulkActionService from './bulkActionService.js';
 import ModalStateService from './modalStateService.js';
 import TooltipService from './tooltipService.js';
 import EventBus from './eventBus.js';
 import { formatDate, formatTime, formatDuration, formatMillisecondsToHMS } from './utils.js';
+
+// Import functions from other UI modules
+import {
+    openViewTaskDetailsModal,
+    openViewEditModal,
+    populateManageLabelsList
+} from './modal_interactions.js';
+
+import { // Functions that are currently exported by ui_event_handlers.js
+    toggleComplete,
+    deleteTask
+} from './ui_event_handlers.js';
+
+// Import Feature Modules needed for direct calls
+import { ProjectsFeature } from './feature_projects.js';
+import { KanbanBoardFeature } from './feature_kanban_board.js';
+import { CalendarViewFeature } from './feature_calendar_view.js';
+import { PomodoroTimerHybridFeature } from './pomodoro_timer.js';
+// SubTasksFeature & TaskDependenciesFeature specific rendering functions are often called from within modal_interactions or this file,
+// but their core logic/module might be needed if we call their methods directly.
+// For now, their UI elements visibility is handled by .feature-element class and feature flags.
 
 // DOM Elements (declared with let, will be module-scoped)
 // These are initialized by initializeDOMElements()
@@ -46,10 +67,11 @@ let subTasksSectionViewEdit, modalSubTaskInputViewEdit, modalAddSubTaskBtnViewEd
 let subTasksSectionViewDetails, viewSubTaskProgress, modalSubTasksListViewDetails, noSubTasksMessageViewDetails;
 let subTasksSectionAdd, modalSubTaskInputAdd, modalAddSubTaskBtnAdd, modalSubTasksListAdd;
 let featureFlagsListContainer;
-let kanbanViewToggleBtn, kanbanViewToggleBtnText, yourTasksHeading, mainContentArea;
-let kanbanBoardContainer; 
+let kanbanViewToggleBtn, kanbanViewToggleBtnText, calendarViewToggleBtn, calendarViewToggleBtnText, pomodoroViewToggleBtn, pomodoroViewToggleBtnText; // Added other view toggles
+let yourTasksHeading, mainContentArea;
+let kanbanBoardContainer;
 let calendarViewContainer;
-let pomodoroTimerPageContainer; 
+let pomodoroTimerPageContainer;
 let settingsManageProjectsBtn;
 let manageProjectsModal, modalDialogManageProjects, closeManageProjectsModalBtn, closeManageProjectsSecondaryBtn;
 let addNewProjectForm, newProjectInput, existingProjectsList;
@@ -62,7 +84,6 @@ let viewTaskDependenciesSection, viewTaskDependsOnList, viewTaskBlocksTasksList;
 let smarterSearchContainer, smarterSearchAdvancedToggleBtn, smarterSearchOptionsDiv;
 let bulkActionControlsContainer, selectAllTasksCheckbox, bulkCompleteBtn, bulkDeleteBtn;
 let bulkAssignProjectDropdown, bulkChangePriorityDropdown, bulkChangeLabelInput;
-let pomodoroViewToggleBtnText;
 let sidebarPomodoroDisplay, sidebarPomodoroState, sidebarPomodoroTime, sidebarPomodoroTask;
 
 
@@ -70,19 +91,48 @@ export function initializeDOMElements() {
     // This function is long, so keeping the content as before.
     // It assigns to the `let` variables declared above.
     console.log('[DOM Init] Attempting to initialize DOM elements...');
-    mainContentArea = document.querySelector('main'); kanbanViewToggleBtn = document.getElementById('kanbanViewToggleBtn'); kanbanViewToggleBtnText = document.getElementById('kanbanViewToggleBtnText'); smartViewButtonsContainer = document.getElementById('smartViewButtonsContainer'); taskSidebar = document.getElementById('taskSidebar'); sidebarToggleBtn = document.getElementById('sidebarToggleBtn'); sidebarToggleIcon = document.getElementById('sidebarToggleIcon'); sidebarTextElements = taskSidebar ? taskSidebar.querySelectorAll('.sidebar-text-content') : []; sidebarIconOnlyButtons = taskSidebar ? taskSidebar.querySelectorAll('.sidebar-button-icon-only') : []; iconTooltip = document.getElementById('iconTooltip'); sortByDueDateBtn = document.getElementById('sortByDueDateBtn'); sortByPriorityBtn = document.getElementById('sortByPriorityBtn'); sortByLabelBtn = document.getElementById('sortByLabelBtn'); taskSearchInput = document.getElementById('taskSearchInput'); taskList = document.getElementById('taskList'); emptyState = document.getElementById('emptyState'); noMatchingTasks = document.getElementById('noMatchingTasks'); smartViewButtons = smartViewButtonsContainer ? smartViewButtonsContainer.querySelectorAll('.smart-view-btn') : []; messageBox = document.getElementById('messageBox'); addTaskModal = document.getElementById('addTaskModal'); modalDialogAdd = document.getElementById('modalDialogAdd'); openAddModalButton = document.getElementById('openAddModalButton'); closeAddModalBtn = document.getElementById('closeAddModalBtn'); cancelAddModalBtn = document.getElementById('cancelAddModalBtn'); modalTodoFormAdd = document.getElementById('modalTodoFormAdd'); modalTaskInputAdd = document.getElementById('modalTaskInputAdd'); modalDueDateInputAdd = document.getElementById('modalDueDateInputAdd'); modalTimeInputAdd = document.getElementById('modalTimeInputAdd'); modalEstHoursAdd = document.getElementById('modalEstHoursAdd'); modalEstMinutesAdd = document.getElementById('modalEstMinutesAdd'); modalPriorityInputAdd = document.getElementById('modalPriorityInputAdd'); modalLabelInputAdd = document.getElementById('modalLabelInputAdd'); existingLabelsDatalist = document.getElementById('existingLabels'); modalNotesInputAdd = document.getElementById('modalNotesInputAdd'); modalRemindMeAddContainer = document.getElementById('modalRemindMeAddContainer'); modalRemindMeAdd = document.getElementById('modalRemindMeAdd'); reminderOptionsAdd = document.getElementById('reminderOptionsAdd'); modalReminderDateAdd = document.getElementById('modalReminderDateAdd'); modalReminderTimeAdd = document.getElementById('modalReminderTimeAdd'); modalReminderEmailAdd = document.getElementById('modalReminderEmailAdd'); viewEditTaskModal = document.getElementById('viewEditTaskModal'); modalDialogViewEdit = document.getElementById('modalDialogViewEdit'); closeViewEditModalBtn = document.getElementById('closeViewEditModalBtn'); cancelViewEditModalBtn = document.getElementById('cancelViewEditModalBtn'); modalTodoFormViewEdit = document.getElementById('modalTodoFormViewEdit'); modalViewEditTaskId = document.getElementById('modalViewEditTaskId'); modalTaskInputViewEdit = document.getElementById('modalTaskInputViewEdit'); modalDueDateInputViewEdit = document.getElementById('modalDueDateInputViewEdit'); modalTimeInputViewEdit = document.getElementById('modalTimeInputViewEdit'); modalEstHoursViewEdit = document.getElementById('modalEstHoursViewEdit'); modalEstMinutesViewEdit = document.getElementById('modalEstMinutesViewEdit'); modalPriorityInputViewEdit = document.getElementById('modalPriorityInputViewEdit'); modalLabelInputViewEdit = document.getElementById('modalLabelInputViewEdit'); existingLabelsEditDatalist = document.getElementById('existingLabelsEdit'); modalNotesInputViewEdit = document.getElementById('modalNotesInputViewEdit'); modalRemindMeViewEditContainer = document.getElementById('modalRemindMeViewEditContainer'); modalRemindMeViewEdit = document.getElementById('modalRemindMeViewEdit'); reminderOptionsViewEdit = document.getElementById('reminderOptionsViewEdit'); modalReminderDateViewEdit = document.getElementById('modalReminderDateViewEdit'); modalReminderTimeViewEdit = document.getElementById('modalReminderTimeViewEdit'); modalReminderEmailViewEdit = document.getElementById('modalReminderEmailViewEdit'); existingAttachmentsViewEdit = document.getElementById('existingAttachmentsViewEdit'); viewTaskDetailsModal = document.getElementById('viewTaskDetailsModal'); modalDialogViewDetails = document.getElementById('modalDialogViewDetails'); closeViewDetailsModalBtn = document.getElementById('closeViewDetailsModalBtn'); closeViewDetailsSecondaryBtn = document.getElementById('closeViewDetailsSecondaryBtn'); editFromViewModalBtn = document.getElementById('editFromViewModalBtn'); deleteFromViewModalBtn = document.getElementById('deleteFromViewModalBtn'); viewTaskText = document.getElementById('viewTaskText'); viewTaskDueDate = document.getElementById('viewTaskDueDate'); viewTaskTime = document.getElementById('viewTaskTime'); viewTaskEstDuration = document.getElementById('viewTaskEstDuration'); viewTaskPriority = document.getElementById('viewTaskPriority'); viewTaskStatus = document.getElementById('viewTaskStatus'); viewTaskLabel = document.getElementById('viewTaskLabel'); viewTaskNotes = document.getElementById('viewTaskNotes'); viewTaskReminderSection = document.getElementById('viewTaskReminderSection'); viewTaskReminderStatus = document.getElementById('viewTaskReminderStatus'); viewTaskReminderDetails = document.getElementById('viewTaskReminderDetails'); viewTaskReminderDate = document.getElementById('viewTaskReminderDate'); viewTaskReminderTime = document.getElementById('viewTaskReminderTime'); viewTaskReminderEmail = document.getElementById('viewTaskReminderEmail'); viewTaskAttachmentsSection = document.getElementById('viewTaskAttachmentsSection'); viewTaskAttachmentsList = document.getElementById('viewTaskAttachmentsList'); taskTimerSection = document.getElementById('taskTimerSection'); viewTaskTimerDisplay = document.getElementById('viewTaskTimerDisplay'); viewTaskStartTimerBtn = document.getElementById('viewTaskStartTimerBtn'); viewTaskPauseTimerBtn = document.getElementById('viewTaskPauseTimerBtn'); viewTaskStopTimerBtn = document.getElementById('viewTaskStopTimerBtn'); viewTaskActualDuration = document.getElementById('viewTaskActualDuration'); timerButtonsContainer = document.getElementById('timerButtonsContainer'); manageLabelsModal = document.getElementById('manageLabelsModal'); modalDialogManageLabels = document.getElementById('modalDialogManageLabels'); closeManageLabelsModalBtn = document.getElementById('closeManageLabelsModalBtn'); closeManageLabelsSecondaryBtn = document.getElementById('closeManageLabelsSecondaryBtn'); addNewLabelForm = document.getElementById('addNewLabelForm'); newLabelInput = document.getElementById('newLabelInput'); existingLabelsList = document.getElementById('existingLabelsList'); settingsModal = document.getElementById('settingsModal'); modalDialogSettings = document.getElementById('modalDialogSettings'); openSettingsModalButton = document.getElementById('openSettingsModalButton'); closeSettingsModalBtn = document.getElementById('closeSettingsModalBtn'); closeSettingsSecondaryBtn = document.getElementById('closeSettingsSecondaryBtn'); settingsClearCompletedBtn = document.getElementById('settingsClearCompletedBtn'); settingsManageLabelsBtn = document.getElementById('settingsManageLabelsBtn'); settingsManageRemindersBtn = document.getElementById('settingsManageRemindersBtn'); settingsTaskReviewBtn = document.getElementById('settingsTaskReviewBtn'); settingsTooltipsGuideBtn = document.getElementById('settingsTooltipsGuideBtn'); settingsIntegrationsBtn = document.getElementById('settingsIntegrationsBtn'); settingsUserAccountsBtn = document.getElementById('settingsUserAccountsBtn'); settingsCollaborationBtn = document.getElementById('settingsCollaborationBtn'); settingsSyncBackupBtn = document.getElementById('settingsSyncBackupBtn'); taskReviewModal = document.getElementById('taskReviewModal'); modalDialogTaskReview = document.getElementById('modalDialogTaskReview'); closeTaskReviewModalBtn = document.getElementById('closeTaskReviewModalBtn'); closeTaskReviewSecondaryBtn = document.getElementById('closeTaskReviewSecondaryBtn'); taskReviewContent = document.getElementById('taskReviewContent'); tooltipsGuideModal = document.getElementById('tooltipsGuideModal'); modalDialogTooltipsGuide = document.getElementById('modalDialogTooltipsGuide'); closeTooltipsGuideModalBtn = document.getElementById('closeTooltipsGuideModalBtn'); closeTooltipsGuideSecondaryBtn = document.getElementById('closeTooltipsGuideSecondaryBtn'); tooltipsGuideContent = document.getElementById('tooltipsGuideContent'); testFeatureButtonContainer = document.getElementById('testFeatureButtonContainer'); testFeatureButton = document.getElementById('testFeatureButton'); subTasksSectionViewEdit = document.getElementById('subTasksSectionViewEdit'); modalSubTaskInputViewEdit = document.getElementById('modalSubTaskInputViewEdit'); modalAddSubTaskBtnViewEdit = document.getElementById('modalAddSubTaskBtnViewEdit'); modalSubTasksListViewEdit = document.getElementById('modalSubTasksListViewEdit'); subTasksSectionViewDetails = document.getElementById('subTasksSectionViewDetails'); viewSubTaskProgress = document.getElementById('viewSubTaskProgress'); modalSubTasksListViewDetails = document.getElementById('modalSubTasksListViewDetails'); noSubTasksMessageViewDetails = document.getElementById('noSubTasksMessageViewDetails'); subTasksSectionAdd = document.getElementById('subTasksSectionAdd'); modalSubTaskInputAdd = document.getElementById('modalSubTaskInputAdd'); modalAddSubTaskBtnAdd = document.getElementById('modalAddSubTaskBtnAdd'); modalSubTasksListAdd = document.getElementById('modalSubTasksListAdd'); featureFlagsListContainer = document.getElementById('featureFlagsListContainer'); yourTasksHeading = document.getElementById('yourTasksHeading'); kanbanBoardContainer = document.getElementById('kanbanBoardContainer'); calendarViewContainer = document.getElementById('calendarViewContainer'); pomodoroTimerPageContainer = document.getElementById('pomodoroTimerPageContainer'); settingsManageProjectsBtn = document.getElementById('settingsManageProjectsBtn'); manageProjectsModal = document.getElementById('manageProjectsModal'); modalDialogManageProjects = document.getElementById('modalDialogManageProjects'); closeManageProjectsModalBtn = document.getElementById('closeManageProjectsModalBtn'); closeManageProjectsSecondaryBtn = document.getElementById('closeManageProjectsSecondaryBtn'); addNewProjectForm = document.getElementById('addNewProjectForm'); newProjectInput = document.getElementById('newProjectInput'); existingProjectsList = document.getElementById('existingProjectsList'); modalProjectSelectAdd = document.getElementById('modalProjectSelectAdd'); modalProjectSelectViewEdit = document.getElementById('modalProjectSelectViewEdit'); projectFilterContainer = document.getElementById('projectFilterContainer'); viewTaskProject = document.getElementById('viewTaskProject'); calendarViewToggleBtn = document.getElementById('calendarViewToggleBtn'); calendarViewToggleBtnText = document.getElementById('calendarViewToggleBtnText'); taskDependenciesSectionAdd = document.getElementById('taskDependenciesSectionAdd'); dependsOnContainerAdd = document.getElementById('dependsOnContainerAdd'); blocksTasksContainerAdd = document.getElementById('blocksTasksContainerAdd'); taskDependenciesSectionViewEdit = document.getElementById('taskDependenciesSectionViewEdit'); dependsOnContainerViewEdit = document.getElementById('dependsOnContainerViewEdit'); blocksTasksContainerViewEdit = document.getElementById('blocksTasksContainerViewEdit'); viewTaskDependenciesSection = document.getElementById('viewTaskDependenciesSection'); viewTaskDependsOnList = document.getElementById('viewTaskDependsOnList'); viewTaskBlocksTasksList = document.getElementById('viewTaskBlocksTasksList'); smarterSearchContainer = document.getElementById('smarterSearchContainer'); smarterSearchAdvancedToggleBtn = document.getElementById('smarterSearchAdvancedToggleBtn'); smarterSearchOptionsDiv = document.getElementById('smarterSearchOptionsDiv'); bulkActionControlsContainer = document.getElementById('bulkActionControlsContainer'); selectAllTasksCheckbox = document.getElementById('selectAllTasksCheckbox'); bulkCompleteBtn = document.getElementById('bulkCompleteBtn'); bulkDeleteBtn = document.getElementById('bulkDeleteBtn'); bulkAssignProjectDropdown = document.getElementById('bulkAssignProjectDropdown'); bulkChangePriorityDropdown = document.getElementById('bulkChangePriorityDropdown'); bulkChangeLabelInput = document.getElementById('bulkChangeLabelInput'); pomodoroViewToggleBtn = document.getElementById('pomodoroViewToggleBtn'); pomodoroViewToggleBtnText = document.getElementById('pomodoroViewToggleBtnText'); sidebarPomodoroDisplay = document.getElementById('sidebarPomodoroTimerDisplay'); sidebarPomodoroState = document.getElementById('sidebarPomodoroState'); sidebarPomodoroTime = document.getElementById('sidebarPomodoroTime'); sidebarPomodoroTask = document.getElementById('sidebarPomodoroTask');
+    mainContentArea = document.querySelector('main'); kanbanViewToggleBtn = document.getElementById('kanbanViewToggleBtn'); kanbanViewToggleBtnText = document.getElementById('kanbanViewToggleBtnText'); smartViewButtonsContainer = document.getElementById('smartViewButtonsContainer'); taskSidebar = document.getElementById('taskSidebar'); sidebarToggleBtn = document.getElementById('sidebarToggleBtn'); sidebarToggleIcon = document.getElementById('sidebarToggleIcon'); sidebarTextElements = taskSidebar ? taskSidebar.querySelectorAll('.sidebar-text-content') : []; sidebarIconOnlyButtons = taskSidebar ? taskSidebar.querySelectorAll('.sidebar-button-icon-only') : []; iconTooltip = document.getElementById('iconTooltip'); sortByDueDateBtn = document.getElementById('sortByDueDateBtn'); sortByPriorityBtn = document.getElementById('sortByPriorityBtn'); sortByLabelBtn = document.getElementById('sortByLabelBtn'); taskSearchInput = document.getElementById('taskSearchInput'); taskList = document.getElementById('taskList'); emptyState = document.getElementById('emptyState'); noMatchingTasks = document.getElementById('noMatchingTasks'); smartViewButtons = smartViewButtonsContainer ? smartViewButtonsContainer.querySelectorAll('.smart-view-btn') : []; messageBox = document.getElementById('messageBox'); addTaskModal = document.getElementById('addTaskModal'); modalDialogAdd = document.getElementById('modalDialogAdd'); openAddModalButton = document.getElementById('openAddModalButton'); closeAddModalBtn = document.getElementById('closeAddModalBtn'); cancelAddModalBtn = document.getElementById('cancelAddModalBtn'); modalTodoFormAdd = document.getElementById('modalTodoFormAdd'); modalTaskInputAdd = document.getElementById('modalTaskInputAdd'); modalDueDateInputAdd = document.getElementById('modalDueDateInputAdd'); modalTimeInputAdd = document.getElementById('modalTimeInputAdd'); modalEstHoursAdd = document.getElementById('modalEstHoursAdd'); modalEstMinutesAdd = document.getElementById('modalEstMinutesAdd'); modalPriorityInputAdd = document.getElementById('modalPriorityInputAdd'); modalLabelInputAdd = document.getElementById('modalLabelInputAdd'); existingLabelsDatalist = document.getElementById('existingLabels'); modalNotesInputAdd = document.getElementById('modalNotesInputAdd'); modalRemindMeAddContainer = document.getElementById('modalRemindMeAddContainer'); modalRemindMeAdd = document.getElementById('modalRemindMeAdd'); reminderOptionsAdd = document.getElementById('reminderOptionsAdd'); modalReminderDateAdd = document.getElementById('modalReminderDateAdd'); modalReminderTimeAdd = document.getElementById('modalReminderTimeAdd'); modalReminderEmailAdd = document.getElementById('modalReminderEmailAdd'); viewEditTaskModal = document.getElementById('viewEditTaskModal'); modalDialogViewEdit = document.getElementById('modalDialogViewEdit'); closeViewEditModalBtn = document.getElementById('closeViewEditModalBtn'); cancelViewEditModalBtn = document.getElementById('cancelViewEditModalBtn'); modalTodoFormViewEdit = document.getElementById('modalTodoFormViewEdit'); modalViewEditTaskId = document.getElementById('modalViewEditTaskId'); modalTaskInputViewEdit = document.getElementById('modalTaskInputViewEdit'); modalDueDateInputViewEdit = document.getElementById('modalDueDateInputViewEdit'); modalTimeInputViewEdit = document.getElementById('modalTimeInputViewEdit'); modalEstHoursViewEdit = document.getElementById('modalEstHoursViewEdit'); modalEstMinutesViewEdit = document.getElementById('modalEstMinutesViewEdit'); modalPriorityInputViewEdit = document.getElementById('modalPriorityInputViewEdit'); modalLabelInputViewEdit = document.getElementById('modalLabelInputViewEdit'); existingLabelsEditDatalist = document.getElementById('existingLabelsEdit'); modalNotesInputViewEdit = document.getElementById('modalNotesInputViewEdit'); modalRemindMeViewEditContainer = document.getElementById('modalRemindMeViewEditContainer'); modalRemindMeViewEdit = document.getElementById('modalRemindMeViewEdit'); reminderOptionsViewEdit = document.getElementById('reminderOptionsViewEdit'); modalReminderDateViewEdit = document.getElementById('modalReminderDateViewEdit'); modalReminderTimeViewEdit = document.getElementById('modalReminderTimeViewEdit'); modalReminderEmailViewEdit = document.getElementById('modalReminderEmailViewEdit'); existingAttachmentsViewEdit = document.getElementById('existingAttachmentsViewEdit'); viewTaskDetailsModal = document.getElementById('viewTaskDetailsModal'); modalDialogViewDetails = document.getElementById('modalDialogViewDetails'); closeViewDetailsModalBtn = document.getElementById('closeViewDetailsModalBtn'); closeViewDetailsSecondaryBtn = document.getElementById('closeViewDetailsSecondaryBtn'); editFromViewModalBtn = document.getElementById('editFromViewModalBtn'); deleteFromViewModalBtn = document.getElementById('deleteFromViewModalBtn'); viewTaskText = document.getElementById('viewTaskText'); viewTaskDueDate = document.getElementById('viewTaskDueDate'); viewTaskTime = document.getElementById('viewTaskTime'); viewTaskEstDuration = document.getElementById('viewTaskEstDuration'); viewTaskPriority = document.getElementById('viewTaskPriority'); viewTaskStatus = document.getElementById('viewTaskStatus'); viewTaskLabel = document.getElementById('viewTaskLabel'); viewTaskNotes = document.getElementById('viewTaskNotes'); viewTaskReminderSection = document.getElementById('viewTaskReminderSection'); viewTaskReminderStatus = document.getElementById('viewTaskReminderStatus'); viewTaskReminderDetails = document.getElementById('viewTaskReminderDetails'); viewTaskReminderDate = document.getElementById('viewTaskReminderDate'); viewTaskReminderTime = document.getElementById('viewTaskReminderTime'); viewTaskReminderEmail = document.getElementById('viewTaskReminderEmail'); viewTaskAttachmentsSection = document.getElementById('viewTaskAttachmentsSection'); viewTaskAttachmentsList = document.getElementById('viewTaskAttachmentsList'); taskTimerSection = document.getElementById('taskTimerSection'); viewTaskTimerDisplay = document.getElementById('viewTaskTimerDisplay'); viewTaskStartTimerBtn = document.getElementById('viewTaskStartTimerBtn'); viewTaskPauseTimerBtn = document.getElementById('viewTaskPauseTimerBtn'); viewTaskStopTimerBtn = document.getElementById('viewTaskStopTimerBtn'); viewTaskActualDuration = document.getElementById('viewTaskActualDuration'); timerButtonsContainer = document.getElementById('timerButtonsContainer'); manageLabelsModal = document.getElementById('manageLabelsModal'); modalDialogManageLabels = document.getElementById('modalDialogManageLabels'); closeManageLabelsModalBtn = document.getElementById('closeManageLabelsModalBtn'); closeManageLabelsSecondaryBtn = document.getElementById('closeManageLabelsSecondaryBtn'); addNewLabelForm = document.getElementById('addNewLabelForm'); newLabelInput = document.getElementById('newLabelInput'); existingLabelsList = document.getElementById('existingLabelsList'); settingsModal = document.getElementById('settingsModal'); modalDialogSettings = document.getElementById('modalDialogSettings'); openSettingsModalButton = document.getElementById('openSettingsModalButton'); closeSettingsModalBtn = document.getElementById('closeSettingsModalBtn'); closeSettingsSecondaryBtn = document.getElementById('closeSettingsSecondaryBtn'); settingsClearCompletedBtn = document.getElementById('settingsClearCompletedBtn'); settingsManageLabelsBtn = document.getElementById('settingsManageLabelsBtn'); settingsManageRemindersBtn = document.getElementById('settingsManageRemindersBtn'); settingsTaskReviewBtn = document.getElementById('settingsTaskReviewBtn'); settingsTooltipsGuideBtn = document.getElementById('settingsTooltipsGuideBtn'); settingsIntegrationsBtn = document.getElementById('settingsIntegrationsBtn'); settingsUserAccountsBtn = document.getElementById('settingsUserAccountsBtn'); settingsCollaborationBtn = document.getElementById('settingsCollaborationBtn'); settingsSyncBackupBtn = document.getElementById('settingsSyncBackupBtn'); taskReviewModal = document.getElementById('taskReviewModal'); modalDialogTaskReview = document.getElementById('modalDialogTaskReview'); closeTaskReviewModalBtn = document.getElementById('closeTaskReviewModalBtn'); closeTaskReviewSecondaryBtn = document.getElementById('closeTaskReviewSecondaryBtn'); taskReviewContent = document.getElementById('taskReviewContent'); tooltipsGuideModal = document.getElementById('tooltipsGuideModal'); modalDialogTooltipsGuide = document.getElementById('modalDialogTooltipsGuide'); closeTooltipsGuideModalBtn = document.getElementById('closeTooltipsGuideModalBtn'); closeTooltipsGuideSecondaryBtn = document.getElementById('closeTooltipsGuideSecondaryBtn'); tooltipsGuideContent = document.getElementById('tooltipsGuideContent'); testFeatureButtonContainer = document.getElementById('testFeatureButtonContainer'); testFeatureButton = document.getElementById('testFeatureButton'); subTasksSectionViewEdit = document.getElementById('subTasksSectionViewEdit'); modalSubTaskInputViewEdit = document.getElementById('modalSubTaskInputViewEdit'); modalAddSubTaskBtnViewEdit = document.getElementById('modalAddSubTaskBtnViewEdit'); modalSubTasksListViewEdit = document.getElementById('modalSubTasksListViewEdit'); subTasksSectionViewDetails = document.getElementById('subTasksSectionViewDetails'); viewSubTaskProgress = document.getElementById('viewSubTaskProgress'); modalSubTasksListViewDetails = document.getElementById('modalSubTasksListViewDetails'); noSubTasksMessageViewDetails = document.getElementById('noSubTasksMessageViewDetails'); subTasksSectionAdd = document.getElementById('subTasksSectionAdd'); modalSubTaskInputAdd = document.getElementById('modalSubTaskInputAdd'); modalAddSubTaskBtnAdd = document.getElementById('modalAddSubTaskBtnAdd'); modalSubTasksListAdd = document.getElementById('modalSubTasksListAdd'); featureFlagsListContainer = document.getElementById('featureFlagsListContainer'); yourTasksHeading = document.getElementById('yourTasksHeading'); kanbanBoardContainer = document.getElementById('kanbanBoardContainer'); calendarViewContainer = document.getElementById('calendarViewContainer'); pomodoroTimerPageContainer = document.getElementById('pomodoroTimerPageContainer'); settingsManageProjectsBtn = document.getElementById('settingsManageProjectsBtn'); manageProjectsModal = document.getElementById('manageProjectsModal'); modalDialogManageProjects = document.getElementById('modalDialogManageProjects'); closeManageProjectsModalBtn = document.getElementById('closeManageProjectsModalBtn'); closeManageProjectsSecondaryBtn = document.getElementById('closeManageProjectsSecondaryBtn'); addNewProjectForm = document.getElementById('addNewProjectForm'); newProjectInput = document.getElementById('newProjectInput'); existingProjectsList = document.getElementById('existingProjectsList'); modalProjectSelectAdd = document.getElementById('modalProjectSelectAdd'); modalProjectSelectViewEdit = document.getElementById('modalProjectSelectViewEdit'); projectFilterContainer = document.getElementById('projectFilterContainer'); viewTaskProject = document.getElementById('viewTaskProject'); calendarViewToggleBtn = document.getElementById('calendarViewToggleBtn'); calendarViewToggleBtnText = document.getElementById('calendarViewToggleBtnText'); pomodoroViewToggleBtn = document.getElementById('pomodoroViewToggleBtn'); pomodoroViewToggleBtnText = document.getElementById('pomodoroViewToggleBtnText'); taskDependenciesSectionAdd = document.getElementById('taskDependenciesSectionAdd'); dependsOnContainerAdd = document.getElementById('dependsOnContainerAdd'); blocksTasksContainerAdd = document.getElementById('blocksTasksContainerAdd'); taskDependenciesSectionViewEdit = document.getElementById('taskDependenciesSectionViewEdit'); dependsOnContainerViewEdit = document.getElementById('dependsOnContainerViewEdit'); blocksTasksContainerViewEdit = document.getElementById('blocksTasksContainerViewEdit'); viewTaskDependenciesSection = document.getElementById('viewTaskDependenciesSection'); viewTaskDependsOnList = document.getElementById('viewTaskDependsOnList'); viewTaskBlocksTasksList = document.getElementById('viewTaskBlocksTasksList'); smarterSearchContainer = document.getElementById('smarterSearchContainer'); smarterSearchAdvancedToggleBtn = document.getElementById('smarterSearchAdvancedToggleBtn'); smarterSearchOptionsDiv = document.getElementById('smarterSearchOptionsDiv'); bulkActionControlsContainer = document.getElementById('bulkActionControlsContainer'); selectAllTasksCheckbox = document.getElementById('selectAllTasksCheckbox'); bulkCompleteBtn = document.getElementById('bulkCompleteBtn'); bulkDeleteBtn = document.getElementById('bulkDeleteBtn'); bulkAssignProjectDropdown = document.getElementById('bulkAssignProjectDropdown'); bulkChangePriorityDropdown = document.getElementById('bulkChangePriorityDropdown'); bulkChangeLabelInput = document.getElementById('bulkChangeLabelInput'); sidebarPomodoroDisplay = document.getElementById('sidebarPomodoroTimerDisplay'); sidebarPomodoroState = document.getElementById('sidebarPomodoroState'); sidebarPomodoroTime = document.getElementById('sidebarPomodoroTime'); sidebarPomodoroTask = document.getElementById('sidebarPomodoroTask');
     console.log('[DOM Init] Finished initializing DOM elements.');
 }
 
 // --- UI Helper Functions ---
-export function showMessage(message, type = 'success') { /* ... same as before ... */ }
+export function showMessage(message, type = 'success') {
+    if (!messageBox) return;
+    messageBox.textContent = message;
+    messageBox.className = `message-box ${type === 'error' ? 'bg-red-500' : type === 'warn' ? 'bg-yellow-500' : 'bg-green-500'} text-white p-3 rounded-md shadow-lg fixed top-5 left-1/2 transform -translate-x-1/2 z-[200] transition-opacity duration-300`;
+    messageBox.style.display = 'block';
+    messageBox.style.opacity = '1';
+    setTimeout(() => {
+        messageBox.style.opacity = '0';
+        setTimeout(() => { messageBox.style.display = 'none'; }, 300);
+    }, 3000);
+}
 export function populateDatalist(datalistElement) {
     if (!datalistElement || !AppStore || typeof AppStore.getUniqueLabels !== 'function') return;
     const currentUniqueLabels = AppStore.getUniqueLabels();
     datalistElement.innerHTML = '';
     currentUniqueLabels.forEach(label => { const option = document.createElement('option'); option.value = label; datalistElement.appendChild(option); });
 }
-export function setSidebarMinimized(minimize) { /* ... same as before, uses global DOM elements ... */ }
+export function setSidebarMinimized(minimize) {
+    if (!taskSidebar || !sidebarToggleIcon || !sidebarTextElements || !sidebarIconOnlyButtons) return;
+    taskSidebar.classList.toggle('sidebar-minimized', minimize);
+    sidebarToggleIcon.className = `fas ${minimize ? 'fa-chevron-right' : 'fa-chevron-left'}`;
+    sidebarTextElements.forEach(el => el.classList.toggle('hidden', minimize));
+    sidebarIconOnlyButtons.forEach(btn => {
+        btn.classList.toggle('justify-center', minimize);
+        const icon = btn.querySelector('i');
+        const text = btn.querySelector('.sidebar-text-content');
+        if (icon) icon.classList.toggle('mr-0', minimize);
+        if (text) text.classList.toggle('ml-2', !minimize);
+    });
+    if (minimize && iconTooltip && iconTooltip.style.display === 'block') hideTooltip(); // Hide any open tooltip
+    if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) {
+        ProjectsFeature.populateProjectFilterList();
+    }
+    if (isFeatureEnabled('pomodoroTimerHybridFeature') && PomodoroTimerHybridFeature?.updateSidebarDisplay) {
+        PomodoroTimerHybridFeature.updateSidebarDisplay();
+    }
+}
 export function showTooltip(element, text) {
     if (!isFeatureEnabled('tooltipsGuide') || !taskSidebar || !iconTooltip || !taskSidebar.classList.contains('sidebar-minimized')) {
         if (iconTooltip && iconTooltip.style.display === 'block') hideTooltip();
@@ -105,43 +155,48 @@ export function refreshTaskView() {
     if (!mainContentArea || !ViewManager || !isFeatureEnabled) { console.error("[RefreshTaskView] Core dependencies not found."); return; }
     const currentView = ViewManager.getCurrentTaskViewMode();
     updateViewToggleButtonsState(); updateYourTasksHeading();
+
+    // Hide all main view containers initially
     if (taskList) taskList.classList.add('hidden');
     if (kanbanBoardContainer) kanbanBoardContainer.classList.add('hidden');
     if (calendarViewContainer) calendarViewContainer.classList.add('hidden');
     if (pomodoroTimerPageContainer) pomodoroTimerPageContainer.classList.add('hidden');
 
     if (isFeatureEnabled('pomodoroTimerHybridFeature') && currentView === 'pomodoro') {
-        if (window.AppFeatures?.PomodoroTimerHybridFeature?.renderPomodoroPage) { // Access via AppFeatures for now
+        if (PomodoroTimerHybridFeature?.renderPomodoroPage) { // Use imported module
             if(pomodoroTimerPageContainer) pomodoroTimerPageContainer.classList.remove('hidden');
-            window.AppFeatures.PomodoroTimerHybridFeature.renderPomodoroPage();
-        } else { ViewManager.setTaskViewMode('list'); renderTaskListView(); }
+            PomodoroTimerHybridFeature.renderPomodoroPage();
+        } else { ViewManager.setTaskViewMode('list'); renderTaskListView(); } // Fallback
     } else if (isFeatureEnabled('calendarViewFeature') && currentView === 'calendar') {
-        if (window.AppFeatures?.CalendarViewFeature?.renderFullCalendar) { // Access via AppFeatures
+        if (CalendarViewFeature?.renderFullCalendar) { // Use imported module
             if(calendarViewContainer) calendarViewContainer.classList.remove('hidden');
-            window.AppFeatures.CalendarViewFeature.renderFullCalendar(calendarViewContainer, AppStore.getTasks());
-        } else { ViewManager.setTaskViewMode('list'); renderTaskListView(); }
+            CalendarViewFeature.renderFullCalendar(calendarViewContainer, AppStore.getTasks());
+        } else { ViewManager.setTaskViewMode('list'); renderTaskListView(); } // Fallback
     } else if (isFeatureEnabled('kanbanBoardFeature') && currentView === 'kanban') {
-        if (window.AppFeatures?.KanbanBoardFeature?.renderKanbanView) { // Access via AppFeatures
-            window.AppFeatures.KanbanBoardFeature.renderKanbanView();
-        } else { ViewManager.setTaskViewMode('list'); renderTaskListView(); }
-    } else { 
-        if (currentView !== 'list') ViewManager.setTaskViewMode('list'); 
-        renderTaskListView();
+        if (KanbanBoardFeature?.renderKanbanView) { // Use imported module
+            // kanbanBoardContainer should be made visible by renderKanbanView itself
+            KanbanBoardFeature.renderKanbanView();
+        } else { ViewManager.setTaskViewMode('list'); renderTaskListView(); } // Fallback
+    } else {
+        if (currentView !== 'list') ViewManager.setTaskViewMode('list'); // Ensure list mode if others fail or not selected
+        renderTaskListView(); // This will make taskList visible if it has tasks
     }
     updateClearCompletedButtonState(); renderBulkActionControls();
-    if (isFeatureEnabled('pomodoroTimerHybridFeature') && window.AppFeatures?.PomodoroTimerHybridFeature?.updateSidebarDisplay) {
-        window.AppFeatures.PomodoroTimerHybridFeature.updateSidebarDisplay();
+    if (isFeatureEnabled('pomodoroTimerHybridFeature') && PomodoroTimerHybridFeature?.updateSidebarDisplay) {
+        PomodoroTimerHybridFeature.updateSidebarDisplay();
     }
     console.log("[UI] Task view refreshed for mode:", currentView);
 }
 
 export function renderTaskListView() {
     if (!taskList || !ViewManager || !AppStore || !isFeatureEnabled || !TaskService || !BulkActionService) { console.error("renderTaskListView: Core dependencies not found."); return; }
-    // ... (rest of implementation uses imported services/AppStore getters)
-    // e.g., ViewManager.getCurrentFilter(), AppStore.getTasks(), TaskService.getPriorityClass(), BulkActionService.getSelectedIds()
-    // Calls to openViewTaskDetailsModal, openViewEditModal, deleteTask, toggleComplete will remain global for now
-    taskList.classList.remove('hidden'); if (kanbanBoardContainer) kanbanBoardContainer.classList.add('hidden'); if (calendarViewContainer) calendarViewContainer.classList.add('hidden'); if (pomodoroTimerPageContainer) pomodoroTimerPageContainer.classList.add('hidden');
-    taskList.innerHTML = ''; 
+
+    taskList.classList.remove('hidden'); // Show task list container
+    if (kanbanBoardContainer) kanbanBoardContainer.classList.add('hidden');
+    if (calendarViewContainer) calendarViewContainer.classList.add('hidden');
+    if (pomodoroTimerPageContainer) pomodoroTimerPageContainer.classList.add('hidden');
+
+    taskList.innerHTML = '';
     const currentFilterVal = ViewManager.getCurrentFilter(); const currentSortVal = ViewManager.getCurrentSort(); const currentSearchTermVal = ViewManager.getCurrentSearchTerm();
     const currentTasks = AppStore.getTasks(); const currentProjects = AppStore.getProjects();
     let filteredTasks = []; const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -156,17 +211,22 @@ export function renderTaskListView() {
     if (currentSortVal === 'dueDate') { filteredTasks.sort((a, b) => { const dA = a.dueDate ? new Date(a.dueDate + (a.time ? `T${a.time}` : 'T00:00:00Z')) : null; const dB = b.dueDate ? new Date(b.dueDate + (b.time ? `T${b.time}` : 'T00:00:00Z')) : null; if (dA === null && dB === null) return 0; if (dA === null) return 1; if (dB === null) return -1; return dA - dB; });}
     else if (currentSortVal === 'priority') { filteredTasks.sort((a, b) => (priorityOrder[a.priority] || priorityOrder.default) - (priorityOrder[b.priority] || priorityOrder.default) || (a.dueDate && b.dueDate ? new Date(a.dueDate) - new Date(b.dueDate) : 0));}
     else if (currentSortVal === 'label') { filteredTasks.sort((a,b) => { const lA = (a.label || '').toLowerCase(); const lB = (b.label || '').toLowerCase(); if (lA < lB) return -1; if (lA > lB) return 1; const dA = a.dueDate ? new Date(a.dueDate + (a.time ? `T${a.time}` : 'T00:00:00Z')) : null; const dB = b.dueDate ? new Date(b.dueDate + (b.time ? `T${b.time}` : 'T00:00:00Z')) : null; if (dA === null && dB === null) return 0; if (dA === null) return 1; if (dB === null) return -1; return dA - dB; });}
-    else if (currentFilterVal === 'inbox' && currentSortVal === 'default') { filteredTasks.sort((a, b) => (b.creationDate || b.id) - (a.creationDate || a.id));}
+    else if (currentFilterVal === 'inbox' && currentSortVal === 'default') { filteredTasks.sort((a, b) => (b.creationDate || b.id) - (a.creationDate || a.id));} // Sort by newest first for inbox default
+
     if (emptyState) emptyState.classList.toggle('hidden', currentTasks.length !== 0);
     if (noMatchingTasks) noMatchingTasks.classList.toggle('hidden', !(currentTasks.length > 0 && filteredTasks.length === 0));
-    if (taskList) taskList.classList.toggle('hidden', filteredTasks.length === 0 && currentTasks.length > 0);
-    filteredTasks.forEach((task) => { 
+    if (taskList) taskList.classList.toggle('hidden', filteredTasks.length === 0 && currentTasks.length > 0); // Also hide if all tasks are filtered out
+
+    filteredTasks.forEach((task) => {
         const li = document.createElement('li'); li.className = `task-item flex items-start justify-between bg-slate-100 dark:bg-slate-700 p-3 sm:p-3.5 rounded-lg shadow hover:shadow-md transition-shadow duration-300 ${task.completed ? 'opacity-60' : ''} overflow-hidden`; li.dataset.taskId = task.id;
         const hasOpenPrerequisites = isFeatureEnabled('taskDependenciesFeature') && task.dependsOn && task.dependsOn.some(depId => { const dependentTask = AppStore.getTasks().find(t => t.id === depId); return dependentTask && !dependentTask.completed; });
         if (hasOpenPrerequisites) { li.classList.add('border-l-4', 'border-amber-500'); }
-        const mainContentClickableArea = document.createElement('div'); mainContentClickableArea.className = 'task-item-clickable-area flex items-start flex-grow min-w-0 mr-2 rounded-l-lg'; mainContentClickableArea.addEventListener('click', (event) => { if (event.target.type === 'checkbox' || event.target.closest('.task-actions') || event.target.closest('.bulk-select-checkbox-container')) return; if(typeof window.openViewTaskDetailsModal === 'function') window.openViewTaskDetailsModal(task.id); });
+        const mainContentClickableArea = document.createElement('div'); mainContentClickableArea.className = 'task-item-clickable-area flex items-start flex-grow min-w-0 mr-2 rounded-l-lg';
+        mainContentClickableArea.addEventListener('click', (event) => { if (event.target.type === 'checkbox' || event.target.closest('.task-actions') || event.target.closest('.bulk-select-checkbox-container')) return; openViewTaskDetailsModal(task.id); }); // Use imported function
         const bulkSelectCheckboxContainer = document.createElement('div'); bulkSelectCheckboxContainer.className = 'bulk-select-checkbox-container flex-shrink-0 mr-2 sm:mr-3 bulk-actions-feature-element'; if (isFeatureEnabled('bulkActionsFeature')) { const bulkCheckbox = document.createElement('input'); bulkCheckbox.type = 'checkbox'; bulkCheckbox.className = 'form-checkbox h-5 w-5 text-blue-500 rounded border-slate-400 dark:border-slate-500 focus:ring-blue-400 dark:focus:ring-blue-500 mt-0.5 cursor-pointer'; bulkCheckbox.checked = BulkActionService.getSelectedIds().includes(task.id); bulkCheckbox.title = "Select for bulk action"; bulkCheckbox.addEventListener('change', () => { BulkActionService.toggleTaskSelection(task.id); }); bulkSelectCheckboxContainer.appendChild(bulkCheckbox); } else { bulkSelectCheckboxContainer.classList.add('hidden'); }
-        const completeCheckbox = document.createElement('input'); completeCheckbox.type = 'checkbox'; completeCheckbox.checked = task.completed; completeCheckbox.className = 'form-checkbox h-5 w-5 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 dark:focus:ring-sky-500 mt-0.5 mr-2 sm:mr-3 cursor-pointer flex-shrink-0'; if (typeof window.toggleComplete === 'function') completeCheckbox.addEventListener('change', () => window.toggleComplete(task.id)); if (hasOpenPrerequisites) { completeCheckbox.disabled = true; completeCheckbox.title = "This task is blocked by incomplete prerequisites."; completeCheckbox.classList.add('opacity-50', 'cursor-not-allowed'); }
+        const completeCheckbox = document.createElement('input'); completeCheckbox.type = 'checkbox'; completeCheckbox.checked = task.completed; completeCheckbox.className = 'form-checkbox h-5 w-5 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 dark:focus:ring-sky-500 mt-0.5 mr-2 sm:mr-3 cursor-pointer flex-shrink-0';
+        completeCheckbox.addEventListener('change', () => toggleComplete(task.id)); // Use imported function
+        if (hasOpenPrerequisites) { completeCheckbox.disabled = true; completeCheckbox.title = "This task is blocked by incomplete prerequisites."; completeCheckbox.classList.add('opacity-50', 'cursor-not-allowed'); }
         const textDetailsDiv = document.createElement('div'); textDetailsDiv.className = 'flex flex-col flex-grow min-w-0'; const span = document.createElement('span'); span.textContent = task.text; let textColorClass = task.completed ? 'text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-200'; span.className = `text-sm sm:text-base break-words ${textColorClass} ${task.completed ? 'completed-text' : ''}`; textDetailsDiv.appendChild(span);
         const detailsContainer = document.createElement('div'); detailsContainer.className = 'flex items-center flex-wrap gap-x-2 gap-y-1 mt-1 sm:mt-1.5 text-xs';
         if (isFeatureEnabled('projectFeature') && task.projectId && task.projectId !== 0) { const project = AppStore.getProjects().find(p => p.id === task.projectId); if (project) { const projSpan = document.createElement('span'); projSpan.className = 'text-purple-600 dark:text-purple-400 flex items-center project-feature-element'; projSpan.innerHTML = `<i class="fas fa-folder mr-1"></i> ${project.name}`; detailsContainer.appendChild(projSpan); }}
@@ -177,19 +237,172 @@ export function renderTaskListView() {
         if (isFeatureEnabled('subTasksFeature') && task.subTasks && task.subTasks.length > 0) { const subTaskIcon = document.createElement('span'); subTaskIcon.className = 'text-slate-400 dark:text-slate-500 flex items-center sub-tasks-feature-element'; const completedSubTasks = task.subTasks.filter(st => st.completed).length; subTaskIcon.innerHTML = `<i class="fas fa-tasks mr-1" title="${completedSubTasks}/${task.subTasks.length} sub-tasks completed"></i>`; detailsContainer.appendChild(subTaskIcon); }
         if (isFeatureEnabled('taskDependenciesFeature') && ((task.dependsOn && task.dependsOn.length > 0) || (task.blocksTasks && task.blocksTasks.length > 0))) { const depIcon = document.createElement('span'); depIcon.className = 'text-slate-400 dark:text-slate-500 flex items-center task-dependencies-feature-element'; let depTitle = ''; if (task.dependsOn && task.dependsOn.length > 0) depTitle += `Depends on ${task.dependsOn.length} task(s). `; if (task.blocksTasks && task.blocksTasks.length > 0) depTitle += `Blocks ${task.blocksTasks.length} task(s).`; depIcon.innerHTML = `<i class="fas fa-link mr-1" title="${depTitle.trim()}"></i>`; detailsContainer.appendChild(depIcon); }
         if (detailsContainer.hasChildNodes()) { textDetailsDiv.appendChild(detailsContainer); }
-        mainContentClickableArea.appendChild(bulkSelectCheckboxContainer); mainContentClickableArea.appendChild(completeCheckbox); mainContentClickableArea.appendChild(textDetailsDiv); 
+        mainContentClickableArea.appendChild(bulkSelectCheckboxContainer); mainContentClickableArea.appendChild(completeCheckbox); mainContentClickableArea.appendChild(textDetailsDiv);
         const actionsDiv = document.createElement('div'); actionsDiv.className = 'task-actions flex-shrink-0 self-start';
-        const editButton = document.createElement('button'); editButton.className = 'task-action-btn text-sky-500 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-500'; editButton.innerHTML = '<i class="fas fa-pencil-alt"></i>'; editButton.setAttribute('aria-label', 'Edit task'); editButton.title = 'Edit task'; if (typeof window.openViewEditModal === 'function') editButton.addEventListener('click', () => { window.openViewEditModal(task.id); if (isFeatureEnabled('projectFeature') && window.AppFeatures?.Projects) { window.AppFeatures.Projects.populateProjectDropdowns(); if (modalProjectSelectViewEdit) { modalProjectSelectViewEdit.value = task.projectId || "0"; } } }); actionsDiv.appendChild(editButton);
-        const deleteButton = document.createElement('button'); deleteButton.className = 'task-action-btn text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-500'; deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i>'; deleteButton.setAttribute('aria-label', 'Delete task'); deleteButton.title = 'Delete task'; if (typeof window.deleteTask === 'function') deleteButton.addEventListener('click', () => window.deleteTask(task.id)); actionsDiv.appendChild(deleteButton);
+        const editButton = document.createElement('button'); editButton.className = 'task-action-btn text-sky-500 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-500'; editButton.innerHTML = '<i class="fas fa-pencil-alt"></i>'; editButton.setAttribute('aria-label', 'Edit task'); editButton.title = 'Edit task';
+        editButton.addEventListener('click', () => {
+            openViewEditModal(task.id); // Use imported function
+            if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectDropdowns) { // Use imported ProjectsFeature
+                ProjectsFeature.populateProjectDropdowns();
+                if (modalProjectSelectViewEdit) { // modalProjectSelectViewEdit is still a module-level var here
+                    modalProjectSelectViewEdit.value = task.projectId || "0";
+                }
+            }
+        }); actionsDiv.appendChild(editButton);
+        const deleteButton = document.createElement('button'); deleteButton.className = 'task-action-btn text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-500'; deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i>'; deleteButton.setAttribute('aria-label', 'Delete task'); deleteButton.title = 'Delete task';
+        deleteButton.addEventListener('click', () => deleteTask(task.id)); // Use imported function
+        actionsDiv.appendChild(deleteButton);
         li.appendChild(mainContentClickableArea); li.appendChild(actionsDiv);
         if (taskList) { taskList.appendChild(li); }
     });
 }
-export function renderBulkActionControls() { /* ... same as before ... */ }
-export function renderTaskDependenciesForViewModal(task) { /* ... same as before ... */ }
-export function renderTempSubTasksForAddModal() { /* ... same as before ... */ }
-export function renderSubTasksForEditModal(parentId, subTasksListElement) { /* ... same as before, uses ModalStateService.getEditingTaskId() ... */ }
-export function renderSubTasksForViewModal(parentId, subTasksListElement, progressElement, noSubTasksMessageElement) { /* ... same as before, uses ModalStateService.getCurrentViewTaskId() ... */ }
+export function renderBulkActionControls() {
+    if (!bulkActionControlsContainer || !BulkActionService || !AppStore || !ViewManager) return;
+    const selectedIds = BulkActionService.getSelectedIds();
+    const isEnabled = isFeatureEnabled('bulkActionsFeature') && selectedIds.length > 0;
+    bulkActionControlsContainer.classList.toggle('hidden', !isEnabled);
+
+    if (!isEnabled) return;
+
+    const selectionCountEl = document.getElementById('bulkActionSelectionCount');
+    if (selectionCountEl) selectionCountEl.textContent = `${selectedIds.length} selected`;
+
+    if (bulkCompleteBtn) bulkCompleteBtn.disabled = selectedIds.length === 0;
+    if (bulkDeleteBtn) bulkDeleteBtn.disabled = selectedIds.length === 0;
+
+    if (isFeatureEnabled('projectFeature')) {
+        if (bulkAssignProjectDropdown) {
+            bulkAssignProjectDropdown.disabled = selectedIds.length === 0;
+            if (ProjectsFeature?.populateProjectDropdowns && typeof bulkAssignProjectDropdown.dataset.populated === 'undefined') {
+                // Populate once
+                const currentProjects = AppStore.getProjects().filter(p=>p.id !==0); // Exclude "No Project"
+                bulkAssignProjectDropdown.innerHTML = '<option value="">Assign Project...</option>'; // Reset
+                currentProjects.forEach(project => {
+                    const option = document.createElement('option');
+                    option.value = project.id;
+                    option.textContent = project.name;
+                    bulkAssignProjectDropdown.appendChild(option);
+                });
+                bulkAssignProjectDropdown.dataset.populated = "true";
+            }
+        }
+    } else {
+        if (bulkAssignProjectDropdown) bulkAssignProjectDropdown.closest('div.relative.project-feature-element')?.classList.add('hidden');
+    }
+
+
+    if (bulkChangePriorityDropdown) bulkChangePriorityDropdown.disabled = selectedIds.length === 0;
+    if (bulkChangeLabelInput) {
+        bulkChangeLabelInput.disabled = selectedIds.length === 0;
+        const datalistEl = document.getElementById('existingLabelsBulkAction');
+        if (datalistEl) populateDatalist(datalistEl); // Uses module-level populateDatalist
+    }
+    // Ensure selectAllTasksCheckbox reflects current state
+    if (selectAllTasksCheckbox) {
+        const currentFilter = ViewManager.getCurrentFilter();
+        const currentTasksInView = AppStore.getTasks().filter(task => {
+            // This filtering logic should exactly match renderTaskListView's filtering for accuracy
+            if (currentFilter === 'inbox') return !task.completed;
+            // Add other filter conditions as in renderTaskListView
+            return true; // Placeholder
+        });
+        const allInViewSelected = currentTasksInView.length > 0 && currentTasksInView.every(task => selectedIds.includes(task.id));
+        selectAllTasksCheckbox.checked = allInViewSelected;
+    }
+}
+export function renderTaskDependenciesForViewModal(task) {
+    if (!viewTaskDependsOnList || !viewTaskBlocksTasksList || !AppStore) return;
+    const allTasks = AppStore.getTasks();
+    viewTaskDependsOnList.innerHTML = ''; viewTaskBlocksTasksList.innerHTML = '';
+
+    if (task.dependsOn && task.dependsOn.length > 0) {
+        task.dependsOn.forEach(depId => {
+            const depTask = allTasks.find(t => t.id === depId);
+            const li = document.createElement('li');
+            li.textContent = depTask ? `${depTask.text} (${depTask.completed ? 'Done' : 'Pending'})` : `Task ID: ${depId} (Not found)`;
+            if (depTask && depTask.completed) li.classList.add('text-green-600', 'dark:text-green-400');
+            else if (depTask) li.classList.add('text-amber-600', 'dark:text-amber-400');
+            viewTaskDependsOnList.appendChild(li);
+        });
+    } else {
+        viewTaskDependsOnList.innerHTML = '<li class="italic">None</li>';
+    }
+
+    if (task.blocksTasks && task.blocksTasks.length > 0) {
+        task.blocksTasks.forEach(blockedId => {
+            const blockedTask = allTasks.find(t => t.id === blockedId);
+            const li = document.createElement('li');
+            li.textContent = blockedTask ? blockedTask.text : `Task ID: ${blockedId} (Not found)`;
+            viewTaskBlocksTasksList.appendChild(li);
+        });
+    } else {
+        viewTaskBlocksTasksList.innerHTML = '<li class="italic">None</li>';
+    }
+}
+export function renderTempSubTasksForAddModal(tempSubTasks, listElement) { // Accept params
+    if (!listElement) return;
+    listElement.innerHTML = '';
+    if (!tempSubTasks || tempSubTasks.length === 0) {
+        listElement.innerHTML = '<li class="text-xs text-slate-400 dark:text-slate-500">No sub-tasks added yet.</li>';
+        return;
+    }
+    tempSubTasks.forEach((st, index) => {
+        const li = document.createElement('li');
+        li.className = 'flex items-center justify-between text-sm bg-slate-100 dark:bg-slate-600 p-1.5 rounded';
+        const span = document.createElement('span');
+        span.textContent = st.text;
+        span.className = "dark:text-slate-200";
+        li.appendChild(span);
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.innerHTML = '<i class="fas fa-times text-red-500 hover:text-red-700 text-xs"></i>';
+        removeBtn.onclick = () => {
+            tempSubTasks.splice(index, 1);
+            renderTempSubTasksForAddModal(tempSubTasks, listElement); // Re-render
+        };
+        li.appendChild(removeBtn);
+        listElement.appendChild(li);
+    });
+}
+export function renderSubTasksForEditModal(parentId, subTasksListElement) {
+    if (!AppStore || !subTasksListElement) return;
+    const parentTask = AppStore.getTasks().find(t => t.id === parentId);
+    subTasksListElement.innerHTML = '';
+    if (!parentTask || !parentTask.subTasks || parentTask.subTasks.length === 0) {
+        subTasksListElement.innerHTML = '<li class="text-xs text-slate-400 dark:text-slate-500">No sub-tasks added yet.</li>';
+        return;
+    }
+    parentTask.subTasks.forEach(st => { /* ... same as before, but ensure any event handlers here call imported/local functions ... */ });
+}
+export function renderSubTasksForViewModal(parentId, subTasksListElement, progressElement, noSubTasksMessageElement) {
+     if (!AppStore || !subTasksListElement || !progressElement || !noSubTasksMessageElement) return;
+    const parentTask = AppStore.getTasks().find(t => t.id === parentId);
+    subTasksListElement.innerHTML = '';
+    if (!parentTask || !parentTask.subTasks || parentTask.subTasks.length === 0) {
+        noSubTasksMessageElement.classList.remove('hidden');
+        progressElement.textContent = '';
+        return;
+    }
+    noSubTasksMessageElement.classList.add('hidden');
+    let completedCount = 0;
+    parentTask.subTasks.forEach(st => {
+        const li = document.createElement('li');
+        li.className = 'flex items-center text-slate-600 dark:text-slate-300';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = st.completed;
+        checkbox.className = 'form-checkbox h-4 w-4 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 mr-2 cursor-not-allowed';
+        checkbox.disabled = true; // View only
+        if (st.completed) completedCount++;
+        const span = document.createElement('span');
+        span.textContent = st.text;
+        if (st.completed) span.classList.add('line-through', 'text-slate-400', 'dark:text-slate-500');
+        li.appendChild(checkbox);
+        li.appendChild(span);
+        subTasksListElement.appendChild(li);
+    });
+    progressElement.textContent = `${completedCount} / ${parentTask.subTasks.length} completed`;
+}
 export function updateSortButtonStates() { /* ... same as before, uses ViewManager.getCurrentSort() ... */ }
 export function updateClearCompletedButtonState() { /* ... same as before, uses AppStore.getTasks() ... */ }
 export function updateViewToggleButtonsState() { /* ... same as before, uses ViewManager.getCurrentTaskViewMode() and FeatureFlagService ... */ }
@@ -198,20 +411,41 @@ export function styleInitialSmartViewButtons() { /* ... same as before, uses Vie
 
 export function initializeUiRenderingSubscriptions() {
     if (!EventBus || !ViewManager || !isFeatureEnabled) { console.error("[UI Rendering] Core dependencies for subscriptions not available."); return; }
-    // ... (all subscriptions remain the same as in ui_rendering_js_refactor_05_pomodoro_event)
     EventBus.subscribe('tasksChanged', (updatedTasks) => { console.log("[UI Rendering] Event received: tasksChanged. Refreshing view."); refreshTaskView(); updateClearCompletedButtonState(); });
-    EventBus.subscribe('projectsChanged', (updatedProjects) => { console.log("[UI Rendering] Event received: projectsChanged. Refreshing view."); refreshTaskView(); });
-    EventBus.subscribe('uniqueProjectsChanged', (newUniqueProjects) => { console.log("[UI Rendering] Event received: uniqueProjectsChanged. Repopulating project UI."); if (window.AppFeatures?.Projects?.populateProjectFilterList) window.AppFeatures.Projects.populateProjectFilterList(); if (window.AppFeatures?.Projects?.populateProjectDropdowns) window.AppFeatures.Projects.populateProjectDropdowns(); });
+    EventBus.subscribe('projectsChanged', (updatedProjects) => {
+        console.log("[UI Rendering] Event received: projectsChanged. Refreshing view and project UI.");
+        refreshTaskView(); // Refresh main task view which might depend on project names
+        if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) ProjectsFeature.populateProjectFilterList();
+        if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectDropdowns) ProjectsFeature.populateProjectDropdowns();
+    });
+    EventBus.subscribe('uniqueProjectsChanged', (newUniqueProjects) => {
+        console.log("[UI Rendering] Event received: uniqueProjectsChanged. Repopulating project UI.");
+        if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) ProjectsFeature.populateProjectFilterList();
+        if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectDropdowns) ProjectsFeature.populateProjectDropdowns();
+    });
     EventBus.subscribe('kanbanColumnsChanged', (updatedColumns) => { console.log("[UI Rendering] Event received: kanbanColumnsChanged."); if (ViewManager.getCurrentTaskViewMode() === 'kanban' && isFeatureEnabled('kanbanBoardFeature')) { refreshTaskView(); } });
     EventBus.subscribe('filterChanged', (eventData) => { console.log("[UI Rendering] Event received: filterChanged. Refreshing view and heading."); refreshTaskView(); updateYourTasksHeading(); updateSortButtonStates(); });
     EventBus.subscribe('sortChanged', (newSort) => { console.log("[UI Rendering] Event received: sortChanged. Refreshing view and sort buttons."); refreshTaskView(); updateSortButtonStates(); });
     EventBus.subscribe('searchTermChanged', (newSearchTerm) => { console.log("[UI Rendering] Event received: searchTermChanged. Refreshing view."); refreshTaskView(); });
     EventBus.subscribe('viewModeChanged', (newViewMode) => { console.log("[UI Rendering] Event received: viewModeChanged. Refreshing view and UI states."); refreshTaskView(); updateViewToggleButtonsState(); updateYourTasksHeading(); });
-    EventBus.subscribe('featureFlagsUpdated', (updateData) => { console.log("[UI Rendering] Event received: featureFlagsUpdated. Certain UI states might need refresh."); updateViewToggleButtonsState(); });
-    EventBus.subscribe('labelsChanged', (newLabels) => { console.log("[UI Rendering] Event received: labelsChanged. Populating datalists."); if(existingLabelsDatalist) populateDatalist(existingLabelsDatalist); if(existingLabelsEditDatalist) populateDatalist(existingLabelsEditDatalist); if (manageLabelsModal && !manageLabelsModal.classList.contains('hidden') && typeof populateManageLabelsList === 'function') { populateManageLabelsList(); } }); // populateManageLabelsList is global
+    EventBus.subscribe('featureFlagsUpdated', (updateData) => { console.log("[UI Rendering] Event received: featureFlagsUpdated. Certain UI states might need refresh."); updateViewToggleButtonsState(); refreshTaskView(); /* Added refreshTaskView for broader UI updates */ });
+    EventBus.subscribe('labelsChanged', (newLabels) => {
+        console.log("[UI Rendering] Event received: labelsChanged. Populating datalists.");
+        if(existingLabelsDatalist) populateDatalist(existingLabelsDatalist); // Module-level var
+        if(existingLabelsEditDatalist) populateDatalist(existingLabelsEditDatalist); // Module-level var
+        // Use imported populateManageLabelsList
+        if (manageLabelsModal && !manageLabelsModal.classList.contains('hidden')) {
+            populateManageLabelsList();
+        }
+    });
     EventBus.subscribe('bulkSelectionChanged', (selectedIds) => { console.log("[UI Rendering] Event received: bulkSelectionChanged. Rendering controls."); renderBulkActionControls(); });
-    EventBus.subscribe('pomodoroStateUpdated', (pomodoroData) => { console.log("[UI Rendering] Event received: pomodoroStateUpdated.", pomodoroData); if (window.AppFeatures?.PomodoroTimerHybridFeature?.updateSidebarDisplay) { window.AppFeatures.PomodoroTimerHybridFeature.updateSidebarDisplay(); } }); // PomodoroTimerHybridFeature is global
+    EventBus.subscribe('pomodoroStateUpdated', (pomodoroData) => {
+        console.log("[UI Rendering] Event received: pomodoroStateUpdated.", pomodoroData);
+        if (isFeatureEnabled('pomodoroTimerHybridFeature') && PomodoroTimerHybridFeature?.updateSidebarDisplay) { // Use imported module
+            PomodoroTimerHybridFeature.updateSidebarDisplay();
+        }
+    });
     console.log("[UI Rendering] Event subscriptions initialized.");
 }
 
-console.log("ui_rendering.js loaded, using imported services.");
+console.log("ui_rendering.js loaded, using imported services and functions.");
