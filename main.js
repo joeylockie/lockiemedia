@@ -8,6 +8,7 @@ import * as TaskService from './taskService.js';
 import * as ProjectServiceModule from './projectService.js'; 
 import { ProjectsFeature } from './feature_projects.js';
 import * as LabelServiceModule from './labelService.js';
+import { setupEventListeners, applyActiveFeatures } from './ui_event_handlers.js';
 import ViewManager from './viewManager.js';
 import * as BulkActionServiceModule from './bulkActionService.js';
 import ModalStateService from './modalStateService.js';
@@ -129,8 +130,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // 6. Apply Active Features to the UI (initial setup)
-    if (typeof applyActiveFeatures === 'function') { applyActiveFeatures(); console.log("[Main] Active features applied to UI (initial)."); } 
-    else { console.error("[Main] applyActiveFeatures function not found!"); if(typeof refreshTaskView === 'function') refreshTaskView(); }
+        // 6. Apply Active Features to the UI (initial setup)
+    applyActiveFeatures(); // Now uses imported function
+    console.log("[Main] Active features applied to UI (initial).");
 
     // 7. Style Initial UI Elements
     if (typeof styleInitialSmartViewButtons === 'function') styleInitialSmartViewButtons();
@@ -155,8 +157,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (typeof updateClearCompletedButtonState === 'function') updateClearCompletedButtonState();
 
     // 12. Setup All Global Event Listeners
-    if (typeof setupEventListeners === 'function') { setupEventListeners(); console.log("[Main] Global event listeners set up."); } 
-    else { console.error("[Main] setupEventListeners function not found!"); }
-
-    console.log("[Main] Todo App Initialized successfully via main.js.");
+// 12. Setup All Global Event Listeners
+    setupEventListeners(); // Now uses imported function
+    console.log("[Main] Global event listeners set up.");
 });
