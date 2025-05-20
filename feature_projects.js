@@ -1,22 +1,25 @@
 // feature_projects.js
 
-import AppStore from './store.js'; // For getUniqueProjects (transitional)
+import AppStore from './store.js';
 import EventBus from './eventBus.js';
 import { isFeatureEnabled } from './featureFlagService.js';
-import { getCurrentFilter, setCurrentFilter as setViewManagerCurrentFilter } from './viewManager.js'; // Renamed to avoid conflict
+// Removed ViewManager import as setFilter from ui_event_handlers will handle it.
+// import { getCurrentFilter, setCurrentFilter as setViewManagerCurrentFilter } from './viewManager.js';
 import { addProject, updateProjectName, deleteProjectById, getProjectById, getAllProjects } from './projectService.js';
 
-// DOM Element References (populated in initializeProjectFeature)
+// Import functions from other modules
+import { showMessage } from './ui_rendering.js'; // Import showMessage
+import { setFilter } from './ui_event_handlers.js'; // Import setFilter
+
+// DOM Element References (populated in initializeProjectFeature via getElementById)
 let manageProjectsModal, modalDialogManageProjects, closeManageProjectsModalBtn, closeManageProjectsSecondaryBtn;
 let addNewProjectForm, newProjectInput, existingProjectsList;
 let projectFilterContainer;
-let modalProjectSelectAdd, modalProjectSelectViewEdit;
+let modalProjectSelectAdd, modalProjectSelectViewEdit; // These are used by populateProjectDropdowns
 
-// Still relying on some globals during transition (will be imported or passed later)
-// showMessage (from ui_rendering.js)
-// refreshTaskView (from ui_rendering.js)
-// setFilter (from ui_event_handlers.js - this one is tricky as it's a UI action)
-// taskSidebar (from ui_rendering.js, for minimized check)
+// Note: showMessage is now imported.
+// refreshTaskView is not directly called here; changes trigger events that ui_rendering handles.
+// taskSidebar will be fetched directly.
 
 function initializeProjectFeature() {
     manageProjectsModal = document.getElementById('manageProjectsModal');
@@ -26,9 +29,10 @@ function initializeProjectFeature() {
     addNewProjectForm = document.getElementById('addNewProjectForm');
     newProjectInput = document.getElementById('newProjectInput');
     existingProjectsList = document.getElementById('existingProjectsList');
-    projectFilterContainer = document.getElementById('projectFilterContainer');
-    modalProjectSelectAdd = document.getElementById('modalProjectSelectAdd');
-    modalProjectSelectViewEdit = document.getElementById('modalProjectSelectViewEdit');
+    projectFilterContainer = document.getElementById('projectFilterContainer'); // Used by populateProjectFilterList
+    modalProjectSelectAdd = document.getElementById('modalProjectSelectAdd'); // Used by populateProjectDropdowns
+    modalProjectSelectViewEdit = document.getElementById('modalProjectSelectViewEdit'); // Used by populateProjectDropdowns
+
 
     if (closeManageProjectsModalBtn) closeManageProjectsModalBtn.addEventListener('click', closeManageProjectsModal);
     if (closeManageProjectsSecondaryBtn) closeManageProjectsSecondaryBtn.addEventListener('click', closeManageProjectsModal);
@@ -38,30 +42,37 @@ function initializeProjectFeature() {
     if (EventBus) {
         EventBus.subscribe('projectsChanged', () => {
             console.log("[ProjectsFeature] Detected 'projectsChanged' event. Repopulating manage projects list.");
-            populateManageProjectsList();
+            populateManageProjectsList(); // This function is local to this module
         });
         EventBus.subscribe('uniqueProjectsChanged', () => {
             console.log("[ProjectsFeature] Detected 'uniqueProjectsChanged' event. Repopulating dropdowns and filter list.");
-            populateProjectDropdowns();
-            populateProjectFilterList();
+            populateProjectDropdowns(); // Local to this module
+            populateProjectFilterList(); // Local to this module
         });
     }
     console.log('[ProjectsFeature] Initialized and event listeners set up.');
 }
 
-function updateProjectUIVisibility() { // isEnabledParam removed, uses imported isFeatureEnabled
-    if (typeof isFeatureEnabled !== 'function' || typeof getCurrentFilter !== 'function' || typeof setViewManagerCurrentFilter !== 'function') {
-        console.error("[ProjectsFeature] Core service functions not available for UI visibility update.");
+function updateProjectUIVisibility() {
+    if (typeof isFeatureEnabled !== 'function' || typeof AppStore.getStore === 'function' /* Should be AppStore itself */) {
+        // console.error("[ProjectsFeature] Core service functions not available for UI visibility update.");
+        // Corrected the check above, ViewManager is not directly needed here if setFilter handles it
         return;
     }
     const isActuallyEnabled = isFeatureEnabled('projectFeature');
     const projectElements = document.querySelectorAll('.project-feature-element');
     projectElements.forEach(el => el.classList.toggle('hidden', !isActuallyEnabled));
 
-    if (!isActuallyEnabled && getCurrentFilter().startsWith('project_')) {
-        setViewManagerCurrentFilter('inbox'); 
-    }
-    populateProjectFilterList();
+    // If feature is disabled and a project filter was active, reset to inbox.
+    // This logic is now primarily handled by setFilter in ui_event_handlers when it gets the current filter.
+    // However, a direct check might be useful if this function is called independently.
+    // For now, let's rely on ui_event_handlers.setFilter or ViewManager events to manage this.
+    // The original code checked getCurrentFilter().startsWith('project_')
+    // and then called setViewManagerCurrentFilter('inbox').
+    // If the feature is disabled, ui_event_handlers.applyActiveFeatures would call refreshTaskView,
+    // which might reset the view if the current filter is invalid.
+
+    populateProjectFilterList(); // Refresh the list based on visibility
     console.log(`[ProjectsFeature] UI Visibility set to: ${isActuallyEnabled}`);
 }
 
@@ -85,13 +96,13 @@ function populateManageProjectsList() {
         return;
     }
     existingProjectsList.innerHTML = '';
-    const displayProjects = getAllProjects(); 
+    const displayProjects = getAllProjects();
 
     if (displayProjects.length === 0) {
         existingProjectsList.innerHTML = '<li class="text-slate-500 dark:text-slate-400 text-center">No projects created yet.</li>';
         return;
     }
-    displayProjects.forEach(project => { 
+    displayProjects.forEach(project => {
         const li = document.createElement('li'); li.className = 'flex justify-between items-center p-2 bg-slate-50 dark:bg-slate-700 rounded-md group';
         const nameSpan = document.createElement('span'); nameSpan.textContent = project.name; nameSpan.className = 'text-slate-700 dark:text-slate-200'; li.appendChild(nameSpan);
         const actionsDiv = document.createElement('div'); actionsDiv.className = 'opacity-0 group-hover:opacity-100 transition-opacity';
@@ -103,73 +114,80 @@ function populateManageProjectsList() {
 
 function handleAddNewProject(event) {
     event.preventDefault();
-    if (!newProjectInput || typeof addProject !== 'function' || typeof showMessage !== 'function') return;
+    if (!newProjectInput || typeof addProject !== 'function') return;
     const projectName = newProjectInput.value.trim();
-    const newProjectAdded = addProject(projectName); // Uses imported ProjectService.addProject
+    const newProjectAdded = addProject(projectName);
     if (newProjectAdded) {
-        if(typeof showMessage === 'function') showMessage(`Project "${newProjectAdded.name}" added.`, 'success');
+        showMessage(`Project "${newProjectAdded.name}" added.`, 'success'); // Use imported showMessage
         newProjectInput.value = '';
-        // UI lists update via events published by AppStore (triggered by ProjectService)
     }
 }
 
 function handleEditProject(projectId) {
-    if (typeof getProjectById !== 'function' || typeof updateProjectName !== 'function' || typeof showMessage !== 'function') return;
-    const project = getProjectById(projectId); // Uses imported ProjectService.getProjectById
+    if (typeof getProjectById !== 'function' || typeof updateProjectName !== 'function') return;
+    const project = getProjectById(projectId);
     if (!project || project.id === 0) {
-        if(typeof showMessage === 'function') showMessage('Project not found or "No Project" cannot be edited.', 'error');
+        showMessage('Project not found or "No Project" cannot be edited.', 'error'); // Use imported showMessage
         return;
     }
     const newName = prompt(`Edit project name for "${project.name}":`, project.name);
-    if (newName === null) return; 
-    const updatedProject = updateProjectName(projectId, newName); // Uses imported ProjectService.updateProjectName
+    if (newName === null) return;
+    const updatedProject = updateProjectName(projectId, newName);
     if (updatedProject) {
-        if(typeof showMessage === 'function') showMessage(`Project updated to "${updatedProject.name}".`, 'success');
+        showMessage(`Project updated to "${updatedProject.name}".`, 'success'); // Use imported showMessage
     }
 }
 
 function handleDeleteProject(projectId) {
-    if (typeof getProjectById !== 'function' || typeof deleteProjectById !== 'function' || typeof showMessage !== 'function' || typeof getCurrentFilter !== 'function' || typeof setViewManagerCurrentFilter !== 'function') return;
-    const project = getProjectById(projectId); // Uses imported ProjectService.getProjectById
+    // Need to import ViewManager for getCurrentFilter, setCurrentFilter if we want to reset filter here
+    // For now, setFilter from ui_event_handlers does that.
+    if (typeof getProjectById !== 'function' || typeof deleteProjectById !== 'function') return;
+    const project = getProjectById(projectId);
     if (!project || project.id === 0) {
-        if(typeof showMessage === 'function') showMessage('Project not found or "No Project" cannot be deleted.', 'error');
+        showMessage('Project not found or "No Project" cannot be deleted.', 'error'); // Use imported showMessage
         return;
     }
     if (!confirm(`Are you sure you want to delete the project "${project.name}"? Tasks in this project will be moved to "No Project".`)) {
         return;
     }
-    if (deleteProjectById(projectId)) { // Uses imported ProjectService.deleteProjectById
-        if(typeof showMessage === 'function') showMessage(`Project "${project.name}" deleted. Associated tasks moved.`, 'success');
-        if (getCurrentFilter() === `project_${projectId}`) {
-            setViewManagerCurrentFilter('inbox');
+    const currentFilterBeforeDelete = ViewManager.getCurrentFilter(); // Get ViewManager from import
+    if (deleteProjectById(projectId)) {
+        showMessage(`Project "${project.name}" deleted. Associated tasks moved.`, 'success'); // Use imported showMessage
+        if (currentFilterBeforeDelete === `project_${projectId}`) {
+            setFilter('inbox'); // Use imported setFilter to reset and restyle
         }
     } else {
-        if(typeof showMessage === 'function') showMessage('Failed to delete project.', 'error');
+        showMessage('Failed to delete project.', 'error'); // Use imported showMessage
     }
 }
 
 function populateProjectDropdowns() {
+    // modalProjectSelectAdd and modalProjectSelectViewEdit are module-level variables,
+    // initialized in initializeProjectFeature via getElementById.
     if (typeof AppStore === 'undefined' || typeof AppStore.getUniqueProjects !== 'function') {
          console.warn("[ProjectsFeature] AppStore.getUniqueProjects not available for dropdowns."); return;
     }
-    const currentUniqueProjects = AppStore.getUniqueProjects(); 
+    const currentUniqueProjects = AppStore.getUniqueProjects();
     const dropdowns = [];
     if (modalProjectSelectAdd) dropdowns.push(modalProjectSelectAdd);
     if (modalProjectSelectViewEdit) dropdowns.push(modalProjectSelectViewEdit);
-    dropdowns.forEach(dropdown => { 
+
+    dropdowns.forEach(dropdown => {
         if (!dropdown) return; const currentVal = dropdown.value; dropdown.innerHTML = '';
         const noProjectOption = document.createElement('option'); noProjectOption.value = "0"; noProjectOption.textContent = "No Project"; dropdown.appendChild(noProjectOption);
         currentUniqueProjects.forEach(project => { const option = document.createElement('option'); option.value = project.id; option.textContent = project.name; dropdown.appendChild(option); });
-        if (currentVal && currentUniqueProjects.some(p => p.id.toString() === currentVal) || currentVal === "0") { dropdown.value = currentVal; } else if (dropdown.options.length > 0) { dropdown.value = "0"; }
+        if (currentVal && (currentUniqueProjects.some(p => p.id.toString() === currentVal) || currentVal === "0")) { dropdown.value = currentVal; } else if (dropdown.options.length > 0) { dropdown.value = "0"; }
     });
 }
 
 function populateProjectFilterList() {
-    if (!projectFilterContainer || typeof AppStore === 'undefined' || typeof AppStore.getUniqueProjects !== 'function' || typeof isFeatureEnabled !== 'function' || typeof getCurrentFilter !== 'function') {
+    // projectFilterContainer is a module-level variable, initialized via getElementById.
+    // ViewManager should be imported if we need getCurrentFilter. setFilter (from ui_event_handlers) uses ViewManager.
+    if (!projectFilterContainer || typeof AppStore === 'undefined' || typeof AppStore.getUniqueProjects !== 'function' || typeof isFeatureEnabled !== 'function') {
         if (projectFilterContainer) projectFilterContainer.innerHTML = ''; return;
     }
-    projectFilterContainer.innerHTML = '';
-    const currentUniqueProjects = AppStore.getUniqueProjects();
+    projectFilterContainer.innerHTML = ''; // Clear previous
+    const currentUniqueProjects = AppStore.getUniqueProjects(); // From AppStore import
 
     if (!isFeatureEnabled('projectFeature') || currentUniqueProjects.length === 0) {
         projectFilterContainer.classList.add('hidden');
@@ -178,31 +196,58 @@ function populateProjectFilterList() {
     projectFilterContainer.classList.remove('hidden');
     const heading = document.createElement('h2'); heading.className = 'sidebar-text-content sidebar-section-title text-lg md:text-xl font-semibold text-slate-700 dark:text-slate-200 mb-2 md:mb-3 mt-4'; heading.textContent = 'Projects'; projectFilterContainer.appendChild(heading);
     const projectListUl = document.createElement('div'); projectListUl.className = 'flex flex-col gap-2';
-    currentUniqueProjects.forEach(project => { 
-        const button = document.createElement('button'); const isActive = getCurrentFilter() === `project_${project.id}`; const baseClasses = 'smart-view-btn w-full text-left px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center'; const activeColorClasses = 'bg-purple-500 text-white font-semibold dark:bg-purple-600 dark:text-purple-50'; const inactiveColorClasses = 'bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'; button.className = `${baseClasses} ${isActive ? activeColorClasses : inactiveColorClasses}`; button.dataset.filter = `project_${project.id}`; button.title = project.name;
-        const icon = document.createElement('i'); const iconActiveColor = 'text-purple-100 dark:text-purple-200'; const iconInactiveColor = 'text-slate-500 dark:text-slate-400'; icon.className = `fas fa-folder w-5 mr-0 ${isActive ? iconActiveColor : iconInactiveColor}`;
-        const textSpan = document.createElement('span'); textSpan.className = 'sidebar-text-content ml-2 md:ml-2.5 truncate'; textSpan.textContent = project.name;
-        button.appendChild(icon); button.appendChild(textSpan);
-        // The global `setFilter` function (from ui_event_handlers.js) will be used here.
-        // This will be refactored when ui_event_handlers.js becomes a module.
-        button.addEventListener('click', () => { if (typeof window.setFilter === 'function') window.setFilter(`project_${project.id}`); }); 
+
+    currentUniqueProjects.forEach(project => {
+        // const isActive = ViewManager.getCurrentFilter() === `project_${project.id}`; // Requires ViewManager import
+        // setFilter handles the active state styling, so we don't need to check isActive here directly for styling
+        const button = document.createElement('button');
+        // Styling will be applied by setFilter from ui_event_handlers.js
+        // We need to ensure the initial state is also styled correctly.
+        // The setFilter function in ui_event_handlers applies styles based on ViewManager.getCurrentFilter().
+        // So, calling populateProjectFilterList and then ui_event_handlers.setFilter(ViewManager.getCurrentFilter())
+        // during initialization (e.g., in main.js or when projects change) should ensure correct styling.
+        // For now, rely on setFilter in ui_event_handlers to style appropriately.
+        // The initial styling is handled by main.js calling setFilter(ViewManager.getCurrentFilter()) after setup.
+        button.className = 'smart-view-btn w-full text-left px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'; // Default inactive style
+        button.dataset.filter = `project_${project.id}`;
+        button.title = project.name;
+
+        const icon = document.createElement('i');
+        icon.className = `fas fa-folder w-5 mr-0 text-slate-500 dark:text-slate-400`; // Default inactive icon color
+        const textSpan = document.createElement('span');
+        textSpan.className = 'sidebar-text-content ml-2 md:ml-2.5 truncate';
+        textSpan.textContent = project.name;
+        button.appendChild(icon);
+        button.appendChild(textSpan);
+
+        button.addEventListener('click', () => setFilter(`project_${project.id}`)); // Use imported setFilter
         projectListUl.appendChild(button);
     });
     projectFilterContainer.appendChild(projectListUl);
-    // taskSidebar is still global from ui_rendering.js for now
-    if (window.taskSidebar && window.taskSidebar.classList.contains('sidebar-minimized')) {
+
+    const taskSidebarEl = document.getElementById('taskSidebar'); // Get taskSidebar directly
+    if (taskSidebarEl && taskSidebarEl.classList.contains('sidebar-minimized')) {
         if(heading) heading.classList.add('hidden');
-        projectListUl.querySelectorAll('.sidebar-button-icon-only').forEach(btn => { btn.classList.add('justify-center'); btn.querySelector('i')?.classList.remove('md:mr-2', 'md:mr-2.5', 'ml-2'); btn.querySelector('.sidebar-text-content')?.classList.add('hidden'); });
+        projectListUl.querySelectorAll('.sidebar-button-icon-only').forEach(btn => {
+            btn.classList.add('justify-center');
+            btn.querySelector('i')?.classList.remove('md:mr-2', 'md:mr-2.5', 'ml-2'); // Ensure correct classes
+            btn.querySelector('.sidebar-text-content')?.classList.add('hidden');
+        });
     }
+    // After populating, ensure the correct button is styled as active by calling setFilter
+    // This should ideally be handled by an event or a more central styling update mechanism.
+    // For now, the `setFilter` call on click will handle it. Initial call from main.js handles load.
 }
 
-// Export the feature object for main.js to use
+
 export const ProjectsFeature = {
     initialize: initializeProjectFeature,
     updateUIVisibility: updateProjectUIVisibility,
-    openManageProjectsModal: openManageProjectsModal,
-    populateProjectDropdowns: populateProjectDropdowns,
-    populateProjectFilterList: populateProjectFilterList
+    openManageProjectsModal: openManageProjectsModal, // This function is local
+    // closeManageProjectsModal is local and attached to buttons
+    populateProjectDropdowns: populateProjectDropdowns, // This function is local
+    populateProjectFilterList: populateProjectFilterList // This function is local
 };
 
+// This console log was already present
 console.log("feature_projects.js loaded as ES6 module.");
