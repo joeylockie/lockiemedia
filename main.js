@@ -19,8 +19,12 @@ import { FileAttachmentsFeature } from './feature_file_attachments.js';
 import { IntegrationsServicesFeature } from './feature_integrations_services.js';
 import { UserAccountsFeature } from './feature_user_accounts.js';
 import { CollaborationSharingFeature } from './feature_collaboration_sharing.js';
-import { CrossDeviceSyncFeature } from './feature_cross_device_sync.js'; // Import
-import { TaskDependenciesFeature } from './feature_task_dependencies.js'; // Import
+import { CrossDeviceSyncFeature } from './feature_cross_device_sync.js';
+import { TaskDependenciesFeature } from './feature_task_dependencies.js';
+import { SmarterSearchFeature } from './feature_smarter_search.js';
+import { DataManagementFeature } from './feature_data_management.js';
+import { CalendarViewFeature } from './feature_calendar_view.js';
+import { TaskTimerSystemFeature } from './task_timer_system.js'; // Import
 import * as ModalInteractions from './modal_interactions.js';
 
 
@@ -72,8 +76,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.AppFeatures.IntegrationsServicesFeature = IntegrationsServicesFeature;
     window.AppFeatures.UserAccountsFeature = UserAccountsFeature;
     window.AppFeatures.CollaborationSharingFeature = CollaborationSharingFeature;
-    window.AppFeatures.CrossDeviceSyncFeature = CrossDeviceSyncFeature; // Assign imported feature
-    window.AppFeatures.TaskDependenciesFeature = TaskDependenciesFeature; // Assign imported feature
+    window.AppFeatures.CrossDeviceSyncFeature = CrossDeviceSyncFeature;
+    window.AppFeatures.TaskDependenciesFeature = TaskDependenciesFeature;
+    window.AppFeatures.SmarterSearchFeature = SmarterSearchFeature;
+    window.AppFeatures.DataManagementFeature = DataManagementFeature;
+    window.AppFeatures.CalendarViewFeature = CalendarViewFeature;
+    window.AppFeatures.TaskTimerSystemFeature = TaskTimerSystemFeature; // Assign imported feature
 
 
     if (typeof isFeatureEnabledFromService !== 'undefined' && typeof window.AppFeatures !== 'undefined') {
@@ -91,28 +99,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                     "user_accounts_feature": "userAccounts",
                     "collaboration_sharing_feature": "collaborationSharing",
                     "cross_device_sync_feature": "crossDeviceSync",
-                    "task_dependencies_feature": "taskDependenciesFeature" // Map to correct flag name
+                    "task_dependencies_feature": "taskDependenciesFeature",
+                    "smarter_search_feature": "smarterSearchFeature",
+                    "data_management_feature": "exportDataFeature",
+                    "calendar_view_feature": "calendarViewFeature",
+                    "task_timer_system_feature": "taskTimerSystem" // Map to correct flag name
                 };
                 effectiveFlagKey = flagMappings[flagKey] || flagKey;
                 
-                // Initialize if flag is true OR if no such flag exists (core/always on feature)
-                // OR if the feature's own module name matches a known flag key directly (e.g. ProjectsFeature -> projectFeature)
-                let shouldInitialize = isFeatureEnabledFromService(effectiveFlagKey);
-                if (!Object.keys(AppStore.getFeatureFlags()).includes(effectiveFlagKey)) { // If no specific flag, assume it's a core part to initialize
-                    // Check if the feature name itself (minus "Feature") is a flag
-                    const directFlagKey = featureName.replace('Feature', '');
-                    const directFlagKeyLower = directFlagKey.charAt(0).toLowerCase() + directFlagKey.slice(1);
-                     if (Object.keys(AppStore.getFeatureFlags()).includes(directFlagKeyLower)) {
-                        shouldInitialize = isFeatureEnabledFromService(directFlagKeyLower);
-                    } else {
-                        shouldInitialize = true; // No specific flag found, assume initialize
-                    }
-                }
-
-
-                if (shouldInitialize) { 
+                if (isFeatureEnabledFromService(effectiveFlagKey) || !Object.keys(AppStore.getFeatureFlags()).includes(effectiveFlagKey) ) { 
                     try {
-                        console.log(`[Main] Initializing ${featureName} (flag key used for check: ${effectiveFlagKey})...`);
+                        console.log(`[Main] Initializing ${featureName} (flag key used for check: ${effectiveFlagKey}, enabled: ${isFeatureEnabledFromService(effectiveFlagKey)})...`);
                         window.AppFeatures[featureName].initialize();
                     } catch (e) {
                         console.error(`[Main] Error initializing feature ${featureName}:`, e);

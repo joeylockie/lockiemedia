@@ -1,5 +1,5 @@
 // feature_task_dependencies.js
-// Placeholder for Task Dependencies Feature.
+// Manages logic for task dependencies.
 // Now an ES6 module.
 
 import { isFeatureEnabled } from './featureFlagService.js';
@@ -52,10 +52,11 @@ function populateDependencyPickers(currentTask, modalType) {
 function addDependency(taskAId, taskBId) {
     if (!isFeatureEnabled('taskDependenciesFeature') || !AppStore) {
         console.error("[TaskDependenciesFeature] Feature disabled or AppStore not available for addDependency.");
+        if (typeof window.showMessage === 'function') window.showMessage('Dependency feature error.', 'error');
         return false;
     }
     if (taskAId === taskBId) {
-        if (typeof showMessage === 'function') showMessage('A task cannot depend on itself.', 'error');
+        if (typeof window.showMessage === 'function') window.showMessage('A task cannot depend on itself.', 'error');
         return false;
     }
     let currentTasks = AppStore.getTasks();
@@ -63,23 +64,23 @@ function addDependency(taskAId, taskBId) {
     const taskBIndex = currentTasks.findIndex(t => t.id === taskBId);
 
     if (taskAIndex === -1 || taskBIndex === -1) {
-        if (typeof showMessage === 'function') showMessage('One or both tasks not found for dependency.', 'error');
+        if (typeof window.showMessage === 'function') window.showMessage('One or both tasks not found for dependency.', 'error');
         return false;
     }
     const taskA = currentTasks[taskAIndex];
     const taskB = currentTasks[taskBIndex];
 
     if (taskB.dependsOn && taskB.dependsOn.includes(taskAId)) {
-        if (typeof showMessage === 'function') showMessage(`Circular dependency: Task "${taskB.text}" already depends on "${taskA.text}".`, 'error');
+        if (typeof window.showMessage === 'function') window.showMessage(`Circular dependency: Task "${taskB.text}" already depends on "${taskA.text}".`, 'error');
         return false;
     }
     if (!taskA.dependsOn) taskA.dependsOn = [];
     if (!taskB.blocksTasks) taskB.blocksTasks = [];
-    if (taskA.dependsOn.includes(taskBId)) return true; // Already exists
+    if (taskA.dependsOn.includes(taskBId)) return true; 
 
     taskA.dependsOn.push(taskBId);
     taskB.blocksTasks.push(taskAId);
-    AppStore.setTasks(currentTasks); // This will save and publish 'tasksChanged'
+    AppStore.setTasks(currentTasks); 
     console.log(`[TaskDependenciesFeature] Dependency added: Task ${taskAId} now depends on Task ${taskBId}`);
     return true;
 }
