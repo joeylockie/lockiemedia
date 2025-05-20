@@ -5,8 +5,7 @@
 import { getTodayDateString, getDateString } from './utils.js'; 
 import AppStore from './store.js';
 // We'll import isFeatureEnabled directly where needed, or the whole service if many functions are used.
-// For now, let's assume FeatureFlagService is globally available via window for a moment,
-// or we import specific functions. Let's import isFeatureEnabled.
+// For now, let's import isFeatureEnabled.
 import { isFeatureEnabled } from './featureFlagService.js';
 
 
@@ -66,15 +65,15 @@ export function updateTask(taskId, taskUpdateData) {
 }
 
 export function toggleTaskComplete(taskId) {
-    if (!AppStore || typeof FeatureFlagService === 'undefined') { // Check FeatureFlagService for consistency
-        console.error("[TaskService] AppStore or FeatureFlagService not available for toggleTaskComplete.");
+    if (!AppStore || typeof isFeatureEnabled !== 'function') { // Check isFeatureEnabled function
+        console.error("[TaskService] AppStore or isFeatureEnabled function not available for toggleTaskComplete.");
         return null;
     }
     let currentTasks = AppStore.getTasks();
     const taskIndex = currentTasks.findIndex(t => t.id === taskId);
     if (taskIndex === -1) { console.error(`[TaskService] Task with ID ${taskId} not found for toggle complete.`); return null; }
     const taskToToggle = currentTasks[taskIndex];
-    if (isFeatureEnabled('taskDependenciesFeature') && !taskToToggle.completed) { // Use imported isFeatureEnabled
+    if (isFeatureEnabled('taskDependenciesFeature') && !taskToToggle.completed) { 
         if (taskToToggle.dependsOn && taskToToggle.dependsOn.length > 0) {
             const incompleteDependencies = taskToToggle.dependsOn.some(depId => {
                 const dependentTask = currentTasks.find(t => t.id === depId);
@@ -85,7 +84,7 @@ export function toggleTaskComplete(taskId) {
     }
     currentTasks[taskIndex].completed = !currentTasks[taskIndex].completed;
     currentTasks[taskIndex].completedDate = currentTasks[taskIndex].completed ? Date.now() : null;
-    if (isFeatureEnabled('kanbanBoardFeature')) { // Use imported isFeatureEnabled
+    if (isFeatureEnabled('kanbanBoardFeature')) { 
         const currentKanbanColumns = AppStore.getKanbanColumns();
         if (currentTasks[taskIndex].completed) { const doneColumn = currentKanbanColumns.find(col => col.id === 'done'); if (doneColumn) currentTasks[taskIndex].kanbanColumnId = doneColumn.id;
         } else if (currentTasks[taskIndex].kanbanColumnId === 'done') { const defaultColumn = currentKanbanColumns[0]?.id || 'todo'; currentTasks[taskIndex].kanbanColumnId = defaultColumn; }
@@ -99,20 +98,23 @@ export function toggleTaskComplete(taskId) {
 }
 
 export function deleteTaskById(taskId) {
-    if (!AppStore || typeof FeatureFlagService === 'undefined') { // Check FeatureFlagService
-        console.error("[TaskService] AppStore or FeatureFlagService not available for deleteTaskById.");
+    // Corrected check: ensure AppStore and isFeatureEnabled (the imported function) are available.
+    if (!AppStore || typeof isFeatureEnabled !== 'function') { 
+        console.error("[TaskService] AppStore or isFeatureEnabled function not available for deleteTaskById.");
         return false;
     }
     let currentTasks = AppStore.getTasks();
     const initialLength = currentTasks.length;
     let updatedTasks = currentTasks.filter(task => task.id !== taskId);
-    if (isFeatureEnabled('taskDependenciesFeature')) { // Use imported isFeatureEnabled
+
+    if (isFeatureEnabled('taskDependenciesFeature')) { 
         updatedTasks = updatedTasks.map(task => {
             const newDependsOn = task.dependsOn ? task.dependsOn.filter(id => id !== taskId) : [];
             const newBlocksTasks = task.blocksTasks ? task.blocksTasks.filter(id => id !== taskId) : [];
             return { ...task, dependsOn: newDependsOn, blocksTasks: newBlocksTasks };
         });
     }
+
     if (updatedTasks.length < initialLength) {
         AppStore.setTasks(updatedTasks);
         console.log(`[TaskService] Task ${taskId} deleted.`);
