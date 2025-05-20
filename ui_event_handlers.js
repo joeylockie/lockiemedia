@@ -35,10 +35,10 @@ import {
     openSettingsModal,
     openTaskReviewModal,
     openTooltipsGuideModal,
-    closeManageLabelsModal, // For Esc key
+    closeManageLabelsModal, // For Esc key and direct close
     // closeSettingsModal, // For Esc key - already imported
-    closeTaskReviewModal, // For Esc key
-    closeTooltipsGuideModal, // For Esc key
+    closeTaskReviewModal, // For Esc key and direct close
+    closeTooltipsGuideModal, // For Esc key and direct close
     closeViewTaskDetailsModal, // For Esc key
 } from './modal_interactions.js'; // Assuming modal_interactions exports these
 
@@ -652,6 +652,34 @@ export function setupEventListeners() {
     if(closeManageLabelsSecondaryBtnEl) closeManageLabelsSecondaryBtnEl.addEventListener('click', closeManageLabelsModal);
     const manageLabelsModalEl = document.getElementById('manageLabelsModal');
     if(manageLabelsModalEl) manageLabelsModalEl.addEventListener('click', (e) => { if(e.target === manageLabelsModalEl) closeManageLabelsModal(); });
+
+    // Tooltips & Shortcuts Guide Modal Closers -- FIX INCORPORATED HERE
+    const closeTooltipsGuideModalBtnEl = document.getElementById('closeTooltipsGuideModalBtn');
+    if (closeTooltipsGuideModalBtnEl) {
+        closeTooltipsGuideModalBtnEl.addEventListener('click', closeTooltipsGuideModal);
+    }
+    const closeTooltipsGuideSecondaryBtnEl = document.getElementById('closeTooltipsGuideSecondaryBtn');
+    if (closeTooltipsGuideSecondaryBtnEl) {
+        closeTooltipsGuideSecondaryBtnEl.addEventListener('click', closeTooltipsGuideModal);
+    }
+    const tooltipsGuideModalEl = document.getElementById('tooltipsGuideModal');
+    if (tooltipsGuideModalEl) {
+        tooltipsGuideModalEl.addEventListener('click', (event) => {
+            if (event.target === tooltipsGuideModalEl) {
+                closeTooltipsGuideModal();
+            }
+        });
+    }
+    // END OF FIX
+
+    // Task Review Modal Closers
+    const closeTaskReviewModalBtnEl = document.getElementById('closeTaskReviewModalBtn');
+    if (closeTaskReviewModalBtnEl) closeTaskReviewModalBtnEl.addEventListener('click', closeTaskReviewModal);
+    const closeTaskReviewSecondaryBtnEl = document.getElementById('closeTaskReviewSecondaryBtn');
+    if(closeTaskReviewSecondaryBtnEl) closeTaskReviewSecondaryBtnEl.addEventListener('click', closeTaskReviewModal);
+    const taskReviewModalEl = document.getElementById('taskReviewModal');
+    if(taskReviewModalEl) taskReviewModalEl.addEventListener('click', (e) => { if(e.target === taskReviewModalEl) closeTaskReviewModal(); });
+
 
     // Feature Flags Modal Closers
     const closeFeatureFlagsModalBtnEl = document.getElementById('closeFeatureFlagsModalBtn');
