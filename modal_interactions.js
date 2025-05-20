@@ -13,16 +13,15 @@ import {
     renderSubTasksForEditModal,
     renderSubTasksForViewModal,
     renderTaskDependenciesForViewModal,
-    showMessage // Assuming showMessage is exported by ui_rendering.js
+    showMessage
 } from './ui_rendering.js';
 
 // Import functions/objects from other modules
-import { handleDeleteLabel } from './ui_event_handlers.js'; // For populateManageLabelsList
+import { handleDeleteLabel, clearTempSubTasksForAddModal } from './ui_event_handlers.js';
 import { ProjectsFeature } from './feature_projects.js';
 import { TaskTimerSystemFeature } from './task_timer_system.js';
-// TaskDependenciesFeature is used by renderTaskDependenciesForViewModal internally in ui_rendering.js
 
-// Note: This module will now use document.getElementById for DOM elements.
+// Note: This module uses document.getElementById for DOM elements.
 // It assumes these elements exist in the DOM and their IDs are stable.
 
 export function openAddModal() {
@@ -59,7 +58,7 @@ export function openAddModal() {
     if (existingLabelsDatalistEl) populateDatalist(existingLabelsDatalistEl);
 
     if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectDropdowns) {
-        ProjectsFeature.populateProjectDropdowns(); // Assumes this function knows its own DOM targets or they are passed
+        ProjectsFeature.populateProjectDropdowns();
         if (modalProjectSelectAddEl) modalProjectSelectAddEl.value = "0";
     }
     if (isFeatureEnabled('taskTimerSystem')) {
@@ -76,10 +75,10 @@ export function openAddModal() {
     if (modalDueDateInputAddEl) modalDueDateInputAddEl.min = todayStr;
     if (modalReminderDateAddEl) modalReminderDateAddEl.min = todayStr;
 
-    // Accessing global temp state - this is a known issue to be refactored
-    window.tempSubTasksForAddModal = [];
+    clearTempSubTasksForAddModal(); // Clear the shared state
+
     if (isFeatureEnabled('subTasksFeature') && modalSubTasksListAddEl) {
-        renderTempSubTasksForAddModal(window.tempSubTasksForAddModal, modalSubTasksListAddEl); // Pass params
+        renderTempSubTasksForAddModal([], modalSubTasksListAddEl); // Pass empty array on fresh modal open
         if(modalSubTaskInputAddEl) modalSubTaskInputAddEl.value = '';
     }
     if (taskDependenciesSectionAddEl) taskDependenciesSectionAddEl.classList.toggle('hidden', !isFeatureEnabled('taskDependenciesFeature'));
@@ -94,8 +93,9 @@ export function closeAddModal() {
     modalDialogAddEl.classList.add('scale-95', 'opacity-0');
     setTimeout(() => {
         addTaskModalEl.classList.add('hidden');
-        window.tempSubTasksForAddModal = []; // Reset global temp state - known issue
-        if(modalSubTasksListAddEl) modalSubTasksListAddEl.innerHTML = '';
+        clearTempSubTasksForAddModal(); // Clear the shared state
+
+        if(modalSubTasksListAddEl) modalSubTasksListAddEl.innerHTML = ''; // Clear the display
     }, 200);
 }
 
@@ -104,7 +104,25 @@ export function openViewEditModal(taskId) {
     const modalDialogViewEditEl = document.getElementById('modalDialogViewEdit');
     const modalViewEditTaskIdEl = document.getElementById('modalViewEditTaskId');
     const modalTaskInputViewEditEl = document.getElementById('modalTaskInputViewEdit');
-    // ... (get other DOM elements by ID for view/edit modal)
+    const modalDueDateInputViewEditEl = document.getElementById('modalDueDateInputViewEdit');
+    const modalTimeInputViewEditEl = document.getElementById('modalTimeInputViewEdit');
+    const modalEstHoursViewEditEl = document.getElementById('modalEstHoursViewEdit');
+    const modalEstMinutesViewEditEl = document.getElementById('modalEstMinutesViewEdit');
+    const modalPriorityInputViewEditEl = document.getElementById('modalPriorityInputViewEdit');
+    const modalLabelInputViewEditEl = document.getElementById('modalLabelInputViewEdit');
+    const existingLabelsEditDatalistEl = document.getElementById('existingLabelsEdit');
+    const modalProjectSelectViewEditEl = document.getElementById('modalProjectSelectViewEdit');
+    const modalNotesInputViewEditEl = document.getElementById('modalNotesInputViewEdit');
+    const existingAttachmentsViewEditEl = document.getElementById('existingAttachmentsViewEdit');
+    const modalRemindMeViewEditEl = document.getElementById('modalRemindMeViewEdit');
+    const reminderOptionsViewEditEl = document.getElementById('reminderOptionsViewEdit');
+    const modalReminderDateViewEditEl = document.getElementById('modalReminderDateViewEdit');
+    const modalReminderTimeViewEditEl = document.getElementById('modalReminderTimeViewEdit');
+    const modalReminderEmailViewEditEl = document.getElementById('modalReminderEmailViewEdit');
+    const modalSubTasksListViewEditEl = document.getElementById('modalSubTasksListViewEdit');
+    const modalSubTaskInputViewEditEl = document.getElementById('modalSubTaskInputViewEdit');
+    const taskDependenciesSectionViewEditEl = document.getElementById('taskDependenciesSectionViewEdit');
+
 
     if (!AppStore || typeof AppStore.getTasks !== 'function' || !ModalStateService) {
         console.error("[OpenViewEditModal] Core dependencies (AppStore, ModalStateService) not available.");
@@ -118,49 +136,28 @@ export function openViewEditModal(taskId) {
 
     if (modalViewEditTaskIdEl) modalViewEditTaskIdEl.value = task.id;
     if (modalTaskInputViewEditEl) modalTaskInputViewEditEl.value = task.text;
-    // ... (set values for other elements: dueDate, time, priority, label, notes etc. using their fetched element refs)
-    // Example for dueDate:
-    const modalDueDateInputViewEditEl = document.getElementById('modalDueDateInputViewEdit');
     if (modalDueDateInputViewEditEl) modalDueDateInputViewEditEl.value = task.dueDate || '';
-
-    const modalTimeInputViewEditEl = document.getElementById('modalTimeInputViewEdit');
     if (modalTimeInputViewEditEl) modalTimeInputViewEditEl.value = task.time || '';
 
     if (isFeatureEnabled('taskTimerSystem')) {
-        const modalEstHoursViewEditEl = document.getElementById('modalEstHoursViewEdit');
-        const modalEstMinutesViewEditEl = document.getElementById('modalEstMinutesViewEdit');
         if (modalEstHoursViewEditEl) modalEstHoursViewEditEl.value = task.estimatedHours || '';
         if (modalEstMinutesViewEditEl) modalEstMinutesViewEditEl.value = task.estimatedMinutes || '';
     }
 
-    const modalPriorityInputViewEditEl = document.getElementById('modalPriorityInputViewEdit');
     if (modalPriorityInputViewEditEl) modalPriorityInputViewEditEl.value = task.priority;
-
-    const modalLabelInputViewEditEl = document.getElementById('modalLabelInputViewEdit');
     if (modalLabelInputViewEditEl) modalLabelInputViewEditEl.value = task.label || '';
-
-    const existingLabelsEditDatalistEl = document.getElementById('existingLabelsEdit');
     if (existingLabelsEditDatalistEl) populateDatalist(existingLabelsEditDatalistEl);
 
     if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectDropdowns) {
         ProjectsFeature.populateProjectDropdowns();
-        const modalProjectSelectViewEditEl = document.getElementById('modalProjectSelectViewEdit');
         if (modalProjectSelectViewEditEl) modalProjectSelectViewEditEl.value = task.projectId || "0";
     }
 
-    const modalNotesInputViewEditEl = document.getElementById('modalNotesInputViewEdit');
     if (modalNotesInputViewEditEl) modalNotesInputViewEditEl.value = task.notes || '';
 
-    const existingAttachmentsViewEditEl = document.getElementById('existingAttachmentsViewEdit');
     if (isFeatureEnabled('fileAttachments') && existingAttachmentsViewEditEl) {
         existingAttachmentsViewEditEl.textContent = task.attachments && task.attachments.length > 0 ? `${task.attachments.length} file(s) attached (management UI coming soon)` : 'No files attached yet.';
     }
-
-    const modalRemindMeViewEditEl = document.getElementById('modalRemindMeViewEdit');
-    const reminderOptionsViewEditEl = document.getElementById('reminderOptionsViewEdit');
-    const modalReminderDateViewEditEl = document.getElementById('modalReminderDateViewEdit');
-    const modalReminderTimeViewEditEl = document.getElementById('modalReminderTimeViewEdit');
-    const modalReminderEmailViewEditEl = document.getElementById('modalReminderEmailViewEdit');
 
     if (isFeatureEnabled('reminderFeature') && modalRemindMeViewEditEl) {
         modalRemindMeViewEditEl.checked = task.isReminderSet || false;
@@ -183,13 +180,10 @@ export function openViewEditModal(taskId) {
     if(modalDueDateInputViewEditEl) modalDueDateInputViewEditEl.min = todayStr;
     if (modalReminderDateViewEditEl) modalReminderDateViewEditEl.min = todayStr;
 
-    const modalSubTasksListViewEditEl = document.getElementById('modalSubTasksListViewEdit');
-    const modalSubTaskInputViewEditEl = document.getElementById('modalSubTaskInputViewEdit');
     if (isFeatureEnabled('subTasksFeature') && modalSubTasksListViewEditEl) {
         renderSubTasksForEditModal(taskId, modalSubTasksListViewEditEl);
         if(modalSubTaskInputViewEditEl) modalSubTaskInputViewEditEl.value = '';
     }
-    const taskDependenciesSectionViewEditEl = document.getElementById('taskDependenciesSectionViewEdit');
     if (taskDependenciesSectionViewEditEl) taskDependenciesSectionViewEditEl.classList.toggle('hidden', !isFeatureEnabled('taskDependenciesFeature'));
 
     if (!viewEditTaskModalEl || !modalDialogViewEditEl) { console.error("[OpenViewEditModal] Core view/edit modal DOM elements not found."); return; }
@@ -212,12 +206,11 @@ export function closeViewEditModal() {
 export function openViewTaskDetailsModal(taskId) {
     const viewTaskDetailsModalEl = document.getElementById('viewTaskDetailsModal');
     const modalDialogViewDetailsEl = document.getElementById('modalDialogViewDetails');
-    // Get all other specific DOM elements for view details modal by ID
     const viewTaskTextEl = document.getElementById('viewTaskText');
     const viewTaskDueDateEl = document.getElementById('viewTaskDueDate');
     const viewTaskTimeEl = document.getElementById('viewTaskTime');
     const viewTaskEstDurationEl = document.getElementById('viewTaskEstDuration');
-    const taskTimerSectionEl = document.getElementById('taskTimerSection');
+    const taskTimerSectionEl = document.getElementById('taskTimerSection'); // Used for hiding
     const viewTaskAttachmentsListEl = document.getElementById('viewTaskAttachmentsList');
     const viewTaskAttachmentsSectionEl = document.getElementById('viewTaskAttachmentsSection');
     const viewTaskPriorityEl = document.getElementById('viewTaskPriority');
@@ -249,7 +242,7 @@ export function openViewTaskDetailsModal(taskId) {
     if(viewTaskTimeEl) viewTaskTimeEl.textContent = task.time ? formatTime(task.time) : 'Not set';
 
     if (isFeatureEnabled('taskTimerSystem') && TaskTimerSystemFeature?.setupTimerForModal) {
-        TaskTimerSystemFeature.setupTimerForModal(task); // This function in TaskTimerSystemFeature will get its own DOM elements
+        TaskTimerSystemFeature.setupTimerForModal(task);
     } else {
         if(viewTaskEstDurationEl) viewTaskEstDurationEl.textContent = formatDuration(task.estimatedHours, task.estimatedMinutes);
         if(taskTimerSectionEl) taskTimerSectionEl.classList.add('hidden');
@@ -303,7 +296,7 @@ export function openViewTaskDetailsModal(taskId) {
 
     if (isFeatureEnabled('taskDependenciesFeature') && viewTaskDependenciesSectionEl) {
         viewTaskDependenciesSectionEl.classList.remove('hidden');
-        renderTaskDependenciesForViewModal(task); // Assumes this function gets its own specific list elements
+        renderTaskDependenciesForViewModal(task);
     } else if (viewTaskDependenciesSectionEl) {
         viewTaskDependenciesSectionEl.classList.add('hidden');
     }
@@ -332,11 +325,12 @@ export function openManageLabelsModal() {
     const modalDialogManageLabelsEl = document.getElementById('modalDialogManageLabels');
     const newLabelInputEl = document.getElementById('newLabelInput');
     if (!manageLabelsModalEl || !modalDialogManageLabelsEl || !newLabelInputEl) { console.error("[OpenManageLabelsModal] Core manage labels modal DOM elements not found."); return; }
-    populateManageLabelsList(); // Call to imported function
+    populateManageLabelsList();
     manageLabelsModalEl.classList.remove('hidden');
     setTimeout(() => { modalDialogManageLabelsEl.classList.remove('scale-95', 'opacity-0'); modalDialogManageLabelsEl.classList.add('scale-100', 'opacity-100'); }, 10);
     newLabelInputEl.focus();
 }
+
 export function closeManageLabelsModal() {
     const manageLabelsModalEl = document.getElementById('manageLabelsModal');
     const modalDialogManageLabelsEl = document.getElementById('modalDialogManageLabels');
@@ -344,9 +338,13 @@ export function closeManageLabelsModal() {
     modalDialogManageLabelsEl.classList.add('scale-95', 'opacity-0');
     setTimeout(() => { manageLabelsModalEl.classList.add('hidden'); }, 200);
 }
+
 export function populateManageLabelsList() {
     const existingLabelsListEl = document.getElementById('existingLabelsList');
-    if (!existingLabelsListEl || !AppStore || typeof AppStore.getUniqueLabels !== 'function') return;
+    if (!existingLabelsListEl || !AppStore || typeof AppStore.getUniqueLabels !== 'function') {
+         if(existingLabelsListEl) existingLabelsListEl.innerHTML = '<li class="text-slate-500 dark:text-slate-400 text-center">Error loading labels.</li>';
+        return;
+    }
     const currentUniqueLabels = AppStore.getUniqueLabels();
     existingLabelsListEl.innerHTML = '';
     currentUniqueLabels.forEach(label => {
@@ -360,7 +358,7 @@ export function populateManageLabelsList() {
         deleteBtn.innerHTML = '<i class="fas fa-trash-alt text-red-500 hover:text-red-700"></i>';
         deleteBtn.className = 'p-1';
         deleteBtn.title = `Delete label "${label}"`;
-        deleteBtn.addEventListener('click', () => handleDeleteLabel(label)); // Use imported handleDeleteLabel
+        deleteBtn.addEventListener('click', () => handleDeleteLabel(label)); // Uses imported handleDeleteLabel
         li.appendChild(deleteBtn);
         existingLabelsListEl.appendChild(li);
     });
@@ -368,16 +366,30 @@ export function populateManageLabelsList() {
         existingLabelsListEl.innerHTML = '<li class="text-slate-500 dark:text-slate-400 text-center">No labels created yet.</li>';
     }
 }
+
 export function openSettingsModal() {
     const settingsModalEl = document.getElementById('settingsModal');
     const modalDialogSettingsEl = document.getElementById('modalDialogSettings');
-    // Assuming updateClearCompletedButtonState is imported from ui_rendering.js if needed here,
-    // or handled by an event when tasks change. For settings modal, it might not be directly needed on open.
+    const settingsClearCompletedBtnEl = document.getElementById('settingsClearCompletedBtn'); // For updateClearCompletedButtonState
+
     if (!settingsModalEl || !modalDialogSettingsEl) { console.error("[OpenSettingsModal] Core settings modal DOM elements not found."); return; }
     settingsModalEl.classList.remove('hidden');
     setTimeout(() => { modalDialogSettingsEl.classList.remove('scale-95', 'opacity-0'); modalDialogSettingsEl.classList.add('scale-100', 'opacity-100'); }, 10);
-    // if (typeof updateClearCompletedButtonState === 'function') updateClearCompletedButtonState(); // Example if needed
+
+    // updateClearCompletedButtonState might be better called via an event or when tasks actually change.
+    // For now, if ui_rendering.js exports it and it's needed on modal open:
+    // import { updateClearCompletedButtonState } from './ui_rendering.js'; // (add to imports if not already)
+    // if (settingsClearCompletedBtnEl) updateClearCompletedButtonState();
+    // However, looking at original code, it seems ui_rendering.js updateClearCompletedButtonState
+    // directly uses AppStore.getTasks(), so it doesn't strictly need the button element passed.
+    // Let's assume ui_rendering's version handles its own DOM interaction if needed.
+    // If `ui_rendering.js` exports `updateClearCompletedButtonState` and you want to call it:
+    // (async () => {
+    //   const uiRendering = await import('./ui_rendering.js');
+    //   if (uiRendering.updateClearCompletedButtonState) uiRendering.updateClearCompletedButtonState();
+    // })();
 }
+
 export function closeSettingsModal() {
     const settingsModalEl = document.getElementById('settingsModal');
     const modalDialogSettingsEl = document.getElementById('modalDialogSettings');
@@ -385,15 +397,20 @@ export function closeSettingsModal() {
     modalDialogSettingsEl.classList.add('scale-95', 'opacity-0');
     setTimeout(() => { settingsModalEl.classList.add('hidden'); }, 200);
 }
+
 export function openTaskReviewModal() {
     const taskReviewModalEl = document.getElementById('taskReviewModal');
     const modalDialogTaskReviewEl = document.getElementById('modalDialogTaskReview');
-    if (!isFeatureEnabled('taskTimerSystem')) { showMessage("Task Timer System feature is currently disabled.", "error"); return; }
+    if (!isFeatureEnabled('taskTimerSystem')) {
+        showMessage("Task Timer System feature is currently disabled.", "error"); // showMessage imported
+        return;
+    }
     if (!taskReviewModalEl || !modalDialogTaskReviewEl) { console.error("[OpenTaskReviewModal] Core task review modal DOM elements not found."); return; }
-    populateTaskReviewModal(); // Call local function
+    populateTaskReviewModal(); // Call local helper
     taskReviewModalEl.classList.remove('hidden');
     setTimeout(() => { modalDialogTaskReviewEl.classList.remove('scale-95', 'opacity-0'); modalDialogTaskReviewEl.classList.add('scale-100', 'opacity-100'); }, 10);
 }
+
 export function closeTaskReviewModal() {
     const taskReviewModalEl = document.getElementById('taskReviewModal');
     const modalDialogTaskReviewEl = document.getElementById('modalDialogTaskReview');
@@ -401,25 +418,59 @@ export function closeTaskReviewModal() {
     modalDialogTaskReviewEl.classList.add('scale-95', 'opacity-0');
     setTimeout(() => { taskReviewModalEl.classList.add('hidden'); }, 200);
 }
-export function populateTaskReviewModal() { // This function seems fine to be local here as it's specific to this modal
+
+// This is a local helper function for openTaskReviewModal
+function populateTaskReviewModal() {
     const taskReviewContentEl = document.getElementById('taskReviewContent');
     if (!taskReviewContentEl || !AppStore || typeof AppStore.getTasks !== 'function') return;
     taskReviewContentEl.innerHTML = '';
     const currentTasks = AppStore.getTasks();
     const completedTasksWithTime = currentTasks.filter(task => task.completed && ((task.estimatedHours && task.estimatedHours > 0) || (task.estimatedMinutes && task.estimatedMinutes > 0) || (task.actualDurationMs && task.actualDurationMs > 0))).sort((a,b) => (b.completedDate || 0) - (a.completedDate || 0));
     if (completedTasksWithTime.length === 0) {
-        taskReviewContentEl.innerHTML = '<p class="text-slate-500 dark:text-slate-400 text-center">No completed tasks with time data.</p>'; return;
+        taskReviewContentEl.innerHTML = '<p class="text-slate-500 dark:text-slate-400 text-center">No completed tasks with time data.</p>';
+        return;
     }
-    completedTasksWithTime.forEach(task => { /* ... content generation logic as before ... */ });
+    completedTasksWithTime.forEach(task => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'p-3 bg-slate-50 dark:bg-slate-700 rounded-lg shadow';
+        const taskName = document.createElement('h4');
+        taskName.className = 'text-md font-semibold text-slate-800 dark:text-slate-100 mb-1 truncate';
+        taskName.textContent = task.text;
+        itemDiv.appendChild(taskName);
+        if (typeof formatDuration === 'function') {
+            const estimatedP = document.createElement('p');
+            estimatedP.className = 'text-sm text-slate-600 dark:text-slate-300';
+            estimatedP.innerHTML = `<strong>Estimated:</strong> ${formatDuration(task.estimatedHours, task.estimatedMinutes)}`;
+            itemDiv.appendChild(estimatedP);
+        }
+        if (typeof formatMillisecondsToHMS === 'function') {
+            const actualP = document.createElement('p');
+            actualP.className = 'text-sm text-slate-600 dark:text-slate-300';
+            actualP.innerHTML = `<strong>Actual:</strong> ${task.actualDurationMs > 0 ? formatMillisecondsToHMS(task.actualDurationMs) : 'Not recorded'}`;
+            itemDiv.appendChild(actualP);
+        }
+        if (task.completedDate && typeof formatDate === 'function') {
+            const completedOnP = document.createElement('p');
+            completedOnP.className = 'text-xs text-slate-400 dark:text-slate-500 mt-1';
+            completedOnP.textContent = `Completed on: ${formatDate(new Date(task.completedDate))}`; // formatDate expects Date object or string
+            itemDiv.appendChild(completedOnP);
+        }
+        taskReviewContentEl.appendChild(itemDiv);
+    });
 }
+
 export function openTooltipsGuideModal() {
     const tooltipsGuideModalEl = document.getElementById('tooltipsGuideModal');
     const modalDialogTooltipsGuideEl = document.getElementById('modalDialogTooltipsGuide');
-    if (!isFeatureEnabled('tooltipsGuide')) { showMessage("Tooltips Guide feature is disabled.", "error"); return; }
+    if (!isFeatureEnabled('tooltipsGuide')) {
+        showMessage("Tooltips Guide feature is disabled.", "error"); // showMessage imported
+        return;
+    }
     if (!tooltipsGuideModalEl || !modalDialogTooltipsGuideEl) { console.error("[OpenTooltipsGuideModal] Core tooltips modal DOM elements not found."); return; }
     tooltipsGuideModalEl.classList.remove('hidden');
     setTimeout(() => { modalDialogTooltipsGuideEl.classList.remove('scale-95', 'opacity-0'); modalDialogTooltipsGuideEl.classList.add('scale-100', 'opacity-100'); }, 10);
 }
+
 export function closeTooltipsGuideModal() {
     const tooltipsGuideModalEl = document.getElementById('tooltipsGuideModal');
     const modalDialogTooltipsGuideEl = document.getElementById('modalDialogTooltipsGuide');
@@ -428,4 +479,4 @@ export function closeTooltipsGuideModal() {
     setTimeout(() => { tooltipsGuideModalEl.classList.add('hidden'); }, 200);
 }
 
-console.log("modal_interactions.js loaded as ES6 module.");
+console.log("modal_interactions.js updated: uses getElementById, imports, and new tempSubTask clearing.");
