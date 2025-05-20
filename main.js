@@ -20,11 +20,13 @@ import { IntegrationsServicesFeature } from './feature_integrations_services.js'
 import { UserAccountsFeature } from './feature_user_accounts.js';
 import { CollaborationSharingFeature } from './feature_collaboration_sharing.js';
 import { CrossDeviceSyncFeature } from './feature_cross_device_sync.js';
-import { TaskDependenciesFeature } from './feature_task_dependencies.js';
+import { TaskDependenciesFeature } from './feature_task_dependencies.js'; // Import
 import { SmarterSearchFeature } from './feature_smarter_search.js';
 import { DataManagementFeature } from './feature_data_management.js';
 import { CalendarViewFeature } from './feature_calendar_view.js';
-import { TaskTimerSystemFeature } from './task_timer_system.js'; // Import
+import { TaskTimerSystemFeature } from './task_timer_system.js';
+import { KanbanBoardFeature } from './feature_kanban_board.js';
+import { PomodoroTimerHybridFeature } from './pomodoro_timer.js';
 import * as ModalInteractions from './modal_interactions.js';
 
 
@@ -77,11 +79,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.AppFeatures.UserAccountsFeature = UserAccountsFeature;
     window.AppFeatures.CollaborationSharingFeature = CollaborationSharingFeature;
     window.AppFeatures.CrossDeviceSyncFeature = CrossDeviceSyncFeature;
-    window.AppFeatures.TaskDependenciesFeature = TaskDependenciesFeature;
+    window.AppFeatures.TaskDependenciesFeature = TaskDependenciesFeature; // Assign imported feature
     window.AppFeatures.SmarterSearchFeature = SmarterSearchFeature;
     window.AppFeatures.DataManagementFeature = DataManagementFeature;
     window.AppFeatures.CalendarViewFeature = CalendarViewFeature;
-    window.AppFeatures.TaskTimerSystemFeature = TaskTimerSystemFeature; // Assign imported feature
+    window.AppFeatures.TaskTimerSystemFeature = TaskTimerSystemFeature;
+    window.AppFeatures.KanbanBoardFeature = KanbanBoardFeature;
+    window.AppFeatures.PomodoroTimerHybridFeature = PomodoroTimerHybridFeature;
 
 
     if (typeof isFeatureEnabledFromService !== 'undefined' && typeof window.AppFeatures !== 'undefined') {
@@ -103,7 +107,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     "smarter_search_feature": "smarterSearchFeature",
                     "data_management_feature": "exportDataFeature",
                     "calendar_view_feature": "calendarViewFeature",
-                    "task_timer_system_feature": "taskTimerSystem" // Map to correct flag name
+                    "task_timer_system_feature": "taskTimerSystem",
+                    "kanban_board_feature": "kanbanBoardFeature",
+                    "pomodoro_timer_hybrid_feature": "pomodoroTimerHybridFeature"
                 };
                 effectiveFlagKey = flagMappings[flagKey] || flagKey;
                 
