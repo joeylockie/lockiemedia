@@ -16,7 +16,11 @@ import { TestButtonFeature } from './feature_test_button.js';
 import { ReminderFeature } from './feature_reminder.js';
 import { AdvancedRecurrenceFeature } from './feature_advanced_recurrence.js';
 import { FileAttachmentsFeature } from './feature_file_attachments.js';
-import { IntegrationsServicesFeature } from './feature_integrations_services.js'; // Import
+import { IntegrationsServicesFeature } from './feature_integrations_services.js';
+import { UserAccountsFeature } from './feature_user_accounts.js';
+import { CollaborationSharingFeature } from './feature_collaboration_sharing.js';
+import { CrossDeviceSyncFeature } from './feature_cross_device_sync.js'; // Import
+import { TaskDependenciesFeature } from './feature_task_dependencies.js'; // Import
 import * as ModalInteractions from './modal_interactions.js';
 
 
@@ -65,7 +69,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.AppFeatures.ReminderFeature = ReminderFeature;
     window.AppFeatures.AdvancedRecurrenceFeature = AdvancedRecurrenceFeature;
     window.AppFeatures.FileAttachmentsFeature = FileAttachmentsFeature;
-    window.AppFeatures.IntegrationsServicesFeature = IntegrationsServicesFeature; // Assign imported feature
+    window.AppFeatures.IntegrationsServicesFeature = IntegrationsServicesFeature;
+    window.AppFeatures.UserAccountsFeature = UserAccountsFeature;
+    window.AppFeatures.CollaborationSharingFeature = CollaborationSharingFeature;
+    window.AppFeatures.CrossDeviceSyncFeature = CrossDeviceSyncFeature; // Assign imported feature
+    window.AppFeatures.TaskDependenciesFeature = TaskDependenciesFeature; // Assign imported feature
+
 
     if (typeof isFeatureEnabledFromService !== 'undefined' && typeof window.AppFeatures !== 'undefined') {
         console.log("[Main] Initializing feature modules...");
@@ -73,15 +82,37 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (window.AppFeatures.hasOwnProperty(featureName) && window.AppFeatures[featureName] && typeof window.AppFeatures[featureName].initialize === 'function') {
                 const flagKey = featureName.replace(/([A-Z])/g, "_$1").toLowerCase().replace(/^_/, '').replace(/_feature$/, 'Feature');
                 let effectiveFlagKey = flagKey;
-                if (flagKey === "reminder_feature") effectiveFlagKey = "reminderFeature";
-                if (flagKey === "test_button_feature") effectiveFlagKey = "testButtonFeature";
-                if (flagKey === "advanced_recurrence_feature") effectiveFlagKey = "advancedRecurrence";
-                if (flagKey === "file_attachments_feature") effectiveFlagKey = "fileAttachments";
-                if (flagKey === "integrations_services_feature") effectiveFlagKey = "integrationsServices"; // Map to correct flag name
+                const flagMappings = {
+                    "reminder_feature": "reminderFeature",
+                    "test_button_feature": "testButtonFeature",
+                    "advanced_recurrence_feature": "advancedRecurrence",
+                    "file_attachments_feature": "fileAttachments",
+                    "integrations_services_feature": "integrationsServices",
+                    "user_accounts_feature": "userAccounts",
+                    "collaboration_sharing_feature": "collaborationSharing",
+                    "cross_device_sync_feature": "crossDeviceSync",
+                    "task_dependencies_feature": "taskDependenciesFeature" // Map to correct flag name
+                };
+                effectiveFlagKey = flagMappings[flagKey] || flagKey;
                 
-                if (isFeatureEnabledFromService(effectiveFlagKey) || !Object.keys(AppStore.getFeatureFlags()).includes(effectiveFlagKey) ) { 
+                // Initialize if flag is true OR if no such flag exists (core/always on feature)
+                // OR if the feature's own module name matches a known flag key directly (e.g. ProjectsFeature -> projectFeature)
+                let shouldInitialize = isFeatureEnabledFromService(effectiveFlagKey);
+                if (!Object.keys(AppStore.getFeatureFlags()).includes(effectiveFlagKey)) { // If no specific flag, assume it's a core part to initialize
+                    // Check if the feature name itself (minus "Feature") is a flag
+                    const directFlagKey = featureName.replace('Feature', '');
+                    const directFlagKeyLower = directFlagKey.charAt(0).toLowerCase() + directFlagKey.slice(1);
+                     if (Object.keys(AppStore.getFeatureFlags()).includes(directFlagKeyLower)) {
+                        shouldInitialize = isFeatureEnabledFromService(directFlagKeyLower);
+                    } else {
+                        shouldInitialize = true; // No specific flag found, assume initialize
+                    }
+                }
+
+
+                if (shouldInitialize) { 
                     try {
-                        console.log(`[Main] Initializing ${featureName} (flag: ${effectiveFlagKey}, enabled: ${isFeatureEnabledFromService(effectiveFlagKey)})...`);
+                        console.log(`[Main] Initializing ${featureName} (flag key used for check: ${effectiveFlagKey})...`);
                         window.AppFeatures[featureName].initialize();
                     } catch (e) {
                         console.error(`[Main] Error initializing feature ${featureName}:`, e);
