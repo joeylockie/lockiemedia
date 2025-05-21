@@ -497,32 +497,37 @@ export function setupEventListeners() {
     // Sidebar Toggle
     const sidebarToggleBtnEl = document.getElementById('sidebarToggleBtn');
     if (sidebarToggleBtnEl) {
-        sidebarToggleBtnEl.addEventListener('click', async () => { // Make async for dynamic import
+        sidebarToggleBtnEl.addEventListener('click', () => { 
             const taskSidebarEl = document.getElementById('taskSidebar');
-            if (!taskSidebarEl) return;
-
-            // Toggle the class and update localStorage
-            const isMinimized = taskSidebarEl.classList.toggle('sidebar-minimized');
-            localStorage.setItem('sidebarState', isMinimized ? 'minimized' : 'expanded');
-            
-            // Call the centralized function from ui_rendering.js to apply visual changes
-            setSidebarMinimized(isMinimized); // This is imported from ui_rendering.js
-
-            // Tooltip handling can remain here or be part of setSidebarMinimized
-            if (isMinimized) {
-                hideTooltip(); // from ui_rendering
-            } else {
-                TooltipService.clearTooltipTimeout(); // from tooltipService
+            if (!taskSidebarEl) {
+                console.error("Sidebar element not found for toggle.");
+                return;
             }
 
-            // Specific feature updates that depend on sidebar state can also be triggered here
-            // OR be part of the setSidebarMinimized function if they are purely UI updates
+            const isCurrentlyMinimized = taskSidebarEl.classList.contains('sidebar-minimized');
+            const newMinimizedState = !isCurrentlyMinimized; // The state we want to transition to
+
+            localStorage.setItem('sidebarState', newMinimizedState ? 'minimized' : 'expanded');
+            
+            // Call the centralized function from ui_rendering.js to apply all visual changes
+            setSidebarMinimized(newMinimizedState); // This is imported
+
+            // Tooltip handling based on the new state
+            if (newMinimizedState) {
+                hideTooltip(); 
+            } else {
+                TooltipService.clearTooltipTimeout(); 
+            }
+
+            // Feature-specific updates that depend on sidebar state
+            // These might also be called within setSidebarMinimized if they are purely UI updates
             if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) {
                 ProjectsFeature.populateProjectFilterList();
             }
             if (isFeatureEnabled('pomodoroTimerHybridFeature') && PomodoroTimerHybridFeature?.updateSidebarDisplay) {
                 PomodoroTimerHybridFeature.updateSidebarDisplay();
             }
+            console.log(`[Event Handlers] Sidebar toggle clicked. New state: ${newMinimizedState ? 'minimized' : 'expanded'}`);
         });
     }
 
