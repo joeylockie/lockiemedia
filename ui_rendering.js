@@ -4,7 +4,7 @@
 
 import AppStore from './store.js';
 import ViewManager from './viewManager.js';
-import { isFeatureEnabled } from './featureFlagService.js';
+import { isFeatureEnabled } from './featureFlagService.js'; // Ensure this is imported
 import * as TaskService from './taskService.js';
 import * as BulkActionService from './bulkActionService.js';
 import ModalStateService from './modalStateService.js';
@@ -121,7 +121,6 @@ export function setSidebarMinimized(minimize) {
         console.error("[UI Rendering] setSidebarMinimized: taskSidebar element not initialized. Aborting.");
         return;
     }
-    // This line is critical and should trigger CSS rules.
     taskSidebar.classList.toggle('sidebar-minimized', minimize);
     console.log(`[UI Rendering] taskSidebar classList after toggle: ${taskSidebar.classList}`);
 
@@ -132,51 +131,50 @@ export function setSidebarMinimized(minimize) {
         console.warn("[UI Rendering] setSidebarMinimized: sidebarToggleIcon element not initialized.");
     }
 
-    // CSS primarily handles display:none for .sidebar-text-content etc.
-    // JS adjusts specific button layouts and ensures elements without .sidebar-text-content are also hidden.
-
     const taskSearchInputContainerEl = document.getElementById('taskSearchInputContainer');
     if (taskSearchInputContainerEl) {
         taskSearchInputContainerEl.classList.toggle('hidden', minimize);
     }
+
+    // **FIX APPLIED HERE**
     const testFeatureButtonContainerEl = document.getElementById('testFeatureButtonContainer');
     if (testFeatureButtonContainerEl) {
-        testFeatureButtonContainerEl.classList.toggle('hidden', minimize);
+        // Only make visible if not minimized AND feature is enabled
+        // Otherwise, ensure it's hidden.
+        const shouldBeHidden = minimize || !isFeatureEnabled('testButtonFeature');
+        testFeatureButtonContainerEl.classList.toggle('hidden', shouldBeHidden);
+        
+        // If the feature itself is disabled, ensure it's hidden regardless of sidebar state
+        if (!isFeatureEnabled('testButtonFeature')) {
+            testFeatureButtonContainerEl.classList.add('hidden');
+        }
     }
+    // **END OF FIX**
     
-    // Explicitly target all .sidebar-text-content elements within the sidebar for hiding/showing
     const allTextElements = taskSidebar.querySelectorAll('.sidebar-text-content');
     allTextElements.forEach(el => {
         el.classList.toggle('hidden', minimize);
     });
 
-
-    // Adjust layout for icon-only buttons specifically.
     const iconOnlyButtons = taskSidebar.querySelectorAll('.sidebar-button-icon-only');
     iconOnlyButtons.forEach(btn => {
-        // CSS handles justify-content: center and icon margin-right: 0 !important when minimized.
-        // We only need to ensure classes for expanded state are correctly set/removed.
         btn.classList.toggle('justify-center', minimize); 
-
         const icon = btn.querySelector('i');
         if (icon) {
-            // For expanded state, ensure the correct margin is applied.
-            // For minimized state, the CSS `!important` rule for margin-right: 0 will take over.
             if (minimize) {
-                icon.classList.remove('md:mr-2', 'md:mr-2.5', 'ml-2'); // Clean up expanded state classes
-                // CSS (.sidebar-minimized .sidebar-button-icon-only i { margin-right: 0 !important; }) handles this
+                icon.classList.remove('md:mr-2', 'md:mr-2.5', 'ml-2');
             } else {
-                icon.classList.remove('mr-0'); // Clean up minimized state class if it was added by JS before
-                icon.classList.add('md:mr-2.5'); // Add back standard margin for expanded
+                icon.classList.remove('mr-0'); 
+                icon.classList.add('md:mr-2.5'); 
             }
         }
     });
     
     if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) {
-        ProjectsFeature.populateProjectFilterList(); // This function needs to respect the 'minimize' state
+        ProjectsFeature.populateProjectFilterList(); 
     }
     if (isFeatureEnabled('pomodoroTimerHybridFeature') && PomodoroTimerHybridFeature?.updateSidebarDisplay) {
-        PomodoroTimerHybridFeature.updateSidebarDisplay(); // This too
+        PomodoroTimerHybridFeature.updateSidebarDisplay(); 
     }
 
     if (minimize && iconTooltip && iconTooltip.style.display === 'block') {
@@ -209,32 +207,30 @@ export function refreshTaskView() {
     const currentView = ViewManager.getCurrentTaskViewMode();
     updateViewToggleButtonsState(); 
     updateYourTasksHeading();
-    styleSmartViewButtons(); // Ensure smart view buttons are styled correctly reflecting current filter
+    styleSmartViewButtons(); 
 
-    // Hide all main view containers initially
     if (taskList) taskList.classList.add('hidden');
     if (kanbanBoardContainer) kanbanBoardContainer.classList.add('hidden');
     if (calendarViewContainer) calendarViewContainer.classList.add('hidden');
     if (pomodoroTimerPageContainer) pomodoroTimerPageContainer.classList.add('hidden');
 
     if (isFeatureEnabled('pomodoroTimerHybridFeature') && currentView === 'pomodoro') {
-        if (PomodoroTimerHybridFeature?.renderPomodoroPage) { // Use imported module
+        if (PomodoroTimerHybridFeature?.renderPomodoroPage) { 
             if(pomodoroTimerPageContainer) pomodoroTimerPageContainer.classList.remove('hidden');
             PomodoroTimerHybridFeature.renderPomodoroPage();
-        } else { ViewManager.setTaskViewMode('list'); renderTaskListView(); } // Fallback
+        } else { ViewManager.setTaskViewMode('list'); renderTaskListView(); } 
     } else if (isFeatureEnabled('calendarViewFeature') && currentView === 'calendar') {
-        if (CalendarViewFeature?.renderFullCalendar) { // Use imported module
+        if (CalendarViewFeature?.renderFullCalendar) { 
             if(calendarViewContainer) calendarViewContainer.classList.remove('hidden');
             CalendarViewFeature.renderFullCalendar(calendarViewContainer, AppStore.getTasks());
-        } else { ViewManager.setTaskViewMode('list'); renderTaskListView(); } // Fallback
+        } else { ViewManager.setTaskViewMode('list'); renderTaskListView(); } 
     } else if (isFeatureEnabled('kanbanBoardFeature') && currentView === 'kanban') {
-        if (KanbanBoardFeature?.renderKanbanView) { // Use imported module
-            // kanbanBoardContainer should be made visible by renderKanbanView itself
+        if (KanbanBoardFeature?.renderKanbanView) { 
             KanbanBoardFeature.renderKanbanView();
-        } else { ViewManager.setTaskViewMode('list'); renderTaskListView(); } // Fallback
+        } else { ViewManager.setTaskViewMode('list'); renderTaskListView(); } 
     } else {
-        if (currentView !== 'list') ViewManager.setTaskViewMode('list'); // Ensure list mode if others fail or not selected
-        renderTaskListView(); // This will make taskList visible if it has tasks
+        if (currentView !== 'list') ViewManager.setTaskViewMode('list'); 
+        renderTaskListView(); 
     }
     updateClearCompletedButtonState(); renderBulkActionControls();
     if (isFeatureEnabled('pomodoroTimerHybridFeature') && PomodoroTimerHybridFeature?.updateSidebarDisplay) {
@@ -246,7 +242,7 @@ export function refreshTaskView() {
 export function renderTaskListView() {
     if (!taskList || !ViewManager || !AppStore || !isFeatureEnabled || !TaskService || !BulkActionService) { console.error("renderTaskListView: Core dependencies not found."); return; }
 
-    taskList.classList.remove('hidden'); // Show task list container
+    taskList.classList.remove('hidden'); 
     if (kanbanBoardContainer) kanbanBoardContainer.classList.add('hidden');
     if (calendarViewContainer) calendarViewContainer.classList.add('hidden');
     if (pomodoroTimerPageContainer) pomodoroTimerPageContainer.classList.add('hidden');
@@ -259,29 +255,29 @@ export function renderTaskListView() {
     else if (currentFilterVal === 'today') { filteredTasks = currentTasks.filter(task => { if (!task.dueDate || task.completed) return false; const taskDueDate = new Date(task.dueDate + 'T00:00:00'); return taskDueDate.getTime() === today.getTime(); }); }
     else if (currentFilterVal === 'upcoming') { filteredTasks = currentTasks.filter(task => { if (!task.dueDate || task.completed) return false; const taskDueDate = new Date(task.dueDate + 'T00:00:00'); return taskDueDate.getTime() > today.getTime(); });}
     else if (currentFilterVal === 'completed') { filteredTasks = currentTasks.filter(task => task.completed); }
-    else if (currentFilterVal.startsWith('project_')) { const projectId = parseInt(currentFilterVal.split('_')[1]); if (!isNaN(projectId)) { filteredTasks = currentTasks.filter(task => task.projectId === projectId && !task.completed); } else { filteredTasks = currentTasks.filter(task => !task.projectId && !task.completed); }} // This handles "No Project" if its filter is project_0
-    else { filteredTasks = currentTasks.filter(task => task.label && task.label.toLowerCase() === currentFilterVal.toLowerCase() && !task.completed); } // Assumes label filters are just the label name
+    else if (currentFilterVal.startsWith('project_')) { const projectId = parseInt(currentFilterVal.split('_')[1]); if (!isNaN(projectId)) { filteredTasks = currentTasks.filter(task => task.projectId === projectId && !task.completed); } else { filteredTasks = currentTasks.filter(task => !task.projectId && !task.completed); }} 
+    else { filteredTasks = currentTasks.filter(task => task.label && task.label.toLowerCase() === currentFilterVal.toLowerCase() && !task.completed); } 
     
     if (currentSearchTermVal) { filteredTasks = filteredTasks.filter(task => task.text.toLowerCase().includes(currentSearchTermVal) || (task.label && task.label.toLowerCase().includes(currentSearchTermVal)) || (task.notes && task.notes.toLowerCase().includes(currentSearchTermVal)) || (isFeatureEnabled('projectFeature') && task.projectId && currentProjects.find(p => p.id === task.projectId)?.name.toLowerCase().includes(currentSearchTermVal)));}
     const priorityOrder = { high: 1, medium: 2, low: 3, default: 4 };
     if (currentSortVal === 'dueDate') { filteredTasks.sort((a, b) => { const dA = a.dueDate ? new Date(a.dueDate + (a.time ? `T${a.time}` : 'T00:00:00Z')) : null; const dB = b.dueDate ? new Date(b.dueDate + (b.time ? `T${b.time}` : 'T00:00:00Z')) : null; if (dA === null && dB === null) return 0; if (dA === null) return 1; if (dB === null) return -1; return dA - dB; });}
     else if (currentSortVal === 'priority') { filteredTasks.sort((a, b) => (priorityOrder[a.priority] || priorityOrder.default) - (priorityOrder[b.priority] || priorityOrder.default) || (a.dueDate && b.dueDate ? new Date(a.dueDate) - new Date(b.dueDate) : 0));}
     else if (currentSortVal === 'label') { filteredTasks.sort((a,b) => { const lA = (a.label || '').toLowerCase(); const lB = (b.label || '').toLowerCase(); if (lA < lB) return -1; if (lA > lB) return 1; const dA = a.dueDate ? new Date(a.dueDate + (a.time ? `T${a.time}` : 'T00:00:00Z')) : null; const dB = b.dueDate ? new Date(b.dueDate + (b.time ? `T${b.time}` : 'T00:00:00Z')) : null; if (dA === null && dB === null) return 0; if (dA === null) return 1; if (dB === null) return -1; return dA - dB; });}
-    else if (currentFilterVal === 'inbox' && currentSortVal === 'default') { filteredTasks.sort((a, b) => (b.creationDate || b.id) - (a.creationDate || a.id));} // Sort by newest first for inbox default
+    else if (currentFilterVal === 'inbox' && currentSortVal === 'default') { filteredTasks.sort((a, b) => (b.creationDate || b.id) - (a.creationDate || a.id));} 
 
     if (emptyState) emptyState.classList.toggle('hidden', currentTasks.length !== 0);
     if (noMatchingTasks) noMatchingTasks.classList.toggle('hidden', !(currentTasks.length > 0 && filteredTasks.length === 0));
-    if (taskList) taskList.classList.toggle('hidden', filteredTasks.length === 0 && currentTasks.length > 0); // Also hide if all tasks are filtered out
+    if (taskList) taskList.classList.toggle('hidden', filteredTasks.length === 0 && currentTasks.length > 0); 
 
     filteredTasks.forEach((task) => {
         const li = document.createElement('li'); li.className = `task-item flex items-start justify-between bg-slate-100 dark:bg-slate-700 p-3 sm:p-3.5 rounded-lg shadow hover:shadow-md transition-shadow duration-300 ${task.completed ? 'opacity-60' : ''} overflow-hidden`; li.dataset.taskId = task.id;
         const hasOpenPrerequisites = isFeatureEnabled('taskDependenciesFeature') && task.dependsOn && task.dependsOn.some(depId => { const dependentTask = AppStore.getTasks().find(t => t.id === depId); return dependentTask && !dependentTask.completed; });
         if (hasOpenPrerequisites) { li.classList.add('border-l-4', 'border-amber-500'); }
         const mainContentClickableArea = document.createElement('div'); mainContentClickableArea.className = 'task-item-clickable-area flex items-start flex-grow min-w-0 mr-2 rounded-l-lg';
-        mainContentClickableArea.addEventListener('click', (event) => { if (event.target.type === 'checkbox' || event.target.closest('.task-actions') || event.target.closest('.bulk-select-checkbox-container')) return; openViewTaskDetailsModal(task.id); }); // Use imported function
+        mainContentClickableArea.addEventListener('click', (event) => { if (event.target.type === 'checkbox' || event.target.closest('.task-actions') || event.target.closest('.bulk-select-checkbox-container')) return; openViewTaskDetailsModal(task.id); }); 
         const bulkSelectCheckboxContainer = document.createElement('div'); bulkSelectCheckboxContainer.className = 'bulk-select-checkbox-container flex-shrink-0 mr-2 sm:mr-3 bulk-actions-feature-element'; if (isFeatureEnabled('bulkActionsFeature')) { const bulkCheckbox = document.createElement('input'); bulkCheckbox.type = 'checkbox'; bulkCheckbox.className = 'form-checkbox h-5 w-5 text-blue-500 rounded border-slate-400 dark:border-slate-500 focus:ring-blue-400 dark:focus:ring-blue-500 mt-0.5 cursor-pointer'; bulkCheckbox.checked = BulkActionService.getSelectedIds().includes(task.id); bulkCheckbox.title = "Select for bulk action"; bulkCheckbox.addEventListener('change', () => { BulkActionService.toggleTaskSelection(task.id); }); bulkSelectCheckboxContainer.appendChild(bulkCheckbox); } else { bulkSelectCheckboxContainer.classList.add('hidden'); }
         const completeCheckbox = document.createElement('input'); completeCheckbox.type = 'checkbox'; completeCheckbox.checked = task.completed; completeCheckbox.className = 'form-checkbox h-5 w-5 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 dark:focus:ring-sky-500 mt-0.5 mr-2 sm:mr-3 cursor-pointer flex-shrink-0';
-        completeCheckbox.addEventListener('change', () => toggleComplete(task.id)); // Use imported function
+        completeCheckbox.addEventListener('change', () => toggleComplete(task.id)); 
         if (hasOpenPrerequisites) { completeCheckbox.disabled = true; completeCheckbox.title = "This task is blocked by incomplete prerequisites."; completeCheckbox.classList.add('opacity-50', 'cursor-not-allowed'); }
         const textDetailsDiv = document.createElement('div'); textDetailsDiv.className = 'flex flex-col flex-grow min-w-0'; const span = document.createElement('span'); span.textContent = task.text; let textColorClass = task.completed ? 'text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-200'; span.className = `text-sm sm:text-base break-words ${textColorClass} ${task.completed ? 'completed-text' : ''}`; textDetailsDiv.appendChild(span);
         const detailsContainer = document.createElement('div'); detailsContainer.className = 'flex items-center flex-wrap gap-x-2 gap-y-1 mt-1 sm:mt-1.5 text-xs';
@@ -297,16 +293,16 @@ export function renderTaskListView() {
         const actionsDiv = document.createElement('div'); actionsDiv.className = 'task-actions flex-shrink-0 self-start';
         const editButton = document.createElement('button'); editButton.className = 'task-action-btn text-sky-500 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-500'; editButton.innerHTML = '<i class="fas fa-pencil-alt"></i>'; editButton.setAttribute('aria-label', 'Edit task'); editButton.title = 'Edit task';
         editButton.addEventListener('click', () => {
-            openViewEditModal(task.id); // Use imported function
-            if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectDropdowns) { // Use imported ProjectsFeature
+            openViewEditModal(task.id); 
+            if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectDropdowns) { 
                 ProjectsFeature.populateProjectDropdowns();
-                if (modalProjectSelectViewEdit) { // modalProjectSelectViewEdit is still a module-level var here
+                if (modalProjectSelectViewEdit) { 
                     modalProjectSelectViewEdit.value = task.projectId || "0";
                 }
             }
         }); actionsDiv.appendChild(editButton);
         const deleteButton = document.createElement('button'); deleteButton.className = 'task-action-btn text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-500'; deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i>'; deleteButton.setAttribute('aria-label', 'Delete task'); deleteButton.title = 'Delete task';
-        deleteButton.addEventListener('click', () => deleteTask(task.id)); // Use imported function
+        deleteButton.addEventListener('click', () => deleteTask(task.id)); 
         actionsDiv.appendChild(deleteButton);
         li.appendChild(mainContentClickableArea); li.appendChild(actionsDiv);
         if (taskList) { taskList.appendChild(li); }
@@ -330,9 +326,8 @@ export function renderBulkActionControls() {
         if (bulkAssignProjectDropdown) {
             bulkAssignProjectDropdown.disabled = selectedIds.length === 0;
             if (ProjectsFeature?.populateProjectDropdowns && typeof bulkAssignProjectDropdown.dataset.populated === 'undefined') {
-                // Populate once
-                const currentProjects = AppStore.getProjects().filter(p=>p.id !==0); // Exclude "No Project"
-                bulkAssignProjectDropdown.innerHTML = '<option value="">Assign Project...</option>'; // Reset
+                const currentProjects = AppStore.getProjects().filter(p=>p.id !==0); 
+                bulkAssignProjectDropdown.innerHTML = '<option value="">Assign Project...</option>'; 
                 currentProjects.forEach(project => {
                     const option = document.createElement('option');
                     option.value = project.id;
@@ -351,23 +346,18 @@ export function renderBulkActionControls() {
     if (bulkChangeLabelInput) {
         bulkChangeLabelInput.disabled = selectedIds.length === 0;
         const datalistEl = document.getElementById('existingLabelsBulkAction');
-        if (datalistEl) populateDatalist(datalistEl); // Uses module-level populateDatalist
+        if (datalistEl) populateDatalist(datalistEl); 
     }
-    // Ensure selectAllTasksCheckbox reflects current state
     if (selectAllTasksCheckbox) {
         const currentFilter = ViewManager.getCurrentFilter();
-        // Ensure ViewManager.getFilteredTasksForBulkAction() exists and is used here
         const currentTasksInView = ViewManager.getFilteredTasksForBulkAction ? ViewManager.getFilteredTasksForBulkAction() : AppStore.getTasks().filter(task => {
-            // This filtering logic should exactly match renderTaskListView's filtering for accuracy
             if (currentFilter === 'inbox') return !task.completed;
-            // Add other filter conditions as in renderTaskListView
-            // THIS IS A SIMPLIFIED FALLBACK AND SHOULD BE ROBUSTLY IMPLEMENTED IN ViewManager
             if (currentFilter === 'today') { const today = new Date(); today.setHours(0,0,0,0); const taskDueDate = new Date(task.dueDate + 'T00:00:00'); return !task.completed && task.dueDate && taskDueDate.getTime() === today.getTime(); }
             if (currentFilter === 'upcoming') { const today = new Date(); today.setHours(0,0,0,0); const taskDueDate = new Date(task.dueDate + 'T00:00:00'); return !task.completed && task.dueDate && taskDueDate.getTime() > today.getTime(); }
             if (currentFilter === 'completed') return task.completed;
             if (currentFilter.startsWith('project_')) { const projectId = parseInt(currentFilter.split('_')[1]); return task.projectId === projectId && !task.completed; }
             if (task.label && task.label.toLowerCase() === currentFilter.toLowerCase() && !task.completed) return true;
-            return false; // Default to false if no explicit match
+            return false; 
         });
         const allInViewSelected = currentTasksInView.length > 0 && currentTasksInView.every(task => selectedIds.includes(task.id));
         selectAllTasksCheckbox.checked = allInViewSelected;
@@ -402,7 +392,7 @@ export function renderTaskDependenciesForViewModal(task) {
         viewTaskBlocksTasksList.innerHTML = '<li class="italic">None</li>';
     }
 }
-export function renderTempSubTasksForAddModal(tempSubTasks, listElement) { // Accept params
+export function renderTempSubTasksForAddModal(tempSubTasks, listElement) { 
     if (!listElement) return;
     listElement.innerHTML = '';
     if (!tempSubTasks || tempSubTasks.length === 0) {
@@ -421,15 +411,14 @@ export function renderTempSubTasksForAddModal(tempSubTasks, listElement) { // Ac
         removeBtn.innerHTML = '<i class="fas fa-times text-red-500 hover:text-red-700 text-xs"></i>';
         removeBtn.onclick = () => {
             tempSubTasks.splice(index, 1);
-            renderTempSubTasksForAddModal(tempSubTasks, listElement); // Re-render
+            renderTempSubTasksForAddModal(tempSubTasks, listElement); 
         };
         li.appendChild(removeBtn);
         listElement.appendChild(li);
     });
 }
 export function renderSubTasksForEditModal(parentId, subTasksListElement) {
-    if (!AppStore || !subTasksListElement || !ModalStateService) return; // Added ModalStateService check for parentId
-    // parentId might be passed directly, or we can get it from ModalStateService if in edit context
+    if (!AppStore || !subTasksListElement || !ModalStateService) return; 
     const actualParentId = parentId || ModalStateService.getEditingTaskId();
     if (!actualParentId) {
         console.error("[RenderSubTasksEdit] Parent ID missing.");
@@ -460,11 +449,9 @@ export function renderSubTasksForEditModal(parentId, subTasksListElement) {
         checkbox.onchange = () => {
             if (SubTasksFeature && SubTasksFeature.toggleComplete) {
                 if (SubTasksFeature.toggleComplete(actualParentId, st.id)) {
-                    // The 'tasksChanged' event should ideally trigger a re-render of the whole modal or task view.
-                    // For now, to ensure immediate feedback within the modal's subtask list:
                     renderSubTasksForEditModal(actualParentId, subTasksListElement);
                 } else {
-                    showMessage('Failed to toggle sub-task.', 'error'); // Make sure showMessage is available
+                    showMessage('Failed to toggle sub-task.', 'error'); 
                 }
             } else {
                  console.warn("SubTasksFeature.toggleComplete not available.");
@@ -541,7 +528,7 @@ export function renderSubTasksForViewModal(parentId, subTasksListElement, progre
         checkbox.type = 'checkbox';
         checkbox.checked = st.completed;
         checkbox.className = 'form-checkbox h-4 w-4 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 mr-2 cursor-not-allowed';
-        checkbox.disabled = true; // View only
+        checkbox.disabled = true; 
         if (st.completed) completedCount++;
         const span = document.createElement('span');
         span.textContent = st.text;
@@ -553,40 +540,31 @@ export function renderSubTasksForViewModal(parentId, subTasksListElement, progre
     progressElement.textContent = `${completedCount} / ${parentTask.subTasks.length} completed`;
 }
 
-// Renamed from styleInitialSmartViewButtons to be more generic
 export function styleSmartViewButtons() {
     if (!ViewManager) return;
     const currentFilter = ViewManager.getCurrentFilter();
-    const allSmartButtons = document.querySelectorAll('.smart-view-btn'); // Includes static and project buttons
+    const allSmartButtons = document.querySelectorAll('.smart-view-btn'); 
 
     allSmartButtons.forEach(btn => {
         const isActive = btn.dataset.filter === currentFilter;
-        // Active styles
         btn.classList.toggle('bg-sky-500', isActive);
         btn.classList.toggle('text-white', isActive);
         btn.classList.toggle('dark:bg-sky-600', isActive);
         btn.classList.toggle('font-semibold', isActive);
 
-
-        // Inactive styles (ensure these are applied if not active)
-        // The default classes are in HTML/JS creation, so we remove active and ensure defaults are there or add if needed.
-        // For simplicity, this assumes Tailwind's specificity or JS controls these primarily.
-        // If default inactive styles were more complex and also needed JS toggling:
         btn.classList.toggle('bg-slate-200', !isActive);
         btn.classList.toggle('text-slate-700', !isActive);
         btn.classList.toggle('hover:bg-slate-300', !isActive);
         btn.classList.toggle('dark:bg-slate-700', !isActive);
         btn.classList.toggle('dark:text-slate-300', !isActive);
         btn.classList.toggle('dark:hover:bg-slate-600', !isActive);
-        btn.classList.toggle('font-medium', !isActive && !btn.classList.contains('font-semibold')); // Default font weight if not active
+        btn.classList.toggle('font-medium', !isActive && !btn.classList.contains('font-semibold')); 
 
-        // Icon styling for active state (example)
         const icon = btn.querySelector('i');
         if (icon) {
-            icon.classList.toggle('text-white', isActive); // Example if icon needs to be white on active dark:text-sky-300
+            icon.classList.toggle('text-white', isActive); 
             icon.classList.toggle('dark:text-sky-300', isActive); 
             
-            // Default/inactive icon color (adjust if needed, Tailwind might handle this if text color is set on parent)
             icon.classList.toggle('text-slate-500', !isActive); 
             icon.classList.toggle('dark:text-slate-400', !isActive);
         }
@@ -604,7 +582,7 @@ export function updateSortButtonStates() {
     ];
     buttons.forEach(item => {
         const isActive = item.type === currentSort;
-        item.el.classList.toggle('sort-btn-active', isActive); // Main active style from CSS
+        item.el.classList.toggle('sort-btn-active', isActive); 
         item.el.classList.toggle('bg-slate-200', !isActive);
         item.el.classList.toggle('hover:bg-slate-300', !isActive);
         item.el.classList.toggle('dark:bg-slate-700', !isActive);
@@ -636,16 +614,12 @@ export function updateViewToggleButtonsState() {
             item.el.classList.toggle('hidden', !featureOn);
             if (featureOn) {
                 const isActive = currentMode === item.mode;
-                item.el.classList.toggle('bg-sky-500', isActive); // Example active class
+                item.el.classList.toggle('bg-sky-500', isActive); 
                 item.el.classList.toggle('text-white', isActive);
                 item.el.classList.toggle('dark:bg-sky-600', isActive);
 
-                // Reset to default inactive if not active (Tailwind classes from HTML are default)
                  if (!isActive) {
-                    // Remove active classes if they exist from a previous state
                     item.el.classList.remove('bg-sky-500', 'text-white', 'dark:bg-sky-600');
-                    // Add back default classes if needed (assuming they were removed)
-                    // For example, if kanbanViewToggleBtn's default is bg-purple-200:
                     if (item.el === kanbanViewToggleBtn) {
                         item.el.classList.add('bg-purple-200', 'hover:bg-purple-300', 'dark:bg-purple-700', 'dark:hover:bg-purple-600', 'text-purple-700', 'dark:text-purple-200');
                     } else if (item.el === calendarViewToggleBtn) {
@@ -667,7 +641,7 @@ export function updateYourTasksHeading() {
     if (currentMode === 'kanban') title = "Kanban Board";
     else if (currentMode === 'calendar') title = "Calendar View";
     else if (currentMode === 'pomodoro') title = "Pomodoro Timer";
-    else { // List mode, title depends on filter
+    else { 
         if (currentFilter === 'inbox') title = "Inbox";
         else if (currentFilter === 'today') title = "Today's Tasks";
         else if (currentFilter === 'upcoming') title = "Upcoming Tasks";
@@ -680,51 +654,48 @@ export function updateYourTasksHeading() {
             } else {
                 title = "Project Tasks";
             }
-        } else { // Assume it's a label filter
+        } else { 
             title = `Label: ${currentFilter.charAt(0).toUpperCase() + currentFilter.slice(1)}`;
         }
     }
     yourTasksHeading.textContent = title;
 }
 
-// This replaces the previous styleInitialSmartViewButtons and is called on changes too
-// It's now called styleSmartViewButtons (already defined above)
 
 export function initializeUiRenderingSubscriptions() {
     if (!EventBus || !ViewManager || !isFeatureEnabled) { console.error("[UI Rendering] Core dependencies for subscriptions not available."); return; }
     EventBus.subscribe('tasksChanged', (updatedTasks) => { console.log("[UI Rendering] Event received: tasksChanged. Refreshing view."); refreshTaskView(); updateClearCompletedButtonState(); });
     EventBus.subscribe('projectsChanged', (updatedProjects) => {
         console.log("[UI Rendering] Event received: projectsChanged. Refreshing view and project UI.");
-        refreshTaskView(); // Refresh main task view which might depend on project names
+        refreshTaskView(); 
         if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) ProjectsFeature.populateProjectFilterList();
         if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectDropdowns) ProjectsFeature.populateProjectDropdowns();
-        styleSmartViewButtons(); // Also restyle buttons as project list might have changed
+        styleSmartViewButtons(); 
     });
     EventBus.subscribe('uniqueProjectsChanged', (newUniqueProjects) => {
         console.log("[UI Rendering] Event received: uniqueProjectsChanged. Repopulating project UI.");
         if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) ProjectsFeature.populateProjectFilterList();
         if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectDropdowns) ProjectsFeature.populateProjectDropdowns();
-        styleSmartViewButtons(); // Restyle after project list potentially changes
+        styleSmartViewButtons(); 
     });
     EventBus.subscribe('kanbanColumnsChanged', (updatedColumns) => { console.log("[UI Rendering] Event received: kanbanColumnsChanged."); if (ViewManager.getCurrentTaskViewMode() === 'kanban' && isFeatureEnabled('kanbanBoardFeature')) { refreshTaskView(); } });
     
     EventBus.subscribe('filterChanged', (eventData) => { 
         console.log("[UI Rendering] Event received: filterChanged. Refreshing view, heading, and button styles."); 
-        refreshTaskView(); // This will call renderTaskListView or other view renderers
+        refreshTaskView(); 
         updateYourTasksHeading(); 
         updateSortButtonStates(); 
-        styleSmartViewButtons(); // FIX: Added call to style smart view buttons
+        styleSmartViewButtons(); 
     });
 
     EventBus.subscribe('sortChanged', (newSort) => { console.log("[UI Rendering] Event received: sortChanged. Refreshing view and sort buttons."); refreshTaskView(); updateSortButtonStates(); });
     EventBus.subscribe('searchTermChanged', (newSearchTerm) => { console.log("[UI Rendering] Event received: searchTermChanged. Refreshing view."); refreshTaskView(); });
-    EventBus.subscribe('viewModeChanged', (newViewMode) => { console.log("[UI Rendering] Event received: viewModeChanged. Refreshing view and UI states."); refreshTaskView(); /* updateViewToggleButtonsState and updateYourTasksHeading are called within refreshTaskView */ });
-    EventBus.subscribe('featureFlagsUpdated', (updateData) => { console.log("[UI Rendering] Event received: featureFlagsUpdated. Certain UI states might need refresh."); refreshTaskView(); /* refreshTaskView calls sub-functions that depend on flags */ });
+    EventBus.subscribe('viewModeChanged', (newViewMode) => { console.log("[UI Rendering] Event received: viewModeChanged. Refreshing view and UI states."); refreshTaskView();  });
+    EventBus.subscribe('featureFlagsUpdated', (updateData) => { console.log("[UI Rendering] Event received: featureFlagsUpdated. Certain UI states might need refresh."); refreshTaskView();  });
     EventBus.subscribe('labelsChanged', (newLabels) => {
         console.log("[UI Rendering] Event received: labelsChanged. Populating datalists.");
-        if(existingLabelsDatalist) populateDatalist(existingLabelsDatalist); // Module-level var
-        if(existingLabelsEditDatalist) populateDatalist(existingLabelsEditDatalist); // Module-level var
-        // Use imported populateManageLabelsList
+        if(existingLabelsDatalist) populateDatalist(existingLabelsDatalist); 
+        if(existingLabelsEditDatalist) populateDatalist(existingLabelsEditDatalist); 
         if (manageLabelsModal && !manageLabelsModal.classList.contains('hidden')) {
             populateManageLabelsList();
         }
@@ -732,7 +703,7 @@ export function initializeUiRenderingSubscriptions() {
     EventBus.subscribe('bulkSelectionChanged', (selectedIds) => { console.log("[UI Rendering] Event received: bulkSelectionChanged. Rendering controls."); renderBulkActionControls(); });
     EventBus.subscribe('pomodoroStateUpdated', (pomodoroData) => {
         console.log("[UI Rendering] Event received: pomodoroStateUpdated.", pomodoroData);
-        if (isFeatureEnabled('pomodoroTimerHybridFeature') && PomodoroTimerHybridFeature?.updateSidebarDisplay) { // Use imported module
+        if (isFeatureEnabled('pomodoroTimerHybridFeature') && PomodoroTimerHybridFeature?.updateSidebarDisplay) { 
             PomodoroTimerHybridFeature.updateSidebarDisplay();
         }
     });
