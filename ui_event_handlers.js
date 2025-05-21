@@ -17,6 +17,7 @@ import {
     refreshTaskView,
     showTooltip,
     hideTooltip,
+    setSidebarMinimized, // Import setSidebarMinimized
     // The following are likely called by main.js or within this module, or ui_rendering
     // updateSortButtonStates, // ui_rendering calls this
     // updateClearCompletedButtonState, // ui_rendering calls this
@@ -498,47 +499,33 @@ export function setupEventListeners() {
     if (sidebarToggleBtnEl) {
         sidebarToggleBtnEl.addEventListener('click', async () => { // Make async for dynamic import
             const taskSidebarEl = document.getElementById('taskSidebar');
-            const sidebarToggleIconEl = document.getElementById('sidebarToggleIcon');
-            // These selectors are fine as they are scoped to taskSidebarEl if it exists
-            const sidebarTextElementsEls = taskSidebarEl ? taskSidebarEl.querySelectorAll('.sidebar-text-content') : [];
-            const sidebarIconOnlyButtonsEls = taskSidebarEl ? taskSidebarEl.querySelectorAll('.sidebar-button-icon-only') : [];
+            if (!taskSidebarEl) return;
 
-            if (!taskSidebarEl || !sidebarToggleIconEl) return;
-
+            // Toggle the class and update localStorage
             const isMinimized = taskSidebarEl.classList.toggle('sidebar-minimized');
             localStorage.setItem('sidebarState', isMinimized ? 'minimized' : 'expanded');
-            sidebarToggleIconEl.className = `fas ${isMinimized ? 'fa-chevron-right' : 'fa-chevron-left'}`;
+            
+            // Call the centralized function from ui_rendering.js to apply visual changes
+            setSidebarMinimized(isMinimized); // This is imported from ui_rendering.js
 
-            sidebarTextElementsEls.forEach(el => el.classList.toggle('hidden', isMinimized));
-            sidebarIconOnlyButtonsEls.forEach(btn => {
-                btn.classList.toggle('justify-center', isMinimized);
-                const icon = btn.querySelector('i');
-                const text = btn.querySelector('.sidebar-text-content'); // This will be hidden if isMinimized
-                if (icon) {
-                    icon.classList.toggle('md:mr-2', !isMinimized); // Reset margin if expanded
-                    icon.classList.toggle('md:mr-2.5', !isMinimized);
-                    icon.classList.toggle('ml-2', !isMinimized); // For buttons that might have icon after text
-                    icon.classList.toggle('mr-0', isMinimized); // Ensure no margin when minimized
-                }
-                // Text elements are handled by the general .sidebar-text-content toggle
-            });
-
+            // Tooltip handling can remain here or be part of setSidebarMinimized
             if (isMinimized) {
-                 hideTooltip(); // from ui_rendering
+                hideTooltip(); // from ui_rendering
             } else {
                 TooltipService.clearTooltipTimeout(); // from tooltipService
             }
 
-            // Refresh project filter list if project feature is enabled
+            // Specific feature updates that depend on sidebar state can also be triggered here
+            // OR be part of the setSidebarMinimized function if they are purely UI updates
             if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) {
                 ProjectsFeature.populateProjectFilterList();
             }
-            // Update Pomodoro sidebar display
             if (isFeatureEnabled('pomodoroTimerHybridFeature') && PomodoroTimerHybridFeature?.updateSidebarDisplay) {
-                 PomodoroTimerHybridFeature.updateSidebarDisplay();
+                PomodoroTimerHybridFeature.updateSidebarDisplay();
             }
         });
     }
+
 
     // Sidebar icon tooltips
     const taskSidebarElForTooltips = document.getElementById('taskSidebar');

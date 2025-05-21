@@ -115,26 +115,80 @@ export function populateDatalist(datalistElement) {
     datalistElement.innerHTML = '';
     currentUniqueLabels.forEach(label => { const option = document.createElement('option'); option.value = label; datalistElement.appendChild(option); });
 }
+
 export function setSidebarMinimized(minimize) {
-    if (!taskSidebar || !sidebarToggleIcon || !sidebarTextElements || !sidebarIconOnlyButtons) return;
+    // Ensure all DOM elements are available (they should be if initializeDOMElements was called)
+    if (!taskSidebar || !sidebarToggleIcon || !projectFilterContainer) {
+        console.warn("[UI Rendering] setSidebarMinimized: Required DOM elements not found. Initialization might be incomplete.");
+        // Attempt to re-fetch critical elements if they were not found during initial load.
+        // This is a fallback and ideally initializeDOMElements should ensure they are all set.
+        if (!taskSidebar) taskSidebar = document.getElementById('taskSidebar');
+        if (!sidebarToggleIcon) sidebarToggleIcon = document.getElementById('sidebarToggleIcon');
+        if (!projectFilterContainer) projectFilterContainer = document.getElementById('projectFilterContainer');
+        
+        // If still not found, exit to prevent errors
+        if (!taskSidebar || !sidebarToggleIcon) {
+             console.error("[UI Rendering] setSidebarMinimized: Critical sidebar elements still not found. Aborting.");
+             return;
+        }
+    }
+
     taskSidebar.classList.toggle('sidebar-minimized', minimize);
     sidebarToggleIcon.className = `fas ${minimize ? 'fa-chevron-right' : 'fa-chevron-left'}`;
-    sidebarTextElements.forEach(el => el.classList.toggle('hidden', minimize));
-    sidebarIconOnlyButtons.forEach(btn => {
+
+    // Query for these elements each time or ensure they are correctly initialized and stored module-globally
+    // These elements are children of taskSidebar or globally unique IDs
+    const sidebarTextElementsToToggle = taskSidebar.querySelectorAll('.sidebar-text-content');
+    const sidebarIconOnlyButtonsToAdjust = taskSidebar.querySelectorAll('.sidebar-button-icon-only');
+    const taskSearchInputContainerEl = document.getElementById('taskSearchInputContainer'); // Unique ID
+    const testFeatureButtonContainerEl = document.getElementById('testFeatureButtonContainer'); // Unique ID
+
+
+    sidebarTextElementsToToggle.forEach(el => el.classList.toggle('hidden', minimize));
+    
+    // Specific elements that also need to be hidden if they don't have .sidebar-text-content
+    // but behave like text content for minimization purposes.
+    // The CSS rule `.sidebar-minimized #elementId` handles this if the IDs are children of taskSidebar.
+    // Or, if they are direct children and don't have sidebar-text-content:
+    if (taskSearchInputContainerEl) taskSearchInputContainerEl.classList.toggle('hidden', minimize);
+    // .sidebar-section-title already has .sidebar-text-content so it's handled by the loop above.
+    if (testFeatureButtonContainerEl) testFeatureButtonContainerEl.classList.toggle('hidden', minimize);
+
+
+    sidebarIconOnlyButtonsToAdjust.forEach(btn => {
         btn.classList.toggle('justify-center', minimize);
         const icon = btn.querySelector('i');
-        const text = btn.querySelector('.sidebar-text-content');
-        if (icon) icon.classList.toggle('mr-0', minimize);
-        if (text) text.classList.toggle('ml-2', !minimize);
+        // The text span *within* these buttons should already be handled by sidebarTextElementsToToggle
+        // if it has the class 'sidebar-text-content'.
+        if (icon) {
+            // Clear existing margin classes that might conflict
+            icon.classList.remove('md:mr-2', 'md:mr-2.5', 'ml-2', 'mr-0');
+            
+            if (minimize) {
+                icon.classList.add('mr-0');
+            } else {
+                // Add appropriate margins for expanded view. Choose one, e.g., md:mr-2.5
+                icon.classList.add('md:mr-2.5'); 
+            }
+        }
     });
-    if (minimize && iconTooltip && iconTooltip.style.display === 'block') hideTooltip(); // Hide any open tooltip
+
+    if (minimize && iconTooltip && iconTooltip.style.display === 'block') {
+        hideTooltip(); // Hide any open tooltip
+    }
+
+    // Refresh project filter list which depends on sidebar state for its rendering
     if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) {
         ProjectsFeature.populateProjectFilterList();
     }
+
+    // Update Pomodoro sidebar display which also depends on sidebar state
     if (isFeatureEnabled('pomodoroTimerHybridFeature') && PomodoroTimerHybridFeature?.updateSidebarDisplay) {
         PomodoroTimerHybridFeature.updateSidebarDisplay();
     }
+    console.log(`[UI Rendering] Sidebar minimized state set to: ${minimize}`);
 }
+
 export function showTooltip(element, text) {
     if (!isFeatureEnabled('tooltipsGuide') || !taskSidebar || !iconTooltip || !taskSidebar.classList.contains('sidebar-minimized')) {
         if (iconTooltip && iconTooltip.style.display === 'block') hideTooltip();
