@@ -49,6 +49,8 @@ body { font-family: 'Inter', sans-serif; }
     align-self: flex-start; /* Keep sidebar at the top when scrolling */
     max-height: calc(100vh - 5rem); /* Prevent sidebar from being too tall */
     transition: width 0.3s ease-in-out, padding 0.3s ease-in-out; /* Smooth transition for minimization */
+    /* Default width and padding are set by Tailwind classes in HTML: 
+       w-full md:w-72 lg:w-80 p-3 sm:p-4 md:p-5 */
 }
 
 /* Styling for priority and label badges */
@@ -83,12 +85,24 @@ body { font-family: 'Inter', sans-serif; }
 .dark .view-details-heading { color: #d1d5db; /* gray-300 */ }
 
 /* Styles for when the sidebar is minimized */
-.sidebar-minimized .sidebar-button-icon-only { justify-content: center; }
-.sidebar-minimized .sidebar-button-icon-only i { margin-right: 0 !important; }
+.sidebar-minimized { /* This class is added to the taskSidebar element */
+    width: 5rem !important; /* Example minimized width: 80px or w-20 in Tailwind. Adjust as needed! */
+    padding: 0.75rem !important;  /* Example minimized padding: p-3 in Tailwind. Adjust as needed! */
+    /* Override Tailwind's responsive widths when minimized */
+}
+
+.sidebar-minimized .sidebar-button-icon-only { 
+    justify-content: center; 
+}
+.sidebar-minimized .sidebar-button-icon-only i { 
+    margin-right: 0 !important; 
+}
 .sidebar-minimized .sidebar-text-content,
 .sidebar-minimized #taskSearchInputContainer,
-.sidebar-minimized .sidebar-section-title,
-.sidebar-minimized #testFeatureButtonContainer { display: none; }
+.sidebar-minimized .sidebar-section-title, /* Ensure these also have .sidebar-text-content or are handled */
+.sidebar-minimized #testFeatureButtonContainer { 
+    display: none; 
+}
 
 /* Styling for the icon tooltip (shown when sidebar is minimized) */
 #iconTooltip {
