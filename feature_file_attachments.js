@@ -25,9 +25,8 @@ function updateUIVisibility(isEnabledParam) {
         return;
     }
     const isActuallyEnabled = isFeatureEnabled('fileAttachments');
-
-    // The .file-attachments-element class on UI parts is toggled by applyActiveFeatures.
-    console.log(`[FileAttachmentsFeature] UI Visibility (handled by applyActiveFeatures) set based on flag: ${isActuallyEnabled}`);
+    document.querySelectorAll('.file-attachments-element').forEach(el => el.classList.toggle('hidden', !isActuallyEnabled));
+    console.log(`[FileAttachmentsFeature] UI Visibility set based on flag: ${isActuallyEnabled}`);
 }
 
 export const FileAttachmentsFeature = {

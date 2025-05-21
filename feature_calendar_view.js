@@ -52,10 +52,17 @@ function updateUIVisibility(isEnabledParam) {
         return;
     }
     const isActuallyEnabled = isFeatureEnabled('calendarViewFeature');
-
-    // The .calendar-view-feature-element class on UI parts (e.g., toggle button, view container)
-    // is toggled by applyActiveFeatures in ui_event_handlers.js.
-    console.log(`[CalendarViewFeature] UI Visibility (handled by applyActiveFeatures/refreshTaskView) set based on flag: ${isActuallyEnabled}`);
+    
+    // Handle generic elements with the class
+    document.querySelectorAll('.calendar-view-feature-element').forEach(el => el.classList.toggle('hidden', !isActuallyEnabled));
+    
+    // Specifically handle the toggle button if it doesn't have the generic class or needs special handling
+    const calendarViewToggleBtn = document.getElementById('calendarViewToggleBtn');
+    if (calendarViewToggleBtn) {
+        calendarViewToggleBtn.classList.toggle('hidden', !isActuallyEnabled);
+    }
+    
+    console.log(`[CalendarViewFeature] UI Visibility set based on flag: ${isActuallyEnabled}`);
 }
 
 export const CalendarViewFeature = {

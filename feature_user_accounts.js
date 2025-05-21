@@ -25,10 +25,8 @@ function updateUIVisibility(isEnabledParam) {
         return;
     }
     const isActuallyEnabled = isFeatureEnabled('userAccounts');
-
-    // The .user-accounts-element class on UI parts (e.g., button in settings)
-    // is toggled by applyActiveFeatures in ui_event_handlers.js.
-    console.log(`[UserAccountsFeature] UI Visibility (handled by applyActiveFeatures) set based on flag: ${isActuallyEnabled}`);
+    document.querySelectorAll('.user-accounts-element').forEach(el => el.classList.toggle('hidden', !isActuallyEnabled));
+    console.log(`[UserAccountsFeature] UI Visibility set based on flag: ${isActuallyEnabled}`);
 }
 
 export const UserAccountsFeature = {

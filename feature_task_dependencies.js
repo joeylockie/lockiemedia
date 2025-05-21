@@ -23,8 +23,8 @@ function updateUIVisibility(isEnabledParam) {
         return;
     }
     const isActuallyEnabled = isFeatureEnabled('taskDependenciesFeature');
-    // The .task-dependencies-feature-element class on UI parts is toggled by applyActiveFeatures.
-    console.log(`[TaskDependenciesFeature] UI Visibility (handled by applyActiveFeatures) set based on flag: ${isActuallyEnabled}`);
+    document.querySelectorAll('.task-dependencies-feature-element').forEach(el => el.classList.toggle('hidden', !isActuallyEnabled));
+    console.log(`[TaskDependenciesFeature] UI Visibility set based on flag: ${isActuallyEnabled}`);
 }
 
 /**

@@ -24,10 +24,8 @@ function updateUIVisibility(isEnabledParam) {
         return;
     }
     const isActuallyEnabled = isFeatureEnabled('crossDeviceSync');
-
-    // The .cross-device-sync-element class on UI parts (e.g., button in settings)
-    // is toggled by applyActiveFeatures in ui_event_handlers.js.
-    console.log(`[CrossDeviceSyncFeature] UI Visibility (handled by applyActiveFeatures) set based on flag: ${isActuallyEnabled}`);
+    document.querySelectorAll('.cross-device-sync-element').forEach(el => el.classList.toggle('hidden', !isActuallyEnabled));
+    console.log(`[CrossDeviceSyncFeature] UI Visibility set based on flag: ${isActuallyEnabled}`);
 }
 
 export const CrossDeviceSyncFeature = {

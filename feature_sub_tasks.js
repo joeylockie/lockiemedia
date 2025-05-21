@@ -23,7 +23,7 @@ function updateUIVisibility(isEnabledParam) {
         return;
     }
     const isActuallyEnabled = isFeatureEnabled('subTasksFeature');
-    // The .sub-tasks-feature-element class on UI parts is toggled by applyActiveFeatures.
+    document.querySelectorAll('.sub-tasks-feature-element').forEach(el => el.classList.toggle('hidden', !isActuallyEnabled));
     console.log(`[SubTasksFeature] UI elements visibility/behavior updated based on feature flag: ${isActuallyEnabled}`);
 }
 

@@ -24,10 +24,8 @@ function updateUIVisibility(isEnabledParam) {
         return;
     }
     const isActuallyEnabled = isFeatureEnabled('advancedRecurrence');
-
-    // The .advanced-recurrence-element class on UI parts is toggled by applyActiveFeatures.
-    // This function is for consistency and any additional specific UI logic.
-    console.log(`[AdvancedRecurrenceFeature] UI Visibility (handled by applyActiveFeatures) set based on flag: ${isActuallyEnabled}`);
+    document.querySelectorAll('.advanced-recurrence-element').forEach(el => el.classList.toggle('hidden', !isActuallyEnabled));
+    console.log(`[AdvancedRecurrenceFeature] UI Visibility set based on flag: ${isActuallyEnabled}`);
 }
 
 export const AdvancedRecurrenceFeature = {

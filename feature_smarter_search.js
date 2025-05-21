@@ -25,10 +25,8 @@ function updateUIVisibility(isEnabledParam) {
         return;
     }
     const isActuallyEnabled = isFeatureEnabled('smarterSearchFeature');
-
-    // The .smarter-search-feature-element class on UI parts (e.g., advanced search options container)
-    // is toggled by applyActiveFeatures in ui_event_handlers.js.
-    console.log(`[SmarterSearchFeature] UI Visibility (handled by applyActiveFeatures) set based on flag: ${isActuallyEnabled}`);
+    document.querySelectorAll('.smarter-search-feature-element').forEach(el => el.classList.toggle('hidden', !isActuallyEnabled));
+    console.log(`[SmarterSearchFeature] UI Visibility set based on flag: ${isActuallyEnabled}`);
 }
 
 export const SmarterSearchFeature = {

@@ -24,10 +24,8 @@ function updateUIVisibility(isEnabledParam) {
         return;
     }
     const isActuallyEnabled = isFeatureEnabled('collaborationSharing');
-
-    // The .collaboration-sharing-element class on UI parts (e.g., button in settings)
-    // is toggled by applyActiveFeatures in ui_event_handlers.js.
-    console.log(`[CollaborationSharingFeature] UI Visibility (handled by applyActiveFeatures) set based on flag: ${isActuallyEnabled}`);
+    document.querySelectorAll('.collaboration-sharing-element').forEach(el => el.classList.toggle('hidden', !isActuallyEnabled));
+    console.log(`[CollaborationSharingFeature] UI Visibility set based on flag: ${isActuallyEnabled}`);
 }
 
 export const CollaborationSharingFeature = {

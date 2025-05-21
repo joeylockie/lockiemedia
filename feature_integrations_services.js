@@ -24,11 +24,8 @@ function updateUIVisibility(isEnabledParam) {
         return;
     }
     const isActuallyEnabled = isFeatureEnabled('integrationsServices');
-
-    // The .integrations-services-element class on UI parts (e.g., button in settings)
-    // is toggled by applyActiveFeatures in ui_event_handlers.js.
-    // This function is for consistency and any additional specific UI logic.
-    console.log(`[IntegrationsServicesFeature] UI Visibility (handled by applyActiveFeatures) set based on flag: ${isActuallyEnabled}`);
+    document.querySelectorAll('.integrations-services-element').forEach(el => el.classList.toggle('hidden', !isActuallyEnabled));
+    console.log(`[IntegrationsServicesFeature] UI Visibility set based on flag: ${isActuallyEnabled}`);
 }
 
 export const IntegrationsServicesFeature = {
