@@ -7,6 +7,7 @@ import AppStore from './store.js';
 import ViewManager from './viewManager.js';
 import EventBus from './eventBus.js';
 import { formatMillisecondsToHMS } from './utils.js'; // Assuming formatDuration is not used here, but formatMillisecondsToHMS is.
+import { showMessage } from './ui_rendering.js'; // Added import for showMessage
 
 // DOM Element References (populated in initialize or renderPomodoroPage)
 let pomodoroPageContainer;
@@ -39,8 +40,7 @@ const SETTINGS = {
     sessionsBeforeLongBreak: 4
 };
 
-// showMessage is currently a global function from ui_rendering.js.
-// It will be properly imported when ui_rendering.js becomes a module.
+// showMessage is now imported
 
 function _publishStateUpdate() {
     if (EventBus && typeof EventBus.publish === 'function') {
@@ -171,7 +171,7 @@ function resetCurrent() {
 
 function handleSessionEnd() {
     let endedSessionType = _currentState.charAt(0).toUpperCase() + _currentState.slice(1).replace('B', ' B');
-    if(typeof window.showMessage === 'function') window.showMessage(`Pomodoro: ${endedSessionType} session ended!`, 'info');
+    if(typeof showMessage === 'function') showMessage(`Pomodoro: ${endedSessionType} session ended!`, 'info'); // Uses imported showMessage
     console.log(`[Pomodoro] Session ended: ${_currentState}`);
 
     if (_currentState === 'work') {

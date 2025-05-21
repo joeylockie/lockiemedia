@@ -29,6 +29,8 @@ import { ProjectsFeature } from './feature_projects.js';
 import { KanbanBoardFeature } from './feature_kanban_board.js';
 import { CalendarViewFeature } from './feature_calendar_view.js';
 import { PomodoroTimerHybridFeature } from './pomodoro_timer.js';
+import { SubTasksFeature } from './feature_sub_tasks.js'; // Added import for sub-task operations
+
 // SubTasksFeature & TaskDependenciesFeature specific rendering functions are often called from within modal_interactions or this file,
 // but their core logic/module might be needed if we call their methods directly.
 // For now, their UI elements visibility is handled by .feature-element class and feature flags.
@@ -303,11 +305,18 @@ export function renderBulkActionControls() {
     // Ensure selectAllTasksCheckbox reflects current state
     if (selectAllTasksCheckbox) {
         const currentFilter = ViewManager.getCurrentFilter();
-        const currentTasksInView = AppStore.getTasks().filter(task => {
+        // Ensure ViewManager.getFilteredTasksForBulkAction() exists and is used here
+        const currentTasksInView = ViewManager.getFilteredTasksForBulkAction ? ViewManager.getFilteredTasksForBulkAction() : AppStore.getTasks().filter(task => {
             // This filtering logic should exactly match renderTaskListView's filtering for accuracy
             if (currentFilter === 'inbox') return !task.completed;
             // Add other filter conditions as in renderTaskListView
-            return true; // Placeholder
+            // THIS IS A SIMPLIFIED FALLBACK AND SHOULD BE ROBUSTLY IMPLEMENTED IN ViewManager
+            if (currentFilter === 'today') { const today = new Date(); today.setHours(0,0,0,0); const taskDueDate = new Date(task.dueDate + 'T00:00:00'); return !task.completed && task.dueDate && taskDueDate.getTime() === today.getTime(); }
+            if (currentFilter === 'upcoming') { const today = new Date(); today.setHours(0,0,0,0); const taskDueDate = new Date(task.dueDate + 'T00:00:00'); return !task.completed && task.dueDate && taskDueDate.getTime() > today.getTime(); }
+            if (currentFilter === 'completed') return task.completed;
+            if (currentFilter.startsWith('project_')) { const projectId = parseInt(currentFilter.split('_')[1]); return task.projectId === projectId && !task.completed; }
+            if (task.label && task.label.toLowerCase() === currentFilter.toLowerCase() && !task.completed) return true;
+            return false; // Default to false if no explicit match
         });
         const allInViewSelected = currentTasksInView.length > 0 && currentTasksInView.every(task => selectedIds.includes(task.id));
         selectAllTasksCheckbox.checked = allInViewSelected;
@@ -368,13 +377,23 @@ export function renderTempSubTasksForAddModal(tempSubTasks, listElement) { // Ac
     });
 }
 export function renderSubTasksForEditModal(parentId, subTasksListElement) {
-    if (!AppStore || !subTasksListElement) return;
-    const parentTask = AppStore.getTasks().find(t => t.id === parentId);
+    if (!AppStore || !subTasksListElement || !ModalStateService) return; // Added ModalStateService check for parentId
+    // parentId might be passed directly, or we can get it from ModalStateService if in edit context
+    const actualParentId = parentId || ModalStateService.getEditingTaskId();
+    if (!actualParentId) {
+        console.error("[RenderSubTasksEdit] Parent ID missing.");
+        subTasksListElement.innerHTML = '<li class="text-xs text-red-500 dark:text-red-400">Error: Parent task ID not found.</li>';
+        return;
+    }
+
+    const parentTask = AppStore.getTasks().find(t => t.id === actualParentId);
     subTasksListElement.innerHTML = '';
+
     if (!parentTask || !parentTask.subTasks || parentTask.subTasks.length === 0) {
         subTasksListElement.innerHTML = '<li class="text-xs text-slate-400 dark:text-slate-500">No sub-tasks added yet.</li>';
         return;
     }
+
     parentTask.subTasks.forEach(st => { 
         const li = document.createElement('li');
         li.className = 'flex items-center justify-between text-sm bg-slate-100 dark:bg-slate-600 p-1.5 rounded';
@@ -388,10 +407,17 @@ export function renderSubTasksForEditModal(parentId, subTasksListElement) {
         checkbox.checked = st.completed;
         checkbox.className = 'form-checkbox h-4 w-4 text-sky-500 rounded border-slate-300 dark:border-slate-500 focus:ring-sky-400 mr-2';
         checkbox.onchange = () => {
-            // Directly call SubTasksFeature.toggleComplete if it exists and handles AppStore updates
-            // For now, assuming such a function would be available or use a placeholder
-            console.log(`SubTask ${st.id} for parent ${parentId} toggled. (Placeholder - needs SubTasksFeature integration)`);
-            // Example: SubTasksFeature.toggleComplete(parentId, st.id);
+            if (SubTasksFeature && SubTasksFeature.toggleComplete) {
+                if (SubTasksFeature.toggleComplete(actualParentId, st.id)) {
+                    // The 'tasksChanged' event should ideally trigger a re-render of the whole modal or task view.
+                    // For now, to ensure immediate feedback within the modal's subtask list:
+                    renderSubTasksForEditModal(actualParentId, subTasksListElement);
+                } else {
+                    showMessage('Failed to toggle sub-task.', 'error'); // Make sure showMessage is available
+                }
+            } else {
+                 console.warn("SubTasksFeature.toggleComplete not available.");
+            }
         };
 
         const editBtn = document.createElement('button');
@@ -401,8 +427,15 @@ export function renderSubTasksForEditModal(parentId, subTasksListElement) {
         editBtn.onclick = () => {
             const newText = prompt('Edit sub-task:', st.text);
             if (newText !== null && newText.trim() !== '') {
-                 console.log(`SubTask ${st.id} for parent ${parentId} edited. (Placeholder - needs SubTasksFeature integration)`);
-                // Example: SubTasksFeature.edit(parentId, st.id, newText.trim());
+                if (SubTasksFeature && SubTasksFeature.edit) {
+                    if (SubTasksFeature.edit(actualParentId, st.id, newText.trim())) {
+                        renderSubTasksForEditModal(actualParentId, subTasksListElement);
+                    } else {
+                        showMessage('Failed to edit sub-task.', 'error');
+                    }
+                } else {
+                     console.warn("SubTasksFeature.edit not available.");
+                }
             }
         };
         
@@ -412,8 +445,15 @@ export function renderSubTasksForEditModal(parentId, subTasksListElement) {
         removeBtn.title = 'Delete sub-task';
         removeBtn.onclick = () => {
             if (confirm('Delete this sub-task?')) {
-                console.log(`SubTask ${st.id} for parent ${parentId} deleted. (Placeholder - needs SubTasksFeature integration)`);
-                // Example: SubTasksFeature.delete(parentId, st.id);
+                if (SubTasksFeature && SubTasksFeature.delete) {
+                    if (SubTasksFeature.delete(actualParentId, st.id)) {
+                        renderSubTasksForEditModal(actualParentId, subTasksListElement);
+                    } else {
+                        showMessage('Failed to delete sub-task.', 'error');
+                    }
+                } else {
+                    console.warn("SubTasksFeature.delete not available.");
+                }
             }
         };
 
@@ -421,17 +461,11 @@ export function renderSubTasksForEditModal(parentId, subTasksListElement) {
         controlsDiv.appendChild(editBtn);
         controlsDiv.appendChild(removeBtn);
 
-        li.appendChild(checkbox);
-        li.appendChild(textSpan);
-        li.appendChild(controlsDiv); // Should be textSpan, then controlsDiv
-        
-        // Correct order:
         const contentDiv = document.createElement('div');
         contentDiv.className = 'flex items-center flex-grow';
         contentDiv.appendChild(checkbox);
         contentDiv.appendChild(textSpan);
         
-        li.innerHTML = ''; // Clear and append in correct order
         li.appendChild(contentDiv);
         li.appendChild(controlsDiv);
 

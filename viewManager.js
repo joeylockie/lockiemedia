@@ -3,6 +3,8 @@
 // and publishes events when these states change.
 
 import EventBus from './eventBus.js';
+import AppStore from './store.js'; // Import AppStore to access tasks
+import { isFeatureEnabled } from './featureFlagService.js'; // Import for project feature check
 
 // --- Internal State Variables (scoped to this module) ---
 let _currentFilter = 'inbox';
@@ -72,6 +74,66 @@ function getCurrentSearchTerm() {
     return _currentSearchTerm;
 }
 
+/**
+ * Gets the tasks that are currently visible based on active filters and search terms.
+ * This is used by the "Select All" bulk action functionality.
+ * @returns {Array<Object>} An array of task objects.
+ */
+function getFilteredTasksForBulkAction() {
+    if (!AppStore || typeof AppStore.getTasks !== 'function') {
+        console.error("[ViewManager] AppStore not available to get tasks for filtering.");
+        return [];
+    }
+    const currentTasks = AppStore.getTasks();
+    const currentProjects = AppStore.getProjects ? AppStore.getProjects() : []; // Handle if getProjects isn't there
+
+    let filteredTasks = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Apply filters (similar to renderTaskListView logic)
+    if (_currentFilter === 'inbox') {
+        filteredTasks = currentTasks.filter(task => !task.completed);
+    } else if (_currentFilter === 'today') {
+        filteredTasks = currentTasks.filter(task => {
+            if (!task.dueDate || task.completed) return false;
+            const taskDueDate = new Date(task.dueDate + 'T00:00:00'); // Ensure time part doesn't affect date comparison
+            return taskDueDate.getTime() === today.getTime();
+        });
+    } else if (_currentFilter === 'upcoming') {
+        filteredTasks = currentTasks.filter(task => {
+            if (!task.dueDate || task.completed) return false;
+            const taskDueDate = new Date(task.dueDate + 'T00:00:00');
+            return taskDueDate.getTime() > today.getTime();
+        });
+    } else if (_currentFilter === 'completed') {
+        filteredTasks = currentTasks.filter(task => task.completed);
+    } else if (_currentFilter.startsWith('project_')) {
+        const projectId = parseInt(_currentFilter.split('_')[1]);
+        if (!isNaN(projectId)) {
+            filteredTasks = currentTasks.filter(task => task.projectId === projectId && !task.completed);
+        } else { // This might handle a "No Project" filter if its value is project_0 or similar
+            filteredTasks = currentTasks.filter(task => !task.projectId && !task.completed);
+        }
+    } else { // Assume label filter
+        filteredTasks = currentTasks.filter(task => task.label && task.label.toLowerCase() === _currentFilter.toLowerCase() && !task.completed);
+    }
+
+    // Apply search term
+    if (_currentSearchTerm) {
+        const searchTermLower = _currentSearchTerm.toLowerCase();
+        filteredTasks = filteredTasks.filter(task =>
+            task.text.toLowerCase().includes(searchTermLower) ||
+            (task.label && task.label.toLowerCase().includes(searchTermLower)) ||
+            (task.notes && task.notes.toLowerCase().includes(searchTermLower)) ||
+            (isFeatureEnabled('projectFeature') && task.projectId && currentProjects.find(p => p.id === task.projectId)?.name.toLowerCase().includes(searchTermLower))
+        );
+    }
+    // Note: This function does not apply sorting, as "Select All" typically applies to the filtered set regardless of sort order.
+    return filteredTasks;
+}
+
+
 // Export the public methods as a default object
 const ViewManager = {
     setTaskViewMode,
@@ -81,7 +143,8 @@ const ViewManager = {
     setCurrentSort,
     getCurrentSort,
     setCurrentSearchTerm,
-    getCurrentSearchTerm
+    getCurrentSearchTerm,
+    getFilteredTasksForBulkAction // Export the new function
 };
 
 export default ViewManager;

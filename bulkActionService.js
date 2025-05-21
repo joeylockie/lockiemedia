@@ -31,6 +31,33 @@ export function toggleTaskSelection(taskId) {
 }
 
 /**
+ * Selects a task if it's not already selected.
+ * Publishes 'bulkSelectionChanged' if the selection state changes.
+ * @param {number} taskId - The ID of the task to select.
+ */
+export function selectTaskIfNotSelected(taskId) {
+    if (!_selectedTaskIds.includes(taskId)) {
+        _selectedTaskIds.push(taskId);
+        console.log(`[BulkActionService] Task ${taskId} selected for bulk action.`);
+        _publish('bulkSelectionChanged', [..._selectedTaskIds]);
+    }
+}
+
+/**
+ * Deselects a task if it's currently selected.
+ * Publishes 'bulkSelectionChanged' if the selection state changes.
+ * @param {number} taskId - The ID of the task to deselect.
+ */
+export function deselectTaskIfSelected(taskId) {
+    const index = _selectedTaskIds.indexOf(taskId);
+    if (index > -1) {
+        _selectedTaskIds.splice(index, 1);
+        console.log(`[BulkActionService] Task ${taskId} deselected from bulk action.`);
+        _publish('bulkSelectionChanged', [..._selectedTaskIds]);
+    }
+}
+
+/**
  * Clears all selected tasks for bulk actions.
  */
 export function clearSelections() {
