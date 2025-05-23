@@ -31,6 +31,7 @@ import { PomodoroTimerHybridFeature } from './pomodoro_timer.js';
 import * as ModalInteractions from './modal_interactions.js'; // Keep for now, but its window assignment will be removed
 import { TooltipsGuideFeature } from './feature_tooltips_guide.js';
 import { SubTasksFeature } from './feature_sub_tasks.js'; // Added import
+import { BackgroundFeature } from './feature_background.js'; // Added new feature import
 
 // Make services/features globally available for non-module scripts during transition (gradually remove these)
 if (typeof window.isFeatureEnabled === 'undefined') window.isFeatureEnabled = isFeatureEnabledFromService;
@@ -115,6 +116,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.AppFeatures.PomodoroTimerHybridFeature = PomodoroTimerHybridFeature;
     window.AppFeatures.TooltipsGuideFeature = TooltipsGuideFeature;
     window.AppFeatures.SubTasksFeature = SubTasksFeature; // Added SubTasksFeature
+    window.AppFeatures.BackgroundFeature = BackgroundFeature; // Added new BackgroundFeature
 
 
     if (typeof isFeatureEnabledFromService !== 'undefined' && typeof window.AppFeatures !== 'undefined') {
@@ -134,7 +136,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     "tooltips-guide": "tooltipsGuide", "sub-tasks": "subTasksFeature", "kanban-board": "kanbanBoardFeature",
                     "projects": "projectFeature", "export-data": "exportDataFeature", "calendar-view": "calendarViewFeature",
                     "task-dependencies": "taskDependenciesFeature", "smarter-search": "smarterSearchFeature",
-                    "bulk-actions": "bulkActionsFeature", "pomodoro-timer-hybrid": "pomodoroTimerHybridFeature"
+                    "bulk-actions": "bulkActionsFeature", "pomodoro-timer-hybrid": "pomodoroTimerHybridFeature",
+                    "background": "backgroundFeature" // Added mapping for backgroundFeature
                 };
                 const effectiveFlagKey = flagMappings[flagKey] || flagKey;
                 if (isFeatureEnabledFromService(effectiveFlagKey) || !Object.keys(AppStore.getFeatureFlags()).includes(effectiveFlagKey) ) {

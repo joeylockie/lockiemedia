@@ -24,7 +24,8 @@ let _featureFlags = {
     taskDependenciesFeature: false,
     smarterSearchFeature: false,
     bulkActionsFeature: false,
-    pomodoroTimerHybridFeature: false
+    pomodoroTimerHybridFeature: false,
+    backgroundFeature: false // Added new feature flag
 };
 
 /**
@@ -99,6 +100,9 @@ export function isFeatureEnabled(featureName) {
     if (typeof _featureFlags[featureName] === 'boolean') {
         return _featureFlags[featureName];
     }
+    // If the featureName is not in _featureFlags at all (e.g. a typo or new flag not yet added to defaults),
+    // it's safest to return false.
+    // console.warn(`[FeatureFlagService] Unknown feature flag checked: "${featureName}". Defaulting to false.`);
     return false; 
 }
 

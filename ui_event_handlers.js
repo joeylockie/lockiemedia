@@ -62,6 +62,7 @@ import { PomodoroTimerHybridFeature } from './pomodoro_timer.js';
 import { ProjectsFeature } from './feature_projects.js';
 import { TooltipsGuideFeature } from './feature_tooltips_guide.js';
 import { SubTasksFeature } from './feature_sub_tasks.js'; // Import for handleAddSubTaskViewEdit
+import { BackgroundFeature } from './feature_background.js'; // Added new feature import
 
 // Module-scoped state for temporary sub-tasks during creation
 let tempSubTasksForAddModal = [];
@@ -102,7 +103,8 @@ function populateFeatureFlagsModal() {
         taskDependenciesFeature: "Task Dependencies",
         smarterSearchFeature: "Smarter Search",
         bulkActionsFeature: "Bulk Task Actions",
-        pomodoroTimerHybridFeature: "Pomodoro Timer"
+        pomodoroTimerHybridFeature: "Pomodoro Timer",
+        backgroundFeature: "Custom Backgrounds" // Added friendly name
     };
     const featureOrder = Object.keys(currentFlags).sort((a,b) => {
         const nameA = friendlyNames[a] || a;
@@ -171,6 +173,7 @@ export function applyActiveFeatures() {
     if (window.AppFeatures?.ProjectsFeature?.updateUIVisibility) window.AppFeatures.ProjectsFeature.updateUIVisibility();
     if (window.AppFeatures?.TooltipsGuideFeature?.updateUIVisibility) window.AppFeatures.TooltipsGuideFeature.updateUIVisibility();
     if (window.AppFeatures?.SubTasksFeature?.updateUIVisibility) window.AppFeatures.SubTasksFeature.updateUIVisibility(); else toggleElements('.sub-tasks-feature-element', isFeatureEnabled('subTasksFeature'));
+    if (window.AppFeatures?.BackgroundFeature?.updateUIVisibility) window.AppFeatures.BackgroundFeature.updateUIVisibility(); // Added call for BackgroundFeature
 
 
     const settingsTooltipsGuideBtnEl = document.getElementById('settingsTooltipsGuideBtn');
