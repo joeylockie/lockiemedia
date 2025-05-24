@@ -194,7 +194,8 @@ body { font-family: 'Inter', sans-serif; }
 .task-dependencies-feature-element, /* For Task Dependency elements */
 .smarter-search-feature-element, /* For Smarter Search elements */
 .bulk-actions-feature-element, /* For Bulk Action elements */
-.pomodoro-timer-hybrid-feature-element /* For Pomodoro Timer Hybrid elements */
+.pomodoro-timer-hybrid-feature-element, /* For Pomodoro Timer Hybrid elements */
+.background-feature-element /* Added for Background Feature elements */
 { display: block; } /* Default, JS hides if feature off */
 
 
@@ -359,3 +360,10 @@ body { font-family: 'Inter', sans-serif; }
 /* Additional styles for Pomodoro Timer if needed can go here */
 /* For example, styling for the sidebar display if Tailwind isn't enough */
 /* #sidebarPomodoroTimerDisplay { ... } */
+
+/* Example for an active background feature */
+/* .custom-background-active {
+    background-image: url('path/to/your/image.jpg');
+    background-size: cover;
+    background-position: center;
+} */
