@@ -38,6 +38,13 @@ import {
     closeTaskReviewModal,
     closeTooltipsGuideModal,
     closeViewTaskDetailsModal,
+    openContactUsModal, // Import for Contact Us
+    closeContactUsModal, // Import for Contact Us
+    openAboutUsModal, // ADDED: Import for About Us
+    closeAboutUsModal, // ADDED: Import for About Us
+    // NEW: Import for Data Version History Modal
+    openDataVersionHistoryModal,
+    closeDataVersionHistoryModal
 } from './modal_interactions.js';
 
 // Import Feature Modules
@@ -60,6 +67,12 @@ import { ProjectsFeature } from './feature_projects.js';
 import { TooltipsGuideFeature } from './feature_tooltips_guide.js';
 import { SubTasksFeature } from './feature_sub_tasks.js';
 import { BackgroundFeature } from './feature_background.js';
+import { ContactUsFeature } from './feature_contact_us.js';
+import { SocialMediaLinksFeature } from './feature_social_media_links.js'; // ADDED: Import SocialMediaLinksFeature
+import { AboutUsFeature } from './feature_about_us.js'; // ADDED: Import AboutUsFeature
+// NEW: Import DataVersioningFeature (its methods are called from modal_interactions or ui_rendering, but good to have it if direct calls were needed)
+import { DataVersioningFeature } from './feature_data_versioning.js';
+
 
 // Module-scoped state for temporary sub-tasks during creation
 let tempSubTasksForAddModal = [];
@@ -102,7 +115,11 @@ function populateFeatureFlagsModal() {
         bulkActionsFeature: "Bulk Task Actions",
         pomodoroTimerHybridFeature: "Pomodoro Timer",
         backgroundFeature: "Custom Backgrounds",
-        debugMode: "Developer: Debug Mode" // Assuming you add this for logging control
+        contactUsFeature: "Contact Us Form",
+        socialMediaLinksFeature: "Social Media Links in Settings",
+        aboutUsFeature: "About Us Page in Settings", // ADDED: Friendly name for About Us
+        dataVersioningFeature: "Data Versioning & History", // NEW: Friendly name for Data Versioning
+        debugMode: "Developer: Debug Mode"
     };
     const featureOrder = Object.keys(currentFlags).sort((a,b) => {
         const nameA = friendlyNames[a] || a;
@@ -152,39 +169,30 @@ export function applyActiveFeatures() {
         document.querySelectorAll(selector).forEach(el => el.classList.toggle('hidden', !isEnabled)); //
     };
 
-    // Example of how you might log each feature's UI update if desired (can be very verbose)
-    // LoggingService.debug(`[${functionName}] Updating UI for testButtonFeature: ${isFeatureEnabled('testButtonFeature')}`);
-    if (window.AppFeatures?.TestButtonFeature?.updateUIVisibility) window.AppFeatures.TestButtonFeature.updateUIVisibility(); else { const el = document.getElementById('testFeatureButtonContainer'); if(el) el.classList.toggle('hidden', !isFeatureEnabled('testButtonFeature'));} //
-    if (window.AppFeatures?.TaskTimerSystemFeature?.updateUIVisibility) window.AppFeatures.TaskTimerSystemFeature.updateUIVisibility(); else { toggleElements('.task-timer-system-element', isFeatureEnabled('taskTimerSystem')); const btn = document.getElementById('settingsTaskReviewBtn'); if(btn) btn.classList.toggle('hidden', !isFeatureEnabled('taskTimerSystem')); } //
-    if (window.AppFeatures?.ReminderFeature?.updateUIVisibility) window.AppFeatures.ReminderFeature.updateUIVisibility(); else toggleElements('.reminder-feature-element', isFeatureEnabled('reminderFeature')); //
-    if (window.AppFeatures?.AdvancedRecurrenceFeature?.updateUIVisibility) window.AppFeatures.AdvancedRecurrenceFeature.updateUIVisibility(); else toggleElements('.advanced-recurrence-element', isFeatureEnabled('advancedRecurrence')); //
-    if (window.AppFeatures?.FileAttachmentsFeature?.updateUIVisibility) window.AppFeatures.FileAttachmentsFeature.updateUIVisibility(); else toggleElements('.file-attachments-element', isFeatureEnabled('fileAttachments')); //
-    if (window.AppFeatures?.IntegrationsServicesFeature?.updateUIVisibility) window.AppFeatures.IntegrationsServicesFeature.updateUIVisibility(); else toggleElements('.integrations-services-element', isFeatureEnabled('integrationsServices')); //
-    if (window.AppFeatures?.UserAccountsFeature?.updateUIVisibility) window.AppFeatures.UserAccountsFeature.updateUIVisibility(); else toggleElements('.user-accounts-element', isFeatureEnabled('userAccounts')); //
-    if (window.AppFeatures?.CollaborationSharingFeature?.updateUIVisibility) window.AppFeatures.CollaborationSharingFeature.updateUIVisibility(); else toggleElements('.collaboration-sharing-element', isFeatureEnabled('collaborationSharing')); //
-    if (window.AppFeatures?.CrossDeviceSyncFeature?.updateUIVisibility) window.AppFeatures.CrossDeviceSyncFeature.updateUIVisibility(); else toggleElements('.cross-device-sync-element', isFeatureEnabled('crossDeviceSync')); //
-    if (window.AppFeatures?.TaskDependenciesFeature?.updateUIVisibility) window.AppFeatures.TaskDependenciesFeature.updateUIVisibility(); else toggleElements('.task-dependencies-feature-element', isFeatureEnabled('taskDependenciesFeature')); //
-    if (window.AppFeatures?.SmarterSearchFeature?.updateUIVisibility) window.AppFeatures.SmarterSearchFeature.updateUIVisibility(); else toggleElements('.smarter-search-feature-element', isFeatureEnabled('smarterSearchFeature')); //
-    if (window.AppFeatures?.DataManagementFeature?.updateUIVisibility) window.AppFeatures.DataManagementFeature.updateUIVisibility(); else toggleElements('.export-data-feature-element', isFeatureEnabled('exportDataFeature')); //
-    if (window.AppFeatures?.CalendarViewFeature?.updateUIVisibility) window.AppFeatures.CalendarViewFeature.updateUIVisibility(); else { const cvtb = document.getElementById('calendarViewToggleBtn'); if(cvtb) cvtb.classList.toggle('hidden', !isFeatureEnabled('calendarViewFeature')); toggleElements('.calendar-view-feature-element', isFeatureEnabled('calendarViewFeature'));} //
-    if (window.AppFeatures?.KanbanBoardFeature?.updateUIVisibility) window.AppFeatures.KanbanBoardFeature.updateUIVisibility(); else { const kbtb = document.getElementById('kanbanViewToggleBtn'); if(kbtb) kbtb.classList.toggle('hidden', !isFeatureEnabled('kanbanBoardFeature'));} //
-    if (window.AppFeatures?.PomodoroTimerHybridFeature?.updateUIVisibility) window.AppFeatures.PomodoroTimerHybridFeature.updateUIVisibility(); else toggleElements('.pomodoro-timer-hybrid-feature-element', isFeatureEnabled('pomodoroTimerHybridFeature')); //
-    if (window.AppFeatures?.ProjectsFeature?.updateUIVisibility) window.AppFeatures.ProjectsFeature.updateUIVisibility(); //
-    if (window.AppFeatures?.TooltipsGuideFeature?.updateUIVisibility) window.AppFeatures.TooltipsGuideFeature.updateUIVisibility(); //
-    if (window.AppFeatures?.SubTasksFeature?.updateUIVisibility) window.AppFeatures.SubTasksFeature.updateUIVisibility(); else toggleElements('.sub-tasks-feature-element', isFeatureEnabled('subTasksFeature')); //
-    if (window.AppFeatures?.BackgroundFeature?.updateUIVisibility) window.AppFeatures.BackgroundFeature.updateUIVisibility(); //
-
-    const settingsTooltipsGuideBtnEl = document.getElementById('settingsTooltipsGuideBtn'); //
-    if (settingsTooltipsGuideBtnEl) settingsTooltipsGuideBtnEl.classList.toggle('hidden', !isFeatureEnabled('tooltipsGuide')); //
-
-    const bulkControls = document.getElementById('bulkActionControlsContainer'); //
-    if (bulkControls) { //
-        if (!isFeatureEnabled('bulkActionsFeature')) { //
-            if (BulkActionService && BulkActionService.clearSelections) BulkActionService.clearSelections(); //
-            bulkControls.classList.add('hidden'); //
+    // This loop should handle DataVersioningFeature as well due to the generic AppFeatures structure
+    if (window.AppFeatures) {
+        for (const featureKey in window.AppFeatures) {
+            if (window.AppFeatures[featureKey] && typeof window.AppFeatures[featureKey].updateUIVisibility === 'function') {
+                // LoggingService.debug(`[ApplyActiveFeatures] Calling updateUIVisibility for ${featureKey}`, { functionName });
+                window.AppFeatures[featureKey].updateUIVisibility();
+            }
         }
     }
-    document.querySelectorAll('.bulk-actions-feature-element').forEach(el => el.classList.toggle('hidden', !isFeatureEnabled('bulkActionsFeature'))); //
+    
+    // Specific overrides or elements not covered by a generic class if any:
+    // (Most features are now handled by their own updateUIVisibility methods toggling a specific class like '.feature-name-element')
+
+    const settingsTooltipsGuideBtnEl = document.getElementById('settingsTooltipsGuideBtn'); 
+    if (settingsTooltipsGuideBtnEl) settingsTooltipsGuideBtnEl.classList.toggle('hidden', !isFeatureEnabled('tooltipsGuide')); 
+
+    const bulkControls = document.getElementById('bulkActionControlsContainer'); 
+    if (bulkControls) { 
+        if (!isFeatureEnabled('bulkActionsFeature')) { 
+            if (BulkActionService && BulkActionService.clearSelections) BulkActionService.clearSelections(); 
+            bulkControls.classList.add('hidden'); 
+        }
+    }
+    document.querySelectorAll('.bulk-actions-feature-element').forEach(el => el.classList.toggle('hidden', !isFeatureEnabled('bulkActionsFeature'))); 
 
     refreshTaskView();
 
@@ -194,6 +202,9 @@ export function applyActiveFeatures() {
     }
     LoggingService.info('[UIEventHandlers] Finished applying active features.', { functionName });
 }
+
+// ... (handleAddTask, handleEditTask, toggleComplete, deleteTask, setFilter, clearCompletedTasks, handleAddNewLabel, handleDeleteLabel, handleAddSubTaskViewEdit, handleAddTempSubTaskForAddModal remain unchanged) ...
+// ... (Copying the rest of the file and adding the changes below)
 
 function handleAddTask(event) {
     const functionName = 'handleAddTask';
@@ -381,7 +392,6 @@ export function setFilter(filter) {
     }
     LoggingService.info(`[UIEventHandlers] Setting filter to: ${filter}.`, { functionName, filter });
     ViewManager.setCurrentFilter(filter); 
-    // refreshTaskView will be called by the 'filterChanged' event subscription in ui_rendering.js
 }
 
 function clearCompletedTasks() {
@@ -421,7 +431,6 @@ function handleAddNewLabel(event) {
              populateManageLabelsList();
         }
     }
-    // LabelService.addConceptualLabel shows its own messages/logs for success/failure/duplicate
 }
 
 export function handleDeleteLabel(labelNameToDelete) {
@@ -436,7 +445,6 @@ export function handleDeleteLabel(labelNameToDelete) {
                  populateManageLabelsList();
             }
         } else {
-            // LabelService.deleteLabelUsageFromTasks shows its own messages/logs
             LoggingService.info(`[UIEventHandlers] Deletion of label "${labelNameToDelete}" did not result in changes or failed (see LabelService logs).`, { functionName, labelNameToDelete });
         }
     } else {
@@ -575,6 +583,11 @@ export function setupEventListeners() {
     attachListener('openSettingsModalButton', 'click', openSettingsModal, 'openSettingsModal');
     attachListener('settingsTaskReviewBtn', 'click', openTaskReviewModal, 'openTaskReviewModal');
     attachListener('settingsTooltipsGuideBtn', 'click', openTooltipsGuideModal, 'openTooltipsGuideModal');
+    attachListener('settingsAboutUsBtn', 'click', openAboutUsModal, 'openAboutUsModal'); // ADDED: Listener for About Us button
+    // The settingsContactUsBtn listener is in feature_contact_us.js, which calls the imported openContactUsModal
+    // NEW: Listener for Data Version History button
+    attachListener('settingsVersionHistoryBtn', 'click', openDataVersionHistoryModal, 'openDataVersionHistoryModal');
+
 
     const openFeatureFlagsModalBtn = document.getElementById('openFeatureFlagsModalBtn');
     if (openFeatureFlagsModalBtn) {
@@ -602,29 +615,41 @@ export function setupEventListeners() {
         }
     }
 
-    // Modal Closers (using imported functions from modal_interactions.js)
+    // Modal Closers
     const modalCloserListeners = [
-        { id: 'closeAddModalBtn', handler: closeAddModal, name: 'closeAddModal' },
+        { id: 'closeAddModalBtn', handler: closeAddModal, name: 'closeAddModal (primary)' },
         { id: 'cancelAddModalBtn', handler: closeAddModal, name: 'closeAddModal (cancel)' },
-        { id: 'addTaskModal', handler: (event) => { if (event.target === document.getElementById('addTaskModal')) closeAddModal(); }, name: 'closeAddModal (backdrop)'},
-        { id: 'closeViewEditModalBtn', handler: closeViewEditModal, name: 'closeViewEditModal' },
+        { id: 'addTaskModal', handler: (event) => { if (event.target.id === 'addTaskModal') closeAddModal(); }, name: 'closeAddModal (backdrop)'},
+        { id: 'closeViewEditModalBtn', handler: closeViewEditModal, name: 'closeViewEditModal (primary)' },
         { id: 'cancelViewEditModalBtn', handler: closeViewEditModal, name: 'closeViewEditModal (cancel)' },
-        { id: 'viewEditTaskModal', handler: (e) => { if(e.target === document.getElementById('viewEditTaskModal')) closeViewEditModal(); }, name: 'closeViewEditModal (backdrop)'},
-        { id: 'closeViewDetailsModalBtn', handler: closeViewTaskDetailsModal, name: 'closeViewTaskDetailsModal' },
+        { id: 'viewEditTaskModal', handler: (event) => { if(event.target.id === 'viewEditTaskModal') closeViewEditModal(); }, name: 'closeViewEditModal (backdrop)'},
+        { id: 'closeViewDetailsModalBtn', handler: closeViewTaskDetailsModal, name: 'closeViewTaskDetailsModal (primary)' },
         { id: 'closeViewDetailsSecondaryBtn', handler: closeViewTaskDetailsModal, name: 'closeViewTaskDetailsModal (secondary)' },
-        { id: 'viewTaskDetailsModal', handler: (e) => { if(e.target === document.getElementById('viewTaskDetailsModal')) closeViewTaskDetailsModal(); }, name: 'closeViewTaskDetailsModal (backdrop)'},
-        { id: 'closeSettingsModalBtn', handler: closeSettingsModal, name: 'closeSettingsModal' },
+        { id: 'viewTaskDetailsModal', handler: (event) => { if(event.target.id === 'viewTaskDetailsModal') closeViewTaskDetailsModal(); }, name: 'closeViewTaskDetailsModal (backdrop)'},
+        { id: 'closeSettingsModalBtn', handler: closeSettingsModal, name: 'closeSettingsModal (primary)' },
         { id: 'closeSettingsSecondaryBtn', handler: closeSettingsModal, name: 'closeSettingsModal (secondary)' },
-        { id: 'settingsModal', handler: (e) => { if(e.target === document.getElementById('settingsModal')) closeSettingsModal(); }, name: 'closeSettingsModal (backdrop)'},
-        { id: 'closeManageLabelsModalBtn', handler: closeManageLabelsModal, name: 'closeManageLabelsModal' },
+        { id: 'settingsModal', handler: (event) => { if(event.target.id === 'settingsModal') closeSettingsModal(); }, name: 'closeSettingsModal (backdrop)'},
+        { id: 'closeManageLabelsModalBtn', handler: closeManageLabelsModal, name: 'closeManageLabelsModal (primary)' },
         { id: 'closeManageLabelsSecondaryBtn', handler: closeManageLabelsModal, name: 'closeManageLabelsModal (secondary)' },
-        { id: 'manageLabelsModal', handler: (e) => { if(e.target === document.getElementById('manageLabelsModal')) closeManageLabelsModal(); }, name: 'closeManageLabelsModal (backdrop)'},
-        { id: 'closeTooltipsGuideModalBtn', handler: closeTooltipsGuideModal, name: 'closeTooltipsGuideModal' },
+        { id: 'manageLabelsModal', handler: (event) => { if(event.target.id === 'manageLabelsModal') closeManageLabelsModal(); }, name: 'closeManageLabelsModal (backdrop)'},
+        { id: 'closeTooltipsGuideModalBtn', handler: closeTooltipsGuideModal, name: 'closeTooltipsGuideModal (primary)' },
         { id: 'closeTooltipsGuideSecondaryBtn', handler: closeTooltipsGuideModal, name: 'closeTooltipsGuideModal (secondary)' },
-        { id: 'tooltipsGuideModal', handler: (event) => { if (event.target === document.getElementById('tooltipsGuideModal')) closeTooltipsGuideModal(); }, name: 'closeTooltipsGuideModal (backdrop)'},
-        { id: 'closeTaskReviewModalBtn', handler: closeTaskReviewModal, name: 'closeTaskReviewModal' },
+        { id: 'tooltipsGuideModal', handler: (event) => { if (event.target.id === 'tooltipsGuideModal') closeTooltipsGuideModal(); }, name: 'closeTooltipsGuideModal (backdrop)'},
+        { id: 'closeTaskReviewModalBtn', handler: closeTaskReviewModal, name: 'closeTaskReviewModal (primary)' },
         { id: 'closeTaskReviewSecondaryBtn', handler: closeTaskReviewModal, name: 'closeTaskReviewModal (secondary)' },
-        { id: 'taskReviewModal', handler: (e) => { if(e.target === document.getElementById('taskReviewModal')) closeTaskReviewModal(); }, name: 'closeTaskReviewModal (backdrop)'},
+        { id: 'taskReviewModal', handler: (event) => { if(event.target.id === 'taskReviewModal') closeTaskReviewModal(); }, name: 'closeTaskReviewModal (backdrop)'},
+        // Add listeners for Contact Us Modal
+        { id: 'closeContactUsModalBtn', handler: closeContactUsModal, name: 'closeContactUsModal (primary)' },
+        { id: 'closeContactUsSecondaryBtn', handler: closeContactUsModal, name: 'closeContactUsModal (secondary)' },
+        { id: 'contactUsModal', handler: (event) => { if (event.target.id === 'contactUsModal') closeContactUsModal(); }, name: 'closeContactUsModal (backdrop)' },
+        // ADDED: Listeners for About Us Modal
+        { id: 'closeAboutUsModalBtn', handler: closeAboutUsModal, name: 'closeAboutUsModal (primary)' },
+        { id: 'closeAboutUsSecondaryBtn', handler: closeAboutUsModal, name: 'closeAboutUsModal (secondary)' },
+        { id: 'aboutUsModal', handler: (event) => { if (event.target.id === 'aboutUsModal') closeAboutUsModal(); }, name: 'closeAboutUsModal (backdrop)' },
+        // NEW: Listeners for Data Version History Modal
+        { id: 'closeDataVersionHistoryModalBtn', handler: closeDataVersionHistoryModal, name: 'closeDataVersionHistoryModal (primary)' },
+        { id: 'closeDataVersionHistorySecondaryBtn', handler: closeDataVersionHistoryModal, name: 'closeDataVersionHistoryModal (secondary)' },
+        { id: 'dataVersionHistoryModal', handler: (event) => { if (event.target.id === 'dataVersionHistoryModal') closeDataVersionHistoryModal(); }, name: 'closeDataVersionHistoryModal (backdrop)' }
     ];
     modalCloserListeners.forEach(listener => attachListener(listener.id, 'click', listener.handler, listener.name));
 
@@ -667,13 +692,14 @@ export function setupEventListeners() {
     };
     attachListener('closeFeatureFlagsModalBtn', 'click', ffModalCloseHandler, 'ffModalCloseHandler (primary)');
     attachListener('closeFeatureFlagsSecondaryBtn', 'click', ffModalCloseHandler, 'ffModalCloseHandler (secondary)');
-    attachListener('featureFlagsModal', 'click', (event) => { if(event.target === document.getElementById('featureFlagsModal')) ffModalCloseHandler(); }, 'ffModalCloseHandler (backdrop)');
+    attachListener('featureFlagsModal', 'click', (event) => { if(event.target.id === 'featureFlagsModal') ffModalCloseHandler(); }, 'ffModalCloseHandler (backdrop)');
 
 
     // Form Submissions
     attachListener('modalTodoFormAdd', 'submit', handleAddTask, 'handleAddTask');
     attachListener('modalTodoFormViewEdit', 'submit', handleEditTask, 'handleEditTask');
     attachListener('addNewLabelForm', 'submit', handleAddNewLabel, 'handleAddNewLabel');
+    // ContactUsForm submission listener is in feature_contact_us.js which calls the imported modal close.
 
     // Filter Buttons (Smart Views)
     const smartViewButtonsContainerEl = document.getElementById('smartViewButtonsContainer');
@@ -701,8 +727,6 @@ export function setupEventListeners() {
             element.addEventListener('click', async () => {
                 LoggingService.debug(`[UIEventHandlers] Sort button clicked: ${item.type}`, { functionName: 'sortButtonHandler', sortType: item.type });
                 ViewManager.setCurrentSort(item.type);
-                // ui_rendering.js handles UI update via event subscription
-                // Forcing immediate update if module is loaded can be done here if needed:
                 try {
                     const uiRenderingModule = await import('./ui_rendering.js');
                     if (uiRenderingModule.updateSortButtonStates) {
@@ -733,7 +757,6 @@ export function setupEventListeners() {
     const taskSearchInputEl = document.getElementById('taskSearchInput');
     if (taskSearchInputEl) {
         taskSearchInputEl.addEventListener('input', (e) => {
-            // LoggingService.debug(`[UIEventHandlers] Search input changed: "${e.target.value}"`, { functionName: 'searchInputHandler', term: e.target.value }); // Can be very noisy
             ViewManager.setCurrentSearchTerm(e.target.value)
         });
          LoggingService.debug(`[UIEventHandlers] Task search input listener attached.`, { functionName, elementId: 'taskSearchInput' });
@@ -750,36 +773,45 @@ export function setupEventListeners() {
         const keydownHandlerName = 'documentKeydownHandler';
         if (event.key === 'Escape') {
             LoggingService.debug('[UIEventHandlers] Escape key pressed, attempting to close modals.', { functionName: keydownHandlerName, key: event.key });
-            // ... (modal closing logic based on visibility - keep as is)
-            if (document.getElementById('addTaskModal') && !document.getElementById('addTaskModal').classList.contains('hidden')) closeAddModal(); //
-            else if (document.getElementById('viewEditTaskModal') && !document.getElementById('viewEditTaskModal').classList.contains('hidden')) closeViewEditModal(); //
-            else if (document.getElementById('viewTaskDetailsModal') && !document.getElementById('viewTaskDetailsModal').classList.contains('hidden')) closeViewTaskDetailsModal(); //
-            else if (document.getElementById('settingsModal') && !document.getElementById('settingsModal').classList.contains('hidden')) closeSettingsModal(); //
-            else if (document.getElementById('manageLabelsModal') && !document.getElementById('manageLabelsModal').classList.contains('hidden')) closeManageLabelsModal(); //
-            else if (document.getElementById('taskReviewModal') && !document.getElementById('taskReviewModal').classList.contains('hidden')) closeTaskReviewModal(); //
-            else if (document.getElementById('tooltipsGuideModal') && !document.getElementById('tooltipsGuideModal').classList.contains('hidden')) closeTooltipsGuideModal(); //
+            const contactUsModalEl = document.getElementById('contactUsModal'); // Get reference
+            const aboutUsModalEl = document.getElementById('aboutUsModal'); // ADDED: Get reference for About Us
+            const dataVersionHistoryModalEl = document.getElementById('dataVersionHistoryModal'); // NEW: Get reference
 
-            const ffModal = document.getElementById('featureFlagsModal'); //
-            if (ffModal && !ffModal.classList.contains('hidden')) { //
-                ffModalCloseHandler(); // Use the defined handler
+
+            if (document.getElementById('addTaskModal') && !document.getElementById('addTaskModal').classList.contains('hidden')) closeAddModal(); 
+            else if (document.getElementById('viewEditTaskModal') && !document.getElementById('viewEditTaskModal').classList.contains('hidden')) closeViewEditModal(); 
+            else if (document.getElementById('viewTaskDetailsModal') && !document.getElementById('viewTaskDetailsModal').classList.contains('hidden')) closeViewTaskDetailsModal(); 
+            else if (document.getElementById('settingsModal') && !document.getElementById('settingsModal').classList.contains('hidden')) closeSettingsModal(); 
+            else if (document.getElementById('manageLabelsModal') && !document.getElementById('manageLabelsModal').classList.contains('hidden')) closeManageLabelsModal(); 
+            else if (document.getElementById('taskReviewModal') && !document.getElementById('taskReviewModal').classList.contains('hidden')) closeTaskReviewModal(); 
+            else if (document.getElementById('tooltipsGuideModal') && !document.getElementById('tooltipsGuideModal').classList.contains('hidden')) closeTooltipsGuideModal(); 
+            else if (contactUsModalEl && !contactUsModalEl.classList.contains('hidden')) closeContactUsModal(); 
+            else if (aboutUsModalEl && !aboutUsModalEl.classList.contains('hidden')) closeAboutUsModal();
+            // NEW: Close Data Version History Modal on Escape
+            else if (dataVersionHistoryModalEl && !dataVersionHistoryModalEl.classList.contains('hidden')) closeDataVersionHistoryModal();
+
+
+            const ffModal = document.getElementById('featureFlagsModal'); 
+            if (ffModal && !ffModal.classList.contains('hidden')) { 
+                ffModalCloseHandler(); 
             }
-            const projModal = document.getElementById('manageProjectsModal'); //
-            if (projModal && !projModal.classList.contains('hidden') && window.AppFeatures?.ProjectsFeature?.closeManageProjectsModal) { //
-                 window.AppFeatures.ProjectsFeature.closeManageProjectsModal(); //
-            } else if (projModal && !projModal.classList.contains('hidden')) { //
-                const projDialog = document.getElementById('modalDialogManageProjects'); //
-                if (projDialog) projDialog.classList.add('scale-95', 'opacity-0'); //
-                setTimeout(() => { projModal.classList.add('hidden'); }, 200); //
+            const projModal = document.getElementById('manageProjectsModal'); 
+            if (projModal && !projModal.classList.contains('hidden') && window.AppFeatures?.ProjectsFeature?.closeManageProjectsModal) { 
+                 window.AppFeatures.ProjectsFeature.closeManageProjectsModal(); 
+            } else if (projModal && !projModal.classList.contains('hidden')) { 
+                const projDialog = document.getElementById('modalDialogManageProjects'); 
+                if (projDialog) projDialog.classList.add('scale-95', 'opacity-0'); 
+                setTimeout(() => { projModal.classList.add('hidden'); }, 200); 
             }
 
 
-        } else if ((event.key === '+' || event.key === '=') && //
-            !event.altKey && !event.ctrlKey && !event.metaKey && //
-            !['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName.toUpperCase()) && //
-            document.querySelectorAll('.fixed.inset-0:not(.hidden)').length === 0) { // Check no other modal is open //
+        } else if ((event.key === '+' || event.key === '=') && 
+            !event.altKey && !event.ctrlKey && !event.metaKey && 
+            !['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName.toUpperCase()) && 
+            document.querySelectorAll('.fixed.inset-0:not(.hidden)').length === 0) { 
             LoggingService.debug('[UIEventHandlers] Add task shortcut key pressed.', { functionName: keydownHandlerName, key: event.key });
-            event.preventDefault(); //
-            openAddModal(); //
+            event.preventDefault(); 
+            openAddModal(); 
         }
     });
     LoggingService.debug(`[UIEventHandlers] Document keydown listener attached.`, { functionName });
@@ -789,22 +821,20 @@ export function setupEventListeners() {
     attachListener('modalAddSubTaskBtnViewEdit', 'click', handleAddSubTaskViewEdit, 'handleAddSubTaskViewEdit');
 
     // Bulk Action Listeners
-    const selectAllTasksCheckboxEl = document.getElementById('selectAllTasksCheckbox'); //
-    if (selectAllTasksCheckboxEl && isFeatureEnabled('bulkActionsFeature')) { //
-        selectAllTasksCheckboxEl.addEventListener('change', (e) => { //
+    const selectAllTasksCheckboxEl = document.getElementById('selectAllTasksCheckbox'); 
+    if (selectAllTasksCheckboxEl && isFeatureEnabled('bulkActionsFeature')) { 
+        selectAllTasksCheckboxEl.addEventListener('change', (e) => { 
             const handlerName = 'selectAllTasksCheckboxHandler';
             LoggingService.debug(`[UIEventHandlers] Select All Tasks checkbox changed: ${e.target.checked}`, { functionName: handlerName, checked: e.target.checked });
-            const tasksToSelect = ViewManager.getFilteredTasksForBulkAction(); //
-            if (e.target.checked) { //
-                tasksToSelect.forEach(task => BulkActionService.selectTaskIfNotSelected(task.id)); //
-            } else { //
-                tasksToSelect.forEach(task => BulkActionService.deselectTaskIfSelected(task.id)); //
+            const tasksToSelect = ViewManager.getFilteredTasksForBulkAction(); 
+            if (e.target.checked) { 
+                tasksToSelect.forEach(task => BulkActionService.selectTaskIfNotSelected(task.id)); 
+            } else { 
+                tasksToSelect.forEach(task => BulkActionService.deselectTaskIfSelected(task.id)); 
             }
         });
         LoggingService.debug(`[UIEventHandlers] Select All Tasks checkbox listener attached.`, { functionName, elementId: 'selectAllTasksCheckbox' });
     }
-    // Logging for other bulk action button listeners would follow a similar pattern,
-    // e.g., log when bulkCompleteBtn, bulkDeleteBtn are clicked.
 
     LoggingService.info("[UIEventHandlers] All event listeners setup process completed.", { functionName });
 }

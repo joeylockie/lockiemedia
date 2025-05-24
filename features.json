@@ -18,5 +18,10 @@
   "smarterSearchFeature": false,
   "bulkActionsFeature": false,
   "pomodoroTimerHybridFeature": false,
-  "backgroundFeature": true
+  "backgroundFeature": false,
+  "contactUsFeature": false,
+  "socialMediaLinksFeature": false,
+  "aboutUsFeature": true,
+  "dataVersioningFeature": false,
+  "debugMode": false
 }

@@ -4,6 +4,7 @@
 import EventBus from './eventBus.js';
 import AppStore from './store.js';
 import { loadFeatureFlags, isFeatureEnabled as isFeatureEnabledFromService } from './featureFlagService.js';
+import { loadAppVersion, getAppVersionString } from './versionService.js';
 import * as TaskService from './taskService.js';
 import * as ProjectServiceModule from './projectService.js';
 import { ProjectsFeature } from './feature_projects.js';
@@ -32,21 +33,20 @@ import * as ModalInteractions from './modal_interactions.js';
 import { TooltipsGuideFeature } from './feature_tooltips_guide.js';
 import { SubTasksFeature } from './feature_sub_tasks.js';
 import { BackgroundFeature } from './feature_background.js';
-
-// NEW: Import LoggingService and LOG_LEVELS
+import { ContactUsFeature } from './feature_contact_us.js';
+import { SocialMediaLinksFeature } from './feature_social_media_links.js';
+import { AboutUsFeature } from './feature_about_us.js';
+import { DataVersioningFeature } from './feature_data_versioning.js';
 import LoggingService, { LOG_LEVELS } from './loggingService.js';
 
-// Placeholder for showCriticalError - this function would be in ui_rendering.js
-// For now, we'll define a simple global fallback if it's not imported,
-// but ideally, ui_rendering.js should export it.
+// MODIFIED: Define uiRendering module reference outside the try block to be accessible later
+let uiRendering;
+
 let showCriticalErrorImported = (message, errorId) => {
     console.error(`CRITICAL ERROR (display): ${message}, ID: ${errorId}`);
-    // In a real scenario, this would update a dedicated UI element.
-    // Fallback alert for demonstration if the UI element isn't ready:
-    // alert(`Critical Error: ${message}\nError ID: ${errorId}\nSee console for more details.`);
 };
 
-// Make services/features globally available for non-module scripts during transition (gradually remove these)
+// Make services/features globally available
 if (typeof window.isFeatureEnabled === 'undefined') window.isFeatureEnabled = isFeatureEnabledFromService;
 if (typeof window.AppStore === 'undefined') window.AppStore = AppStore;
 if (typeof window.EventBus === 'undefined') window.EventBus = EventBus;
@@ -57,9 +57,7 @@ if (typeof window.ViewManager === 'undefined') window.ViewManager = ViewManager;
 if (typeof window.BulkActionService === 'undefined') window.BulkActionService = BulkActionServiceModule;
 if (typeof window.ModalStateService === 'undefined') window.ModalStateService = ModalStateService;
 if (typeof window.TooltipService === 'undefined') window.TooltipService = TooltipService;
-// NEW: Make LoggingService globally available (optional, but can be useful for debugging from console)
 if (typeof window.LoggingService === 'undefined') window.LoggingService = LoggingService;
-
 
 // --- Global Error Handlers ---
 window.onerror = function(message, source, lineno, colno, error) {
@@ -71,9 +69,8 @@ window.onerror = function(message, source, lineno, colno, error) {
         errorId,
         type: 'window.onerror'
     });
-    // Use the imported or placeholder function for displaying the error
     showCriticalErrorImported(`An unexpected error occurred. Please report ID: ${errorId}`, errorId);
-    return true; // Prevents the default browser error handling
+    return true; 
 };
 
 window.onunhandledrejection = function(event) {
@@ -86,180 +83,187 @@ window.onunhandledrejection = function(event) {
         errorId,
         type: 'window.onunhandledrejection'
     });
-    // Use the imported or placeholder function for displaying the error
     showCriticalErrorImported(`An operation failed unexpectedly. Please report ID: ${errorId}`, errorId);
-    event.preventDefault(); // Prevents default browser handling
+    event.preventDefault(); 
 };
 
 
 document.addEventListener('DOMContentLoaded', async () => {
-    LoggingService.info("[Main] DOMContentLoaded event fired. Starting application initialization..."); // MODIFIED
+    LoggingService.info("[Main] DOMContentLoaded event fired. Starting application initialization...");
 
-    // 1. Initialize DOM Element References
-    let uiRendering;
+    // Load feature flags first, as they might influence logging or other initializations
     try {
-        uiRendering = await import('./ui_rendering.js');
-        if (uiRendering.initializeDOMElements) {
-            uiRendering.initializeDOMElements();
-            LoggingService.info("[Main] DOM elements initialized via import."); // MODIFIED
-        } else {
-            throw new Error("initializeDOMElements not found in ui_rendering.js");
-        }
-        // Attempt to import showCriticalError properly
-        if (uiRendering.showCriticalError) {
-            showCriticalErrorImported = uiRendering.showCriticalError;
-            LoggingService.info("[Main] showCriticalError function imported from ui_rendering."); // MODIFIED
-        } else {
-            LoggingService.warn("[Main] showCriticalError function not found in ui_rendering.js. Using fallback."); // MODIFIED
-        }
-    } catch (e) {
-        LoggingService.critical("[Main] CRITICAL: Error importing or calling initializeDOMElements from ui_rendering.js!", e); // MODIFIED
-        if (typeof initializeDOMElements === 'function') {
-             initializeDOMElements();
-             LoggingService.info("[Main] DOM elements initialized via assumed global (fallback)."); // MODIFIED
-        } else {
-            LoggingService.critical("[Main] Application cannot start: DOM initialization failed."); // MODIFIED
-            return;
-        }
-    }
-
-    // 2. Initialize FeatureFlagService and load flags.
-    try {
-        await loadFeatureFlags(); //
-        LoggingService.info("[Main] Feature flags loading process initiated/completed by FeatureFlagService."); // MODIFIED
-        // NEW: Set LoggingService level based on 'debugMode' feature flag
-        if (isFeatureEnabledFromService('debugMode')) { // Assuming 'debugMode' is a flag you might add to features.json
+        await loadFeatureFlags();
+        LoggingService.info("[Main] Feature flags loading process completed.");
+        if (isFeatureEnabledFromService('debugMode')) {
             LoggingService.setLevel('DEBUG');
         } else {
-            LoggingService.setLevel('INFO'); // Default production level
+            LoggingService.setLevel('INFO');
         }
     }
     catch (e) {
-        LoggingService.critical("[Main] CRITICAL: Error loading feature flags!", e); // MODIFIED
-        return;
+        LoggingService.critical("[Main] CRITICAL: Error loading feature flags!", e);
+        showCriticalErrorImported("Failed to load application configuration. Please try again later.", "CONFIG_LOAD_FAIL");
+        return; // Stop further execution if flags fail
     }
 
-    // 3. Initialize Store
+    // Then, load application version
+    try {
+        await loadAppVersion();
+        LoggingService.info(`[Main] Application Version: ${getAppVersionString()} successfully loaded.`);
+    } catch (e) {
+        LoggingService.error("[Main] Error loading application version. Default will be used.", e);
+    }
+
+    // Now, initialize DOM elements and UI rendering module
+    // The uiRendering module needs to be available for other services that might be initialized soon
+    try {
+        uiRendering = await import('./ui_rendering.js');
+        if (uiRendering.showCriticalError) {
+            showCriticalErrorImported = uiRendering.showCriticalError;
+            LoggingService.info("[Main] showCriticalError function imported from ui_rendering.");
+        } else {
+            LoggingService.warn("[Main] showCriticalError function not found in ui_rendering.js. Using fallback.");
+        }
+        // Call initializeDOMElements AFTER version is loaded and uiRendering module is available
+        if (uiRendering.initializeDOMElements) {
+            uiRendering.initializeDOMElements(); // This will call renderAppVersion()
+            LoggingService.info("[Main] DOM elements initialized and initial version rendered.");
+        } else {
+            throw new Error("initializeDOMElements not found in ui_rendering.js");
+        }
+    } catch (e) {
+        LoggingService.critical("[Main] CRITICAL: Error importing or initializing ui_rendering.js or its DOM elements!", e);
+        // Fallback or stop execution might be needed here
+        if (typeof initializeDOMElements === 'function') { // Check for a global fallback, though less ideal
+             initializeDOMElements();
+             LoggingService.info("[Main] DOM elements initialized via assumed global (fallback).");
+        } else {
+            showCriticalErrorImported("Failed to initialize UI components. Please try again later.", "UI_INIT_FAIL");
+            LoggingService.critical("[Main] Application cannot start: DOM/UI initialization failed.");
+            return;
+        }
+    }
+    
+    // Initialize Store
     if (AppStore && typeof AppStore.initializeStore === 'function') {
-        await AppStore.initializeStore(); //
-        LoggingService.info("[Main] AppStore initialized."); // MODIFIED
+        await AppStore.initializeStore();
+        LoggingService.info("[Main] AppStore initialized.");
     }
     else {
-        LoggingService.critical("[Main] CRITICAL: AppStore.initializeStore is not available!"); // MODIFIED
+        LoggingService.critical("[Main] CRITICAL: AppStore.initializeStore is not available!");
+        showCriticalErrorImported("Failed to load application data. Please try again later.", "STORE_INIT_FAIL");
         return;
     }
 
-    // 4. Initialize UI Rendering Event Subscriptions
+    // Initialize UI Rendering Event Subscriptions
     if (uiRendering && uiRendering.initializeUiRenderingSubscriptions) {
-        uiRendering.initializeUiRenderingSubscriptions(); //
-        LoggingService.info("[Main] UI Rendering event subscriptions initialized via import."); // MODIFIED
-    } else if (typeof initializeUiRenderingSubscriptions === 'function') { // Fallback
+        uiRendering.initializeUiRenderingSubscriptions();
+        LoggingService.info("[Main] UI Rendering event subscriptions initialized.");
+    } else if (typeof initializeUiRenderingSubscriptions === 'function') {
         initializeUiRenderingSubscriptions();
-        LoggingService.info("[Main] UI Rendering event subscriptions initialized via assumed global."); // MODIFIED
+        LoggingService.info("[Main] UI Rendering event subscriptions initialized via assumed global.");
     } else {
-        LoggingService.error("[Main] initializeUiRenderingSubscriptions function not found!"); // MODIFIED
+        LoggingService.error("[Main] initializeUiRenderingSubscriptions function not found!");
     }
 
-    // 5. Initialize Feature Modules
-    if (typeof window.AppFeatures === 'undefined') window.AppFeatures = {}; //
-    window.AppFeatures.ProjectsFeature = ProjectsFeature; //
-    window.AppFeatures.TestButtonFeature = TestButtonFeature; //
-    window.AppFeatures.ReminderFeature = ReminderFeature; //
-    window.AppFeatures.AdvancedRecurrenceFeature = AdvancedRecurrenceFeature; //
-    window.AppFeatures.FileAttachmentsFeature = FileAttachmentsFeature; //
-    window.AppFeatures.IntegrationsServicesFeature = IntegrationsServicesFeature; //
-    window.AppFeatures.UserAccountsFeature = UserAccountsFeature; //
-    window.AppFeatures.CollaborationSharingFeature = CollaborationSharingFeature; //
-    window.AppFeatures.CrossDeviceSyncFeature = CrossDeviceSyncFeature; //
-    window.AppFeatures.TaskDependenciesFeature = TaskDependenciesFeature; //
-    window.AppFeatures.SmarterSearchFeature = SmarterSearchFeature; //
-    window.AppFeatures.DataManagementFeature = DataManagementFeature; //
-    window.AppFeatures.CalendarViewFeature = CalendarViewFeature; //
-    window.AppFeatures.TaskTimerSystemFeature = TaskTimerSystemFeature; //
-    window.AppFeatures.KanbanBoardFeature = KanbanBoardFeature; //
-    window.AppFeatures.PomodoroTimerHybridFeature = PomodoroTimerHybridFeature; //
-    window.AppFeatures.TooltipsGuideFeature = TooltipsGuideFeature; //
-    window.AppFeatures.SubTasksFeature = SubTasksFeature; //
-    window.AppFeatures.BackgroundFeature = BackgroundFeature; //
+    // Initialize Feature Modules
+    if (typeof window.AppFeatures === 'undefined') window.AppFeatures = {}; 
+    window.AppFeatures.ProjectsFeature = ProjectsFeature; 
+    window.AppFeatures.TestButtonFeature = TestButtonFeature; 
+    window.AppFeatures.ReminderFeature = ReminderFeature; 
+    window.AppFeatures.AdvancedRecurrenceFeature = AdvancedRecurrenceFeature; 
+    window.AppFeatures.FileAttachmentsFeature = FileAttachmentsFeature; 
+    window.AppFeatures.IntegrationsServicesFeature = IntegrationsServicesFeature; 
+    window.AppFeatures.UserAccountsFeature = UserAccountsFeature; 
+    window.AppFeatures.CollaborationSharingFeature = CollaborationSharingFeature; 
+    window.AppFeatures.CrossDeviceSyncFeature = CrossDeviceSyncFeature; 
+    window.AppFeatures.TaskDependenciesFeature = TaskDependenciesFeature; 
+    window.AppFeatures.SmarterSearchFeature = SmarterSearchFeature; 
+    window.AppFeatures.DataManagementFeature = DataManagementFeature; 
+    window.AppFeatures.CalendarViewFeature = CalendarViewFeature; 
+    window.AppFeatures.TaskTimerSystemFeature = TaskTimerSystemFeature; 
+    window.AppFeatures.KanbanBoardFeature = KanbanBoardFeature; 
+    window.AppFeatures.PomodoroTimerHybridFeature = PomodoroTimerHybridFeature; 
+    window.AppFeatures.TooltipsGuideFeature = TooltipsGuideFeature; 
+    window.AppFeatures.SubTasksFeature = SubTasksFeature; 
+    window.AppFeatures.BackgroundFeature = BackgroundFeature; 
+    window.AppFeatures.ContactUsFeature = ContactUsFeature; 
+    window.AppFeatures.SocialMediaLinksFeature = SocialMediaLinksFeature; 
+    window.AppFeatures.AboutUsFeature = AboutUsFeature; 
+    window.AppFeatures.DataVersioningFeature = DataVersioningFeature;
 
 
-    if (typeof isFeatureEnabledFromService !== 'undefined' && typeof window.AppFeatures !== 'undefined') { //
-        LoggingService.info("[Main] Initializing feature modules..."); // MODIFIED
-        for (const featureName in window.AppFeatures) { //
+    if (typeof isFeatureEnabledFromService !== 'undefined' && typeof window.AppFeatures !== 'undefined') { 
+        LoggingService.info("[Main] Initializing feature modules..."); 
+        for (const featureName in window.AppFeatures) { 
             if (window.AppFeatures.hasOwnProperty(featureName) &&
                 window.AppFeatures[featureName] &&
-                typeof window.AppFeatures[featureName].initialize === 'function') { //
-                let flagKey = featureName.replace(/Feature$/, '').replace(/([A-Z])/g, (match, p1, offset) => (offset > 0 ? "-" : "") + p1.toLowerCase()); //
-                const flagMappings = { //
-                    "test-button": "testButtonFeature", "reminder": "reminderFeature", "task-timer-system": "taskTimerSystem", //
-                    "advanced-recurrence": "advancedRecurrence", "file-attachments": "fileAttachments", //
-                    "integrations-services": "integrationsServices", "user-accounts": "userAccounts", //
-                    "collaboration-sharing": "collaborationSharing", "cross-device-sync": "crossDeviceSync", //
-                    "tooltips-guide": "tooltipsGuide", "sub-tasks": "subTasksFeature", "kanban-board": "kanbanBoardFeature", //
-                    "projects": "projectFeature", "export-data": "exportDataFeature", "calendar-view": "calendarViewFeature", //
-                    "task-dependencies": "taskDependenciesFeature", "smarter-search": "smarterSearchFeature", //
-                    "bulk-actions": "bulkActionsFeature", "pomodoro-timer-hybrid": "pomodoroTimerHybridFeature", //
-                    "background": "backgroundFeature" //
+                typeof window.AppFeatures[featureName].initialize === 'function') { 
+                let flagKey = featureName.replace(/Feature$/, '').replace(/([A-Z])/g, (match, p1, offset) => (offset > 0 ? "-" : "") + p1.toLowerCase()); 
+                const flagMappings = { 
+                    "test-button": "testButtonFeature", "reminder": "reminderFeature", "task-timer-system": "taskTimerSystem", 
+                    "advanced-recurrence": "advancedRecurrence", "file-attachments": "fileAttachments", 
+                    "integrations-services": "integrationsServices", "user-accounts": "userAccounts", 
+                    "collaboration-sharing": "collaborationSharing", "cross-device-sync": "crossDeviceSync", 
+                    "tooltips-guide": "tooltipsGuide", "sub-tasks": "subTasksFeature", "kanban-board": "kanbanBoardFeature", 
+                    "projects": "projectFeature", "export-data": "exportDataFeature", "calendar-view": "calendarViewFeature", 
+                    "task-dependencies": "taskDependenciesFeature", "smarter-search": "smarterSearchFeature", 
+                    "bulk-actions": "bulkActionsFeature", "pomodoro-timer-hybrid": "pomodoroTimerHybridFeature", 
+                    "background": "backgroundFeature", "contact-us": "contactUsFeature", 
+                    "social-media-links": "socialMediaLinksFeature", 
+                    "about-us": "aboutUsFeature", 
+                    "data-versioning": "dataVersioningFeature"
                 };
-                const effectiveFlagKey = flagMappings[flagKey] || flagKey; //
-                if (isFeatureEnabledFromService(effectiveFlagKey) || !Object.keys(AppStore.getFeatureFlags()).includes(effectiveFlagKey) ) { //
+                const effectiveFlagKey = flagMappings[flagKey] || flagKey; 
+                if (isFeatureEnabledFromService(effectiveFlagKey) || !Object.keys(AppStore.getFeatureFlags()).includes(effectiveFlagKey) ) { 
                     try {
-                        LoggingService.debug(`[Main] Initializing ${featureName} (flag key used for check: ${effectiveFlagKey}, enabled: ${isFeatureEnabledFromService(effectiveFlagKey)})...`); // MODIFIED
-                        window.AppFeatures[featureName].initialize(); //
+                        LoggingService.debug(`[Main] Initializing ${featureName} (flag key used for check: ${effectiveFlagKey}, enabled: ${isFeatureEnabledFromService(effectiveFlagKey)})...`); 
+                        window.AppFeatures[featureName].initialize(); 
                     } catch (e) {
-                        LoggingService.error(`[Main] Error initializing feature ${featureName}:`, e); // MODIFIED
+                        LoggingService.error(`[Main] Error initializing feature ${featureName}:`, e); 
                     }
                 } else {
-                    LoggingService.info(`[Main] Skipping initialization of ${featureName} as its flag (${effectiveFlagKey}) is disabled.`); // MODIFIED
+                    LoggingService.info(`[Main] Skipping initialization of ${featureName} as its flag (${effectiveFlagKey}) is disabled.`); 
                 }
             }
         }
-        LoggingService.info("[Main] Feature modules initialization process completed."); // MODIFIED
+        LoggingService.info("[Main] Feature modules initialization process completed."); 
     }
 
-    // 6. Apply Active Features to the UI (initial setup)
-    applyActiveFeatures(); //
-    LoggingService.info("[Main] Active features applied to UI (initial)."); // MODIFIED
+    applyActiveFeatures(); 
+    LoggingService.info("[Main] Active features applied to UI (initial)."); 
 
-    // 7. Style Initial UI Elements for Filters
-    if (ViewManager && typeof setFilter === 'function') { //
-        setFilter(ViewManager.getCurrentFilter()); //
-        LoggingService.info("[Main] Initial filter styles applied."); // MODIFIED
+    if (ViewManager && typeof setFilter === 'function') { 
+        setFilter(ViewManager.getCurrentFilter()); 
+        LoggingService.info("[Main] Initial filter styles applied."); 
     } else {
-        if (uiRendering && uiRendering.styleInitialSmartViewButtons) { //
-             uiRendering.styleInitialSmartViewButtons(); //
+        if (uiRendering && uiRendering.styleInitialSmartViewButtons) { 
+             uiRendering.styleInitialSmartViewButtons(); 
         }
-        LoggingService.warn("[Main] ViewManager or setFilter not fully available for initial styling."); // MODIFIED
+        LoggingService.warn("[Main] ViewManager or setFilter not fully available for initial styling."); 
     }
 
-
-    // 8. Set Initial Sidebar State
-    const savedSidebarState = localStorage.getItem('sidebarState'); //
-    if (uiRendering && uiRendering.setSidebarMinimized) { //
-        uiRendering.setSidebarMinimized(savedSidebarState === 'minimized'); //
-    } else if (typeof setSidebarMinimized === 'function') { // Fallback
-        setSidebarMinimized(savedSidebarState === 'minimized'); //
+    const savedSidebarState = localStorage.getItem('sidebarState'); 
+    if (uiRendering && uiRendering.setSidebarMinimized) { 
+        uiRendering.setSidebarMinimized(savedSidebarState === 'minimized'); 
+    } else if (typeof setSidebarMinimized === 'function') { 
+        setSidebarMinimized(savedSidebarState === 'minimized'); 
     }
 
-
-    // 9. Populate Project-Specific UI (if feature enabled)
-    if (isFeatureEnabledFromService('projectFeature') && window.AppFeatures?.ProjectsFeature) { //
-        if(window.AppFeatures.ProjectsFeature.populateProjectFilterList) window.AppFeatures.ProjectsFeature.populateProjectFilterList(); //
-        if(window.AppFeatures.ProjectsFeature.populateProjectDropdowns) window.AppFeatures.ProjectsFeature.populateProjectDropdowns(); //
+    if (isFeatureEnabledFromService('projectFeature') && window.AppFeatures?.ProjectsFeature) { 
+        if(window.AppFeatures.ProjectsFeature.populateProjectFilterList) window.AppFeatures.ProjectsFeature.populateProjectFilterList(); 
+        if(window.AppFeatures.ProjectsFeature.populateProjectDropdowns) window.AppFeatures.ProjectsFeature.populateProjectDropdowns(); 
     }
 
-    // 10. Set Initial Filter UI (active buttons) - This is now covered by step 7 using imported setFilter
-
-    // 11. Update other initial button states (e.g., sort buttons)
-    if (uiRendering && uiRendering.updateSortButtonStates) { //
-        uiRendering.updateSortButtonStates(); //
-    } else if (typeof updateSortButtonStates === 'function') { // Fallback
-        updateSortButtonStates(); //
+    if (uiRendering && uiRendering.updateSortButtonStates) { 
+        uiRendering.updateSortButtonStates(); 
+    } else if (typeof updateSortButtonStates === 'function') { 
+        updateSortButtonStates(); 
     }
 
-    // 12. Setup All Global Event Listeners
-    setupEventListeners(); //
-    LoggingService.info("[Main] Global event listeners set up."); // MODIFIED
+    setupEventListeners(); 
+    LoggingService.info("[Main] Global event listeners set up."); 
 
-    LoggingService.info("[Main] Application initialization complete."); // NEW
+    LoggingService.info("[Main] Application initialization complete."); 
 });
