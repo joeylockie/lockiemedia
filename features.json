@@ -19,5 +19,6 @@
   "bulkActionsFeature": false,
   "pomodoroTimerHybridFeature": false,
   "backgroundFeature": false,
-  "contactUsFeature": true
+  "contactUsFeature": false,
+  "socialMediaLinksFeature": true
 }

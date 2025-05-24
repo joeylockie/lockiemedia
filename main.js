@@ -33,6 +33,8 @@ import { TooltipsGuideFeature } from './feature_tooltips_guide.js';
 import { SubTasksFeature } from './feature_sub_tasks.js';
 import { BackgroundFeature } from './feature_background.js';
 import { ContactUsFeature } from './feature_contact_us.js'; // Added new feature import
+import { SocialMediaLinksFeature } from './feature_social_media_links.js'; // ADDED: Import SocialMediaLinksFeature
+
 
 // NEW: Import LoggingService and LOG_LEVELS
 import LoggingService, { LOG_LEVELS } from './loggingService.js';
@@ -183,6 +185,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.AppFeatures.SubTasksFeature = SubTasksFeature; //
     window.AppFeatures.BackgroundFeature = BackgroundFeature; //
     window.AppFeatures.ContactUsFeature = ContactUsFeature; // Added new feature module
+    window.AppFeatures.SocialMediaLinksFeature = SocialMediaLinksFeature; // ADDED: SocialMediaLinksFeature to AppFeatures
 
 
     if (typeof isFeatureEnabledFromService !== 'undefined' && typeof window.AppFeatures !== 'undefined') { //
@@ -201,7 +204,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     "projects": "projectFeature", "export-data": "exportDataFeature", "calendar-view": "calendarViewFeature", //
                     "task-dependencies": "taskDependenciesFeature", "smarter-search": "smarterSearchFeature", //
                     "bulk-actions": "bulkActionsFeature", "pomodoro-timer-hybrid": "pomodoroTimerHybridFeature", //
-                    "background": "backgroundFeature", "contact-us": "contactUsFeature" // Added mapping
+                    "background": "backgroundFeature", "contact-us": "contactUsFeature", //
+                    "social-media-links": "socialMediaLinksFeature" // ADDED: Mapping for social media links
                 };
                 const effectiveFlagKey = flagMappings[flagKey] || flagKey; //
                 if (isFeatureEnabledFromService(effectiveFlagKey) || !Object.keys(AppStore.getFeatureFlags()).includes(effectiveFlagKey) ) { //

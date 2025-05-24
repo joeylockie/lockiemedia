@@ -29,6 +29,7 @@ let _featureFlags = { //
     pomodoroTimerHybridFeature: false, //
     backgroundFeature: false, //
     contactUsFeature: false, // Added new feature flag
+    socialMediaLinksFeature: false, // ADDED: New feature flag for social media links
     // NEW: Add debugMode flag for logging control demonstration
     debugMode: false
 };

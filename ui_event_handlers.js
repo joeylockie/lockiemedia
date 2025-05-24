@@ -63,6 +63,8 @@ import { TooltipsGuideFeature } from './feature_tooltips_guide.js';
 import { SubTasksFeature } from './feature_sub_tasks.js';
 import { BackgroundFeature } from './feature_background.js';
 import { ContactUsFeature } from './feature_contact_us.js';
+import { SocialMediaLinksFeature } from './feature_social_media_links.js'; // ADDED: Import SocialMediaLinksFeature
+
 
 // Module-scoped state for temporary sub-tasks during creation
 let tempSubTasksForAddModal = [];
@@ -106,6 +108,7 @@ function populateFeatureFlagsModal() {
         pomodoroTimerHybridFeature: "Pomodoro Timer",
         backgroundFeature: "Custom Backgrounds",
         contactUsFeature: "Contact Us Form",
+        socialMediaLinksFeature: "Social Media Links in Settings", // ADDED: Friendly name for the new feature
         debugMode: "Developer: Debug Mode"
     };
     const featureOrder = Object.keys(currentFlags).sort((a,b) => {
@@ -176,6 +179,8 @@ export function applyActiveFeatures() {
     if (window.AppFeatures?.SubTasksFeature?.updateUIVisibility) window.AppFeatures.SubTasksFeature.updateUIVisibility(); else toggleElements('.sub-tasks-feature-element', isFeatureEnabled('subTasksFeature')); 
     if (window.AppFeatures?.BackgroundFeature?.updateUIVisibility) window.AppFeatures.BackgroundFeature.updateUIVisibility(); 
     if (window.AppFeatures?.ContactUsFeature?.updateUIVisibility) window.AppFeatures.ContactUsFeature.updateUIVisibility(); else toggleElements('.contact-us-feature-element', isFeatureEnabled('contactUsFeature')); 
+    if (window.AppFeatures?.SocialMediaLinksFeature?.updateUIVisibility) window.AppFeatures.SocialMediaLinksFeature.updateUIVisibility(); else toggleElements('.social-media-links-feature-element', isFeatureEnabled('socialMediaLinksFeature')); // ADDED: Call for SocialMediaLinksFeature
+
 
     const settingsTooltipsGuideBtnEl = document.getElementById('settingsTooltipsGuideBtn'); 
     if (settingsTooltipsGuideBtnEl) settingsTooltipsGuideBtnEl.classList.toggle('hidden', !isFeatureEnabled('tooltipsGuide')); 
