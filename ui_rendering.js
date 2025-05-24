@@ -91,6 +91,10 @@ let criticalErrorDisplay, criticalErrorMessage, criticalErrorId, closeCriticalEr
 let settingsContactUsBtn; // Button in settings modal
 let contactUsModal, modalDialogContactUs, closeContactUsModalBtn, closeContactUsSecondaryBtn, contactUsForm;
 
+// ADDED: DOM Elements for About Us Modal
+let settingsAboutUsBtn; // Button in settings modal
+let aboutUsModal, modalDialogAboutUs, closeAboutUsModalBtn, closeAboutUsSecondaryBtn, aboutUsContent;
+
 
 export function initializeDOMElements() {
     // ... (all existing querySelectors from your original file)
@@ -110,6 +114,14 @@ export function initializeDOMElements() {
     closeContactUsModalBtn = document.getElementById('closeContactUsModalBtn');
     closeContactUsSecondaryBtn = document.getElementById('closeContactUsSecondaryBtn');
     contactUsForm = document.getElementById('contactUsForm');
+
+    // ADDED: Initialize About Us Modal Elements
+    settingsAboutUsBtn = document.getElementById('settingsAboutUsBtn');
+    aboutUsModal = document.getElementById('aboutUsModal');
+    modalDialogAboutUs = document.getElementById('modalDialogAboutUs');
+    closeAboutUsModalBtn = document.getElementById('closeAboutUsModalBtn');
+    closeAboutUsSecondaryBtn = document.getElementById('closeAboutUsSecondaryBtn');
+    aboutUsContent = document.getElementById('aboutUsContent');
 
 
     // NEW: Add event listener for the close critical error button

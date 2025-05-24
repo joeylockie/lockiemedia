@@ -20,5 +20,6 @@
   "pomodoroTimerHybridFeature": false,
   "backgroundFeature": false,
   "contactUsFeature": false,
-  "socialMediaLinksFeature": true
+  "socialMediaLinksFeature": false,
+  "aboutUsFeature": true
 }

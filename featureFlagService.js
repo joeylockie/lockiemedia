@@ -30,6 +30,7 @@ let _featureFlags = { //
     backgroundFeature: false, //
     contactUsFeature: false, // Added new feature flag
     socialMediaLinksFeature: false, // ADDED: New feature flag for social media links
+    aboutUsFeature: false, // ADDED: New feature flag for About Us
     // NEW: Add debugMode flag for logging control demonstration
     debugMode: false
 };

@@ -24,6 +24,7 @@ import { handleDeleteLabel, clearTempSubTasksForAddModal } from './ui_event_hand
 import { ProjectsFeature } from './feature_projects.js';
 import { TaskTimerSystemFeature } from './task_timer_system.js';
 // ContactUsFeature is not directly needed here, but its elements are.
+// AboutUsFeature is not directly needed here if modal open/close is generic enough.
 
 export function openAddModal() {
     const functionName = 'openAddModal';
@@ -618,6 +619,50 @@ export function closeContactUsModal() {
             contactUsFormEl.reset(); // Reset the form on close
         }
         LoggingService.info(`[ModalInteractions] Contact Us Modal closed.`, { functionName });
+    }, 200);
+}
+
+// --- ADDED: About Us Modal Interactions ---
+export function openAboutUsModal() {
+    const functionName = 'openAboutUsModal (ModalInteractions)';
+    LoggingService.debug(`[ModalInteractions] Attempting to open About Us Modal.`, { functionName });
+
+    const aboutUsModalEl = document.getElementById('aboutUsModal');
+    const modalDialogAboutUsEl = document.getElementById('modalDialogAboutUs');
+    // Optional: focus an element inside, but for a static modal, it might not be necessary.
+
+    if (!isFeatureEnabled('aboutUsFeature')) {
+        LoggingService.warn('[ModalInteractions] About Us feature is disabled. Cannot open modal.', { functionName });
+        if (typeof showMessage === 'function') showMessage("About Us feature is currently disabled.", "info");
+        return;
+    }
+    if (!aboutUsModalEl || !modalDialogAboutUsEl) {
+        LoggingService.error("[ModalInteractions] Core About Us modal DOM elements not found.", new Error("DOMElementMissing"), { functionName });
+        return;
+    }
+    aboutUsModalEl.classList.remove('hidden');
+    setTimeout(() => {
+        modalDialogAboutUsEl.classList.remove('scale-95', 'opacity-0');
+        modalDialogAboutUsEl.classList.add('scale-100', 'opacity-100');
+    }, 10);
+    LoggingService.info(`[ModalInteractions] About Us Modal opened.`, { functionName });
+}
+
+export function closeAboutUsModal() {
+    const functionName = 'closeAboutUsModal (ModalInteractions)';
+    LoggingService.debug(`[ModalInteractions] Attempting to close About Us Modal.`, { functionName });
+
+    const aboutUsModalEl = document.getElementById('aboutUsModal');
+    const modalDialogAboutUsEl = document.getElementById('modalDialogAboutUs');
+
+    if (!aboutUsModalEl || !modalDialogAboutUsEl) {
+        LoggingService.warn("[ModalInteractions] About Us Modal DOM elements not found for closing.", { functionName });
+        return;
+    }
+    modalDialogAboutUsEl.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => {
+        aboutUsModalEl.classList.add('hidden');
+        LoggingService.info(`[ModalInteractions] About Us Modal closed.`, { functionName });
     }, 200);
 }
 

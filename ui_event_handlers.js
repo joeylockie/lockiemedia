@@ -39,7 +39,9 @@ import {
     closeTooltipsGuideModal,
     closeViewTaskDetailsModal,
     openContactUsModal, // Import for Contact Us
-    closeContactUsModal // Import for Contact Us
+    closeContactUsModal, // Import for Contact Us
+    openAboutUsModal, // ADDED: Import for About Us
+    closeAboutUsModal // ADDED: Import for About Us
 } from './modal_interactions.js';
 
 // Import Feature Modules
@@ -64,6 +66,7 @@ import { SubTasksFeature } from './feature_sub_tasks.js';
 import { BackgroundFeature } from './feature_background.js';
 import { ContactUsFeature } from './feature_contact_us.js';
 import { SocialMediaLinksFeature } from './feature_social_media_links.js'; // ADDED: Import SocialMediaLinksFeature
+import { AboutUsFeature } from './feature_about_us.js'; // ADDED: Import AboutUsFeature
 
 
 // Module-scoped state for temporary sub-tasks during creation
@@ -108,7 +111,8 @@ function populateFeatureFlagsModal() {
         pomodoroTimerHybridFeature: "Pomodoro Timer",
         backgroundFeature: "Custom Backgrounds",
         contactUsFeature: "Contact Us Form",
-        socialMediaLinksFeature: "Social Media Links in Settings", // ADDED: Friendly name for the new feature
+        socialMediaLinksFeature: "Social Media Links in Settings",
+        aboutUsFeature: "About Us Page in Settings", // ADDED: Friendly name for About Us
         debugMode: "Developer: Debug Mode"
     };
     const featureOrder = Object.keys(currentFlags).sort((a,b) => {
@@ -179,7 +183,8 @@ export function applyActiveFeatures() {
     if (window.AppFeatures?.SubTasksFeature?.updateUIVisibility) window.AppFeatures.SubTasksFeature.updateUIVisibility(); else toggleElements('.sub-tasks-feature-element', isFeatureEnabled('subTasksFeature')); 
     if (window.AppFeatures?.BackgroundFeature?.updateUIVisibility) window.AppFeatures.BackgroundFeature.updateUIVisibility(); 
     if (window.AppFeatures?.ContactUsFeature?.updateUIVisibility) window.AppFeatures.ContactUsFeature.updateUIVisibility(); else toggleElements('.contact-us-feature-element', isFeatureEnabled('contactUsFeature')); 
-    if (window.AppFeatures?.SocialMediaLinksFeature?.updateUIVisibility) window.AppFeatures.SocialMediaLinksFeature.updateUIVisibility(); else toggleElements('.social-media-links-feature-element', isFeatureEnabled('socialMediaLinksFeature')); // ADDED: Call for SocialMediaLinksFeature
+    if (window.AppFeatures?.SocialMediaLinksFeature?.updateUIVisibility) window.AppFeatures.SocialMediaLinksFeature.updateUIVisibility(); else toggleElements('.social-media-links-feature-element', isFeatureEnabled('socialMediaLinksFeature'));
+    if (window.AppFeatures?.AboutUsFeature?.updateUIVisibility) window.AppFeatures.AboutUsFeature.updateUIVisibility(); else toggleElements('.about-us-feature-element', isFeatureEnabled('aboutUsFeature')); // ADDED: Call for AboutUsFeature
 
 
     const settingsTooltipsGuideBtnEl = document.getElementById('settingsTooltipsGuideBtn'); 
@@ -583,6 +588,7 @@ export function setupEventListeners() {
     attachListener('openSettingsModalButton', 'click', openSettingsModal, 'openSettingsModal');
     attachListener('settingsTaskReviewBtn', 'click', openTaskReviewModal, 'openTaskReviewModal');
     attachListener('settingsTooltipsGuideBtn', 'click', openTooltipsGuideModal, 'openTooltipsGuideModal');
+    attachListener('settingsAboutUsBtn', 'click', openAboutUsModal, 'openAboutUsModal'); // ADDED: Listener for About Us button
     // The settingsContactUsBtn listener is in feature_contact_us.js, which calls the imported openContactUsModal
 
     const openFeatureFlagsModalBtn = document.getElementById('openFeatureFlagsModalBtn');
@@ -637,7 +643,11 @@ export function setupEventListeners() {
         // Add listeners for Contact Us Modal
         { id: 'closeContactUsModalBtn', handler: closeContactUsModal, name: 'closeContactUsModal (primary)' },
         { id: 'closeContactUsSecondaryBtn', handler: closeContactUsModal, name: 'closeContactUsModal (secondary)' },
-        { id: 'contactUsModal', handler: (event) => { if (event.target.id === 'contactUsModal') closeContactUsModal(); }, name: 'closeContactUsModal (backdrop)' }
+        { id: 'contactUsModal', handler: (event) => { if (event.target.id === 'contactUsModal') closeContactUsModal(); }, name: 'closeContactUsModal (backdrop)' },
+        // ADDED: Listeners for About Us Modal
+        { id: 'closeAboutUsModalBtn', handler: closeAboutUsModal, name: 'closeAboutUsModal (primary)' },
+        { id: 'closeAboutUsSecondaryBtn', handler: closeAboutUsModal, name: 'closeAboutUsModal (secondary)' },
+        { id: 'aboutUsModal', handler: (event) => { if (event.target.id === 'aboutUsModal') closeAboutUsModal(); }, name: 'closeAboutUsModal (backdrop)' }
     ];
     modalCloserListeners.forEach(listener => attachListener(listener.id, 'click', listener.handler, listener.name));
 
@@ -762,6 +772,7 @@ export function setupEventListeners() {
         if (event.key === 'Escape') {
             LoggingService.debug('[UIEventHandlers] Escape key pressed, attempting to close modals.', { functionName: keydownHandlerName, key: event.key });
             const contactUsModalEl = document.getElementById('contactUsModal'); // Get reference
+            const aboutUsModalEl = document.getElementById('aboutUsModal'); // ADDED: Get reference for About Us
 
             if (document.getElementById('addTaskModal') && !document.getElementById('addTaskModal').classList.contains('hidden')) closeAddModal(); 
             else if (document.getElementById('viewEditTaskModal') && !document.getElementById('viewEditTaskModal').classList.contains('hidden')) closeViewEditModal(); 
@@ -772,6 +783,8 @@ export function setupEventListeners() {
             else if (document.getElementById('tooltipsGuideModal') && !document.getElementById('tooltipsGuideModal').classList.contains('hidden')) closeTooltipsGuideModal(); 
             // Updated to use imported closeContactUsModal
             else if (contactUsModalEl && !contactUsModalEl.classList.contains('hidden')) closeContactUsModal(); 
+            // ADDED: Close About Us Modal on Escape
+            else if (aboutUsModalEl && !aboutUsModalEl.classList.contains('hidden')) closeAboutUsModal();
 
 
             const ffModal = document.getElementById('featureFlagsModal'); 
