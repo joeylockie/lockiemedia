@@ -5,6 +5,8 @@
 import AppStore from './store.js';
 import ViewManager from './viewManager.js';
 import { isFeatureEnabled } from './featureFlagService.js';
+// NEW: Import getAppVersionString from VersionService
+import { getAppVersionString } from './versionService.js';
 import * as TaskService from './taskService.js';
 import * as BulkActionService from './bulkActionService.js';
 import ModalStateService from './modalStateService.js';
@@ -104,6 +106,10 @@ let settingsVersionHistoryBtn; // Button in settings modal
 let dataVersionHistoryModal, modalDialogDataVersionHistory, closeDataVersionHistoryModalBtn, closeDataVersionHistorySecondaryBtn;
 let dataVersionHistoryContent;
 
+// NEW: DOM element references for app version display
+let appVersionFooterEl;
+let appVersionAboutUsDisplayEl;
+
 
 export function initializeDOMElements() {
     // ... (all existing querySelectors from your original file)
@@ -140,6 +146,10 @@ export function initializeDOMElements() {
     closeDataVersionHistorySecondaryBtn = document.getElementById('closeDataVersionHistorySecondaryBtn');
     dataVersionHistoryContent = document.getElementById('dataVersionHistoryContent');
 
+    // NEW: Initialize DOM elements for app version display
+    appVersionFooterEl = document.getElementById('appVersionFooter');
+    appVersionAboutUsDisplayEl = document.getElementById('appVersionAboutUsDisplay');
+
 
     // NEW: Add event listener for the close critical error button
     if (closeCriticalErrorBtn) {
@@ -147,9 +157,23 @@ export function initializeDOMElements() {
     }
 
     console.log('[DOM Init] Finished initializing DOM elements.'); //
+    renderAppVersion(); // NEW: Call to render app version
 }
 
 // --- UI Helper Functions ---
+
+// NEW: Function to render the application version in the UI
+export function renderAppVersion() {
+    const versionString = getAppVersionString();
+    if (appVersionFooterEl) {
+        appVersionFooterEl.textContent = versionString;
+    }
+    if (appVersionAboutUsDisplayEl) {
+        appVersionAboutUsDisplayEl.textContent = versionString;
+    }
+    // If you add more places to display the version, update them here.
+}
+
 
 // NEW: Function to show a critical error message to the user
 export function showCriticalError(message, errorId) {

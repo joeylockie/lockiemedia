@@ -105,7 +105,7 @@
                     <li>And many more features planned for the future!</li>
                 </ul>
                 <p>We believe in continuous improvement and are always working on making this app better. Thank you for choosing LockieMedia Todo!</p>
-                <p class="mt-4 text-xs text-slate-500 dark:text-slate-400">Version: <span id="appVersionAboutUs">1.0.0</span> (Placeholder)</p>
+                <p class="mt-4 text-xs text-slate-500 dark:text-slate-400">Version: <span id="appVersionAboutUsDisplay">1.0.0.0</span></p>
             </div>
             <div class="mt-6 flex justify-end">
                 <button type="button" id="closeAboutUsSecondaryBtn" class="px-5 py-2.5 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500 transition-colors font-medium">Close</button>
@@ -144,15 +144,14 @@
     </div>
     
     <footer class="text-center text-slate-400 dark:text-slate-500 mt-10 sm:mt-12 mb-6 text-sm">
-        <p>LockieMedia &copy; 2025</p>
-
-        
+        <p>LockieMedia &copy; 2025 <span class="mx-1">&bull;</span> Version: <span id="appVersionFooter">1.0.0.0</span></p>
     </footer>
 
     <script src="utils.js" type="module"></script> 
     <script src="eventBus.js" type="module"></script>
     <script src="store.js" type="module"></script>
     <script src="featureFlagService.js" type="module"></script>
+    <script src="versionService.js" type="module"></script>
     <script src="modalStateService.js" type="module"></script>
     <script src="tooltipService.js" type="module"></script>
     <script src="taskService.js" type="module"></script> 
