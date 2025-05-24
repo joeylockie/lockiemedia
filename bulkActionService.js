@@ -3,15 +3,23 @@
 // It now owns the selectedTaskIdsForBulkAction state and is an ES6 module.
 
 import EventBus from './eventBus.js';
+// NEW: Import LoggingService
+import LoggingService from './loggingService.js';
 
 // --- Internal State (scoped to this module) ---
-let _selectedTaskIds = [];
+let _selectedTaskIds = []; //
 
 function _publish(eventName, data) {
-    if (EventBus && typeof EventBus.publish === 'function') {
-        EventBus.publish(eventName, data);
+    const functionName = '_publish (BulkActionService)';
+    if (EventBus && typeof EventBus.publish === 'function') { //
+        EventBus.publish(eventName, data); //
     } else {
-        console.warn(`[BulkActionService] EventBus not available to publish event: ${eventName}`);
+        // MODIFIED: Use LoggingService
+        LoggingService.warn(`[BulkActionService] EventBus not available to publish event: ${eventName}`, {
+            eventName,
+            data,
+            functionName
+        });
     }
 }
 
@@ -20,14 +28,33 @@ function _publish(eventName, data) {
  * @param {number} taskId - The ID of the task to select/deselect.
  */
 export function toggleTaskSelection(taskId) {
-    const index = _selectedTaskIds.indexOf(taskId);
-    if (index > -1) {
-        _selectedTaskIds.splice(index, 1); // Deselect
+    const functionName = 'toggleTaskSelection';
+    const index = _selectedTaskIds.indexOf(taskId); //
+    if (index > -1) { //
+        _selectedTaskIds.splice(index, 1); // Deselect //
+        // MODIFIED: Use LoggingService
+        LoggingService.debug(`[BulkActionService] Task ${taskId} deselected for bulk action.`, {
+            functionName,
+            taskId,
+            action: 'deselected',
+            currentSelectionCount: _selectedTaskIds.length
+        });
     } else {
-        _selectedTaskIds.push(taskId); // Select
+        _selectedTaskIds.push(taskId); // Select //
+        // MODIFIED: Use LoggingService
+        LoggingService.debug(`[BulkActionService] Task ${taskId} selected for bulk action.`, {
+            functionName,
+            taskId,
+            action: 'selected',
+            currentSelectionCount: _selectedTaskIds.length
+        });
     }
-    console.log("[BulkActionService] Selected tasks for bulk action:", [..._selectedTaskIds]);
-    _publish('bulkSelectionChanged', [..._selectedTaskIds]); // Publish a copy
+    // MODIFIED: Log the publish action
+    LoggingService.debug(`[BulkActionService] Publishing bulkSelectionChanged. Selected IDs: ${_selectedTaskIds.join(', ')}`, {
+        functionName,
+        selectedIds: [..._selectedTaskIds]
+    });
+    _publish('bulkSelectionChanged', [..._selectedTaskIds]); // Publish a copy //
 }
 
 /**
@@ -36,10 +63,16 @@ export function toggleTaskSelection(taskId) {
  * @param {number} taskId - The ID of the task to select.
  */
 export function selectTaskIfNotSelected(taskId) {
-    if (!_selectedTaskIds.includes(taskId)) {
-        _selectedTaskIds.push(taskId);
-        console.log(`[BulkActionService] Task ${taskId} selected for bulk action.`);
-        _publish('bulkSelectionChanged', [..._selectedTaskIds]);
+    const functionName = 'selectTaskIfNotSelected';
+    if (!_selectedTaskIds.includes(taskId)) { //
+        _selectedTaskIds.push(taskId); //
+        // MODIFIED: Use LoggingService
+        LoggingService.debug(`[BulkActionService] Task ${taskId} selected for bulk action (if not already).`, {
+            functionName,
+            taskId,
+            currentSelectionCount: _selectedTaskIds.length
+        });
+        _publish('bulkSelectionChanged', [..._selectedTaskIds]); //
     }
 }
 
@@ -49,11 +82,17 @@ export function selectTaskIfNotSelected(taskId) {
  * @param {number} taskId - The ID of the task to deselect.
  */
 export function deselectTaskIfSelected(taskId) {
-    const index = _selectedTaskIds.indexOf(taskId);
-    if (index > -1) {
-        _selectedTaskIds.splice(index, 1);
-        console.log(`[BulkActionService] Task ${taskId} deselected from bulk action.`);
-        _publish('bulkSelectionChanged', [..._selectedTaskIds]);
+    const functionName = 'deselectTaskIfSelected';
+    const index = _selectedTaskIds.indexOf(taskId); //
+    if (index > -1) { //
+        _selectedTaskIds.splice(index, 1); //
+        // MODIFIED: Use LoggingService
+        LoggingService.debug(`[BulkActionService] Task ${taskId} deselected from bulk action (if selected).`, {
+            functionName,
+            taskId,
+            currentSelectionCount: _selectedTaskIds.length
+        });
+        _publish('bulkSelectionChanged', [..._selectedTaskIds]); //
     }
 }
 
@@ -61,10 +100,19 @@ export function deselectTaskIfSelected(taskId) {
  * Clears all selected tasks for bulk actions.
  */
 export function clearSelections() {
-    if (_selectedTaskIds.length > 0) { // Only publish if there was a change
-        _selectedTaskIds = [];
-        console.log("[BulkActionService] Bulk action selections cleared.");
-        _publish('bulkSelectionChanged', []);
+    const functionName = 'clearSelections';
+    if (_selectedTaskIds.length > 0) { // Only publish if there was a change //
+        const previousSelectionCount = _selectedTaskIds.length;
+        _selectedTaskIds = []; //
+        // MODIFIED: Use LoggingService
+        LoggingService.info("[BulkActionService] Bulk action selections cleared.", {
+            functionName,
+            previousSelectionCount
+        });
+        _publish('bulkSelectionChanged', []); //
+    } else {
+        // MODIFIED: Log even if no change, but at debug level
+        LoggingService.debug("[BulkActionService] Attempted to clear bulk selections, but none were selected.", { functionName });
     }
 }
 
@@ -72,8 +120,9 @@ export function clearSelections() {
  * Gets a copy of the array of currently selected task IDs for bulk actions.
  * @returns {number[]} An array of task IDs.
  */
-export function getSelectedIds() {
-    return [..._selectedTaskIds]; // Return a copy
+export function getSelectedIds() { //
+    return [..._selectedTaskIds]; // Return a copy //
 }
 
-console.log("bulkActionService.js loaded as ES6 module.");
+// MODIFIED: Use LoggingService
+LoggingService.debug("bulkActionService.js loaded as ES6 module.", { module: 'bulkActionService' });
