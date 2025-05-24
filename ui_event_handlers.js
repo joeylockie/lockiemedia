@@ -41,7 +41,10 @@ import {
     openContactUsModal, // Import for Contact Us
     closeContactUsModal, // Import for Contact Us
     openAboutUsModal, // ADDED: Import for About Us
-    closeAboutUsModal // ADDED: Import for About Us
+    closeAboutUsModal, // ADDED: Import for About Us
+    // NEW: Import for Data Version History Modal
+    openDataVersionHistoryModal,
+    closeDataVersionHistoryModal
 } from './modal_interactions.js';
 
 // Import Feature Modules
@@ -67,6 +70,8 @@ import { BackgroundFeature } from './feature_background.js';
 import { ContactUsFeature } from './feature_contact_us.js';
 import { SocialMediaLinksFeature } from './feature_social_media_links.js'; // ADDED: Import SocialMediaLinksFeature
 import { AboutUsFeature } from './feature_about_us.js'; // ADDED: Import AboutUsFeature
+// NEW: Import DataVersioningFeature (its methods are called from modal_interactions or ui_rendering, but good to have it if direct calls were needed)
+import { DataVersioningFeature } from './feature_data_versioning.js';
 
 
 // Module-scoped state for temporary sub-tasks during creation
@@ -113,6 +118,7 @@ function populateFeatureFlagsModal() {
         contactUsFeature: "Contact Us Form",
         socialMediaLinksFeature: "Social Media Links in Settings",
         aboutUsFeature: "About Us Page in Settings", // ADDED: Friendly name for About Us
+        dataVersioningFeature: "Data Versioning & History", // NEW: Friendly name for Data Versioning
         debugMode: "Developer: Debug Mode"
     };
     const featureOrder = Object.keys(currentFlags).sort((a,b) => {
@@ -163,29 +169,18 @@ export function applyActiveFeatures() {
         document.querySelectorAll(selector).forEach(el => el.classList.toggle('hidden', !isEnabled)); //
     };
 
-    if (window.AppFeatures?.TestButtonFeature?.updateUIVisibility) window.AppFeatures.TestButtonFeature.updateUIVisibility(); else { const el = document.getElementById('testFeatureButtonContainer'); if(el) el.classList.toggle('hidden', !isFeatureEnabled('testButtonFeature'));} 
-    if (window.AppFeatures?.TaskTimerSystemFeature?.updateUIVisibility) window.AppFeatures.TaskTimerSystemFeature.updateUIVisibility(); else { toggleElements('.task-timer-system-element', isFeatureEnabled('taskTimerSystem')); const btn = document.getElementById('settingsTaskReviewBtn'); if(btn) btn.classList.toggle('hidden', !isFeatureEnabled('taskTimerSystem')); } 
-    if (window.AppFeatures?.ReminderFeature?.updateUIVisibility) window.AppFeatures.ReminderFeature.updateUIVisibility(); else toggleElements('.reminder-feature-element', isFeatureEnabled('reminderFeature')); 
-    if (window.AppFeatures?.AdvancedRecurrenceFeature?.updateUIVisibility) window.AppFeatures.AdvancedRecurrenceFeature.updateUIVisibility(); else toggleElements('.advanced-recurrence-element', isFeatureEnabled('advancedRecurrence')); 
-    if (window.AppFeatures?.FileAttachmentsFeature?.updateUIVisibility) window.AppFeatures.FileAttachmentsFeature.updateUIVisibility(); else toggleElements('.file-attachments-element', isFeatureEnabled('fileAttachments')); 
-    if (window.AppFeatures?.IntegrationsServicesFeature?.updateUIVisibility) window.AppFeatures.IntegrationsServicesFeature.updateUIVisibility(); else toggleElements('.integrations-services-element', isFeatureEnabled('integrationsServices')); 
-    if (window.AppFeatures?.UserAccountsFeature?.updateUIVisibility) window.AppFeatures.UserAccountsFeature.updateUIVisibility(); else toggleElements('.user-accounts-element', isFeatureEnabled('userAccounts')); 
-    if (window.AppFeatures?.CollaborationSharingFeature?.updateUIVisibility) window.AppFeatures.CollaborationSharingFeature.updateUIVisibility(); else toggleElements('.collaboration-sharing-element', isFeatureEnabled('collaborationSharing')); 
-    if (window.AppFeatures?.CrossDeviceSyncFeature?.updateUIVisibility) window.AppFeatures.CrossDeviceSyncFeature.updateUIVisibility(); else toggleElements('.cross-device-sync-element', isFeatureEnabled('crossDeviceSync')); 
-    if (window.AppFeatures?.TaskDependenciesFeature?.updateUIVisibility) window.AppFeatures.TaskDependenciesFeature.updateUIVisibility(); else toggleElements('.task-dependencies-feature-element', isFeatureEnabled('taskDependenciesFeature')); 
-    if (window.AppFeatures?.SmarterSearchFeature?.updateUIVisibility) window.AppFeatures.SmarterSearchFeature.updateUIVisibility(); else toggleElements('.smarter-search-feature-element', isFeatureEnabled('smarterSearchFeature')); 
-    if (window.AppFeatures?.DataManagementFeature?.updateUIVisibility) window.AppFeatures.DataManagementFeature.updateUIVisibility(); else toggleElements('.export-data-feature-element', isFeatureEnabled('exportDataFeature')); 
-    if (window.AppFeatures?.CalendarViewFeature?.updateUIVisibility) window.AppFeatures.CalendarViewFeature.updateUIVisibility(); else { const cvtb = document.getElementById('calendarViewToggleBtn'); if(cvtb) cvtb.classList.toggle('hidden', !isFeatureEnabled('calendarViewFeature')); toggleElements('.calendar-view-feature-element', isFeatureEnabled('calendarViewFeature'));} 
-    if (window.AppFeatures?.KanbanBoardFeature?.updateUIVisibility) window.AppFeatures.KanbanBoardFeature.updateUIVisibility(); else { const kbtb = document.getElementById('kanbanViewToggleBtn'); if(kbtb) kbtb.classList.toggle('hidden', !isFeatureEnabled('kanbanBoardFeature'));} 
-    if (window.AppFeatures?.PomodoroTimerHybridFeature?.updateUIVisibility) window.AppFeatures.PomodoroTimerHybridFeature.updateUIVisibility(); else toggleElements('.pomodoro-timer-hybrid-feature-element', isFeatureEnabled('pomodoroTimerHybridFeature')); 
-    if (window.AppFeatures?.ProjectsFeature?.updateUIVisibility) window.AppFeatures.ProjectsFeature.updateUIVisibility(); 
-    if (window.AppFeatures?.TooltipsGuideFeature?.updateUIVisibility) window.AppFeatures.TooltipsGuideFeature.updateUIVisibility(); 
-    if (window.AppFeatures?.SubTasksFeature?.updateUIVisibility) window.AppFeatures.SubTasksFeature.updateUIVisibility(); else toggleElements('.sub-tasks-feature-element', isFeatureEnabled('subTasksFeature')); 
-    if (window.AppFeatures?.BackgroundFeature?.updateUIVisibility) window.AppFeatures.BackgroundFeature.updateUIVisibility(); 
-    if (window.AppFeatures?.ContactUsFeature?.updateUIVisibility) window.AppFeatures.ContactUsFeature.updateUIVisibility(); else toggleElements('.contact-us-feature-element', isFeatureEnabled('contactUsFeature')); 
-    if (window.AppFeatures?.SocialMediaLinksFeature?.updateUIVisibility) window.AppFeatures.SocialMediaLinksFeature.updateUIVisibility(); else toggleElements('.social-media-links-feature-element', isFeatureEnabled('socialMediaLinksFeature'));
-    if (window.AppFeatures?.AboutUsFeature?.updateUIVisibility) window.AppFeatures.AboutUsFeature.updateUIVisibility(); else toggleElements('.about-us-feature-element', isFeatureEnabled('aboutUsFeature')); // ADDED: Call for AboutUsFeature
-
+    // This loop should handle DataVersioningFeature as well due to the generic AppFeatures structure
+    if (window.AppFeatures) {
+        for (const featureKey in window.AppFeatures) {
+            if (window.AppFeatures[featureKey] && typeof window.AppFeatures[featureKey].updateUIVisibility === 'function') {
+                // LoggingService.debug(`[ApplyActiveFeatures] Calling updateUIVisibility for ${featureKey}`, { functionName });
+                window.AppFeatures[featureKey].updateUIVisibility();
+            }
+        }
+    }
+    
+    // Specific overrides or elements not covered by a generic class if any:
+    // (Most features are now handled by their own updateUIVisibility methods toggling a specific class like '.feature-name-element')
 
     const settingsTooltipsGuideBtnEl = document.getElementById('settingsTooltipsGuideBtn'); 
     if (settingsTooltipsGuideBtnEl) settingsTooltipsGuideBtnEl.classList.toggle('hidden', !isFeatureEnabled('tooltipsGuide')); 
@@ -590,6 +585,9 @@ export function setupEventListeners() {
     attachListener('settingsTooltipsGuideBtn', 'click', openTooltipsGuideModal, 'openTooltipsGuideModal');
     attachListener('settingsAboutUsBtn', 'click', openAboutUsModal, 'openAboutUsModal'); // ADDED: Listener for About Us button
     // The settingsContactUsBtn listener is in feature_contact_us.js, which calls the imported openContactUsModal
+    // NEW: Listener for Data Version History button
+    attachListener('settingsVersionHistoryBtn', 'click', openDataVersionHistoryModal, 'openDataVersionHistoryModal');
+
 
     const openFeatureFlagsModalBtn = document.getElementById('openFeatureFlagsModalBtn');
     if (openFeatureFlagsModalBtn) {
@@ -647,7 +645,11 @@ export function setupEventListeners() {
         // ADDED: Listeners for About Us Modal
         { id: 'closeAboutUsModalBtn', handler: closeAboutUsModal, name: 'closeAboutUsModal (primary)' },
         { id: 'closeAboutUsSecondaryBtn', handler: closeAboutUsModal, name: 'closeAboutUsModal (secondary)' },
-        { id: 'aboutUsModal', handler: (event) => { if (event.target.id === 'aboutUsModal') closeAboutUsModal(); }, name: 'closeAboutUsModal (backdrop)' }
+        { id: 'aboutUsModal', handler: (event) => { if (event.target.id === 'aboutUsModal') closeAboutUsModal(); }, name: 'closeAboutUsModal (backdrop)' },
+        // NEW: Listeners for Data Version History Modal
+        { id: 'closeDataVersionHistoryModalBtn', handler: closeDataVersionHistoryModal, name: 'closeDataVersionHistoryModal (primary)' },
+        { id: 'closeDataVersionHistorySecondaryBtn', handler: closeDataVersionHistoryModal, name: 'closeDataVersionHistoryModal (secondary)' },
+        { id: 'dataVersionHistoryModal', handler: (event) => { if (event.target.id === 'dataVersionHistoryModal') closeDataVersionHistoryModal(); }, name: 'closeDataVersionHistoryModal (backdrop)' }
     ];
     modalCloserListeners.forEach(listener => attachListener(listener.id, 'click', listener.handler, listener.name));
 
@@ -773,6 +775,8 @@ export function setupEventListeners() {
             LoggingService.debug('[UIEventHandlers] Escape key pressed, attempting to close modals.', { functionName: keydownHandlerName, key: event.key });
             const contactUsModalEl = document.getElementById('contactUsModal'); // Get reference
             const aboutUsModalEl = document.getElementById('aboutUsModal'); // ADDED: Get reference for About Us
+            const dataVersionHistoryModalEl = document.getElementById('dataVersionHistoryModal'); // NEW: Get reference
+
 
             if (document.getElementById('addTaskModal') && !document.getElementById('addTaskModal').classList.contains('hidden')) closeAddModal(); 
             else if (document.getElementById('viewEditTaskModal') && !document.getElementById('viewEditTaskModal').classList.contains('hidden')) closeViewEditModal(); 
@@ -781,10 +785,10 @@ export function setupEventListeners() {
             else if (document.getElementById('manageLabelsModal') && !document.getElementById('manageLabelsModal').classList.contains('hidden')) closeManageLabelsModal(); 
             else if (document.getElementById('taskReviewModal') && !document.getElementById('taskReviewModal').classList.contains('hidden')) closeTaskReviewModal(); 
             else if (document.getElementById('tooltipsGuideModal') && !document.getElementById('tooltipsGuideModal').classList.contains('hidden')) closeTooltipsGuideModal(); 
-            // Updated to use imported closeContactUsModal
             else if (contactUsModalEl && !contactUsModalEl.classList.contains('hidden')) closeContactUsModal(); 
-            // ADDED: Close About Us Modal on Escape
             else if (aboutUsModalEl && !aboutUsModalEl.classList.contains('hidden')) closeAboutUsModal();
+            // NEW: Close Data Version History Modal on Escape
+            else if (dataVersionHistoryModalEl && !dataVersionHistoryModalEl.classList.contains('hidden')) closeDataVersionHistoryModal();
 
 
             const ffModal = document.getElementById('featureFlagsModal'); 

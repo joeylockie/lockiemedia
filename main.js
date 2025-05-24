@@ -35,6 +35,8 @@ import { BackgroundFeature } from './feature_background.js';
 import { ContactUsFeature } from './feature_contact_us.js'; // Added new feature import
 import { SocialMediaLinksFeature } from './feature_social_media_links.js'; // ADDED: Import SocialMediaLinksFeature
 import { AboutUsFeature } from './feature_about_us.js'; // ADDED: Import AboutUsFeature
+// NEW: Import DataVersioningFeature (will be created later)
+import { DataVersioningFeature } from './feature_data_versioning.js';
 
 
 // NEW: Import LoggingService and LOG_LEVELS
@@ -188,6 +190,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.AppFeatures.ContactUsFeature = ContactUsFeature; // Added new feature module
     window.AppFeatures.SocialMediaLinksFeature = SocialMediaLinksFeature; // ADDED: SocialMediaLinksFeature to AppFeatures
     window.AppFeatures.AboutUsFeature = AboutUsFeature; // ADDED: AboutUsFeature to AppFeatures
+    // NEW: Add DataVersioningFeature to AppFeatures
+    window.AppFeatures.DataVersioningFeature = DataVersioningFeature;
 
 
     if (typeof isFeatureEnabledFromService !== 'undefined' && typeof window.AppFeatures !== 'undefined') { //
@@ -208,7 +212,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     "bulk-actions": "bulkActionsFeature", "pomodoro-timer-hybrid": "pomodoroTimerHybridFeature", //
                     "background": "backgroundFeature", "contact-us": "contactUsFeature", //
                     "social-media-links": "socialMediaLinksFeature", // ADDED: Mapping for social media links
-                    "about-us": "aboutUsFeature" // ADDED: Mapping for about us
+                    "about-us": "aboutUsFeature", // ADDED: Mapping for about us
+                    // NEW: Add mapping for data versioning
+                    "data-versioning": "dataVersioningFeature"
                 };
                 const effectiveFlagKey = flagMappings[flagKey] || flagKey; //
                 if (isFeatureEnabledFromService(effectiveFlagKey) || !Object.keys(AppStore.getFeatureFlags()).includes(effectiveFlagKey) ) { //

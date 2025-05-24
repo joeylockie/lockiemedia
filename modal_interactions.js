@@ -16,7 +16,8 @@ import {
     renderSubTasksForEditModal,
     renderSubTasksForViewModal,
     renderTaskDependenciesForViewModal,
-    showMessage // Assuming showMessage is exported from ui_rendering and handled by main.js if global
+    showMessage, // Assuming showMessage is exported from ui_rendering and handled by main.js if global
+    renderVersionHistoryList // NEW: Import for version history
 } from './ui_rendering.js';
 
 // Import functions/objects from other modules
@@ -25,6 +26,9 @@ import { ProjectsFeature } from './feature_projects.js';
 import { TaskTimerSystemFeature } from './task_timer_system.js';
 // ContactUsFeature is not directly needed here, but its elements are.
 // AboutUsFeature is not directly needed here if modal open/close is generic enough.
+// NEW: Import DataVersioningFeature
+import { DataVersioningFeature } from './feature_data_versioning.js';
+
 
 export function openAddModal() {
     const functionName = 'openAddModal';
@@ -663,6 +667,68 @@ export function closeAboutUsModal() {
     setTimeout(() => {
         aboutUsModalEl.classList.add('hidden');
         LoggingService.info(`[ModalInteractions] About Us Modal closed.`, { functionName });
+    }, 200);
+}
+
+// --- NEW: Data Version History Modal Interactions ---
+export function openDataVersionHistoryModal() {
+    const functionName = 'openDataVersionHistoryModal';
+    LoggingService.debug(`[ModalInteractions] Attempting to open Data Version History Modal.`, { functionName });
+
+    const dataVersionHistoryModalEl = document.getElementById('dataVersionHistoryModal');
+    const modalDialogDataVersionHistoryEl = document.getElementById('modalDialogDataVersionHistory');
+
+    if (!isFeatureEnabled('dataVersioningFeature')) {
+        LoggingService.warn('[ModalInteractions] Data Versioning feature is disabled. Cannot open history modal.', { functionName });
+        if (typeof showMessage === 'function') showMessage("Data Versioning feature is currently disabled.", "info");
+        return;
+    }
+
+    if (!dataVersionHistoryModalEl || !modalDialogDataVersionHistoryEl) {
+        LoggingService.error("[ModalInteractions] Core Data Version History modal DOM elements not found.", new Error("DOMElementMissing"), { functionName });
+        return;
+    }
+
+    if (typeof DataVersioningFeature === 'undefined' || typeof DataVersioningFeature.getVersionHistory !== 'function') {
+        LoggingService.error("[ModalInteractions] DataVersioningFeature or getVersionHistory function is not available.", new Error("FeatureUnavailable"), { functionName });
+        if (typeof showMessage === 'function') showMessage("Error: Could not load version history.", "error");
+        const contentArea = document.getElementById('dataVersionHistoryContent');
+        if (contentArea) contentArea.innerHTML = '<p class="text-slate-500 dark:text-slate-400 text-center p-4">Error loading version history service.</p>';
+        return;
+    }
+    
+    const versions = DataVersioningFeature.getVersionHistory();
+    if (typeof renderVersionHistoryList === 'function') {
+        renderVersionHistoryList(versions); // This function is in ui_rendering.js
+    } else {
+        LoggingService.error("[ModalInteractions] renderVersionHistoryList function not available from ui_rendering.", new Error("FunctionMissing"), { functionName });
+        const contentArea = document.getElementById('dataVersionHistoryContent');
+        if (contentArea) contentArea.innerHTML = '<p class="text-slate-500 dark:text-slate-400 text-center p-4">Error displaying version history.</p>';
+    }
+
+    dataVersionHistoryModalEl.classList.remove('hidden');
+    setTimeout(() => {
+        modalDialogDataVersionHistoryEl.classList.remove('scale-95', 'opacity-0');
+        modalDialogDataVersionHistoryEl.classList.add('scale-100', 'opacity-100');
+    }, 10);
+    LoggingService.info(`[ModalInteractions] Data Version History Modal opened. Displaying ${versions.length} versions.`, { functionName, versionCount: versions.length });
+}
+
+export function closeDataVersionHistoryModal() {
+    const functionName = 'closeDataVersionHistoryModal';
+    LoggingService.debug(`[ModalInteractions] Attempting to close Data Version History Modal.`, { functionName });
+
+    const dataVersionHistoryModalEl = document.getElementById('dataVersionHistoryModal');
+    const modalDialogDataVersionHistoryEl = document.getElementById('modalDialogDataVersionHistory');
+
+    if (!dataVersionHistoryModalEl || !modalDialogDataVersionHistoryEl) {
+        LoggingService.warn("[ModalInteractions] Data Version History Modal DOM elements not found for closing.", { functionName });
+        return;
+    }
+    modalDialogDataVersionHistoryEl.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => {
+        dataVersionHistoryModalEl.classList.add('hidden');
+        LoggingService.info(`[ModalInteractions] Data Version History Modal closed.`, { functionName });
     }, 200);
 }
 

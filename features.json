@@ -21,5 +21,7 @@
   "backgroundFeature": false,
   "contactUsFeature": false,
   "socialMediaLinksFeature": false,
-  "aboutUsFeature": true
+  "aboutUsFeature": false,
+  "dataVersioningFeature": false,
+  "debugMode": false
 }

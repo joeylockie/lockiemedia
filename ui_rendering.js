@@ -30,6 +30,10 @@ import { KanbanBoardFeature } from './feature_kanban_board.js';
 import { CalendarViewFeature } from './feature_calendar_view.js';
 import { PomodoroTimerHybridFeature } from './pomodoro_timer.js';
 import { SubTasksFeature } from './feature_sub_tasks.js';
+// NEW: Import DataVersioningFeature to potentially use its functions if needed here, though likely called from modal_interactions
+// For now, we primarily need its output (version history) to render.
+// import { DataVersioningFeature } from './feature_data_versioning.js';
+
 
 // DOM Elements (declared with let, will be module-scoped)
 // These are initialized by initializeDOMElements()
@@ -95,6 +99,11 @@ let contactUsModal, modalDialogContactUs, closeContactUsModalBtn, closeContactUs
 let settingsAboutUsBtn; // Button in settings modal
 let aboutUsModal, modalDialogAboutUs, closeAboutUsModalBtn, closeAboutUsSecondaryBtn, aboutUsContent;
 
+// NEW: DOM Elements for Data Version History Modal
+let settingsVersionHistoryBtn; // Button in settings modal
+let dataVersionHistoryModal, modalDialogDataVersionHistory, closeDataVersionHistoryModalBtn, closeDataVersionHistorySecondaryBtn;
+let dataVersionHistoryContent;
+
 
 export function initializeDOMElements() {
     // ... (all existing querySelectors from your original file)
@@ -122,6 +131,14 @@ export function initializeDOMElements() {
     closeAboutUsModalBtn = document.getElementById('closeAboutUsModalBtn');
     closeAboutUsSecondaryBtn = document.getElementById('closeAboutUsSecondaryBtn');
     aboutUsContent = document.getElementById('aboutUsContent');
+
+    // NEW: Initialize Data Version History Modal Elements
+    settingsVersionHistoryBtn = document.getElementById('settingsVersionHistoryBtn');
+    dataVersionHistoryModal = document.getElementById('dataVersionHistoryModal');
+    modalDialogDataVersionHistory = document.getElementById('modalDialogDataVersionHistory');
+    closeDataVersionHistoryModalBtn = document.getElementById('closeDataVersionHistoryModalBtn');
+    closeDataVersionHistorySecondaryBtn = document.getElementById('closeDataVersionHistorySecondaryBtn');
+    dataVersionHistoryContent = document.getElementById('dataVersionHistoryContent');
 
 
     // NEW: Add event listener for the close critical error button
@@ -718,6 +735,72 @@ export function updateYourTasksHeading() { //
         }
     }
     yourTasksHeading.textContent = title; //
+}
+
+// NEW: Function to render the list of versions in the modal
+export function renderVersionHistoryList(versions) {
+    if (!dataVersionHistoryContent) {
+        console.error("[UI Rendering] Data version history content element not found.");
+        return;
+    }
+    dataVersionHistoryContent.innerHTML = ''; // Clear previous content
+
+    if (!versions || versions.length === 0) {
+        dataVersionHistoryContent.innerHTML = '<p class="text-slate-500 dark:text-slate-400 text-center p-4">No version history available.</p>';
+        return;
+    }
+
+    const ul = document.createElement('ul');
+    ul.className = 'space-y-2';
+
+    versions.forEach(version => { // Assuming versions are sorted newest first
+        const li = document.createElement('li');
+        li.className = 'p-3 bg-slate-100 dark:bg-slate-700 rounded-md shadow-sm flex justify-between items-center';
+
+        const infoDiv = document.createElement('div');
+        const timeSpan = document.createElement('span');
+        timeSpan.className = 'font-semibold text-slate-800 dark:text-slate-200 block text-sm';
+        timeSpan.textContent = new Date(version.timestamp).toLocaleString();
+        
+        const descSpan = document.createElement('span');
+        descSpan.className = 'text-xs text-slate-600 dark:text-slate-400 block';
+        descSpan.textContent = version.description || 'No description';
+
+        infoDiv.appendChild(timeSpan);
+        infoDiv.appendChild(descSpan);
+
+        const restoreButton = document.createElement('button');
+        restoreButton.textContent = 'Restore';
+        restoreButton.className = 'px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-medium rounded-md shadow-sm';
+        restoreButton.title = `Restore to version from ${new Date(version.timestamp).toLocaleString()}`;
+        restoreButton.onclick = async () => {
+            if (confirm(`Are you sure you want to restore data to the version from ${new Date(version.timestamp).toLocaleString()}? This will overwrite your current data.`)) {
+                // Dynamically import DataVersioningFeature to call restoreVersion
+                try {
+                    const { DataVersioningFeature } = await import('./feature_data_versioning.js');
+                    if (DataVersioningFeature && DataVersioningFeature.restoreVersion) {
+                        const success = DataVersioningFeature.restoreVersion(version.timestamp);
+                        if (success) {
+                            // Optionally close this modal, or refresh its content if needed
+                            // For now, user can manually close. UI will refresh due to AppStore events.
+                            const { closeDataVersionHistoryModal } = await import('./modal_interactions.js');
+                            if (closeDataVersionHistoryModal) closeDataVersionHistoryModal();
+                        }
+                    } else {
+                        showMessage('Error: Restore function not available.', 'error');
+                    }
+                } catch (e) {
+                    console.error("Error importing DataVersioningFeature for restore:", e);
+                    showMessage('Error trying to restore version.', 'error');
+                }
+            }
+        };
+
+        li.appendChild(infoDiv);
+        li.appendChild(restoreButton);
+        ul.appendChild(li);
+    });
+    dataVersionHistoryContent.appendChild(ul);
 }
 
 
