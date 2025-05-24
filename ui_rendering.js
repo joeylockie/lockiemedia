@@ -87,6 +87,10 @@ let sidebarPomodoroDisplay, sidebarPomodoroState, sidebarPomodoroTime, sidebarPo
 // NEW: DOM Elements for Critical Error Display
 let criticalErrorDisplay, criticalErrorMessage, criticalErrorId, closeCriticalErrorBtn;
 
+// NEW: DOM Elements for Contact Us Modal
+let settingsContactUsBtn; // Button in settings modal
+let contactUsModal, modalDialogContactUs, closeContactUsModalBtn, closeContactUsSecondaryBtn, contactUsForm;
+
 
 export function initializeDOMElements() {
     // ... (all existing querySelectors from your original file)
@@ -98,6 +102,15 @@ export function initializeDOMElements() {
     criticalErrorMessage = document.getElementById('criticalErrorMessage');
     criticalErrorId = document.getElementById('criticalErrorId');
     closeCriticalErrorBtn = document.getElementById('closeCriticalErrorBtn');
+
+    // NEW: Initialize Contact Us Modal Elements
+    settingsContactUsBtn = document.getElementById('settingsContactUsBtn');
+    contactUsModal = document.getElementById('contactUsModal');
+    modalDialogContactUs = document.getElementById('modalDialogContactUs');
+    closeContactUsModalBtn = document.getElementById('closeContactUsModalBtn');
+    closeContactUsSecondaryBtn = document.getElementById('closeContactUsSecondaryBtn');
+    contactUsForm = document.getElementById('contactUsForm');
+
 
     // NEW: Add event listener for the close critical error button
     if (closeCriticalErrorBtn) {

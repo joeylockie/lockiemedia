@@ -195,7 +195,8 @@ body { font-family: 'Inter', sans-serif; }
 .smarter-search-feature-element, /* For Smarter Search elements */
 .bulk-actions-feature-element, /* For Bulk Action elements */
 .pomodoro-timer-hybrid-feature-element, /* For Pomodoro Timer Hybrid elements */
-.background-feature-element /* Added for Background Feature elements */
+.background-feature-element, /* Added for Background Feature elements */
+.contact-us-feature-element /* Added for Contact Us elements */
 { display: block; } /* Default, JS hides if feature off */
 
 

@@ -28,6 +28,7 @@ let _featureFlags = { //
     bulkActionsFeature: false, //
     pomodoroTimerHybridFeature: false, //
     backgroundFeature: false, //
+    contactUsFeature: false, // Added new feature flag
     // NEW: Add debugMode flag for logging control demonstration
     debugMode: false
 };

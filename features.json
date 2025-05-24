@@ -18,5 +18,6 @@
   "smarterSearchFeature": false,
   "bulkActionsFeature": false,
   "pomodoroTimerHybridFeature": false,
-  "backgroundFeature": true
+  "backgroundFeature": false,
+  "contactUsFeature": true
 }

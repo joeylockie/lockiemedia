@@ -32,6 +32,7 @@ import * as ModalInteractions from './modal_interactions.js';
 import { TooltipsGuideFeature } from './feature_tooltips_guide.js';
 import { SubTasksFeature } from './feature_sub_tasks.js';
 import { BackgroundFeature } from './feature_background.js';
+import { ContactUsFeature } from './feature_contact_us.js'; // Added new feature import
 
 // NEW: Import LoggingService and LOG_LEVELS
 import LoggingService, { LOG_LEVELS } from './loggingService.js';
@@ -181,6 +182,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.AppFeatures.TooltipsGuideFeature = TooltipsGuideFeature; //
     window.AppFeatures.SubTasksFeature = SubTasksFeature; //
     window.AppFeatures.BackgroundFeature = BackgroundFeature; //
+    window.AppFeatures.ContactUsFeature = ContactUsFeature; // Added new feature module
 
 
     if (typeof isFeatureEnabledFromService !== 'undefined' && typeof window.AppFeatures !== 'undefined') { //
@@ -199,7 +201,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     "projects": "projectFeature", "export-data": "exportDataFeature", "calendar-view": "calendarViewFeature", //
                     "task-dependencies": "taskDependenciesFeature", "smarter-search": "smarterSearchFeature", //
                     "bulk-actions": "bulkActionsFeature", "pomodoro-timer-hybrid": "pomodoroTimerHybridFeature", //
-                    "background": "backgroundFeature" //
+                    "background": "backgroundFeature", "contact-us": "contactUsFeature" // Added mapping
                 };
                 const effectiveFlagKey = flagMappings[flagKey] || flagKey; //
                 if (isFeatureEnabledFromService(effectiveFlagKey) || !Object.keys(AppStore.getFeatureFlags()).includes(effectiveFlagKey) ) { //

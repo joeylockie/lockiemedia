@@ -23,6 +23,7 @@ import {
 import { handleDeleteLabel, clearTempSubTasksForAddModal } from './ui_event_handlers.js';
 import { ProjectsFeature } from './feature_projects.js';
 import { TaskTimerSystemFeature } from './task_timer_system.js';
+// ContactUsFeature is not directly needed here, but its elements are.
 
 export function openAddModal() {
     const functionName = 'openAddModal';
@@ -152,7 +153,7 @@ export function openViewEditModal(taskId) {
 
     ModalStateService.setEditingTaskId(taskId); //
 
-    // ... (rest of the field population logic - keep as is)
+    // ... (rest of the field population logic - keep as is, but you can add debug logs if a field is unexpectedly not set)
     if (modalViewEditTaskIdEl) modalViewEditTaskIdEl.value = task.id; //
     if (modalTaskInputViewEditEl) modalTaskInputViewEditEl.value = task.text; //
     if (modalDueDateInputViewEditEl) modalDueDateInputViewEditEl.value = task.dueDate || ''; //
@@ -233,44 +234,117 @@ export function closeViewEditModal() {
     }, 200); //
 }
 
-// ... (Continue this pattern for openViewTaskDetailsModal, closeViewTaskDetailsModal, 
-//      openManageLabelsModal, closeManageLabelsModal, populateManageLabelsList,
-//      openSettingsModal, closeSettingsModal, openTaskReviewModal, closeTaskReviewModal,
-//      populateTaskReviewModal, openTooltipsGuideModal, closeTooltipsGuideModal) ...
-
-// Example for openViewTaskDetailsModal
 export function openViewTaskDetailsModal(taskId) {
     const functionName = 'openViewTaskDetailsModal';
     LoggingService.debug(`[ModalInteractions] Attempting to open View Task Details Modal for task ID: ${taskId}.`, { functionName, taskId });
 
-    // ... (all getElementById calls for this modal)
-    const viewTaskDetailsModalEl = document.getElementById('viewTaskDetailsModal'); //
-    const modalDialogViewDetailsEl = document.getElementById('modalDialogViewDetails'); //
-    const viewTaskTextEl = document.getElementById('viewTaskText'); //
-    // ... etc.
+    const viewTaskDetailsModalEl = document.getElementById('viewTaskDetailsModal'); 
+    const modalDialogViewDetailsEl = document.getElementById('modalDialogViewDetails'); 
+    const viewTaskTextEl = document.getElementById('viewTaskText'); 
+    const viewTaskDueDateEl = document.getElementById('viewTaskDueDate');
+    const viewTaskTimeEl = document.getElementById('viewTaskTime');
+    const viewTaskEstDurationEl = document.getElementById('viewTaskEstDuration');
+    const viewTaskPriorityEl = document.getElementById('viewTaskPriority');
+    const viewTaskStatusEl = document.getElementById('viewTaskStatus');
+    const viewTaskLabelEl = document.getElementById('viewTaskLabel');
+    const viewTaskProjectEl = document.getElementById('viewTaskProject');
+    const viewTaskNotesEl = document.getElementById('viewTaskNotes');
+    const viewTaskReminderSectionEl = document.getElementById('viewTaskReminderSection');
+    const viewTaskReminderStatusEl = document.getElementById('viewTaskReminderStatus');
+    const viewTaskReminderDetailsEl = document.getElementById('viewTaskReminderDetails');
+    const viewTaskReminderDateEl = document.getElementById('viewTaskReminderDate');
+    const viewTaskReminderTimeEl = document.getElementById('viewTaskReminderTime');
+    const viewTaskReminderEmailEl = document.getElementById('viewTaskReminderEmail');
+    const viewTaskAttachmentsSectionEl = document.getElementById('viewTaskAttachmentsSection');
+    const viewTaskAttachmentsListEl = document.getElementById('viewTaskAttachmentsList');
+    const taskTimerSectionEl = document.getElementById('taskTimerSection');
+    const subTasksSectionViewDetailsEl = document.getElementById('subTasksSectionViewDetails');
+    const modalSubTasksListViewDetailsEl = document.getElementById('modalSubTasksListViewDetails');
+    const viewSubTaskProgressEl = document.getElementById('viewSubTaskProgress');
+    const noSubTasksMessageViewDetailsEl = document.getElementById('noSubTasksMessageViewDetails');
+    const viewTaskDependenciesSectionEl = document.getElementById('viewTaskDependenciesSection');
+    const viewTaskDependsOnListEl = document.getElementById('viewTaskDependsOnList');
+    const viewTaskBlocksTasksListEl = document.getElementById('viewTaskBlocksTasksList');
 
-    if (!AppStore || typeof AppStore.getTasks !== 'function' || !ModalStateService) { //
+
+    if (!AppStore || typeof AppStore.getTasks !== 'function' || !ModalStateService) { 
         LoggingService.error("[ModalInteractions] Core dependencies not available for View Task Details.", new Error("CoreDependenciesMissing"), { functionName, taskId });
         return;
     }
-    const currentTasks = AppStore.getTasks(); //
-    const task = currentTasks.find(t => t.id === taskId); //
-    if (!task) { //
+    const currentTasks = AppStore.getTasks(); 
+    const task = currentTasks.find(t => t.id === taskId); 
+    if (!task) { 
         LoggingService.error(`[ModalInteractions] Task with ID ${taskId} not found for View Task Details Modal.`, new Error("TaskNotFound"), { functionName, taskId });
         return;
     }
-    ModalStateService.setCurrentViewTaskId(taskId); //
+    ModalStateService.setCurrentViewTaskId(taskId); 
 
-    // ... (rest of the field population logic - keep as is, but you can add debug logs if a field is unexpectedly not set)
-    if(viewTaskTextEl) viewTaskTextEl.textContent = task.text; else LoggingService.warn(`[${functionName}] viewTaskTextEl not found.`, {taskId}); //
-    // ...
+    if(viewTaskTextEl) viewTaskTextEl.textContent = task.text; else LoggingService.warn(`[${functionName}] viewTaskTextEl not found.`, {taskId});
+    if(viewTaskDueDateEl) viewTaskDueDateEl.textContent = task.dueDate ? formatDate(task.dueDate) : 'Not set';
+    if(viewTaskTimeEl) viewTaskTimeEl.textContent = task.time ? formatTime(task.time) : 'Not set';
+    
+    if (isFeatureEnabled('taskTimerSystem') && viewTaskEstDurationEl) {
+        viewTaskEstDurationEl.textContent = formatDuration(task.estimatedHours, task.estimatedMinutes);
+        if(taskTimerSectionEl) taskTimerSectionEl.classList.remove('hidden');
+        if (TaskTimerSystemFeature?.setupTimerForModal) TaskTimerSystemFeature.setupTimerForModal(task);
+    } else if (taskTimerSectionEl) {
+        taskTimerSectionEl.classList.add('hidden');
+    }
 
-    if (!viewTaskDetailsModalEl || !modalDialogViewDetailsEl) { //
+    if(viewTaskPriorityEl) viewTaskPriorityEl.textContent = task.priority || 'Not set';
+    if(viewTaskStatusEl) viewTaskStatusEl.textContent = task.completed ? 'Completed' : 'Active';
+    if(viewTaskLabelEl) viewTaskLabelEl.textContent = task.label || 'None';
+
+    if (isFeatureEnabled('projectFeature') && viewTaskProjectEl) {
+        const project = AppStore.getProjects().find(p => p.id === task.projectId);
+        viewTaskProjectEl.textContent = project ? project.name : 'No Project';
+        viewTaskProjectEl.closest('div.project-feature-element')?.classList.remove('hidden');
+    } else if (viewTaskProjectEl) {
+         viewTaskProjectEl.closest('div.project-feature-element')?.classList.add('hidden');
+    }
+    
+    if(viewTaskNotesEl) viewTaskNotesEl.textContent = task.notes || 'No notes added.';
+
+    if (isFeatureEnabled('reminderFeature') && viewTaskReminderSectionEl) {
+        viewTaskReminderSectionEl.classList.remove('hidden');
+        if(viewTaskReminderStatusEl) viewTaskReminderStatusEl.textContent = task.isReminderSet ? 'Set' : 'Not set';
+        if (viewTaskReminderDetailsEl) viewTaskReminderDetailsEl.classList.toggle('hidden', !task.isReminderSet);
+        if (task.isReminderSet) {
+            if(viewTaskReminderDateEl) viewTaskReminderDateEl.textContent = task.reminderDate ? formatDate(task.reminderDate) : 'N/A';
+            if(viewTaskReminderTimeEl) viewTaskReminderTimeEl.textContent = task.reminderTime ? formatTime(task.reminderTime) : 'N/A';
+            if(viewTaskReminderEmailEl) viewTaskReminderEmailEl.textContent = task.reminderEmail || 'N/A';
+        }
+    } else if (viewTaskReminderSectionEl) {
+        viewTaskReminderSectionEl.classList.add('hidden');
+    }
+
+    if(isFeatureEnabled('fileAttachments') && viewTaskAttachmentsSectionEl) {
+        viewTaskAttachmentsSectionEl.classList.remove('hidden');
+        if(viewTaskAttachmentsListEl) viewTaskAttachmentsListEl.textContent = task.attachments && task.attachments.length > 0 ? `(${task.attachments.length}) files (UI coming soon)` : 'No attachments.';
+    } else if (viewTaskAttachmentsSectionEl) {
+        viewTaskAttachmentsSectionEl.classList.add('hidden');
+    }
+    
+    if (isFeatureEnabled('subTasksFeature') && subTasksSectionViewDetailsEl) {
+        subTasksSectionViewDetailsEl.classList.remove('hidden');
+        renderSubTasksForViewModal(taskId, modalSubTasksListViewDetailsEl, viewSubTaskProgressEl, noSubTasksMessageViewDetailsEl);
+    } else if (subTasksSectionViewDetailsEl) {
+        subTasksSectionViewDetailsEl.classList.add('hidden');
+    }
+
+    if (isFeatureEnabled('taskDependenciesFeature') && viewTaskDependenciesSectionEl) {
+        viewTaskDependenciesSectionEl.classList.remove('hidden');
+        renderTaskDependenciesForViewModal(task);
+    } else if (viewTaskDependenciesSectionEl) {
+         viewTaskDependenciesSectionEl.classList.add('hidden');
+    }
+
+    if (!viewTaskDetailsModalEl || !modalDialogViewDetailsEl) { 
         LoggingService.error("[ModalInteractions] Core View Task Details modal DOM elements not found.", new Error("DOMElementMissing"), { functionName, taskId });
         return;
     }
-    viewTaskDetailsModalEl.classList.remove('hidden'); //
-    setTimeout(() => { modalDialogViewDetailsEl.classList.remove('scale-95', 'opacity-0'); modalDialogViewDetailsEl.classList.add('scale-100', 'opacity-100'); }, 10); //
+    viewTaskDetailsModalEl.classList.remove('hidden'); 
+    setTimeout(() => { modalDialogViewDetailsEl.classList.remove('scale-95', 'opacity-0'); modalDialogViewDetailsEl.classList.add('scale-100', 'opacity-100'); }, 10); 
     LoggingService.info(`[ModalInteractions] View Task Details Modal opened for task ID: ${taskId}.`, { functionName, taskId });
 }
 
@@ -495,6 +569,58 @@ export function closeTooltipsGuideModal() {
     modalDialogTooltipsGuideEl.classList.add('scale-95', 'opacity-0'); //
     setTimeout(() => { tooltipsGuideModalEl.classList.add('hidden'); LoggingService.info(`[ModalInteractions] Tooltips Guide Modal closed.`, { functionName }); }, 200); //
 }
+
+// --- New Contact Us Modal Interactions ---
+export function openContactUsModal() {
+    const functionName = 'openContactUsModal (ModalInteractions)';
+    LoggingService.debug(`[ModalInteractions] Attempting to open Contact Us Modal.`, { functionName });
+
+    const contactUsModalEl = document.getElementById('contactUsModal');
+    const modalDialogContactUsEl = document.getElementById('modalDialogContactUs');
+    const contactNameInputEl = document.getElementById('contactNameInput'); // Assuming this ID for the name input
+
+    if (!isFeatureEnabled('contactUsFeature')) {
+        LoggingService.warn('[ModalInteractions] Contact Us feature is disabled. Cannot open modal.', { functionName });
+        showMessage("Contact Us feature is currently disabled.", "info");
+        return;
+    }
+    if (!contactUsModalEl || !modalDialogContactUsEl) {
+        LoggingService.error("[ModalInteractions] Core Contact Us modal DOM elements not found.", new Error("DOMElementMissing"), { functionName });
+        return;
+    }
+    contactUsModalEl.classList.remove('hidden');
+    setTimeout(() => {
+        modalDialogContactUsEl.classList.remove('scale-95', 'opacity-0');
+        modalDialogContactUsEl.classList.add('scale-100', 'opacity-100');
+    }, 10);
+    if (contactNameInputEl) {
+        contactNameInputEl.focus();
+    }
+    LoggingService.info(`[ModalInteractions] Contact Us Modal opened.`, { functionName });
+}
+
+export function closeContactUsModal() {
+    const functionName = 'closeContactUsModal (ModalInteractions)';
+    LoggingService.debug(`[ModalInteractions] Attempting to close Contact Us Modal.`, { functionName });
+
+    const contactUsModalEl = document.getElementById('contactUsModal');
+    const modalDialogContactUsEl = document.getElementById('modalDialogContactUs');
+    const contactUsFormEl = document.getElementById('contactUsForm');
+
+    if (!contactUsModalEl || !modalDialogContactUsEl) {
+        LoggingService.warn("[ModalInteractions] Contact Us Modal DOM elements not found for closing.", { functionName });
+        return;
+    }
+    modalDialogContactUsEl.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => {
+        contactUsModalEl.classList.add('hidden');
+        if (contactUsFormEl) {
+            contactUsFormEl.reset(); // Reset the form on close
+        }
+        LoggingService.info(`[ModalInteractions] Contact Us Modal closed.`, { functionName });
+    }, 200);
+}
+
 
 // MODIFIED: Use LoggingService
 LoggingService.debug("modal_interactions.js loaded, uses getElementById, imports, and new tempSubTask clearing.", { module: 'modal_interactions' });
