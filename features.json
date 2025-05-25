@@ -23,5 +23,5 @@
   "socialMediaLinksFeature": false,
   "aboutUsFeature": true,
   "dataVersioningFeature": false,
-  "debugMode": false
+  "debugMode": true
 }
