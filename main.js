@@ -19,7 +19,6 @@ import { ReminderFeature } from './feature_reminder.js';
 import { AdvancedRecurrenceFeature } from './feature_advanced_recurrence.js';
 import { FileAttachmentsFeature } from './feature_file_attachments.js';
 import { IntegrationsServicesFeature } from './feature_integrations_services.js';
-// MODIFIED: Ensure UserAccountsFeature is imported
 import { UserAccountsFeature } from './feature_user_accounts.js'; 
 import { CollaborationSharingFeature } from './feature_collaboration_sharing.js';
 import { CrossDeviceSyncFeature } from './feature_cross_device_sync.js';
@@ -39,8 +38,10 @@ import { SocialMediaLinksFeature } from './feature_social_media_links.js';
 import { AboutUsFeature } from './feature_about_us.js';
 import { DataVersioningFeature } from './feature_data_versioning.js';
 import LoggingService, { LOG_LEVELS } from './loggingService.js';
+// NEW: Import firebaseService (though it's not directly initialized here, ensure it's part of the build/load order)
+import * as firebaseService from './firebaseService.js';
 
-// MODIFIED: Define uiRendering module reference outside the try block to be accessible later
+
 let uiRendering;
 
 let showCriticalErrorImported = (message, errorId) => {
@@ -59,6 +60,9 @@ if (typeof window.BulkActionService === 'undefined') window.BulkActionService = 
 if (typeof window.ModalStateService === 'undefined') window.ModalStateService = ModalStateService;
 if (typeof window.TooltipService === 'undefined') window.TooltipService = TooltipService;
 if (typeof window.LoggingService === 'undefined') window.LoggingService = LoggingService;
+// NEW: Make firebaseService globally available if needed by other modules directly (optional)
+if (typeof window.firebaseService === 'undefined') window.firebaseService = firebaseService;
+
 
 // --- Global Error Handlers ---
 window.onerror = function(message, source, lineno, colno, error) {
@@ -92,7 +96,6 @@ window.onunhandledrejection = function(event) {
 document.addEventListener('DOMContentLoaded', async () => {
     LoggingService.info("[Main] DOMContentLoaded event fired. Starting application initialization...");
 
-    // Load feature flags first, as they might influence logging or other initializations
     try {
         await loadFeatureFlags();
         LoggingService.info("[Main] Feature flags loading process completed.");
@@ -105,10 +108,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     catch (e) {
         LoggingService.critical("[Main] CRITICAL: Error loading feature flags!", e);
         showCriticalErrorImported("Failed to load application configuration. Please try again later.", "CONFIG_LOAD_FAIL");
-        return; // Stop further execution if flags fail
+        return; 
     }
 
-    // Then, load application version
     try {
         await loadAppVersion();
         LoggingService.info(`[Main] Application Version: ${getAppVersionString()} successfully loaded.`);
@@ -116,8 +118,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         LoggingService.error("[Main] Error loading application version. Default will be used.", e);
     }
 
-    // Now, initialize DOM elements and UI rendering module
-    // The uiRendering module needs to be available for other services that might be initialized soon
     try {
         uiRendering = await import('./ui_rendering.js');
         if (uiRendering.showCriticalError) {
@@ -126,17 +126,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else {
             LoggingService.warn("[Main] showCriticalError function not found in ui_rendering.js. Using fallback.");
         }
-        // Call initializeDOMElements AFTER version is loaded and uiRendering module is available
         if (uiRendering.initializeDOMElements) {
-            uiRendering.initializeDOMElements(); // This will call renderAppVersion()
+            uiRendering.initializeDOMElements(); 
             LoggingService.info("[Main] DOM elements initialized and initial version rendered.");
         } else {
             throw new Error("initializeDOMElements not found in ui_rendering.js");
         }
     } catch (e) {
         LoggingService.critical("[Main] CRITICAL: Error importing or initializing ui_rendering.js or its DOM elements!", e);
-        // Fallback or stop execution might be needed here
-        if (typeof initializeDOMElements === 'function') { // Check for a global fallback, though less ideal
+        if (typeof initializeDOMElements === 'function') { 
              initializeDOMElements();
              LoggingService.info("[Main] DOM elements initialized via assumed global (fallback).");
         } else {
@@ -146,9 +144,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
     
+    // Initialize UserAccountsFeature (which initializes Firebase App, Auth, Firestore)
+    // This needs to happen BEFORE AppStore.initializeStore if initializeStore might try to access Firebase user state
+    // or if onAuthStateChanged is expected to fire and load data immediately.
+    if (typeof window.AppFeatures === 'undefined') window.AppFeatures = {}; 
+    window.AppFeatures.UserAccountsFeature = UserAccountsFeature; 
+    // Only initialize if the feature is enabled (or always initialize to set up auth listeners?)
+    // For now, let's initialize it if the module exists, its internal `initialize` will check the flag for UI.
+    // The key is that Firebase SDKs are initialized for other services like `store.js` to use `firebase.auth()`.
+    if (window.AppFeatures.UserAccountsFeature && typeof window.AppFeatures.UserAccountsFeature.initialize === 'function') {
+        try {
+            LoggingService.info("[Main] Initializing UserAccountsFeature (which includes Firebase SDK setup)...");
+            window.AppFeatures.UserAccountsFeature.initialize();
+            LoggingService.info("[Main] UserAccountsFeature initialization complete.");
+        } catch (e) {
+            LoggingService.critical("[Main] CRITICAL: Error initializing UserAccountsFeature!", e);
+            showCriticalErrorImported("Failed to initialize user authentication system.", "AUTH_INIT_FAIL");
+            return; // Potentially stop if auth is critical
+        }
+    } else {
+        LoggingService.warn("[Main] UserAccountsFeature or its initialize function not found. Firebase dependent features might not work.");
+    }
+
     // Initialize Store
+    // AppStore.initializeStore is now async
     if (AppStore && typeof AppStore.initializeStore === 'function') {
-        await AppStore.initializeStore();
+        await AppStore.initializeStore(); // Now awaits, which is good as it might do async work
         LoggingService.info("[Main] AppStore initialized.");
     }
     else {
@@ -157,7 +178,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // Initialize UI Rendering Event Subscriptions
     if (uiRendering && uiRendering.initializeUiRenderingSubscriptions) {
         uiRendering.initializeUiRenderingSubscriptions();
         LoggingService.info("[Main] UI Rendering event subscriptions initialized.");
@@ -168,16 +188,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         LoggingService.error("[Main] initializeUiRenderingSubscriptions function not found!");
     }
 
-    // Initialize Feature Modules
-    if (typeof window.AppFeatures === 'undefined') window.AppFeatures = {}; 
+    // Initialize other Feature Modules
     window.AppFeatures.ProjectsFeature = ProjectsFeature; 
     window.AppFeatures.TestButtonFeature = TestButtonFeature; 
     window.AppFeatures.ReminderFeature = ReminderFeature; 
     window.AppFeatures.AdvancedRecurrenceFeature = AdvancedRecurrenceFeature; 
     window.AppFeatures.FileAttachmentsFeature = FileAttachmentsFeature; 
     window.AppFeatures.IntegrationsServicesFeature = IntegrationsServicesFeature; 
-    // MODIFIED: Add UserAccountsFeature to the global AppFeatures object
-    window.AppFeatures.UserAccountsFeature = UserAccountsFeature; 
     window.AppFeatures.CollaborationSharingFeature = CollaborationSharingFeature; 
     window.AppFeatures.CrossDeviceSyncFeature = CrossDeviceSyncFeature; 
     window.AppFeatures.TaskDependenciesFeature = TaskDependenciesFeature; 
@@ -195,10 +212,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.AppFeatures.AboutUsFeature = AboutUsFeature; 
     window.AppFeatures.DataVersioningFeature = DataVersioningFeature;
 
-
     if (typeof isFeatureEnabledFromService !== 'undefined' && typeof window.AppFeatures !== 'undefined') { 
-        LoggingService.info("[Main] Initializing feature modules..."); 
+        LoggingService.info("[Main] Initializing other feature modules..."); 
         for (const featureName in window.AppFeatures) { 
+            if (featureName === 'UserAccountsFeature') continue; // Already initialized
+
             if (window.AppFeatures.hasOwnProperty(featureName) &&
                 window.AppFeatures[featureName] &&
                 typeof window.AppFeatures[featureName].initialize === 'function') { 
@@ -206,17 +224,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const flagMappings = { 
                     "test-button": "testButtonFeature", "reminder": "reminderFeature", "task-timer-system": "taskTimerSystem", 
                     "advanced-recurrence": "advancedRecurrence", "file-attachments": "fileAttachments", 
-                    "integrations-services": "integrationsServices", 
-                     // MODIFIED: Ensure mapping for user-accounts to userAccounts feature flag
-                    "user-accounts": "userAccounts",
+                    "integrations-services": "integrationsServices", "user-accounts": "userAccounts",
                     "collaboration-sharing": "collaborationSharing", "cross-device-sync": "crossDeviceSync", 
                     "tooltips-guide": "tooltipsGuide", "sub-tasks": "subTasksFeature", "kanban-board": "kanbanBoardFeature", 
                     "projects": "projectFeature", "export-data": "exportDataFeature", "calendar-view": "calendarViewFeature", 
                     "task-dependencies": "taskDependenciesFeature", "smarter-search": "smarterSearchFeature", 
                     "bulk-actions": "bulkActionsFeature", "pomodoro-timer-hybrid": "pomodoroTimerHybridFeature", 
                     "background": "backgroundFeature", "contact-us": "contactUsFeature", 
-                    "social-media-links": "socialMediaLinksFeature", 
-                    "about-us": "aboutUsFeature", 
+                    "social-media-links": "socialMediaLinksFeature", "about-us": "aboutUsFeature", 
                     "data-versioning": "dataVersioningFeature"
                 };
                 const effectiveFlagKey = flagMappings[flagKey] || flagKey; 
@@ -232,7 +247,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
         }
-        LoggingService.info("[Main] Feature modules initialization process completed."); 
+        LoggingService.info("[Main] Other feature modules initialization process completed."); 
     }
 
     applyActiveFeatures(); 

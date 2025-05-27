@@ -4,6 +4,8 @@
 import { isFeatureEnabled } from './featureFlagService.js';
 import LoggingService from './loggingService.js';
 import { showMessage } from './ui_rendering.js'; // Assuming showMessage is available
+// NEW: Import AppStore to trigger data load/save operations
+import AppStore from './store.js';
 
 // Firebase configuration (from user input)
 const firebaseConfig = {
@@ -16,17 +18,16 @@ const firebaseConfig = {
   measurementId: "G-CY6V47WSNK"
 };
 
-// Firebase app and auth instances
+// Firebase app, auth, and db instances
 let firebaseApp;
 let firebaseAuth;
+let firestoreDB; // <<< ADD THIS LINE >>>
 
 // DOM Elements for auth UI
 let authModal;
 let authModalDialog;
-// let userStatusContainer; // REMOVED - No longer a separate container in the header
-// let userEmailDisplay; // REMOVED - No longer a separate display in the header
 let authFormsContainer; // Inside authModal
-let settingsSignOutBtn; // MODIFIED: Reference to the sign out button in settings
+let settingsSignOutBtn; 
 let signUpForm, signInForm;
 let signUpEmailInput, signUpPasswordInput, signInEmailInput, signInPasswordInput;
 
@@ -92,11 +93,16 @@ function initialize() {
         firebaseAuth = firebase.auth();
         LoggingService.info('[UserAccountsFeature] Firebase Auth instance obtained.', { functionName });
 
+        // <<< ADD THIS SECTION TO INITIALIZE FIRESTORE >>>
+        firestoreDB = firebase.firestore();
+        LoggingService.info('[UserAccountsFeature] Firebase Firestore instance obtained.', { functionName });
+        // <<< END OF FIRESTORE INITIALIZATION >>>
+
         // Get DOM elements
         authModal = document.getElementById('authModal');
         authModalDialog = document.getElementById('authModalDialog');
-        authFormsContainer = document.getElementById('authFormsContainer'); // Inside authModal
-        settingsSignOutBtn = document.getElementById('settingsSignOutBtn'); // MODIFIED: Get the new button
+        authFormsContainer = document.getElementById('authFormsContainer'); 
+        settingsSignOutBtn = document.getElementById('settingsSignOutBtn'); 
         signUpForm = document.getElementById('signUpForm');
         signInForm = document.getElementById('signInForm');
         signUpEmailInput = document.getElementById('signUpEmail');
@@ -104,20 +110,37 @@ function initialize() {
         signInEmailInput = document.getElementById('signInEmail');
         signInPasswordInput = document.getElementById('signInPassword');
 
-        firebaseAuth.onAuthStateChanged(user => {
+        firebaseAuth.onAuthStateChanged(async user => { // <<< MAKE THIS ASYNC >>>
             const authStateFunctionName = 'onAuthStateChanged_callback';
             if (user) {
-                LoggingService.info(`[UserAccountsFeature] User signed in: ${user.email}`, { functionName: authStateFunctionName, userEmail: user.email });
-                closeAuthModal(); 
+                LoggingService.info(`[UserAccountsFeature] User signed in: ${user.email}`, { functionName: authStateFunctionName, userEmail: user.email, userId: user.uid });
+                closeAuthModal();
+                // <<< ADD THIS: Trigger data loading from Firestore >>>
+                if (AppStore.loadDataFromFirestore) {
+                    LoggingService.info(`[UserAccountsFeature] Attempting to load data for user: ${user.uid}`, { functionName: authStateFunctionName });
+                    await AppStore.loadDataFromFirestore(user.uid);
+                } else {
+                    LoggingService.warn('[UserAccountsFeature] AppStore.loadDataFromFirestore not available.', { functionName: authStateFunctionName });
+                }
+                // <<< END OF DATA LOADING TRIGGER >>>
             } else {
                 LoggingService.info('[UserAccountsFeature] User signed out or no user.', { functionName: authStateFunctionName });
+                // <<< ADD THIS: Handle data saving/clearing on sign out >>>
+                // For now, we'll just clear local store. Actual saving before sign-out can be more complex.
+                if (AppStore.clearLocalStoreAndReloadDefaults) {
+                     LoggingService.info(`[UserAccountsFeature] User signed out. Clearing local store and reloading defaults.`, { functionName: authStateFunctionName });
+                    AppStore.clearLocalStoreAndReloadDefaults();
+                } else {
+                    LoggingService.warn('[UserAccountsFeature] AppStore.clearLocalStoreAndReloadDefaults not available.', { functionName: authStateFunctionName });
+                }
+                // <<< END OF SIGN OUT DATA HANDLING >>>
                 if (isFeatureEnabled('userAccounts')) {
                     openAuthModal();
                 } else {
                     closeAuthModal();
                 }
             }
-            updateUIVisibility(); // Update UI based on new state
+            updateUIVisibility(); 
         });
         LoggingService.info('[UserAccountsFeature] Auth state change listener set up.', { functionName });
 
@@ -142,30 +165,20 @@ function updateUIVisibility() {
 
     LoggingService.debug(`[UserAccountsFeature] Updating UI visibility. Feature: ${isActuallyEnabled}, User: ${currentUser ? currentUser.email : 'None'}.`, { functionName });
 
-    // Auth Modal visibility (main container)
     if (authModal) {
         if (!isActuallyEnabled) {
-            authModal.classList.add('hidden'); // Ensure modal is hidden if feature is off
-        } else {
-            // If feature is ON, modal visibility is controlled by onAuthStateChanged (open if no user, close if user)
-            // This function doesn't need to directly toggle authModal here based on currentUser
-            // as onAuthStateChanged handles that primary logic.
+            authModal.classList.add('hidden'); 
         }
     }
     
-    // Sign Out button in Settings Modal
     if (settingsSignOutBtn) {
         settingsSignOutBtn.classList.toggle('hidden', !(isActuallyEnabled && currentUser));
     }
     
-    // Generic class for other elements specifically tagged for this feature.
-    // This ensures that if the feature is globally turned off, all related elements are hidden.
     document.querySelectorAll('.user-accounts-feature-element').forEach(el => {
-         // If the element is the authModal itself, its visibility is primarily handled by open/closeAuthModal.
-         // However, if the feature is disabled, it should definitely be hidden.
         if (el.id === 'authModal' && !isActuallyEnabled) {
             el.classList.add('hidden');
-        } else if (el.id !== 'authModal') { // For other elements like the settingsSignOutBtn
+        } else if (el.id !== 'authModal') { 
             el.classList.toggle('hidden', !isActuallyEnabled);
         }
     });
@@ -190,8 +203,8 @@ async function handleSignUp(email, password) {
     try {
         const userCredential = await firebaseAuth.createUserWithEmailAndPassword(email, password);
         LoggingService.info(`[UserAccountsFeature] User signed up successfully: ${userCredential.user.email}`, { functionName, userEmail: userCredential.user.email });
+        // onAuthStateChanged will handle data loading and closing the modal.
         if (typeof showMessage === 'function') showMessage('Account created successfully! You are now signed in.', 'success');
-        // onAuthStateChanged will call closeAuthModal.
         if(signUpEmailInput) signUpEmailInput.value = '';
         if(signUpPasswordInput) signUpPasswordInput.value = '';
 
@@ -217,8 +230,8 @@ async function handleSignIn(email, password) {
     try {
         const userCredential = await firebaseAuth.signInWithEmailAndPassword(email, password);
         LoggingService.info(`[UserAccountsFeature] User signed in successfully: ${userCredential.user.email}`, { functionName, userEmail: userCredential.user.email });
+        // onAuthStateChanged will handle data loading and closing the modal.
         if (typeof showMessage === 'function') showMessage('Signed in successfully!', 'success');
-        // onAuthStateChanged will call closeAuthModal.
         if(signInEmailInput) signInEmailInput.value = '';
         if(signInPasswordInput) signInPasswordInput.value = '';
     } catch (error) {
@@ -239,13 +252,16 @@ async function handleSignOut() {
     }
     LoggingService.info('[UserAccountsFeature] Attempting sign out.', { functionName });
     try {
-        await firebaseAuth.signOut(); // This will trigger onAuthStateChanged
+        // Optionally, save current local data to Firestore *before* signing out if it's dirty.
+        // This is a more complex step we can add later if needed.
+        // For now, onAuthStateChanged handles clearing local data after sign-out.
+
+        await firebaseAuth.signOut(); 
         LoggingService.info('[UserAccountsFeature] User signed out successfully.', { functionName });
         if (typeof showMessage === 'function') showMessage('Signed out successfully.', 'success');
-        // onAuthStateChanged will call openAuthModal if feature is enabled.
-        // Ensure settings modal is closed if it was open
+        
         const settingsModalEl = document.getElementById('settingsModal');
-        const closeSettingsModalFn = window.ModalInteractions?.closeSettingsModal || (typeof closeSettingsModal === 'function' ? closeSettingsModal : null); // Access through ModalInteractions if modularized
+        const closeSettingsModalFn = window.ModalInteractions?.closeSettingsModal || (typeof closeSettingsModal === 'function' ? closeSettingsModal : null); 
         if (settingsModalEl && !settingsModalEl.classList.contains('hidden') && closeSettingsModalFn) {
             closeSettingsModalFn();
         }
@@ -257,6 +273,21 @@ async function handleSignOut() {
 }
 
 
+// Getter for the Firestore DB instance, to be used by other services
+export function getFirestoreInstance() {
+    if (!firestoreDB) {
+        LoggingService.warn('[UserAccountsFeature] Firestore instance requested before initialization.', { functionName: 'getFirestoreInstance' });
+        // Attempt to initialize it if firebase is available, though this is not ideal
+        if (firebase && typeof firebase.firestore === 'function') {
+            firestoreDB = firebase.firestore();
+            LoggingService.info('[UserAccountsFeature] Firestore instance obtained on-demand in getFirestoreInstance.', { functionName: 'getFirestoreInstance' });
+            return firestoreDB;
+        }
+        return null;
+    }
+    return firestoreDB;
+}
+
 export const UserAccountsFeature = {
     initialize,
     updateUIVisibility,
@@ -264,7 +295,8 @@ export const UserAccountsFeature = {
     handleSignIn,
     handleSignOut,
     openAuthModal,
-    closeAuthModal
+    closeAuthModal,
+    getFirestoreInstance // <<< EXPORT THIS FUNCTION >>>
 };
 
 LoggingService.debug("feature_user_accounts.js loaded as ES6 module.", { module: 'feature_user_accounts' });
