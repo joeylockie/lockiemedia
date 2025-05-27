@@ -3,7 +3,7 @@
 
 import { isFeatureEnabled } from './featureFlagService.js';
 import LoggingService from './loggingService.js';
-import { showMessage } from './ui_rendering.js';
+import { showMessage } from './ui_rendering.js'; // Assuming showMessage is available
 
 // Firebase configuration (from user input)
 const firebaseConfig = {
@@ -21,12 +21,12 @@ let firebaseApp;
 let firebaseAuth;
 
 // DOM Elements for auth UI
-let authModal; // MODIFIED: For the new modal
-let authModalDialog; // MODIFIED: For the new modal dialog
-let userStatusContainer; // This is now separate from the modal (e.g., in the header)
-let authFormsContainer; // This is inside the authModal
-let userEmailDisplay;
-let signOutBtn;
+let authModal;
+let authModalDialog;
+// let userStatusContainer; // REMOVED - No longer a separate container in the header
+// let userEmailDisplay; // REMOVED - No longer a separate display in the header
+let authFormsContainer; // Inside authModal
+let settingsSignOutBtn; // MODIFIED: Reference to the sign out button in settings
 let signUpForm, signInForm;
 let signUpEmailInput, signUpPasswordInput, signInEmailInput, signInPasswordInput;
 
@@ -48,10 +48,10 @@ function openAuthModal() {
     setTimeout(() => {
         authModalDialog.classList.remove('scale-95', 'opacity-0');
         authModalDialog.classList.add('scale-100', 'opacity-100');
-        if (signInEmailInput && !signInEmailInput.value) { // Focus email if empty
+        if (signInEmailInput && !signInEmailInput.value) {
             signInEmailInput.focus();
         } else if (signUpEmailInput) {
-            signUpEmailInput.focus(); // Or sign up if sign in has content
+            signUpEmailInput.focus();
         }
     }, 10);
     LoggingService.info('[UserAccountsFeature] Auth modal opened.', { functionName });
@@ -70,7 +70,7 @@ function closeAuthModal() {
     setTimeout(() => {
         authModal.classList.add('hidden');
         LoggingService.info('[UserAccountsFeature] Auth modal closed.', { functionName });
-    }, 200); // Match typical modal close animation time
+    }, 200);
 }
 
 
@@ -93,12 +93,10 @@ function initialize() {
         LoggingService.info('[UserAccountsFeature] Firebase Auth instance obtained.', { functionName });
 
         // Get DOM elements
-        authModal = document.getElementById('authModal'); // MODIFIED
-        authModalDialog = document.getElementById('authModalDialog'); // MODIFIED
-        userStatusContainer = document.getElementById('userStatusContainer'); // This is the separate display
+        authModal = document.getElementById('authModal');
+        authModalDialog = document.getElementById('authModalDialog');
         authFormsContainer = document.getElementById('authFormsContainer'); // Inside authModal
-        userEmailDisplay = document.getElementById('userEmailDisplay');
-        signOutBtn = document.getElementById('signOutBtn');
+        settingsSignOutBtn = document.getElementById('settingsSignOutBtn'); // MODIFIED: Get the new button
         signUpForm = document.getElementById('signUpForm');
         signInForm = document.getElementById('signInForm');
         signUpEmailInput = document.getElementById('signUpEmail');
@@ -110,21 +108,16 @@ function initialize() {
             const authStateFunctionName = 'onAuthStateChanged_callback';
             if (user) {
                 LoggingService.info(`[UserAccountsFeature] User signed in: ${user.email}`, { functionName: authStateFunctionName, userEmail: user.email });
-                if (userStatusContainer) userStatusContainer.classList.remove('hidden');
-                if (userEmailDisplay) userEmailDisplay.textContent = user.email;
-                closeAuthModal(); // MODIFIED: Close the modal when user signs in
+                closeAuthModal(); 
             } else {
                 LoggingService.info('[UserAccountsFeature] User signed out or no user.', { functionName: authStateFunctionName });
-                if (userStatusContainer) userStatusContainer.classList.add('hidden');
-                if (userEmailDisplay) userEmailDisplay.textContent = '';
-                // If feature is enabled and no user, show the modal
                 if (isFeatureEnabled('userAccounts')) {
-                    openAuthModal(); // MODIFIED: Open the modal
+                    openAuthModal();
                 } else {
-                    closeAuthModal(); // Ensure it's closed if feature gets disabled while it was open
+                    closeAuthModal();
                 }
             }
-            updateUIVisibility(); // Call this to apply general visibility rules
+            updateUIVisibility(); // Update UI based on new state
         });
         LoggingService.info('[UserAccountsFeature] Auth state change listener set up.', { functionName });
 
@@ -136,11 +129,11 @@ function initialize() {
 }
 
 /**
- * Updates the visibility of User Accounts UI elements based on the feature flag.
+ * Updates the visibility of User Accounts UI elements based on the feature flag and auth state.
  */
 function updateUIVisibility() {
     const functionName = 'updateUIVisibility (UserAccountsFeature)';
-    if (typeof isFeatureEnabled !== 'function' || !firebaseAuth) { // Added firebaseAuth check
+    if (typeof isFeatureEnabled !== 'function' || !firebaseAuth) {
         LoggingService.error("[UserAccountsFeature] Dependencies missing for UI visibility update.", new Error("DependencyMissing"), { functionName });
         return;
     }
@@ -149,29 +142,34 @@ function updateUIVisibility() {
 
     LoggingService.debug(`[UserAccountsFeature] Updating UI visibility. Feature: ${isActuallyEnabled}, User: ${currentUser ? currentUser.email : 'None'}.`, { functionName });
 
-    // Main modal container visibility (also controlled by user-accounts-feature-element in global applyActiveFeatures)
+    // Auth Modal visibility (main container)
     if (authModal) {
         if (!isActuallyEnabled) {
-            authModal.classList.add('hidden'); // Force hide if feature is off
+            authModal.classList.add('hidden'); // Ensure modal is hidden if feature is off
         } else {
-            // If feature is on, open/close is handled by onAuthStateChanged logic
-            // This function primarily ensures the top-level container and user status display are correct.
+            // If feature is ON, modal visibility is controlled by onAuthStateChanged (open if no user, close if user)
+            // This function doesn't need to directly toggle authModal here based on currentUser
+            // as onAuthStateChanged handles that primary logic.
         }
     }
     
-    // User status display (outside the modal)
-    if (userStatusContainer) {
-        userStatusContainer.classList.toggle('hidden', !(isActuallyEnabled && currentUser));
+    // Sign Out button in Settings Modal
+    if (settingsSignOutBtn) {
+        settingsSignOutBtn.classList.toggle('hidden', !(isActuallyEnabled && currentUser));
     }
     
-    // This ensures the generic class elements are also handled.
+    // Generic class for other elements specifically tagged for this feature.
+    // This ensures that if the feature is globally turned off, all related elements are hidden.
     document.querySelectorAll('.user-accounts-feature-element').forEach(el => {
-        // The authModal itself will be handled by open/closeAuthModal.
-        // This is more for other elements like the userStatusContainer if it also has this class.
-        if (el.id !== 'authModal') {
-             el.classList.toggle('hidden', !isActuallyEnabled);
+         // If the element is the authModal itself, its visibility is primarily handled by open/closeAuthModal.
+         // However, if the feature is disabled, it should definitely be hidden.
+        if (el.id === 'authModal' && !isActuallyEnabled) {
+            el.classList.add('hidden');
+        } else if (el.id !== 'authModal') { // For other elements like the settingsSignOutBtn
+            el.classList.toggle('hidden', !isActuallyEnabled);
         }
     });
+
     LoggingService.info(`[UserAccountsFeature] UI Visibility updated. Feature: ${isActuallyEnabled}, User: ${currentUser ? currentUser.email : 'None'}`, { functionName });
 }
 
@@ -241,10 +239,17 @@ async function handleSignOut() {
     }
     LoggingService.info('[UserAccountsFeature] Attempting sign out.', { functionName });
     try {
-        await firebaseAuth.signOut();
+        await firebaseAuth.signOut(); // This will trigger onAuthStateChanged
         LoggingService.info('[UserAccountsFeature] User signed out successfully.', { functionName });
         if (typeof showMessage === 'function') showMessage('Signed out successfully.', 'success');
         // onAuthStateChanged will call openAuthModal if feature is enabled.
+        // Ensure settings modal is closed if it was open
+        const settingsModalEl = document.getElementById('settingsModal');
+        const closeSettingsModalFn = window.ModalInteractions?.closeSettingsModal || (typeof closeSettingsModal === 'function' ? closeSettingsModal : null); // Access through ModalInteractions if modularized
+        if (settingsModalEl && !settingsModalEl.classList.contains('hidden') && closeSettingsModalFn) {
+            closeSettingsModalFn();
+        }
+
     } catch (error) {
         LoggingService.error('[UserAccountsFeature] Error signing out:', error, { functionName });
         if (typeof showMessage === 'function') showMessage(`Error signing out: ${error.message}`, 'error');
@@ -258,8 +263,8 @@ export const UserAccountsFeature = {
     handleSignUp,
     handleSignIn,
     handleSignOut,
-    openAuthModal, // Export if needed externally, though primarily internal
-    closeAuthModal // Export if needed externally
+    openAuthModal,
+    closeAuthModal
 };
 
 LoggingService.debug("feature_user_accounts.js loaded as ES6 module.", { module: 'feature_user_accounts' });
