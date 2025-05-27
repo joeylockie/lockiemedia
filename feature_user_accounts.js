@@ -3,11 +3,10 @@
 
 import { isFeatureEnabled } from './featureFlagService.js';
 import LoggingService from './loggingService.js';
-import { showMessage } from './ui_rendering.js'; // Assuming showMessage is available
-// NEW: Import AppStore to trigger data load/save operations
+import { showMessage } from './ui_rendering.js';
 import AppStore from './store.js';
 
-// Firebase configuration (from user input)
+// Firebase configuration is still needed
 const firebaseConfig = {
   apiKey: "AIzaSyC3jBnP7geSJOUbZxKZ1_1GpsQrR0fLEns",
   authDomain: "to-do-app-c4545.firebaseapp.com",
@@ -19,22 +18,20 @@ const firebaseConfig = {
 };
 
 // Firebase app, auth, and db instances
+// These will be assigned from the global 'firebase' object
 let firebaseApp;
 let firebaseAuth;
-let firestoreDB; // <<< ADD THIS LINE >>>
+let firestoreDB;
 
 // DOM Elements for auth UI
 let authModal;
 let authModalDialog;
-let authFormsContainer; // Inside authModal
-let settingsSignOutBtn; 
+let authFormsContainer;
+let settingsSignOutBtn;
 let signUpForm, signInForm;
 let signUpEmailInput, signUpPasswordInput, signInEmailInput, signInPasswordInput;
 
 
-/**
- * Opens the Authentication Modal.
- */
 function openAuthModal() {
     const functionName = 'openAuthModal (UserAccountsFeature)';
     if (!authModal || !authModalDialog) {
@@ -58,9 +55,6 @@ function openAuthModal() {
     LoggingService.info('[UserAccountsFeature] Auth modal opened.', { functionName });
 }
 
-/**
- * Closes the Authentication Modal.
- */
 function closeAuthModal() {
     const functionName = 'closeAuthModal (UserAccountsFeature)';
     if (!authModal || !authModalDialog) {
@@ -74,35 +68,44 @@ function closeAuthModal() {
     }, 200);
 }
 
-
-/**
- * Initializes the User Accounts Feature and Firebase.
- */
 function initialize() {
     const functionName = 'initialize (UserAccountsFeature)';
     LoggingService.info('[UserAccountsFeature] Initializing...', { functionName });
 
+    // Check if the global firebase object is available
+    if (typeof firebase === 'undefined' || typeof firebase.initializeApp !== 'function') {
+        LoggingService.critical('[UserAccountsFeature] CRITICAL: Firebase SDK not loaded. Ensure firebase-app-compat.js is included in todo.html.', new Error('FirebaseNotLoaded'), { functionName });
+        if (typeof showMessage === 'function') showMessage('Core authentication system failed to load. Please refresh.', 'error');
+        return;
+    }
+
     try {
         if (!firebase.apps.length) {
-            firebaseApp = firebase.initializeApp(firebaseConfig);
+            firebaseApp = firebase.initializeApp(firebaseConfig); // Use global firebase
             LoggingService.info('[UserAccountsFeature] Firebase app initialized.', { functionName });
         } else {
-            firebaseApp = firebase.app();
+            firebaseApp = firebase.app(); // Use global firebase
             LoggingService.info('[UserAccountsFeature] Firebase app already initialized. Using existing instance.', { functionName });
         }
-        firebaseAuth = firebase.auth();
+        
+        if (typeof firebase.auth !== 'function') {
+            LoggingService.critical('[UserAccountsFeature] CRITICAL: Firebase Auth SDK not loaded. Ensure firebase-auth-compat.js is included.', new Error('FirebaseAuthNotLoaded'), { functionName });
+            return;
+        }
+        firebaseAuth = firebase.auth(); // Use global firebase
         LoggingService.info('[UserAccountsFeature] Firebase Auth instance obtained.', { functionName });
 
-        // <<< ADD THIS SECTION TO INITIALIZE FIRESTORE >>>
-        firestoreDB = firebase.firestore();
+        if (typeof firebase.firestore !== 'function') {
+            LoggingService.critical('[UserAccountsFeature] CRITICAL: Firebase Firestore SDK not loaded. Ensure firebase-firestore-compat.js is included.', new Error('FirebaseFirestoreNotLoaded'), { functionName });
+            return;
+        }
+        firestoreDB = firebase.firestore(); // Use global firebase
         LoggingService.info('[UserAccountsFeature] Firebase Firestore instance obtained.', { functionName });
-        // <<< END OF FIRESTORE INITIALIZATION >>>
 
-        // Get DOM elements
         authModal = document.getElementById('authModal');
         authModalDialog = document.getElementById('authModalDialog');
-        authFormsContainer = document.getElementById('authFormsContainer'); 
-        settingsSignOutBtn = document.getElementById('settingsSignOutBtn'); 
+        authFormsContainer = document.getElementById('authFormsContainer');
+        settingsSignOutBtn = document.getElementById('settingsSignOutBtn');
         signUpForm = document.getElementById('signUpForm');
         signInForm = document.getElementById('signInForm');
         signUpEmailInput = document.getElementById('signUpEmail');
@@ -110,37 +113,32 @@ function initialize() {
         signInEmailInput = document.getElementById('signInEmail');
         signInPasswordInput = document.getElementById('signInPassword');
 
-        firebaseAuth.onAuthStateChanged(async user => { // <<< MAKE THIS ASYNC >>>
+        firebaseAuth.onAuthStateChanged(async user => {
             const authStateFunctionName = 'onAuthStateChanged_callback';
             if (user) {
                 LoggingService.info(`[UserAccountsFeature] User signed in: ${user.email}`, { functionName: authStateFunctionName, userEmail: user.email, userId: user.uid });
                 closeAuthModal();
-                // <<< ADD THIS: Trigger data loading from Firestore >>>
                 if (AppStore.loadDataFromFirestore) {
                     LoggingService.info(`[UserAccountsFeature] Attempting to load data for user: ${user.uid}`, { functionName: authStateFunctionName });
                     await AppStore.loadDataFromFirestore(user.uid);
                 } else {
                     LoggingService.warn('[UserAccountsFeature] AppStore.loadDataFromFirestore not available.', { functionName: authStateFunctionName });
                 }
-                // <<< END OF DATA LOADING TRIGGER >>>
             } else {
                 LoggingService.info('[UserAccountsFeature] User signed out or no user.', { functionName: authStateFunctionName });
-                // <<< ADD THIS: Handle data saving/clearing on sign out >>>
-                // For now, we'll just clear local store. Actual saving before sign-out can be more complex.
                 if (AppStore.clearLocalStoreAndReloadDefaults) {
                      LoggingService.info(`[UserAccountsFeature] User signed out. Clearing local store and reloading defaults.`, { functionName: authStateFunctionName });
                     AppStore.clearLocalStoreAndReloadDefaults();
                 } else {
                     LoggingService.warn('[UserAccountsFeature] AppStore.clearLocalStoreAndReloadDefaults not available.', { functionName: authStateFunctionName });
                 }
-                // <<< END OF SIGN OUT DATA HANDLING >>>
                 if (isFeatureEnabled('userAccounts')) {
                     openAuthModal();
                 } else {
                     closeAuthModal();
                 }
             }
-            updateUIVisibility(); 
+            updateUIVisibility();
         });
         LoggingService.info('[UserAccountsFeature] Auth state change listener set up.', { functionName });
 
@@ -151,13 +149,10 @@ function initialize() {
     LoggingService.info('[UserAccountsFeature] Initialized.', { functionName });
 }
 
-/**
- * Updates the visibility of User Accounts UI elements based on the feature flag and auth state.
- */
 function updateUIVisibility() {
     const functionName = 'updateUIVisibility (UserAccountsFeature)';
-    if (typeof isFeatureEnabled !== 'function' || !firebaseAuth) {
-        LoggingService.error("[UserAccountsFeature] Dependencies missing for UI visibility update.", new Error("DependencyMissing"), { functionName });
+    if (typeof isFeatureEnabled !== 'function' || !firebaseAuth) { // firebaseAuth might not be set if init failed
+        LoggingService.warn("[UserAccountsFeature] Dependencies missing for UI visibility update (isFeatureEnabled or firebaseAuth).", { functionName });
         return;
     }
     const isActuallyEnabled = isFeatureEnabled('userAccounts');
@@ -167,7 +162,7 @@ function updateUIVisibility() {
 
     if (authModal) {
         if (!isActuallyEnabled) {
-            authModal.classList.add('hidden'); 
+            authModal.classList.add('hidden');
         }
     }
     
@@ -178,7 +173,7 @@ function updateUIVisibility() {
     document.querySelectorAll('.user-accounts-feature-element').forEach(el => {
         if (el.id === 'authModal' && !isActuallyEnabled) {
             el.classList.add('hidden');
-        } else if (el.id !== 'authModal') { 
+        } else if (el.id !== 'authModal') {
             el.classList.toggle('hidden', !isActuallyEnabled);
         }
     });
@@ -186,12 +181,6 @@ function updateUIVisibility() {
     LoggingService.info(`[UserAccountsFeature] UI Visibility updated. Feature: ${isActuallyEnabled}, User: ${currentUser ? currentUser.email : 'None'}`, { functionName });
 }
 
-
-/**
- * Handles user sign-up.
- * @param {string} email - User's email.
- * @param {string} password - User's password.
- */
 async function handleSignUp(email, password) {
     const functionName = 'handleSignUp';
     if (!firebaseAuth) {
@@ -203,22 +192,15 @@ async function handleSignUp(email, password) {
     try {
         const userCredential = await firebaseAuth.createUserWithEmailAndPassword(email, password);
         LoggingService.info(`[UserAccountsFeature] User signed up successfully: ${userCredential.user.email}`, { functionName, userEmail: userCredential.user.email });
-        // onAuthStateChanged will handle data loading and closing the modal.
         if (typeof showMessage === 'function') showMessage('Account created successfully! You are now signed in.', 'success');
         if(signUpEmailInput) signUpEmailInput.value = '';
         if(signUpPasswordInput) signUpPasswordInput.value = '';
-
     } catch (error) {
         LoggingService.error('[UserAccountsFeature] Error signing up:', error, { functionName, email });
         if (typeof showMessage === 'function') showMessage(`Error creating account: ${error.message}`, 'error');
     }
 }
 
-/**
- * Handles user sign-in.
- * @param {string} email - User's email.
- * @param {string} password - User's password.
- */
 async function handleSignIn(email, password) {
     const functionName = 'handleSignIn';
      if (!firebaseAuth) {
@@ -230,7 +212,6 @@ async function handleSignIn(email, password) {
     try {
         const userCredential = await firebaseAuth.signInWithEmailAndPassword(email, password);
         LoggingService.info(`[UserAccountsFeature] User signed in successfully: ${userCredential.user.email}`, { functionName, userEmail: userCredential.user.email });
-        // onAuthStateChanged will handle data loading and closing the modal.
         if (typeof showMessage === 'function') showMessage('Signed in successfully!', 'success');
         if(signInEmailInput) signInEmailInput.value = '';
         if(signInPasswordInput) signInPasswordInput.value = '';
@@ -240,9 +221,6 @@ async function handleSignIn(email, password) {
     }
 }
 
-/**
- * Handles user sign-out.
- */
 async function handleSignOut() {
     const functionName = 'handleSignOut';
     if (!firebaseAuth) {
@@ -252,36 +230,27 @@ async function handleSignOut() {
     }
     LoggingService.info('[UserAccountsFeature] Attempting sign out.', { functionName });
     try {
-        // Optionally, save current local data to Firestore *before* signing out if it's dirty.
-        // This is a more complex step we can add later if needed.
-        // For now, onAuthStateChanged handles clearing local data after sign-out.
-
-        await firebaseAuth.signOut(); 
+        await firebaseAuth.signOut();
         LoggingService.info('[UserAccountsFeature] User signed out successfully.', { functionName });
         if (typeof showMessage === 'function') showMessage('Signed out successfully.', 'success');
         
         const settingsModalEl = document.getElementById('settingsModal');
-        const closeSettingsModalFn = window.ModalInteractions?.closeSettingsModal || (typeof closeSettingsModal === 'function' ? closeSettingsModal : null); 
+        const closeSettingsModalFn = window.ModalInteractions?.closeSettingsModal || (typeof closeSettingsModal === 'function' ? closeSettingsModal : null);
         if (settingsModalEl && !settingsModalEl.classList.contains('hidden') && closeSettingsModalFn) {
             closeSettingsModalFn();
         }
-
     } catch (error) {
         LoggingService.error('[UserAccountsFeature] Error signing out:', error, { functionName });
         if (typeof showMessage === 'function') showMessage(`Error signing out: ${error.message}`, 'error');
     }
 }
 
-
-// Getter for the Firestore DB instance, to be used by other services
 export function getFirestoreInstance() {
     if (!firestoreDB) {
-        LoggingService.warn('[UserAccountsFeature] Firestore instance requested before initialization.', { functionName: 'getFirestoreInstance' });
-        // Attempt to initialize it if firebase is available, though this is not ideal
-        if (firebase && typeof firebase.firestore === 'function') {
-            firestoreDB = firebase.firestore();
-            LoggingService.info('[UserAccountsFeature] Firestore instance obtained on-demand in getFirestoreInstance.', { functionName: 'getFirestoreInstance' });
-            return firestoreDB;
+        LoggingService.warn('[UserAccountsFeature] Firestore instance requested before proper initialization or if init failed.', { functionName: 'getFirestoreInstance' });
+        if (typeof firebase !== 'undefined' && typeof firebase.firestore === 'function') {
+            LoggingService.info('[UserAccountsFeature] Attempting to get Firestore instance on-demand in getFirestoreInstance.', { functionName: 'getFirestoreInstance' });
+            return firebase.firestore(); // Attempt to get from global if main init failed
         }
         return null;
     }
@@ -296,7 +265,7 @@ export const UserAccountsFeature = {
     handleSignOut,
     openAuthModal,
     closeAuthModal,
-    getFirestoreInstance // <<< EXPORT THIS FUNCTION >>>
+    getFirestoreInstance
 };
 
 LoggingService.debug("feature_user_accounts.js loaded as ES6 module.", { module: 'feature_user_accounts' });

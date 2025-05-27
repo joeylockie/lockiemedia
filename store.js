@@ -6,10 +6,7 @@ import EventBus from './eventBus.js';
 import LoggingService from './loggingService.js';
 // NEW: Import Firebase service functions
 import { saveUserDataToFirestore, loadUserDataFromFirestore } from './firebaseService.js';
-// REMOVE: import { getAuth } from "firebase/auth";
-import firebase from 'firebase/compat/app'; // Ensure firebase/app is imported for firebase.auth() and firebase.firestore.FieldValue
-import 'firebase/compat/auth'; // Ensure auth is loaded for firebase.auth()
-import 'firebase/compat/firestore'; // Ensure firestore is loaded for firebase.firestore.FieldValue
+// REMOVE all 'firebase/compat/...' imports if they were added at the top of this file previously
 
 // --- Internal State Variables (scoped to this module) ---
 let _tasks = [];
@@ -27,8 +24,13 @@ let _featureFlags = {};
 // Helper to get current user UID
 function getCurrentUserUID() {
     // Access auth via the global firebase object provided by the compat script
-    const auth = firebase.auth();
-    return auth.currentUser ? auth.currentUser.uid : null;
+    // Ensure firebase and firebase.auth() are available
+    if (typeof firebase !== 'undefined' && typeof firebase.auth === 'function') {
+        const auth = firebase.auth();
+        return auth.currentUser ? auth.currentUser.uid : null;
+    }
+    LoggingService.warn('[Store] firebase.auth() not available for getCurrentUserUID.');
+    return null;
 }
 
 // --- Private Helper Functions ---
@@ -103,8 +105,13 @@ async function _saveAllData() {
                 kanbanColumns: _kanbanColumns
                 // lastUpdated will be set by firebaseService using serverTimestamp
             };
-            await saveUserDataToFirestore(userId, dataToSave);
-            LoggingService.info(`[Store] All data successfully saved to Firestore for user ${userId}.`, { functionName, userId });
+            // Ensure firebaseService.saveUserDataToFirestore is correctly imported and available
+            if (typeof saveUserDataToFirestore === 'function') {
+                 await saveUserDataToFirestore(userId, dataToSave);
+                 LoggingService.info(`[Store] All data successfully saved to Firestore for user ${userId}.`, { functionName, userId });
+            } else {
+                LoggingService.error('[Store] saveUserDataToFirestore function is not available.', new Error('FunctionNotAvailable'), { functionName, userId });
+            }
         } catch (error) {
             LoggingService.error(`[Store] Failed to save data to Firestore for user ${userId}.`, error, { functionName, userId });
             if (typeof window.showMessage === 'function') {
@@ -158,6 +165,13 @@ const AppStore = {
         const functionName = 'loadDataFromFirestore (AppStore)';
         LoggingService.info(`[AppStore] Attempting to load data from Firestore for user ${userId}.`, { functionName, userId });
         try {
+            // Ensure firebaseService.loadUserDataFromFirestore is correctly imported and available
+            if (typeof loadUserDataFromFirestore !== 'function') {
+                 LoggingService.error('[AppStore] loadUserDataFromFirestore function is not available.', new Error('FunctionNotAvailable'), { functionName, userId });
+                 if (typeof window.showMessage === 'function') window.showMessage('Error: Data loading service unavailable.', 'error');
+                 return; // Stop if the service function isn't there
+            }
+
             const loadedData = await loadUserDataFromFirestore(userId);
             if (loadedData) {
                 LoggingService.debug(`[AppStore] Data received from Firestore for user ${userId}.`, { functionName, userId, hasTasks: !!loadedData.tasks, hasProjects: !!loadedData.projects });
@@ -184,8 +198,7 @@ const AppStore = {
 
                 LoggingService.info(`[AppStore] Data successfully loaded from Firestore and applied for user ${userId}.`, { functionName, userId });
             } else {
-                LoggingService.warn(`[AppStore] No data returned from Firestore for user ${userId}. Setting defaults and saving.`, { functionName, userId });
-                // If no data in Firestore (e.g., new user), set to local defaults and save this initial state to Firestore
+                LoggingService.warn(`[AppStore] No data returned from Firestore for user ${userId}. Setting defaults and saving to establish cloud presence.`, { functionName, userId });
                 _tasks = [];
                 _projects = [{ id: 0, name: "No Project", creationDate: Date.now() - 100000 }];
                 _kanbanColumns = [
@@ -193,12 +206,12 @@ const AppStore = {
                     { id: 'inprogress', title: 'In Progress' },
                     { id: 'done', title: 'Done' }
                 ];
-                await _saveAllData(); // This will save defaults to localStorage and also create the initial doc in Firestore
+                await _saveAllData(); 
 
                 _publish('tasksChanged', [..._tasks]);
                 _publish('projectsChanged', [..._projects]);
                 _publish('kanbanColumnsChanged', [..._kanbanColumns]);
-                _publish('storeDataLoadedFromFirebase'); // Or a 'storeInitializedWithDefaultsForNewUser'
+                _publish('storeDataLoadedFromFirebase');
             }
         } catch (error) {
             LoggingService.error(`[AppStore] Error loading data from Firestore for user ${userId}.`, error, { functionName, userId });
@@ -229,16 +242,12 @@ const AppStore = {
             LoggingService.error('[AppStore] Failed to clear items from localStorage.', e, { functionName });
         }
 
-        // Don't save to Firestore here as the user is logged out.
-        // Just update derived state and publish.
         _updateUniqueLabelsInternal();
         _updateUniqueProjectsInternal();
         
-        // Save these defaults to localStorage so the app isn't blank if reloaded before logging in again.
         localStorage.setItem('todos_v3', JSON.stringify(_tasks));
         localStorage.setItem('projects_v1', JSON.stringify(_projects));
         localStorage.setItem('kanbanColumns_v1', JSON.stringify(_kanbanColumns));
-
 
         _publish('tasksChanged', [..._tasks]);
         _publish('projectsChanged', [..._projects]);
@@ -333,18 +342,11 @@ const AppStore = {
             blocksTasks: task.blocksTasks || []
         }));
 
-        // Update derived state from whatever was loaded locally
         _updateUniqueLabelsInternal();
         _updateUniqueProjectsInternal();
         
-        // Note: _saveAllData() is NOT called here directly anymore.
-        // The onAuthStateChanged listener in feature_user_accounts.js will determine if
-        // we need to load from Firestore (which then calls _saveAllData) or if the user
-        // is not logged in (in which case, the localStorage data is used as is).
-        // If no user is logged in and localStorage was empty, _saveAllData() in loadDataFromFirestore handles saving defaults.
-
         LoggingService.info("[AppStore] Store initialized with persisted or default data from localStorage.", { module: 'store', functionName });
-        _publish('storeInitialized'); // Signifies local store is ready. Firestore loading might follow.
+        _publish('storeInitialized');
     }
 };
 
