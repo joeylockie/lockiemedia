@@ -54,7 +54,8 @@ import { ReminderFeature } from './feature_reminder.js';
 import { AdvancedRecurrenceFeature } from './feature_advanced_recurrence.js';
 import { FileAttachmentsFeature } from './feature_file_attachments.js';
 import { IntegrationsServicesFeature } from './feature_integrations_services.js';
-import { UserAccountsFeature } from './feature_user_accounts.js';
+// Firebase User Accounts Feature
+import { UserAccountsFeature } from './feature_user_accounts.js'; // MODIFIED: Import UserAccountsFeature
 import { CollaborationSharingFeature } from './feature_collaboration_sharing.js';
 import { CrossDeviceSyncFeature } from './feature_cross_device_sync.js';
 import { TaskDependenciesFeature } from './feature_task_dependencies.js';
@@ -101,7 +102,7 @@ function populateFeatureFlagsModal() {
         advancedRecurrence: "Advanced Recurrence",
         fileAttachments: "File Attachments",
         integrationsServices: "Integrations (e.g., Calendar)",
-        userAccounts: "User Accounts & Login",
+        userAccounts: "User Accounts & Login", // MODIFIED: Ensure this friendly name exists
         collaborationSharing: "Collaboration & Sharing",
         crossDeviceSync: "Cross-Device Sync",
         tooltipsGuide: "Tooltips & Guide",
@@ -700,6 +701,26 @@ export function setupEventListeners() {
     attachListener('modalTodoFormViewEdit', 'submit', handleEditTask, 'handleEditTask');
     attachListener('addNewLabelForm', 'submit', handleAddNewLabel, 'handleAddNewLabel');
     // ContactUsForm submission listener is in feature_contact_us.js which calls the imported modal close.
+
+    // MODIFIED: Add User Accounts Form Submissions
+    if (isFeatureEnabled('userAccounts') && UserAccountsFeature) {
+        attachListener('signUpForm', 'submit', (event) => {
+            event.preventDefault();
+            const email = document.getElementById('signUpEmail').value;
+            const password = document.getElementById('signUpPassword').value;
+            UserAccountsFeature.handleSignUp(email, password);
+        }, 'handleUserSignUp');
+
+        attachListener('signInForm', 'submit', (event) => {
+            event.preventDefault();
+            const email = document.getElementById('signInEmail').value;
+            const password = document.getElementById('signInPassword').value;
+            UserAccountsFeature.handleSignIn(email, password);
+        }, 'handleUserSignIn');
+
+        attachListener('signOutBtn', 'click', UserAccountsFeature.handleSignOut, 'handleUserSignOut');
+    }
+
 
     // Filter Buttons (Smart Views)
     const smartViewButtonsContainerEl = document.getElementById('smartViewButtonsContainer');

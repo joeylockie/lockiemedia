@@ -19,7 +19,8 @@ import { ReminderFeature } from './feature_reminder.js';
 import { AdvancedRecurrenceFeature } from './feature_advanced_recurrence.js';
 import { FileAttachmentsFeature } from './feature_file_attachments.js';
 import { IntegrationsServicesFeature } from './feature_integrations_services.js';
-import { UserAccountsFeature } from './feature_user_accounts.js';
+// MODIFIED: Ensure UserAccountsFeature is imported
+import { UserAccountsFeature } from './feature_user_accounts.js'; 
 import { CollaborationSharingFeature } from './feature_collaboration_sharing.js';
 import { CrossDeviceSyncFeature } from './feature_cross_device_sync.js';
 import { TaskDependenciesFeature } from './feature_task_dependencies.js';
@@ -175,6 +176,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.AppFeatures.AdvancedRecurrenceFeature = AdvancedRecurrenceFeature; 
     window.AppFeatures.FileAttachmentsFeature = FileAttachmentsFeature; 
     window.AppFeatures.IntegrationsServicesFeature = IntegrationsServicesFeature; 
+    // MODIFIED: Add UserAccountsFeature to the global AppFeatures object
     window.AppFeatures.UserAccountsFeature = UserAccountsFeature; 
     window.AppFeatures.CollaborationSharingFeature = CollaborationSharingFeature; 
     window.AppFeatures.CrossDeviceSyncFeature = CrossDeviceSyncFeature; 
@@ -204,7 +206,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const flagMappings = { 
                     "test-button": "testButtonFeature", "reminder": "reminderFeature", "task-timer-system": "taskTimerSystem", 
                     "advanced-recurrence": "advancedRecurrence", "file-attachments": "fileAttachments", 
-                    "integrations-services": "integrationsServices", "user-accounts": "userAccounts", 
+                    "integrations-services": "integrationsServices", 
+                     // MODIFIED: Ensure mapping for user-accounts to userAccounts feature flag
+                    "user-accounts": "userAccounts",
                     "collaboration-sharing": "collaborationSharing", "cross-device-sync": "crossDeviceSync", 
                     "tooltips-guide": "tooltipsGuide", "sub-tasks": "subTasksFeature", "kanban-board": "kanbanBoardFeature", 
                     "projects": "projectFeature", "export-data": "exportDataFeature", "calendar-view": "calendarViewFeature", 
