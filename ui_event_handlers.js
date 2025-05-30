@@ -12,7 +12,6 @@ import TooltipService from './tooltipService.js';
 import EventBus from './eventBus.js';
 import * as BulkActionService from './bulkActionService.js';
 
-// NEW: Import LoggingService
 import LoggingService from './loggingService.js';
 
 import {
@@ -38,11 +37,10 @@ import {
     closeTaskReviewModal,
     closeTooltipsGuideModal,
     closeViewTaskDetailsModal,
-    openContactUsModal, // Import for Contact Us
-    closeContactUsModal, // Import for Contact Us
-    openAboutUsModal, // ADDED: Import for About Us
-    closeAboutUsModal, // ADDED: Import for About Us
-    // NEW: Import for Data Version History Modal
+    openContactUsModal,
+    closeContactUsModal,
+    openAboutUsModal,
+    closeAboutUsModal,
     openDataVersionHistoryModal,
     closeDataVersionHistoryModal
 } from './modal_interactions.js';
@@ -68,13 +66,11 @@ import { TooltipsGuideFeature } from './feature_tooltips_guide.js';
 import { SubTasksFeature } from './feature_sub_tasks.js';
 import { BackgroundFeature } from './feature_background.js';
 import { ContactUsFeature } from './feature_contact_us.js';
-import { SocialMediaLinksFeature } from './feature_social_media_links.js'; // ADDED: Import SocialMediaLinksFeature
-import { AboutUsFeature } from './feature_about_us.js'; // ADDED: Import AboutUsFeature
-// NEW: Import DataVersioningFeature (its methods are called from modal_interactions or ui_rendering, but good to have it if direct calls were needed)
+import { SocialMediaLinksFeature } from './feature_social_media_links.js';
+import { AboutUsFeature } from './feature_about_us.js';
 import { DataVersioningFeature } from './feature_data_versioning.js';
 
 
-// Module-scoped state for temporary sub-tasks during creation
 let tempSubTasksForAddModal = [];
 
 export function clearTempSubTasksForAddModal() {
@@ -94,7 +90,7 @@ function populateFeatureFlagsModal() {
     const currentFlags = getAllFeatureFlags();
     LoggingService.debug('[UIEventHandlers] Populating feature flags modal.', { functionName, flagCount: Object.keys(currentFlags).length });
 
-    const friendlyNames = { //
+    const friendlyNames = { 
         testButtonFeature: "Test Button",
         reminderFeature: "Task Reminders",
         taskTimerSystem: "Task Time Tracking",
@@ -117,8 +113,8 @@ function populateFeatureFlagsModal() {
         backgroundFeature: "Custom Backgrounds",
         contactUsFeature: "Contact Us Form",
         socialMediaLinksFeature: "Social Media Links in Settings",
-        aboutUsFeature: "About Us Page in Settings", // ADDED: Friendly name for About Us
-        dataVersioningFeature: "Data Versioning & History", // NEW: Friendly name for Data Versioning
+        aboutUsFeature: "About Us Page in Settings",
+        dataVersioningFeature: "Data Versioning & History",
         debugMode: "Developer: Debug Mode"
     };
     const featureOrder = Object.keys(currentFlags).sort((a,b) => {
@@ -165,23 +161,18 @@ function populateFeatureFlagsModal() {
 export function applyActiveFeatures() {
     const functionName = 'applyActiveFeatures';
     LoggingService.info('[UIEventHandlers] Applying active features based on current flags.', { functionName });
-    const toggleElements = (selector, isEnabled) => { //
-        document.querySelectorAll(selector).forEach(el => el.classList.toggle('hidden', !isEnabled)); //
+    const toggleElements = (selector, isEnabled) => { 
+        document.querySelectorAll(selector).forEach(el => el.classList.toggle('hidden', !isEnabled)); 
     };
 
-    // This loop should handle DataVersioningFeature as well due to the generic AppFeatures structure
     if (window.AppFeatures) {
         for (const featureKey in window.AppFeatures) {
             if (window.AppFeatures[featureKey] && typeof window.AppFeatures[featureKey].updateUIVisibility === 'function') {
-                // LoggingService.debug(`[ApplyActiveFeatures] Calling updateUIVisibility for ${featureKey}`, { functionName });
                 window.AppFeatures[featureKey].updateUIVisibility();
             }
         }
     }
     
-    // Specific overrides or elements not covered by a generic class if any:
-    // (Most features are now handled by their own updateUIVisibility methods toggling a specific class like '.feature-name-element')
-
     const settingsTooltipsGuideBtnEl = document.getElementById('settingsTooltipsGuideBtn'); 
     if (settingsTooltipsGuideBtnEl) settingsTooltipsGuideBtnEl.classList.toggle('hidden', !isFeatureEnabled('tooltipsGuide')); 
 
@@ -203,8 +194,6 @@ export function applyActiveFeatures() {
     LoggingService.info('[UIEventHandlers] Finished applying active features.', { functionName });
 }
 
-// ... (handleAddTask, handleEditTask, toggleComplete, deleteTask, setFilter, clearCompletedTasks, handleAddNewLabel, handleDeleteLabel, handleAddSubTaskViewEdit, handleAddTempSubTaskForAddModal remain unchanged) ...
-// ... (Copying the rest of the file and adding the changes below)
 
 function handleAddTask(event) {
     const functionName = 'handleAddTask';
@@ -583,9 +572,7 @@ export function setupEventListeners() {
     attachListener('openSettingsModalButton', 'click', openSettingsModal, 'openSettingsModal');
     attachListener('settingsTaskReviewBtn', 'click', openTaskReviewModal, 'openTaskReviewModal');
     attachListener('settingsTooltipsGuideBtn', 'click', openTooltipsGuideModal, 'openTooltipsGuideModal');
-    attachListener('settingsAboutUsBtn', 'click', openAboutUsModal, 'openAboutUsModal'); // ADDED: Listener for About Us button
-    // The settingsContactUsBtn listener is in feature_contact_us.js, which calls the imported openContactUsModal
-    // NEW: Listener for Data Version History button
+    attachListener('settingsAboutUsBtn', 'click', openAboutUsModal, 'openAboutUsModal');
     attachListener('settingsVersionHistoryBtn', 'click', openDataVersionHistoryModal, 'openDataVersionHistoryModal');
 
 
@@ -638,15 +625,12 @@ export function setupEventListeners() {
         { id: 'closeTaskReviewModalBtn', handler: closeTaskReviewModal, name: 'closeTaskReviewModal (primary)' },
         { id: 'closeTaskReviewSecondaryBtn', handler: closeTaskReviewModal, name: 'closeTaskReviewModal (secondary)' },
         { id: 'taskReviewModal', handler: (event) => { if(event.target.id === 'taskReviewModal') closeTaskReviewModal(); }, name: 'closeTaskReviewModal (backdrop)'},
-        // Add listeners for Contact Us Modal
         { id: 'closeContactUsModalBtn', handler: closeContactUsModal, name: 'closeContactUsModal (primary)' },
         { id: 'closeContactUsSecondaryBtn', handler: closeContactUsModal, name: 'closeContactUsModal (secondary)' },
         { id: 'contactUsModal', handler: (event) => { if (event.target.id === 'contactUsModal') closeContactUsModal(); }, name: 'closeContactUsModal (backdrop)' },
-        // ADDED: Listeners for About Us Modal
         { id: 'closeAboutUsModalBtn', handler: closeAboutUsModal, name: 'closeAboutUsModal (primary)' },
         { id: 'closeAboutUsSecondaryBtn', handler: closeAboutUsModal, name: 'closeAboutUsModal (secondary)' },
         { id: 'aboutUsModal', handler: (event) => { if (event.target.id === 'aboutUsModal') closeAboutUsModal(); }, name: 'closeAboutUsModal (backdrop)' },
-        // NEW: Listeners for Data Version History Modal
         { id: 'closeDataVersionHistoryModalBtn', handler: closeDataVersionHistoryModal, name: 'closeDataVersionHistoryModal (primary)' },
         { id: 'closeDataVersionHistorySecondaryBtn', handler: closeDataVersionHistoryModal, name: 'closeDataVersionHistoryModal (secondary)' },
         { id: 'dataVersionHistoryModal', handler: (event) => { if (event.target.id === 'dataVersionHistoryModal') closeDataVersionHistoryModal(); }, name: 'closeDataVersionHistoryModal (backdrop)' }
@@ -699,7 +683,41 @@ export function setupEventListeners() {
     attachListener('modalTodoFormAdd', 'submit', handleAddTask, 'handleAddTask');
     attachListener('modalTodoFormViewEdit', 'submit', handleEditTask, 'handleEditTask');
     attachListener('addNewLabelForm', 'submit', handleAddNewLabel, 'handleAddNewLabel');
-    // ContactUsForm submission listener is in feature_contact_us.js which calls the imported modal close.
+
+    // User Accounts Form Submissions & Sign Out
+    if (UserAccountsFeature) { // Check if UserAccountsFeature is defined/imported
+        attachListener('signUpForm', 'submit', (event) => {
+            event.preventDefault();
+            const emailEl = document.getElementById('signUpEmail');
+            const passwordEl = document.getElementById('signUpPassword');
+            if (emailEl && passwordEl) {
+                UserAccountsFeature.handleSignUp(emailEl.value, passwordEl.value);
+            } else {
+                LoggingService.warn('[UIEventHandlers] Sign up form elements not found.', {functionName:'signUpSubmitHandler'});
+            }
+        }, 'handleUserSignUp');
+
+        attachListener('signInForm', 'submit', (event) => {
+            event.preventDefault();
+            const emailEl = document.getElementById('signInEmail');
+            const passwordEl = document.getElementById('signInPassword');
+             if (emailEl && passwordEl) {
+                UserAccountsFeature.handleSignIn(emailEl.value, passwordEl.value);
+            } else {
+                LoggingService.warn('[UIEventHandlers] Sign in form elements not found.', {functionName:'signInSubmitHandler'});
+            }
+        }, 'handleUserSignIn');
+
+        // MODIFIED: Attach listener to the new sign out button in settings
+        attachListener('settingsSignOutBtn', 'click', () => {
+            if (UserAccountsFeature.handleSignOut) {
+                 UserAccountsFeature.handleSignOut();
+            } else {
+                LoggingService.error('[UIEventHandlers] UserAccountsFeature.handleSignOut not found.', new Error("MethodMissing"), {functionName:'settingsSignOutHandler'});
+            }
+        }, 'handleUserSignOutFromSettings');
+    }
+
 
     // Filter Buttons (Smart Views)
     const smartViewButtonsContainerEl = document.getElementById('smartViewButtonsContainer');
@@ -773,12 +791,13 @@ export function setupEventListeners() {
         const keydownHandlerName = 'documentKeydownHandler';
         if (event.key === 'Escape') {
             LoggingService.debug('[UIEventHandlers] Escape key pressed, attempting to close modals.', { functionName: keydownHandlerName, key: event.key });
-            const contactUsModalEl = document.getElementById('contactUsModal'); // Get reference
-            const aboutUsModalEl = document.getElementById('aboutUsModal'); // ADDED: Get reference for About Us
-            const dataVersionHistoryModalEl = document.getElementById('dataVersionHistoryModal'); // NEW: Get reference
+            const contactUsModalEl = document.getElementById('contactUsModal');
+            const aboutUsModalEl = document.getElementById('aboutUsModal'); 
+            const dataVersionHistoryModalEl = document.getElementById('dataVersionHistoryModal'); 
 
 
-            if (document.getElementById('addTaskModal') && !document.getElementById('addTaskModal').classList.contains('hidden')) closeAddModal(); 
+            if (document.getElementById('authModal') && !document.getElementById('authModal').classList.contains('hidden') && UserAccountsFeature?.closeAuthModal) UserAccountsFeature.closeAuthModal(); // MODIFIED: Close Auth Modal on Escape
+            else if (document.getElementById('addTaskModal') && !document.getElementById('addTaskModal').classList.contains('hidden')) closeAddModal(); 
             else if (document.getElementById('viewEditTaskModal') && !document.getElementById('viewEditTaskModal').classList.contains('hidden')) closeViewEditModal(); 
             else if (document.getElementById('viewTaskDetailsModal') && !document.getElementById('viewTaskDetailsModal').classList.contains('hidden')) closeViewTaskDetailsModal(); 
             else if (document.getElementById('settingsModal') && !document.getElementById('settingsModal').classList.contains('hidden')) closeSettingsModal(); 
@@ -787,7 +806,6 @@ export function setupEventListeners() {
             else if (document.getElementById('tooltipsGuideModal') && !document.getElementById('tooltipsGuideModal').classList.contains('hidden')) closeTooltipsGuideModal(); 
             else if (contactUsModalEl && !contactUsModalEl.classList.contains('hidden')) closeContactUsModal(); 
             else if (aboutUsModalEl && !aboutUsModalEl.classList.contains('hidden')) closeAboutUsModal();
-            // NEW: Close Data Version History Modal on Escape
             else if (dataVersionHistoryModalEl && !dataVersionHistoryModalEl.classList.contains('hidden')) closeDataVersionHistoryModal();
 
 
