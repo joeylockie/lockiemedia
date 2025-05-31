@@ -11,9 +11,9 @@ const APP_DATA_DOC = 'appData'; // A subcollection to hold user-specific data do
 const USER_SPECIFIC_DATA_DOC = 'userSpecificData'; // The document within APP_DATA_DOC
 
 /**
- * Saves the user's application data (tasks, projects, kanban columns) to Firestore.
+ * Saves the user's application data (tasks, projects, kanban columns, preferences) to Firestore.
  * @param {string} userId - The UID of the user.
- * @param {object} data - An object containing tasks, projects, and kanbanColumns arrays.
+ * @param {object} data - An object containing tasks, projects, kanbanColumns, and preferences.
  * @returns {Promise<void>}
  */
 export async function saveUserDataToFirestore(userId, data) {
@@ -45,6 +45,7 @@ export async function saveUserDataToFirestore(userId, data) {
             tasks: data.tasks || [],
             projects: data.projects || [],
             kanbanColumns: data.kanbanColumns || [],
+            preferences: data.preferences || {}, // ADDED: Save preferences
             lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
         };
 
@@ -60,7 +61,7 @@ export async function saveUserDataToFirestore(userId, data) {
 /**
  * Loads the user's application data from Firestore ONCE.
  * @param {string} userId - The UID of the user.
- * @returns {Promise<object|null>} An object containing tasks, projects, and kanbanColumns, or null if not found/error.
+ * @returns {Promise<object|null>} An object containing tasks, projects, kanbanColumns, and preferences, or null if not found/error.
  */
 export async function loadUserDataFromFirestore(userId) {
     const functionName = 'loadUserDataFromFirestore (firebaseService)';
@@ -87,24 +88,27 @@ export async function loadUserDataFromFirestore(userId) {
                 functionName,
                 userId,
                 tasksCount: data.tasks?.length || 0,
-                projectsCount: data.projects?.length || 0
+                projectsCount: data.projects?.length || 0,
+                preferencesExist: !!data.preferences
             });
             return {
                 tasks: data.tasks || [],
                 projects: data.projects || [],
-                kanbanColumns: data.kanbanColumns || []
+                kanbanColumns: data.kanbanColumns || [],
+                preferences: data.preferences || {} // ADDED: Load preferences
             };
         } else {
             LoggingService.info(`[FirebaseService] No data found for user ${userId} (load once). Returning empty structure.`, { functionName, userId });
             return {
                 tasks: [],
                 projects: [],
-                kanbanColumns: []
+                kanbanColumns: [],
+                preferences: {} // ADDED: Default empty preferences
             };
         }
     } catch (error) {
         LoggingService.error(`[FirebaseService] Error loading user data (once) for ${userId}:`, error, { functionName, userId });
-        return null;
+        return null; // Or rethrow/handle as appropriate
     }
 }
 
@@ -145,15 +149,16 @@ export function streamUserDataFromFirestore(userId, callback) {
             callback({
                 tasks: data.tasks || [],
                 projects: data.projects || [],
-                kanbanColumns: data.kanbanColumns || []
+                kanbanColumns: data.kanbanColumns || [],
+                preferences: data.preferences || {} // ADDED: Stream preferences
             }, null);
         } else {
             LoggingService.info(`[FirebaseService] No data document found for user ${userId} in stream. Providing empty structure.`, { functionName, userId });
-            // Call back with empty structure so the app can reset or show "no data" state
             callback({
                 tasks: [],
                 projects: [],
-                kanbanColumns: []
+                kanbanColumns: [],
+                preferences: {} // ADDED: Default empty preferences for new users/empty doc
             }, null);
         }
     }, error => {
@@ -182,6 +187,7 @@ export async function deleteUserDataFromFirestore(userId) {
         return;
     }
     try {
+        // This deletes the userSpecificData document which now contains tasks, projects, columns, and preferences
         await db.collection(USERS_COLLECTION).doc(userId).collection(APP_DATA_DOC).doc(USER_SPECIFIC_DATA_DOC).delete();
         LoggingService.info(`[FirebaseService] All app data deleted for user ${userId}.`, { functionName, userId });
     } catch (error) {

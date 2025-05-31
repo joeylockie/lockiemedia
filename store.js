@@ -4,23 +4,29 @@
 
 import EventBus from './eventBus.js';
 import LoggingService from './loggingService.js';
-// MODIFIED: Import streamUserDataFromFirestore and keep loadUserDataFromFirestore (for initial load if needed or fallback)
-import { saveUserDataToFirestore, loadUserDataFromFirestore, streamUserDataFromFirestore } from './firebaseService.js'; // Added streamUserDataFromFirestore
+import { saveUserDataToFirestore, loadUserDataFromFirestore, streamUserDataFromFirestore } from './firebaseService.js';
 
 // --- Internal State Variables (scoped to this module) ---
 let _tasks = [];
 let _projects = [];
 let _uniqueLabels = [];
 let _uniqueProjects = [];
-
 let _kanbanColumns = [
     { id: 'todo', title: 'To Do' },
     { id: 'inprogress', title: 'In Progress' },
     { id: 'done', title: 'Done' }
 ];
 let _featureFlags = {};
-let _firestoreUnsubscribe = null; // To store the unsubscribe function for the real-time listener
-let _isDataLoadedFromFirebase = false; // Flag to track if initial data load/stream has occurred for current user
+let _userPreferences = {}; // ADDED: For user-specific settings
+
+let _firestoreUnsubscribe = null;
+let _isDataLoadedFromFirebase = false;
+
+// --- LocalStorage Keys ---
+const TASKS_KEY = 'todos_v3';
+const PROJECTS_KEY = 'projects_v1';
+const KANBAN_COLUMNS_KEY = 'kanbanColumns_v1';
+const USER_PREFERENCES_KEY = 'userPreferences_v1'; // ADDED
 
 // Helper to get current user UID
 function getCurrentUserUID() {
@@ -68,41 +74,60 @@ function _updateUniqueProjectsInternal() {
     }
 }
 
+// Deep merge utility for preferences (simple version)
+function _deepMerge(target, source) {
+    for (const key in source) {
+        if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+            if (!target[key] || typeof target[key] !== 'object') {
+                target[key] = {};
+            }
+            _deepMerge(target[key], source[key]);
+        } else {
+            target[key] = source[key];
+        }
+    }
+    return target;
+}
+
+
 // --- Internal Data Update and Persistence Functions ---
-async function _saveAllData(source = 'unknown') { // Added source for better logging
+async function _saveAllData(source = 'unknown') {
     const functionName = '_saveAllData (Store)';
-    LoggingService.debug(`[Store] Initiating save for all data. Source: ${source}. Tasks: ${_tasks.length}, Projects: ${_projects.length}`, { functionName, source });
+    LoggingService.debug(`[Store] Initiating save for all data. Source: ${source}.`, { functionName, source });
 
     _updateUniqueLabelsInternal();
     _updateUniqueProjectsInternal();
 
     try {
-        localStorage.setItem('todos_v3', JSON.stringify(_tasks));
-        localStorage.setItem('projects_v1', JSON.stringify(_projects));
-        localStorage.setItem('kanbanColumns_v1', JSON.stringify(_kanbanColumns));
+        localStorage.setItem(TASKS_KEY, JSON.stringify(_tasks));
+        localStorage.setItem(PROJECTS_KEY, JSON.stringify(_projects));
+        localStorage.setItem(KANBAN_COLUMNS_KEY, JSON.stringify(_kanbanColumns));
+        localStorage.setItem(USER_PREFERENCES_KEY, JSON.stringify(_userPreferences)); // ADDED: Save preferences to localStorage
         LoggingService.info('[Store] All data saved to localStorage.', {
             taskCount: _tasks.length,
             projectCount: _projects.length,
             columnCount: _kanbanColumns.length,
+            preferencesKeys: Object.keys(_userPreferences).length, // Log preference save
             module: 'store',
             functionName,
             source
         });
     } catch (e) {
         LoggingService.error('[Store] Failed to save data to localStorage.', e, { module: 'store', functionName, source });
-        if (EventBus && EventBus.publish) { // Use EventBus for user messages
+        if (EventBus && EventBus.publish) {
             EventBus.publish('displayUserMessage', { text: 'Error: Could not save data locally. Changes might not persist offline.', type: 'error' });
         }
     }
 
     const userId = getCurrentUserUID();
-    if (userId && _isDataLoadedFromFirebase) { // Only save to Firebase if user is logged in AND initial data load from Firebase has occurred
+    if (userId && _isDataLoadedFromFirebase) {
         LoggingService.debug(`[Store] User ${userId} is logged in and data is Firebase-synced. Attempting to save to Firestore. Source: ${source}`, { functionName, userId, source });
         try {
             const dataToSave = {
                 tasks: _tasks,
                 projects: _projects,
-                kanbanColumns: _kanbanColumns
+                kanbanColumns: _kanbanColumns,
+                preferences: _userPreferences // ADDED: Include preferences for Firestore
             };
             if (typeof saveUserDataToFirestore === 'function') {
                  await saveUserDataToFirestore(userId, dataToSave);
@@ -130,23 +155,32 @@ const AppStore = {
     getFeatureFlags: () => ({ ..._featureFlags }),
     getUniqueLabels: () => [..._uniqueLabels],
     getUniqueProjects: () => [..._uniqueProjects],
+    getUserPreferences: () => JSON.parse(JSON.stringify(_userPreferences)), // ADDED getter
 
-    setTasks: async (newTasksArray, source = 'setTasks') => { // Add source parameter
+    setTasks: async (newTasksArray, source = 'setTasks') => {
         _tasks = JSON.parse(JSON.stringify(newTasksArray));
-        await _saveAllData(source); // Pass source
+        await _saveAllData(source);
         _publish('tasksChanged', [..._tasks]);
     },
-    setProjects: async (newProjectsArray, source = 'setProjects') => { // Add source parameter
+    setProjects: async (newProjectsArray, source = 'setProjects') => {
         const noProjectEntry = { id: 0, name: "No Project", creationDate: Date.now() - 100000 };
         const filteredProjects = newProjectsArray.filter(p => p.id !== 0);
         _projects = [noProjectEntry, ...JSON.parse(JSON.stringify(filteredProjects))];
-        await _saveAllData(source); // Pass source
+        await _saveAllData(source);
         _publish('projectsChanged', [..._projects]);
     },
-    setKanbanColumns: async (newColumnsArray, source = 'setKanbanColumns') => { // Add source parameter
+    setKanbanColumns: async (newColumnsArray, source = 'setKanbanColumns') => {
         _kanbanColumns = JSON.parse(JSON.stringify(newColumnsArray));
-        await _saveAllData(source); // Pass source
+        await _saveAllData(source);
         _publish('kanbanColumnsChanged', [..._kanbanColumns]);
+    },
+    setUserPreferences: async (newPreferences, source = 'setUserPreferences') => { // ADDED setter
+        const functionName = 'setUserPreferences (AppStore)';
+        LoggingService.debug(`[AppStore] Setting user preferences. Source: ${source}`, { functionName, newPreferences });
+        // Deep merge to allow partial updates, e.g., only updating notification settings
+        _userPreferences = _deepMerge({ ..._userPreferences }, JSON.parse(JSON.stringify(newPreferences)));
+        await _saveAllData(source);
+        _publish('userPreferencesChanged', { ..._userPreferences });
     },
 
     setFeatureFlags: (loadedFlags) => {
@@ -159,7 +193,6 @@ const AppStore = {
         }
     },
 
-    // MODIFIED: To handle real-time updates from Firestore
     _handleFirestoreDataUpdate: (data, error) => {
         const functionName = '_handleFirestoreDataUpdate (AppStore)';
         if (error) {
@@ -167,20 +200,15 @@ const AppStore = {
             if (EventBus && EventBus.publish) {
                 EventBus.publish('displayUserMessage', { text: 'Connection to cloud data lost or error occurred.', type: 'error' });
             }
-            // Optionally, you might want to stop trying to stream or implement a retry logic here.
-            // For now, it just logs.
             return;
         }
 
         if (data) {
-            LoggingService.info(`[AppStore] Data received from Firestore stream. Tasks: ${data.tasks?.length}, Projects: ${data.projects?.length}`, { functionName });
+            LoggingService.info(`[AppStore] Data received from Firestore stream. Tasks: ${data.tasks?.length}, Projects: ${data.projects?.length}, Prefs: ${!!data.preferences}`, { functionName });
 
-            // IMPORTANT: Avoid deep comparison if data is large.
-            // A simple check if the stringified version changed can be a pragmatic approach.
-            // This is to prevent unnecessary re-renders if Firestore listener sends an echo of a local write
-            // that didn't actually change the state from what this client already has.
-            const currentDataString = JSON.stringify({ tasks: _tasks, projects: _projects, kanbanColumns: _kanbanColumns });
-            const newDataString = JSON.stringify({ tasks: data.tasks, projects: data.projects, kanbanColumns: data.kanbanColumns });
+            const incomingPreferences = data.preferences || {};
+            const currentDataString = JSON.stringify({ tasks: _tasks, projects: _projects, kanbanColumns: _kanbanColumns, preferences: _userPreferences });
+            const newDataString = JSON.stringify({ tasks: data.tasks, projects: data.projects, kanbanColumns: data.kanbanColumns, preferences: incomingPreferences });
 
             if (currentDataString === newDataString && _isDataLoadedFromFirebase) {
                 LoggingService.debug('[AppStore] Firestore stream update identical to current state. No changes applied.', { functionName });
@@ -195,14 +223,16 @@ const AppStore = {
             _kanbanColumns = data.kanbanColumns && data.kanbanColumns.length > 0 ? data.kanbanColumns : [
                 { id: 'todo', title: 'To Do' }, { id: 'inprogress', title: 'In Progress' }, { id: 'done', title: 'Done' }
             ];
+            // Merge incoming preferences with existing ones to preserve any local-only or new settings
+            _userPreferences = _deepMerge({ ..._userPreferences }, incomingPreferences);
 
-            _isDataLoadedFromFirebase = true; // Mark that data has been loaded from Firebase
+            _isDataLoadedFromFirebase = true;
 
-            // Save to localStorage to keep it in sync with the cloud truth
             try {
-                localStorage.setItem('todos_v3', JSON.stringify(_tasks));
-                localStorage.setItem('projects_v1', JSON.stringify(_projects));
-                localStorage.setItem('kanbanColumns_v1', JSON.stringify(_kanbanColumns));
+                localStorage.setItem(TASKS_KEY, JSON.stringify(_tasks));
+                localStorage.setItem(PROJECTS_KEY, JSON.stringify(_projects));
+                localStorage.setItem(KANBAN_COLUMNS_KEY, JSON.stringify(_kanbanColumns));
+                localStorage.setItem(USER_PREFERENCES_KEY, JSON.stringify(_userPreferences)); // ADDED: Save merged preferences to localStorage
                 LoggingService.info('[AppStore] Firestore stream data saved to localStorage.', { functionName });
             } catch (e) {
                 LoggingService.error('[AppStore] Failed to save Firestore stream data to localStorage.', e, { functionName });
@@ -214,11 +244,12 @@ const AppStore = {
             _publish('tasksChanged', [..._tasks]);
             _publish('projectsChanged', [..._projects]);
             _publish('kanbanColumnsChanged', [..._kanbanColumns]);
-            _publish('storeDataUpdatedFromFirebase'); // New event for real-time updates
+            _publish('userPreferencesChanged', { ..._userPreferences }); // ADDED: Publish preferences change
+            _publish('storeDataUpdatedFromFirebase');
             LoggingService.info(`[AppStore] Local store updated from Firestore stream.`, { functionName });
         } else {
             LoggingService.warn(`[AppStore] Null data received from Firestore stream, potentially document deletion.`, { functionName });
-             _isDataLoadedFromFirebase = true; // Still mark as "loaded" to handle "no data" state correctly
+             _isDataLoadedFromFirebase = true;
         }
     },
 
@@ -231,7 +262,7 @@ const AppStore = {
             _firestoreUnsubscribe();
             _firestoreUnsubscribe = null;
         }
-        _isDataLoadedFromFirebase = false; // Reset flag until data is actually received
+        _isDataLoadedFromFirebase = false;
 
         if (typeof streamUserDataFromFirestore === 'function') {
             _firestoreUnsubscribe = streamUserDataFromFirestore(userId, AppStore._handleFirestoreDataUpdate);
@@ -254,16 +285,13 @@ const AppStore = {
             LoggingService.info('[AppStore] Stopping Firestore data streaming.', { functionName });
             _firestoreUnsubscribe();
             _firestoreUnsubscribe = null;
-            _isDataLoadedFromFirebase = false; // Reset flag as we are no longer synced
+            _isDataLoadedFromFirebase = false;
         } else {
             LoggingService.debug('[AppStore] No active Firestore stream to stop.', { functionName });
         }
     },
 
-    // Kept original loadDataFromFirestore in case a one-time load is needed,
-    // but streaming should be the primary way for logged-in users.
-    // This might be used for an initial load before stream confirmation or if streaming fails.
-    loadDataFromFirestore: async (userId) => {
+    loadDataFromFirestore: async (userId) => { // Kept for potential one-time load scenarios
         const functionName = 'loadDataFromFirestore (AppStore - One Time)';
         LoggingService.info(`[AppStore] Attempting a ONE-TIME load from Firestore for user ${userId}. Consider using startStreamingUserData for real-time.`, { functionName, userId });
         try {
@@ -272,13 +300,13 @@ const AppStore = {
                  if (EventBus && EventBus.publish) EventBus.publish('displayUserMessage', { text: 'Error: Data loading service unavailable.', type: 'error' });
                  return;
             }
-            const loadedData = await loadUserDataFromFirestore(userId); // One-time load
+            const loadedData = await loadUserDataFromFirestore(userId);
             if (loadedData) {
-                AppStore._handleFirestoreDataUpdate(loadedData, null); // Use the same handler
+                AppStore._handleFirestoreDataUpdate(loadedData, null);
                 LoggingService.info(`[AppStore] Data successfully loaded (once) and applied for user ${userId}.`, { functionName, userId });
             } else {
                  LoggingService.warn(`[AppStore] No data returned from one-time Firestore load for user ${userId}.`, { functionName, userId });
-                 AppStore._handleFirestoreDataUpdate({ tasks: [], projects: [], kanbanColumns: [] }, null); // Handle as no data
+                 AppStore._handleFirestoreDataUpdate({ tasks: [], projects: [], kanbanColumns: [], preferences: {} }, null); // Handle as no data
             }
         } catch (error) {
             LoggingService.error(`[AppStore] Error in one-time load from Firestore for user ${userId}.`, error, { functionName, userId });
@@ -292,7 +320,7 @@ const AppStore = {
         const functionName = 'clearLocalStoreAndReloadDefaults (AppStore)';
         LoggingService.info(`[AppStore] Clearing local store and reloading default data. Stopping any active stream.`, { functionName });
 
-        AppStore.stopStreamingUserData(); // Stop streaming before clearing
+        AppStore.stopStreamingUserData();
         _isDataLoadedFromFirebase = false;
 
         _tasks = [];
@@ -300,11 +328,13 @@ const AppStore = {
         _kanbanColumns = [
             { id: 'todo', title: 'To Do' }, { id: 'inprogress', title: 'In Progress' }, { id: 'done', title: 'Done' }
         ];
+        _userPreferences = {}; // ADDED: Reset user preferences to default (empty object)
         
         try {
-            localStorage.removeItem('todos_v3');
-            localStorage.removeItem('projects_v1');
-            localStorage.removeItem('kanbanColumns_v1');
+            localStorage.removeItem(TASKS_KEY);
+            localStorage.removeItem(PROJECTS_KEY);
+            localStorage.removeItem(KANBAN_COLUMNS_KEY);
+            localStorage.removeItem(USER_PREFERENCES_KEY); // ADDED: Clear preferences from localStorage
             LoggingService.info('[AppStore] localStorage items cleared.', { functionName });
         } catch (e) {
             LoggingService.error('[AppStore] Failed to clear items from localStorage.', e, { functionName });
@@ -313,28 +343,27 @@ const AppStore = {
         _updateUniqueLabelsInternal();
         _updateUniqueProjectsInternal();
         
-        // Save defaults to local storage, but DO NOT save to Firebase here.
-        // If a user logs back in, their (potentially empty) cloud data will be loaded/streamed.
-        // If they use the app logged out, these local defaults are used.
-        localStorage.setItem('todos_v3', JSON.stringify(_tasks));
-        localStorage.setItem('projects_v1', JSON.stringify(_projects));
-        localStorage.setItem('kanbanColumns_v1', JSON.stringify(_kanbanColumns));
+        localStorage.setItem(TASKS_KEY, JSON.stringify(_tasks));
+        localStorage.setItem(PROJECTS_KEY, JSON.stringify(_projects));
+        localStorage.setItem(KANBAN_COLUMNS_KEY, JSON.stringify(_kanbanColumns));
+        localStorage.setItem(USER_PREFERENCES_KEY, JSON.stringify(_userPreferences)); // ADDED: Save default preferences to localStorage
 
         _publish('tasksChanged', [..._tasks]);
         _publish('projectsChanged', [..._projects]);
         _publish('kanbanColumnsChanged', [..._kanbanColumns]);
+        _publish('userPreferencesChanged', { ..._userPreferences }); // ADDED: Publish preference change
         _publish('storeDataCleared');
 
         LoggingService.info(`[AppStore] Local store cleared and defaults applied. Firestore save was SKIPPED.`, { functionName });
     },
 
-
     initializeStore: async () => {
         const functionName = 'initializeStore (AppStore)';
         LoggingService.info('[AppStore] Initializing store from localStorage (default behavior)...', { module: 'store', functionName });
-        _isDataLoadedFromFirebase = false; // Initially, no data from Firebase
+        _isDataLoadedFromFirebase = false;
 
-        const storedKanbanCols = localStorage.getItem('kanbanColumns_v1');
+        // Load Kanban Columns
+        const storedKanbanCols = localStorage.getItem(KANBAN_COLUMNS_KEY);
         const defaultKanbanCols = [
             { id: 'todo', title: 'To Do' }, { id: 'inprogress', title: 'In Progress' }, { id: 'done', title: 'Done' }
         ];
@@ -344,29 +373,32 @@ const AppStore = {
                 if (Array.isArray(parsed) && parsed.length > 0 && parsed.every(col => col.id && col.title)) {
                      _kanbanColumns = parsed;
                 } else { _kanbanColumns = defaultKanbanCols; LoggingService.warn('[AppStore Init] Stored Kanban columns invalid. Using defaults.', {functionName}); }
-            } catch (e) { _kanbanColumns = defaultKanbanCols; LoggingService.error('[AppStore Init] Error parsing stored Kanban columns. Using defaults.', e, { item: 'kanbanColumns_v1' }); }
+            } catch (e) { _kanbanColumns = defaultKanbanCols; LoggingService.error('[AppStore Init] Error parsing stored Kanban columns. Using defaults.', e, { item: KANBAN_COLUMNS_KEY }); }
         } else { _kanbanColumns = defaultKanbanCols; }
 
-        const storedProjects = localStorage.getItem('projects_v1');
+        // Load Projects
+        const storedProjects = localStorage.getItem(PROJECTS_KEY);
         let tempProjects = [];
         if (storedProjects) {
             try {
                 const parsed = JSON.parse(storedProjects);
                 if (Array.isArray(parsed)) { tempProjects = parsed.filter(p => p && typeof p.id === 'number' && typeof p.name === 'string'); }
-            } catch (e) { LoggingService.error("[AppStore Init] Error parsing stored projects. Using empty array.", e, { item: 'projects_v1' }); }
+            } catch (e) { LoggingService.error("[AppStore Init] Error parsing stored projects. Using empty array.", e, { item: PROJECTS_KEY }); }
         }
         const noProjectEntry = { id: 0, name: "No Project", creationDate: Date.now() - 100000 };
         _projects = tempProjects.filter(p => p.id !== 0);
         _projects.unshift(noProjectEntry);
 
+        // Load Tasks
         let storedTasks = [];
         try {
-            const tasksString = localStorage.getItem('todos_v3');
+            const tasksString = localStorage.getItem(TASKS_KEY);
             if (tasksString) { storedTasks = JSON.parse(tasksString) || []; }
-        } catch (e) { LoggingService.error('[AppStore Init] Error parsing stored tasks. Initializing with empty tasks array.', e, { item: 'todos_v3' }); storedTasks = []; }
+        } catch (e) { LoggingService.error('[AppStore Init] Error parsing stored tasks. Initializing with empty tasks array.', e, { item: TASKS_KEY }); storedTasks = []; }
 
         const defaultKanbanColId = _kanbanColumns[0]?.id || 'todo';
         _tasks = storedTasks.map(task => ({
+            // ... (task properties remain the same)
             id: task.id || Date.now() + Math.random(), text: task.text || '', completed: task.completed || false, creationDate: task.creationDate || task.id,
             dueDate: task.dueDate || null, time: task.time || null, priority: task.priority || 'medium', label: task.label || '', notes: task.notes || '',
             isReminderSet: task.isReminderSet || false, reminderDate: task.reminderDate || null, reminderTime: task.reminderTime || null, reminderEmail: task.reminderEmail || null,
@@ -379,12 +411,25 @@ const AppStore = {
             dependsOn: task.dependsOn || [], blocksTasks: task.blocksTasks || []
         }));
 
+        // ADDED: Load User Preferences
+        try {
+            const prefsString = localStorage.getItem(USER_PREFERENCES_KEY);
+            if (prefsString) {
+                _userPreferences = JSON.parse(prefsString) || {};
+            } else {
+                _userPreferences = {}; // Default to empty object if not found
+            }
+        } catch (e) {
+            LoggingService.error('[AppStore Init] Error parsing user preferences from localStorage. Initializing with empty object.', e, { item: USER_PREFERENCES_KEY });
+            _userPreferences = {};
+        }
+
+
         _updateUniqueLabelsInternal();
         _updateUniqueProjectsInternal();
         
         LoggingService.info("[AppStore] Store initialized with persisted or default data from localStorage.", { module: 'store', functionName });
-        _publish('storeInitialized'); // Indicates local store is ready
-        // Real-time sync for logged-in users will be started by feature_user_accounts.js
+        _publish('storeInitialized');
     }
 };
 
