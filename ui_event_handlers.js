@@ -9,16 +9,14 @@ import * as TaskService from './taskService.js';
 import * as LabelService from './labelService.js';
 import ModalStateService from './modalStateService.js';
 import TooltipService from './tooltipService.js';
-import EventBus from './eventBus.js'; // Ensure EventBus is imported
+import EventBus from './eventBus.js'; 
 import * as BulkActionService from './bulkActionService.js';
 
 import LoggingService from './loggingService.js';
 
-// showMessage, refreshTaskView, etc. are imported from ui_rendering.js
-// This part of the circular dependency (ui_event_handlers importing from ui_rendering)
-// is not being addressed in THIS specific step, but the reverse is.
+// MODIFIED: showMessage is no longer imported directly
 import {
-    showMessage,
+    // showMessage, 
     refreshTaskView,
     showTooltip,
     hideTooltip,
@@ -239,7 +237,8 @@ function handleAddTask(event) {
         reminderEmail = modalReminderEmailAddEl.value.trim();
         if (!reminderDate || !reminderTime || !reminderEmail) {
             LoggingService.warn('[UIEventHandlers] Reminder fields not completely filled for new task.', { functionName, reminderDate, reminderTime, reminderEmail });
-            showMessage('Please fill all reminder fields or disable the reminder.', 'error');
+            // MODIFIED: Publish event instead of direct call
+            EventBus.publish('displayUserMessage', { text: 'Please fill all reminder fields or disable the reminder.', type: 'error' });
             return;
         }
     }
@@ -261,7 +260,8 @@ function handleAddTask(event) {
             subTasks: subTasksToAdd
         });
         LoggingService.info(`[UIEventHandlers] Task added via form: "${parsedResult.remainingText.substring(0, 30)}..."`, { functionName, taskLength: parsedResult.remainingText.length });
-        showMessage('Task added successfully!', 'success');
+        // MODIFIED: Publish event instead of direct call
+        EventBus.publish('displayUserMessage', { text: 'Task added successfully!', type: 'success' });
         closeAddModal(); 
         if (ViewManager.getCurrentFilter() !== 'inbox') {
             ViewManager.setCurrentFilter('inbox'); 
@@ -270,7 +270,8 @@ function handleAddTask(event) {
         }
     } else {
         LoggingService.warn('[UIEventHandlers] Task description was empty on add attempt.', { functionName });
-        showMessage('Task description cannot be empty.', 'error');
+        // MODIFIED: Publish event instead of direct call
+        EventBus.publish('displayUserMessage', { text: 'Task description cannot be empty.', type: 'error' });
     }
 }
 
@@ -316,7 +317,8 @@ function handleEditTask(event) {
         reminderEmail = modalReminderEmailViewEditEl.value.trim();
         if (!reminderDate || !reminderTime || !reminderEmail) {
             LoggingService.warn(`[UIEventHandlers] Reminder fields not completely filled for editing task ID: ${taskId}.`, { functionName, taskId, reminderDate, reminderTime, reminderEmail });
-            showMessage('Please fill all reminder fields or disable the reminder for edit.', 'error');
+            // MODIFIED: Publish event instead of direct call
+            EventBus.publish('displayUserMessage', { text: 'Please fill all reminder fields or disable the reminder for edit.', type: 'error' });
             return;
         }
     }
@@ -328,54 +330,56 @@ function handleEditTask(event) {
             estimatedHours: estHours, estimatedMinutes: estMinutes
         });
         LoggingService.info(`[UIEventHandlers] Task ID ${taskId} updated successfully.`, { functionName, taskId });
-        showMessage('Task updated successfully!', 'success');
+        // MODIFIED: Publish event instead of direct call
+        EventBus.publish('displayUserMessage', { text: 'Task updated successfully!', type: 'success' });
         closeViewEditModal();
     } else {
         LoggingService.warn('[UIEventHandlers] Task description empty or task ID missing for edit.', { functionName, taskId, taskTextIsEmpty: !taskText });
-        showMessage('Task description cannot be empty.', 'error');
+        // MODIFIED: Publish event instead of direct call
+        EventBus.publish('displayUserMessage', { text: 'Task description cannot be empty.', type: 'error' });
     }
 }
 
-// MODIFIED: Function is no longer exported
+// This function is now internal, not exported. Called by EventBus subscription.
 function toggleComplete(taskId) {
-    const functionName = 'toggleComplete (Internal Handler)'; // Renamed for clarity
+    const functionName = 'toggleComplete (Internal Handler)'; 
     LoggingService.debug(`[UIEventHandlers] Handling request to toggle completion for task ID: ${taskId}.`, { functionName, taskId });
-    const updatedTask = TaskService.toggleTaskComplete(taskId); // Directly call service
+    const updatedTask = TaskService.toggleTaskComplete(taskId); 
     if (updatedTask && updatedTask._blocked) {
         LoggingService.info(`[UIEventHandlers] Task ${taskId} completion blocked by prerequisites.`, { functionName, taskId });
-        showMessage('Cannot complete task: It has incomplete prerequisite tasks.', 'warn');
+        // MODIFIED: Publish event instead of direct call
+        EventBus.publish('displayUserMessage', { text: 'Cannot complete task: It has incomplete prerequisite tasks.', type: 'warn' });
     } else if (updatedTask) {
         LoggingService.info(`[UIEventHandlers] Task ${taskId} completion status toggled to ${updatedTask.completed} via service.`, { functionName, taskId, newStatus: updatedTask.completed });
-        // AppStore event 'tasksChanged' will trigger refreshTaskView for list updates.
-        // If the view details modal is open for this task, it needs to reflect the change.
-        // This can be handled if openViewTaskDetailsModal re-renders on 'tasksChanged' or if we add specific logic.
         const viewTaskStatusEl = document.getElementById('viewTaskStatus');
         if (ModalStateService.getCurrentViewTaskId() === taskId && viewTaskStatusEl) {
             viewTaskStatusEl.textContent = updatedTask.completed ? 'Completed' : 'Active';
         }
     } else {
         LoggingService.error(`[UIEventHandlers] Error toggling task completion for task ID: ${taskId} via service.`, new Error("ToggleCompleteFailed"), { functionName, taskId });
-        showMessage('Error toggling task completion.', 'error');
+        // MODIFIED: Publish event instead of direct call
+        EventBus.publish('displayUserMessage', { text: 'Error toggling task completion.', type: 'error' });
     }
 }
 
-// MODIFIED: Function is no longer exported
+// This function is now internal, not exported. Called by EventBus subscription.
 function deleteTask(taskId) {
-    const functionName = 'deleteTask (Internal Handler)'; // Renamed for clarity
+    const functionName = 'deleteTask (Internal Handler)'; 
     LoggingService.info(`[UIEventHandlers] Handling request to delete task ID: ${taskId}.`, { functionName, taskId });
     if (confirm('Are you sure you want to delete this task?')) {
-        if (TaskService.deleteTaskById(taskId)) { // Directly call service
+        if (TaskService.deleteTaskById(taskId)) { 
             LoggingService.info(`[UIEventHandlers] Task ID ${taskId} deleted successfully via service.`, { functionName, taskId });
-            showMessage('Task deleted successfully!', 'success');
+            // MODIFIED: Publish event instead of direct call
+            EventBus.publish('displayUserMessage', { text: 'Task deleted successfully!', type: 'success' });
             const currentViewingId = ModalStateService.getCurrentViewTaskId();
             const currentEditingId = ModalStateService.getEditingTaskId();
 
             if (currentViewingId === taskId) closeViewTaskDetailsModal();
             if (currentEditingId === taskId) closeViewEditModal();
-            // AppStore event 'tasksChanged' will trigger refreshTaskView for list updates.
         } else {
             LoggingService.error(`[UIEventHandlers] Error deleting task ID: ${taskId} via service.`, new Error("DeleteTaskFailed"), { functionName, taskId });
-            showMessage('Error deleting task.', 'error');
+            // MODIFIED: Publish event instead of direct call
+            EventBus.publish('displayUserMessage', { text: 'Error deleting task.', type: 'error' });
         }
     } else {
         LoggingService.debug(`[UIEventHandlers] Task deletion cancelled by user for task ID: ${taskId}.`, { functionName, taskId });
@@ -408,8 +412,14 @@ function clearCompletedTasks() {
             });
         }
         LoggingService.info(`[UIEventHandlers] Cleared ${deletedCount} completed task(s).`, { functionName, deletedCount });
-        if (deletedCount > 0) { showMessage(`${deletedCount} completed task(s) cleared.`, 'success'); }
-        else { showMessage('No completed tasks to clear.', 'info'); }
+        if (deletedCount > 0) { 
+            // MODIFIED: Publish event instead of direct call
+            EventBus.publish('displayUserMessage', { text: `${deletedCount} completed task(s) cleared.`, type: 'success' });
+        }
+        else { 
+            // MODIFIED: Publish event instead of direct call
+            EventBus.publish('displayUserMessage', { text: 'No completed tasks to clear.', type: 'info' });
+        }
         closeSettingsModal();
     } else {
         LoggingService.debug('[UIEventHandlers] Clear completed tasks cancelled by user.', { functionName });
@@ -422,7 +432,7 @@ function handleAddNewLabel(event) {
     const newLabelInputEl = document.getElementById('newLabelInput');
     const labelName = newLabelInputEl.value.trim();
     LoggingService.info(`[UIEventHandlers] Attempting to add new label: "${labelName}".`, { functionName, labelName });
-    if (LabelService.addConceptualLabel(labelName)) {
+    if (LabelService.addConceptualLabel(labelName)) { // addConceptualLabel calls showMessage internally
         newLabelInputEl.value = '';
         const manageLabelsModalEl = document.getElementById('manageLabelsModal');
         if (manageLabelsModalEl && !manageLabelsModalEl.classList.contains('hidden')) {
@@ -435,9 +445,10 @@ export function handleDeleteLabel(labelNameToDelete) {
     const functionName = 'handleDeleteLabel';
     LoggingService.info(`[UIEventHandlers] User initiated delete for label: "${labelNameToDelete}".`, { functionName, labelNameToDelete });
     if (confirm(`Are you sure you want to delete the label "${labelNameToDelete}" from all tasks? This will remove the label from any task currently using it. This action cannot be undone.`)) {
-        if (LabelService.deleteLabelUsageFromTasks(labelNameToDelete)) {
+        if (LabelService.deleteLabelUsageFromTasks(labelNameToDelete)) { // deleteLabelUsageFromTasks calls showMessage internally
             LoggingService.info(`[UIEventHandlers] Label "${labelNameToDelete}" removed from tasks.`, { functionName, labelNameToDelete });
-            showMessage(`Label "${labelNameToDelete}" removed from all tasks.`, 'success');
+            // MODIFIED: Publish event instead of direct call (if LabelService doesn't do it)
+            EventBus.publish('displayUserMessage', { text: `Label "${labelNameToDelete}" removed from all tasks.`, type: 'success' });
             const manageLabelsModalEl = document.getElementById('manageLabelsModal');
              if (manageLabelsModalEl && !manageLabelsModalEl.classList.contains('hidden')) {
                  populateManageLabelsList();
@@ -461,13 +472,15 @@ async function handleAddSubTaskViewEdit() {
 
     if (!parentId || !subTaskText) {
         LoggingService.warn('[UIEventHandlers] Parent task ID or sub-task text is missing for adding sub-task in edit modal.', { functionName, parentId, hasSubTaskText: !!subTaskText });
-        showMessage('Parent task ID or sub-task text is missing.', 'error');
+        // MODIFIED: Publish event instead of direct call
+        EventBus.publish('displayUserMessage', { text: 'Parent task ID or sub-task text is missing.', type: 'error' });
         return;
     }
 
     if (SubTasksFeature?.add(parentId, subTaskText)) {
         LoggingService.info(`[UIEventHandlers] Sub-task added to parent ID ${parentId}.`, { functionName, parentId });
-        showMessage('Sub-task added.', 'success');
+        // MODIFIED: Publish event instead of direct call
+        EventBus.publish('displayUserMessage', { text: 'Sub-task added.', type: 'success' });
         modalSubTaskInputViewEditEl.value = '';
         try {
             const uiRendering = await import('./ui_rendering.js');
@@ -479,7 +492,8 @@ async function handleAddSubTaskViewEdit() {
         }
     } else {
         LoggingService.error(`[UIEventHandlers] Failed to add sub-task to parent ID ${parentId}.`, new Error("AddSubTaskFailed"), { functionName, parentId });
-        showMessage('Failed to add sub-task.', 'error');
+        // MODIFIED: Publish event instead of direct call
+        EventBus.publish('displayUserMessage', { text: 'Failed to add sub-task.', type: 'error' });
     }
 }
 
@@ -493,7 +507,8 @@ function handleAddTempSubTaskForAddModal() {
 
     if (!subTaskText) {
         LoggingService.warn('[UIEventHandlers] Sub-task text cannot be empty for temporary add.', { functionName });
-        showMessage('Sub-task text cannot be empty.', 'error');
+        // MODIFIED: Publish event instead of direct call
+        EventBus.publish('displayUserMessage', { text: 'Sub-task text cannot be empty.', type: 'error' });
         return;
     }
     tempSubTasksForAddModal.push({ id: `temp_${Date.now()}_${Math.random()}`, text: subTaskText, completed: false });
@@ -514,16 +529,15 @@ export function setupEventListeners() {
     const functionName = 'setupEventListeners';
     LoggingService.info('[UIEventHandlers] Setting up event listeners.', { functionName });
 
-    // MODIFIED: Subscribe to custom UI events
     if (EventBus) {
         EventBus.subscribe('uiRequestToggleComplete', (data) => {
             if (data && data.taskId) {
-                toggleComplete(data.taskId); // Call internal handler
+                toggleComplete(data.taskId); 
             }
         });
         EventBus.subscribe('uiRequestDeleteTask', (data) => {
             if (data && data.taskId) {
-                deleteTask(data.taskId); // Call internal handler
+                deleteTask(data.taskId); 
             }
         });
         LoggingService.debug('[UIEventHandlers] Subscribed to uiRequestToggleComplete and uiRequestDeleteTask.', { functionName });
@@ -687,7 +701,7 @@ export function setupEventListeners() {
             const handlerName = 'deleteFromViewModalHandler';
             const taskId = ModalStateService.getCurrentViewTaskId();
             LoggingService.debug(`[UIEventHandlers] Delete from View Modal button clicked for task ID: ${taskId}.`, { functionName: handlerName, taskId });
-            if(taskId) deleteTask(taskId); // Call internal handler
+            if(taskId) deleteTask(taskId); 
             else { LoggingService.warn(`[UIEventHandlers] No task ID to delete from View Modal.`, { functionName: handlerName }); }
         });
         LoggingService.debug(`[UIEventHandlers] Delete From View Modal listener attached.`, { functionName, elementId: 'deleteFromViewModalBtn' });
@@ -712,7 +726,7 @@ export function setupEventListeners() {
     attachListener('addNewLabelForm', 'submit', handleAddNewLabel, 'handleAddNewLabel');
 
     // User Accounts Form Submissions & Sign Out
-    if (UserAccountsFeature) { // Check if UserAccountsFeature is defined/imported
+    if (UserAccountsFeature) { 
         attachListener('signUpForm', 'submit', (event) => {
             event.preventDefault();
             const emailEl = document.getElementById('signUpEmail');
@@ -735,7 +749,6 @@ export function setupEventListeners() {
             }
         }, 'handleUserSignIn');
 
-        // MODIFIED: Attach listener to the new sign out button in settings
         attachListener('settingsSignOutBtn', 'click', () => {
             if (UserAccountsFeature.handleSignOut) {
                  UserAccountsFeature.handleSignOut();
@@ -823,7 +836,7 @@ export function setupEventListeners() {
             const dataVersionHistoryModalEl = document.getElementById('dataVersionHistoryModal'); 
 
 
-            if (document.getElementById('authModal') && !document.getElementById('authModal').classList.contains('hidden') && UserAccountsFeature?.closeAuthModal) UserAccountsFeature.closeAuthModal(); // MODIFIED: Close Auth Modal on Escape
+            if (document.getElementById('authModal') && !document.getElementById('authModal').classList.contains('hidden') && UserAccountsFeature?.closeAuthModal) UserAccountsFeature.closeAuthModal(); 
             else if (document.getElementById('addTaskModal') && !document.getElementById('addTaskModal').classList.contains('hidden')) closeAddModal(); 
             else if (document.getElementById('viewEditTaskModal') && !document.getElementById('viewEditTaskModal').classList.contains('hidden')) closeViewEditModal(); 
             else if (document.getElementById('viewTaskDetailsModal') && !document.getElementById('viewTaskDetailsModal').classList.contains('hidden')) closeViewTaskDetailsModal(); 

@@ -3,8 +3,10 @@
 
 import { isFeatureEnabled } from './featureFlagService.js';
 import LoggingService from './loggingService.js';
-import { showMessage } from './ui_rendering.js';
+// MODIFIED: showMessage import removed
+// import { showMessage } from './ui_rendering.js'; 
 import AppStore from './store.js';
+import EventBus from './eventBus.js'; // MODIFIED: Added EventBus import
 
 // Firebase configuration is still needed
 const firebaseConfig = {
@@ -72,19 +74,19 @@ function initialize() {
     const functionName = 'initialize (UserAccountsFeature)';
     LoggingService.info('[UserAccountsFeature] Initializing...', { functionName });
 
-    // Check if the global firebase object is available
     if (typeof firebase === 'undefined' || typeof firebase.initializeApp !== 'function') {
         LoggingService.critical('[UserAccountsFeature] CRITICAL: Firebase SDK not loaded. Ensure firebase-app-compat.js is included in todo.html.', new Error('FirebaseNotLoaded'), { functionName });
-        if (typeof showMessage === 'function') showMessage('Core authentication system failed to load. Please refresh.', 'error');
+        // MODIFIED: Publish event instead of direct call
+        EventBus.publish('displayUserMessage', { text: 'Core authentication system failed to load. Please refresh.', type: 'error' });
         return;
     }
 
     try {
         if (!firebase.apps.length) {
-            firebaseApp = firebase.initializeApp(firebaseConfig); // Use global firebase
+            firebaseApp = firebase.initializeApp(firebaseConfig); 
             LoggingService.info('[UserAccountsFeature] Firebase app initialized.', { functionName });
         } else {
-            firebaseApp = firebase.app(); // Use global firebase
+            firebaseApp = firebase.app(); 
             LoggingService.info('[UserAccountsFeature] Firebase app already initialized. Using existing instance.', { functionName });
         }
         
@@ -92,14 +94,14 @@ function initialize() {
             LoggingService.critical('[UserAccountsFeature] CRITICAL: Firebase Auth SDK not loaded. Ensure firebase-auth-compat.js is included.', new Error('FirebaseAuthNotLoaded'), { functionName });
             return;
         }
-        firebaseAuth = firebase.auth(); // Use global firebase
+        firebaseAuth = firebase.auth(); 
         LoggingService.info('[UserAccountsFeature] Firebase Auth instance obtained.', { functionName });
 
         if (typeof firebase.firestore !== 'function') {
             LoggingService.critical('[UserAccountsFeature] CRITICAL: Firebase Firestore SDK not loaded. Ensure firebase-firestore-compat.js is included.', new Error('FirebaseFirestoreNotLoaded'), { functionName });
             return;
         }
-        firestoreDB = firebase.firestore(); // Use global firebase
+        firestoreDB = firebase.firestore(); 
         LoggingService.info('[UserAccountsFeature] Firebase Firestore instance obtained.', { functionName });
 
         authModal = document.getElementById('authModal');
@@ -144,14 +146,15 @@ function initialize() {
 
     } catch (error) {
         LoggingService.critical('[UserAccountsFeature] CRITICAL: Error initializing Firebase or Auth listeners:', error, { functionName });
-        if (typeof showMessage === 'function') showMessage('Error initializing user accounts system. Please try refreshing.', 'error');
+        // MODIFIED: Publish event instead of direct call
+        EventBus.publish('displayUserMessage', { text: 'Error initializing user accounts system. Please try refreshing.', type: 'error' });
     }
     LoggingService.info('[UserAccountsFeature] Initialized.', { functionName });
 }
 
 function updateUIVisibility() {
     const functionName = 'updateUIVisibility (UserAccountsFeature)';
-    if (typeof isFeatureEnabled !== 'function' || !firebaseAuth) { // firebaseAuth might not be set if init failed
+    if (typeof isFeatureEnabled !== 'function' || !firebaseAuth) { 
         LoggingService.warn("[UserAccountsFeature] Dependencies missing for UI visibility update (isFeatureEnabled or firebaseAuth).", { functionName });
         return;
     }
@@ -185,19 +188,22 @@ async function handleSignUp(email, password) {
     const functionName = 'handleSignUp';
     if (!firebaseAuth) {
         LoggingService.error("[UserAccountsFeature] Firebase Auth not initialized for sign up.", new Error("FirebaseAuthMissing"), { functionName });
-        if (typeof showMessage === 'function') showMessage('User account system not ready. Please try again.', 'error');
+        // MODIFIED: Publish event instead of direct call
+        EventBus.publish('displayUserMessage', { text: 'User account system not ready. Please try again.', type: 'error' });
         return;
     }
     LoggingService.info(`[UserAccountsFeature] Attempting sign up for email: ${email}`, { functionName, email });
     try {
         const userCredential = await firebaseAuth.createUserWithEmailAndPassword(email, password);
         LoggingService.info(`[UserAccountsFeature] User signed up successfully: ${userCredential.user.email}`, { functionName, userEmail: userCredential.user.email });
-        if (typeof showMessage === 'function') showMessage('Account created successfully! You are now signed in.', 'success');
+        // MODIFIED: Publish event instead of direct call
+        EventBus.publish('displayUserMessage', { text: 'Account created successfully! You are now signed in.', type: 'success' });
         if(signUpEmailInput) signUpEmailInput.value = '';
         if(signUpPasswordInput) signUpPasswordInput.value = '';
     } catch (error) {
         LoggingService.error('[UserAccountsFeature] Error signing up:', error, { functionName, email });
-        if (typeof showMessage === 'function') showMessage(`Error creating account: ${error.message}`, 'error');
+        // MODIFIED: Publish event instead of direct call
+        EventBus.publish('displayUserMessage', { text: `Error creating account: ${error.message}`, type: 'error' });
     }
 }
 
@@ -205,19 +211,22 @@ async function handleSignIn(email, password) {
     const functionName = 'handleSignIn';
      if (!firebaseAuth) {
         LoggingService.error("[UserAccountsFeature] Firebase Auth not initialized for sign in.", new Error("FirebaseAuthMissing"), { functionName });
-        if (typeof showMessage === 'function') showMessage('User account system not ready. Please try again.', 'error');
+        // MODIFIED: Publish event instead of direct call
+        EventBus.publish('displayUserMessage', { text: 'User account system not ready. Please try again.', type: 'error' });
         return;
     }
     LoggingService.info(`[UserAccountsFeature] Attempting sign in for email: ${email}`, { functionName, email });
     try {
         const userCredential = await firebaseAuth.signInWithEmailAndPassword(email, password);
         LoggingService.info(`[UserAccountsFeature] User signed in successfully: ${userCredential.user.email}`, { functionName, userEmail: userCredential.user.email });
-        if (typeof showMessage === 'function') showMessage('Signed in successfully!', 'success');
+        // MODIFIED: Publish event instead of direct call
+        EventBus.publish('displayUserMessage', { text: 'Signed in successfully!', type: 'success' });
         if(signInEmailInput) signInEmailInput.value = '';
         if(signInPasswordInput) signInPasswordInput.value = '';
     } catch (error) {
         LoggingService.error('[UserAccountsFeature] Error signing in:', error, { functionName, email });
-        if (typeof showMessage === 'function') showMessage(`Error signing in: ${error.message}`, 'error');
+        // MODIFIED: Publish event instead of direct call
+        EventBus.publish('displayUserMessage', { text: `Error signing in: ${error.message}`, type: 'error' });
     }
 }
 
@@ -225,14 +234,16 @@ async function handleSignOut() {
     const functionName = 'handleSignOut';
     if (!firebaseAuth) {
         LoggingService.error("[UserAccountsFeature] Firebase Auth not initialized for sign out.", new Error("FirebaseAuthMissing"), { functionName });
-        if (typeof showMessage === 'function') showMessage('User account system not ready. Please try again.', 'error');
+        // MODIFIED: Publish event instead of direct call
+        EventBus.publish('displayUserMessage', { text: 'User account system not ready. Please try again.', type: 'error' });
         return;
     }
     LoggingService.info('[UserAccountsFeature] Attempting sign out.', { functionName });
     try {
         await firebaseAuth.signOut();
         LoggingService.info('[UserAccountsFeature] User signed out successfully.', { functionName });
-        if (typeof showMessage === 'function') showMessage('Signed out successfully.', 'success');
+        // MODIFIED: Publish event instead of direct call
+        EventBus.publish('displayUserMessage', { text: 'Signed out successfully.', type: 'success' });
         
         const settingsModalEl = document.getElementById('settingsModal');
         const closeSettingsModalFn = window.ModalInteractions?.closeSettingsModal || (typeof closeSettingsModal === 'function' ? closeSettingsModal : null);
@@ -241,7 +252,8 @@ async function handleSignOut() {
         }
     } catch (error) {
         LoggingService.error('[UserAccountsFeature] Error signing out:', error, { functionName });
-        if (typeof showMessage === 'function') showMessage(`Error signing out: ${error.message}`, 'error');
+        // MODIFIED: Publish event instead of direct call
+        EventBus.publish('displayUserMessage', { text: `Error signing out: ${error.message}`, type: 'error' });
     }
 }
 
@@ -250,7 +262,7 @@ export function getFirestoreInstance() {
         LoggingService.warn('[UserAccountsFeature] Firestore instance requested before proper initialization or if init failed.', { functionName: 'getFirestoreInstance' });
         if (typeof firebase !== 'undefined' && typeof firebase.firestore === 'function') {
             LoggingService.info('[UserAccountsFeature] Attempting to get Firestore instance on-demand in getFirestoreInstance.', { functionName: 'getFirestoreInstance' });
-            return firebase.firestore(); // Attempt to get from global if main init failed
+            return firebase.firestore(); 
         }
         return null;
     }

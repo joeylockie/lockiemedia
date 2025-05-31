@@ -3,9 +3,9 @@
 
 import { isFeatureEnabled } from './featureFlagService.js';
 import AppStore from './store.js';
-import EventBus from './eventBus.js';
-import LoggingService from './loggingService.js';
-// showMessage might be needed later from ui_rendering.js
+import EventBus from './eventBus.js'; // Already imported
+import LoggingService from './loggingService.js'; // Already imported
+// MODIFIED: showMessage is no longer assumed to be global or directly called.
 
 // --- Constants ---
 const MAX_VERSIONS = 50; // Maximum number of versions to keep
@@ -46,10 +46,8 @@ function _saveVersions() {
         LoggingService.debug(`[DataVersioningFeature] Saved ${_dataVersions.length} versions to localStorage.`, { functionName });
     } catch (error) {
         LoggingService.error('[DataVersioningFeature] Error saving versions to localStorage.', error, { functionName });
-        // Potentially show a message to the user if localStorage is full
-        if (typeof showMessage === 'function') {
-            showMessage('Warning: Could not save data version history. Storage might be full.', 'warn');
-        }
+        // MODIFIED: Publish event instead of direct/conditional call
+        EventBus.publish('displayUserMessage', { text: 'Warning: Could not save data version history. Storage might be full.', type: 'warn' });
     }
 }
 
@@ -73,17 +71,13 @@ export function captureSnapshot(changeDescription = "Data changed") {
     const currentSnapshot = {
         timestamp: Date.now(),
         description: changeDescription,
-        tasks: AppStore.getTasks(), // Gets a deep copy
-        projects: AppStore.getProjects(), // Gets a deep copy
-        kanbanColumns: AppStore.getKanbanColumns() // Gets a deep copy
-        // Add other relevant parts of AppStore state if needed, e.g., uniqueLabels, uniqueProjects
+        tasks: AppStore.getTasks(), 
+        projects: AppStore.getProjects(), 
+        kanbanColumns: AppStore.getKanbanColumns() 
     };
 
-    // Prevent identical consecutive snapshots (optional, based on need)
     if (_dataVersions.length > 0) {
         const lastVersion = _dataVersions[_dataVersions.length - 1];
-        // Simple check; for complex objects, a deep compare might be too slow.
-        // This checks if the stringified core data parts are the same.
         if (JSON.stringify(lastVersion.tasks) === JSON.stringify(currentSnapshot.tasks) &&
             JSON.stringify(lastVersion.projects) === JSON.stringify(currentSnapshot.projects) &&
             JSON.stringify(lastVersion.kanbanColumns) === JSON.stringify(currentSnapshot.kanbanColumns)) {
@@ -95,16 +89,14 @@ export function captureSnapshot(changeDescription = "Data changed") {
 
     _dataVersions.push(currentSnapshot);
 
-    // Limit the number of versions stored
     if (_dataVersions.length > MAX_VERSIONS) {
-        _dataVersions.splice(0, _dataVersions.length - MAX_VERSIONS); // Remove oldest versions
+        _dataVersions.splice(0, _dataVersions.length - MAX_VERSIONS); 
         LoggingService.info(`[DataVersioningFeature] Pruned old versions. Now at ${MAX_VERSIONS} versions.`, { functionName });
     }
 
     _saveVersions();
     LoggingService.info(`[DataVersioningFeature] Snapshot captured: "${changeDescription}". Total versions: ${_dataVersions.length}`, { functionName, description: changeDescription, versionCount: _dataVersions.length });
 
-    // Optionally publish an event
     if (EventBus && EventBus.publish) {
         EventBus.publish('dataVersionCaptured', { newVersion: currentSnapshot, versionsCount: _dataVersions.length });
     }
@@ -115,8 +107,7 @@ export function captureSnapshot(changeDescription = "Data changed") {
  * @returns {Array<Object>} An array of version snapshots.
  */
 export function getVersionHistory() {
-    // Return a copy to prevent external modification
-    return JSON.parse(JSON.stringify(_dataVersions)).sort((a, b) => b.timestamp - a.timestamp); // Show newest first
+    return JSON.parse(JSON.stringify(_dataVersions)).sort((a, b) => b.timestamp - a.timestamp); 
 }
 
 /**
@@ -128,38 +119,35 @@ export function restoreVersion(timestamp) {
     const functionName = 'restoreVersion (DataVersioningFeature)';
     if (!isFeatureEnabled('dataVersioningFeature')) {
         LoggingService.warn('[DataVersioningFeature] Attempted to restore version while feature is disabled.', { functionName });
-        if (typeof showMessage === 'function') showMessage('Data versioning feature is not enabled.', 'error');
+        // MODIFIED: Publish event instead of direct/conditional call
+        EventBus.publish('displayUserMessage', { text: 'Data versioning feature is not enabled.', type: 'error' });
         return false;
     }
 
     const versionToRestore = _dataVersions.find(v => v.timestamp === timestamp);
     if (!versionToRestore) {
         LoggingService.error(`[DataVersioningFeature] Version with timestamp ${timestamp} not found for restoration.`, new Error('VersionNotFound'), { functionName, timestamp });
-        if (typeof showMessage === 'function') showMessage('Selected version not found for restoration.', 'error');
+        // MODIFIED: Publish event instead of direct/conditional call
+        EventBus.publish('displayUserMessage', { text: 'Selected version not found for restoration.', type: 'error' });
         return false;
     }
 
     if (!AppStore || typeof AppStore.setTasks !== 'function' || typeof AppStore.setProjects !== 'function' || typeof AppStore.setKanbanColumns !== 'function') {
         LoggingService.error('[DataVersioningFeature] AppStore not available or missing required setters for restoration.', new Error('AppStoreUnavailable'), { functionName });
-        if (typeof showMessage === 'function') showMessage('Error restoring data: Application store is unavailable.', 'error');
+        // MODIFIED: Publish event instead of direct/conditional call
+        EventBus.publish('displayUserMessage', { text: 'Error restoring data: Application store is unavailable.', type: 'error' });
         return false;
     }
 
     try {
-        // Capture a "Before Restore" snapshot for safety, if desired
-        // captureSnapshot(`Before restoring to version from ${new Date(timestamp).toLocaleString()}`);
-
-        AppStore.setTasks(versionToRestore.tasks); // This will trigger 'tasksChanged'
-        AppStore.setProjects(versionToRestore.projects); // This will trigger 'projectsChanged'
-        AppStore.setKanbanColumns(versionToRestore.kanbanColumns); // This will trigger 'kanbanColumnsChanged'
+        AppStore.setTasks(versionToRestore.tasks); 
+        AppStore.setProjects(versionToRestore.projects); 
+        AppStore.setKanbanColumns(versionToRestore.kanbanColumns); 
 
         LoggingService.info(`[DataVersioningFeature] Application state restored to version from ${new Date(timestamp).toLocaleString()}.`, { functionName, timestamp });
-        if (typeof showMessage === 'function') showMessage('Data restored successfully to the selected version!', 'success');
-
-        // It's crucial that other parts of the app (UI rendering) react to the
-        // 'tasksChanged', 'projectsChanged', etc., events published by AppStore.setX methods.
-        // This ensures the UI refreshes to reflect the restored state.
-        // A general 'dataRestored' event might also be useful.
+        // MODIFIED: Publish event instead of direct/conditional call
+        EventBus.publish('displayUserMessage', { text: 'Data restored successfully to the selected version!', type: 'success' });
+        
         if (EventBus && EventBus.publish) {
             EventBus.publish('dataRestoredFromVersion', { restoredVersion: versionToRestore });
         }
@@ -167,7 +155,8 @@ export function restoreVersion(timestamp) {
         return true;
     } catch (error) {
         LoggingService.critical('[DataVersioningFeature] Critical error during data restoration process.', error, { functionName, timestamp });
-        if (typeof showMessage === 'function') showMessage('A critical error occurred while restoring data.', 'error');
+        // MODIFIED: Publish event instead of direct/conditional call
+        EventBus.publish('displayUserMessage', { text: 'A critical error occurred while restoring data.', type: 'error' });
         return false;
     }
 }
@@ -182,16 +171,12 @@ function initialize() {
     const functionName = 'initialize (DataVersioningFeature)';
     LoggingService.info('[DataVersioningFeature] Initializing...', { functionName });
 
-    _loadVersions(); // Load existing versions from storage
+    _loadVersions(); 
 
-    // Listen to AppStore events to capture snapshots automatically
-    // Note: This means AppStore must publish these events *after* data is fully updated and saved by AppStore itself.
-    // We are adding a snapshot *after* the primary data persistence.
     if (EventBus) {
         EventBus.subscribe('tasksChanged', () => captureSnapshot('Tasks changed'));
         EventBus.subscribe('projectsChanged', () => captureSnapshot('Projects changed'));
         EventBus.subscribe('kanbanColumnsChanged', () => captureSnapshot('Kanban columns changed'));
-        // Add subscriptions to other relevant data change events if AppStore emits them
     } else {
         LoggingService.warn('[DataVersioningFeature] EventBus not available. Automatic snapshot capture on data changes will not occur.', { functionName });
     }
@@ -212,13 +197,11 @@ function updateUIVisibility() {
     const isActuallyEnabled = isFeatureEnabled('dataVersioningFeature');
     LoggingService.debug(`[DataVersioningFeature] Updating UI visibility. Feature enabled: ${isActuallyEnabled}.`, { functionName, isActuallyEnabled });
 
-    // Example: Toggle visibility of a settings button for version history
-    const settingsVersionHistoryBtnEl = document.getElementById('settingsVersionHistoryBtn'); // We'll add this ID to todo.html later
+    const settingsVersionHistoryBtnEl = document.getElementById('settingsVersionHistoryBtn'); 
     if (settingsVersionHistoryBtnEl) {
         settingsVersionHistoryBtnEl.classList.toggle('hidden', !isActuallyEnabled);
     }
 
-    // Generic class for other elements related to this feature
     document.querySelectorAll('.data-versioning-feature-element').forEach(el => el.classList.toggle('hidden', !isActuallyEnabled));
 
     LoggingService.info(`[DataVersioningFeature] UI Visibility set based on flag: ${isActuallyEnabled}`, { functionName, isEnabled: isActuallyEnabled });
@@ -228,7 +211,7 @@ function updateUIVisibility() {
 export const DataVersioningFeature = {
     initialize,
     updateUIVisibility,
-    captureSnapshot, // Expose for manual snapshotting if needed elsewhere
+    captureSnapshot, 
     getVersionHistory,
     restoreVersion
 };

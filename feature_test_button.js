@@ -2,7 +2,10 @@
 // ES6 Module for the Test Button Feature.
 
 import { isFeatureEnabled } from './featureFlagService.js';
-// showMessage is currently a global function from ui_rendering.js
+import EventBus from './eventBus.js'; // MODIFIED: Added EventBus import
+import LoggingService from './loggingService.js'; // MODIFIED: Added LoggingService import (was missing in original for consistency)
+
+// MODIFIED: showMessage is no longer assumed to be global.
 // testFeatureButton, testFeatureButtonContainer are DOM elements.
 
 /**
@@ -10,19 +13,20 @@ import { isFeatureEnabled } from './featureFlagService.js';
  * Sets up its event listener if the button exists and feature is enabled.
  */
 function initialize() {
+    const functionName = "initialize (TestButtonFeature)"; // For logging
     const testButtonEl = document.getElementById('testFeatureButton');
     if (testButtonEl) {
         testButtonEl.addEventListener('click', () => {
-            console.log('Test Button Clicked! (From feature_test_button.js)');
-            if (typeof window.showMessage === 'function') {
-                window.showMessage('Test Button Clicked! (From feature_test_button.js)', 'info');
-            } else {
-                alert('Test Button Clicked! (From feature_test_button.js)'); // Fallback
-            }
+            LoggingService.debug('Test Button Clicked! (From feature_test_button.js)', { functionName });
+            // MODIFIED: Publish event instead of direct/global call
+            EventBus.publish('displayUserMessage', { 
+                text: 'Test Button Clicked! (From feature_test_button.js)', 
+                type: 'info' 
+            });
         });
-        console.log('[TestButtonFeature] Initialized.');
+        LoggingService.info('[TestButtonFeature] Initialized.', { functionName });
     } else {
-        console.warn('[TestButtonFeature] Test Button element not found during initialization.');
+        LoggingService.warn('[TestButtonFeature] Test Button element not found during initialization.', { functionName });
     }
 }
 
@@ -31,19 +35,18 @@ function initialize() {
  * @param {boolean} isEnabledParam - (Not used directly, uses imported isFeatureEnabled)
  */
 function updateUIVisibility(isEnabledParam) { 
+    const functionName = "updateUIVisibility (TestButtonFeature)"; // For logging
     if (typeof isFeatureEnabled !== 'function') {
-        console.error("[TestButtonFeature] isFeatureEnabled function not available from FeatureFlagService.");
+        LoggingService.error("[TestButtonFeature] isFeatureEnabled function not available from FeatureFlagService.", new Error("DependencyMissing"), { functionName });
         return;
     }
     const isActuallyEnabled = isFeatureEnabled('testButtonFeature');
     
-    // **FIX APPLIED HERE**
     const container = document.getElementById('testFeatureButtonContainer');
     if (container) {
         container.classList.toggle('hidden', !isActuallyEnabled);
     }
-    // **END OF FIX**
-    console.log(`[TestButtonFeature] UI Visibility set based on flag: ${isActuallyEnabled}`);
+    LoggingService.info(`[TestButtonFeature] UI Visibility set based on flag: ${isActuallyEnabled}`, { functionName, isEnabled: isActuallyEnabled });
 }
 
 export const TestButtonFeature = {
@@ -51,4 +54,4 @@ export const TestButtonFeature = {
     updateUIVisibility
 };
 
-console.log("feature_test_button.js loaded as ES6 module.");
+LoggingService.debug("feature_test_button.js loaded as ES6 module.", { module: 'feature_test_button' });
