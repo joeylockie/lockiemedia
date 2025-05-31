@@ -31,7 +31,7 @@ import { ProjectsFeature } from './feature_projects.js';
 import { KanbanBoardFeature } from './feature_kanban_board.js';
 import { CalendarViewFeature } from './feature_calendar_view.js';
 import { PomodoroTimerHybridFeature } from './pomodoro_timer.js';
-import { SubTasksFeature } from './feature_sub_tasks.js';
+import { SubTasksFeature } from './feature_sub_tasks.js'; // IMPORT SubTasksFeature
 // NEW: Import DataVersioningFeature to potentially use its functions if needed here, though likely called from modal_interactions
 // For now, we primarily need its output (version history) to render.
 // import { DataVersioningFeature } from './feature_data_versioning.js';
@@ -549,7 +549,7 @@ export function renderSubTasksForEditModal(parentId, subTasksListElement) { //
         checkbox.onchange = () => { //
             if (SubTasksFeature && SubTasksFeature.toggleComplete) { //
                 if (SubTasksFeature.toggleComplete(actualParentId, st.id)) { //
-                    renderSubTasksForEditModal(actualParentId, subTasksListElement); //
+                    renderSubTasksForEditModal(actualParentId, subTasksListElement); // Re-render the list
                 } else { //
                     showMessage('Failed to toggle sub-task.', 'error');  //
                 }
@@ -567,7 +567,7 @@ export function renderSubTasksForEditModal(parentId, subTasksListElement) { //
             if (newText !== null && newText.trim() !== '') { //
                 if (SubTasksFeature && SubTasksFeature.edit) { //
                     if (SubTasksFeature.edit(actualParentId, st.id, newText.trim())) { //
-                        renderSubTasksForEditModal(actualParentId, subTasksListElement); //
+                        renderSubTasksForEditModal(actualParentId, subTasksListElement); // Re-render the list
                     } else { //
                         showMessage('Failed to edit sub-task.', 'error'); //
                     }
@@ -585,7 +585,7 @@ export function renderSubTasksForEditModal(parentId, subTasksListElement) { //
             if (confirm('Delete this sub-task?')) { //
                 if (SubTasksFeature && SubTasksFeature.delete) { //
                     if (SubTasksFeature.delete(actualParentId, st.id)) { //
-                        renderSubTasksForEditModal(actualParentId, subTasksListElement); //
+                        renderSubTasksForEditModal(actualParentId, subTasksListElement); // Re-render the list
                     } else { //
                         showMessage('Failed to delete sub-task.', 'error'); //
                     }

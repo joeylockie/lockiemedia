@@ -4,6 +4,7 @@
 import AppStore from './store.js';
 import { isFeatureEnabled } from './featureFlagService.js';
 import ModalStateService from './modalStateService.js';
+// CORRECTED: Added formatMillisecondsToHMS to the import from utils.js
 import { formatDate, formatTime, formatDuration, getTodayDateString, formatMillisecondsToHMS } from './utils.js';
 
 // NEW: Import LoggingService
@@ -526,7 +527,7 @@ function populateTaskReviewModal() {
             estimatedP.innerHTML = `<strong>Estimated:</strong> ${formatDuration(task.estimatedHours, task.estimatedMinutes)}`; //
             itemDiv.appendChild(estimatedP); //
         }
-        if (typeof formatMillisecondsToHMS === 'function') { //
+        if (typeof formatMillisecondsToHMS === 'function') { // Ensure this function is available
             const actualP = document.createElement('p'); //
             actualP.className = 'text-sm text-slate-600 dark:text-slate-300'; //
             actualP.innerHTML = `<strong>Actual:</strong> ${task.actualDurationMs > 0 ? formatMillisecondsToHMS(task.actualDurationMs) : 'Not recorded'}`; //

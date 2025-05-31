@@ -7,7 +7,7 @@ import AppStore from './store.js';
 import ViewManager from './viewManager.js';
 import EventBus from './eventBus.js';
 import { formatMillisecondsToHMS } from './utils.js';
-import { showMessage } from './ui_rendering.js';
+import { showMessage } from './ui_rendering.js'; // IMPORT showMessage
 
 // NEW: Import LoggingService
 import LoggingService from './loggingService.js';

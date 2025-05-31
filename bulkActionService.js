@@ -67,12 +67,18 @@ export function selectTaskIfNotSelected(taskId) {
     if (!_selectedTaskIds.includes(taskId)) { //
         _selectedTaskIds.push(taskId); //
         // MODIFIED: Use LoggingService
-        LoggingService.debug(`[BulkActionService] Task ${taskId} selected for bulk action (if not already).`, {
+        LoggingService.debug(`[BulkActionService] Task ${taskId} selected for bulk action (as it was not already selected).`, {
             functionName,
             taskId,
             currentSelectionCount: _selectedTaskIds.length
         });
         _publish('bulkSelectionChanged', [..._selectedTaskIds]); //
+    } else {
+        LoggingService.debug(`[BulkActionService] Task ${taskId} was already selected. No change made by selectTaskIfNotSelected.`, {
+            functionName,
+            taskId,
+            currentSelectionCount: _selectedTaskIds.length
+        });
     }
 }
 
@@ -87,12 +93,18 @@ export function deselectTaskIfSelected(taskId) {
     if (index > -1) { //
         _selectedTaskIds.splice(index, 1); //
         // MODIFIED: Use LoggingService
-        LoggingService.debug(`[BulkActionService] Task ${taskId} deselected from bulk action (if selected).`, {
+        LoggingService.debug(`[BulkActionService] Task ${taskId} deselected from bulk action (as it was selected).`, {
             functionName,
             taskId,
             currentSelectionCount: _selectedTaskIds.length
         });
         _publish('bulkSelectionChanged', [..._selectedTaskIds]); //
+    } else {
+        LoggingService.debug(`[BulkActionService] Task ${taskId} was not selected. No change made by deselectTaskIfSelected.`, {
+            functionName,
+            taskId,
+            currentSelectionCount: _selectedTaskIds.length
+        });
     }
 }
 
