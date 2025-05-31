@@ -9,11 +9,14 @@ import * as TaskService from './taskService.js';
 import * as LabelService from './labelService.js';
 import ModalStateService from './modalStateService.js';
 import TooltipService from './tooltipService.js';
-import EventBus from './eventBus.js';
+import EventBus from './eventBus.js'; // Ensure EventBus is imported
 import * as BulkActionService from './bulkActionService.js';
 
 import LoggingService from './loggingService.js';
 
+// showMessage, refreshTaskView, etc. are imported from ui_rendering.js
+// This part of the circular dependency (ui_event_handlers importing from ui_rendering)
+// is not being addressed in THIS specific step, but the reverse is.
 import {
     showMessage,
     refreshTaskView,
@@ -333,39 +336,45 @@ function handleEditTask(event) {
     }
 }
 
-export function toggleComplete(taskId) {
-    const functionName = 'toggleComplete';
-    LoggingService.debug(`[UIEventHandlers] Toggling completion for task ID: ${taskId}.`, { functionName, taskId });
-    const updatedTask = TaskService.toggleTaskComplete(taskId);
+// MODIFIED: Function is no longer exported
+function toggleComplete(taskId) {
+    const functionName = 'toggleComplete (Internal Handler)'; // Renamed for clarity
+    LoggingService.debug(`[UIEventHandlers] Handling request to toggle completion for task ID: ${taskId}.`, { functionName, taskId });
+    const updatedTask = TaskService.toggleTaskComplete(taskId); // Directly call service
     if (updatedTask && updatedTask._blocked) {
         LoggingService.info(`[UIEventHandlers] Task ${taskId} completion blocked by prerequisites.`, { functionName, taskId });
         showMessage('Cannot complete task: It has incomplete prerequisite tasks.', 'warn');
     } else if (updatedTask) {
-        LoggingService.info(`[UIEventHandlers] Task ${taskId} completion status toggled to ${updatedTask.completed}.`, { functionName, taskId, newStatus: updatedTask.completed });
+        LoggingService.info(`[UIEventHandlers] Task ${taskId} completion status toggled to ${updatedTask.completed} via service.`, { functionName, taskId, newStatus: updatedTask.completed });
+        // AppStore event 'tasksChanged' will trigger refreshTaskView for list updates.
+        // If the view details modal is open for this task, it needs to reflect the change.
+        // This can be handled if openViewTaskDetailsModal re-renders on 'tasksChanged' or if we add specific logic.
         const viewTaskStatusEl = document.getElementById('viewTaskStatus');
         if (ModalStateService.getCurrentViewTaskId() === taskId && viewTaskStatusEl) {
             viewTaskStatusEl.textContent = updatedTask.completed ? 'Completed' : 'Active';
         }
     } else {
-        LoggingService.error(`[UIEventHandlers] Error toggling task completion for task ID: ${taskId}.`, new Error("ToggleCompleteFailed"), { functionName, taskId });
+        LoggingService.error(`[UIEventHandlers] Error toggling task completion for task ID: ${taskId} via service.`, new Error("ToggleCompleteFailed"), { functionName, taskId });
         showMessage('Error toggling task completion.', 'error');
     }
 }
 
-export function deleteTask(taskId) {
-    const functionName = 'deleteTask';
-    LoggingService.info(`[UIEventHandlers] User initiated delete for task ID: ${taskId}.`, { functionName, taskId });
+// MODIFIED: Function is no longer exported
+function deleteTask(taskId) {
+    const functionName = 'deleteTask (Internal Handler)'; // Renamed for clarity
+    LoggingService.info(`[UIEventHandlers] Handling request to delete task ID: ${taskId}.`, { functionName, taskId });
     if (confirm('Are you sure you want to delete this task?')) {
-        if (TaskService.deleteTaskById(taskId)) {
-            LoggingService.info(`[UIEventHandlers] Task ID ${taskId} deleted successfully after confirmation.`, { functionName, taskId });
+        if (TaskService.deleteTaskById(taskId)) { // Directly call service
+            LoggingService.info(`[UIEventHandlers] Task ID ${taskId} deleted successfully via service.`, { functionName, taskId });
             showMessage('Task deleted successfully!', 'success');
             const currentViewingId = ModalStateService.getCurrentViewTaskId();
             const currentEditingId = ModalStateService.getEditingTaskId();
 
             if (currentViewingId === taskId) closeViewTaskDetailsModal();
             if (currentEditingId === taskId) closeViewEditModal();
+            // AppStore event 'tasksChanged' will trigger refreshTaskView for list updates.
         } else {
-            LoggingService.error(`[UIEventHandlers] Error deleting task ID: ${taskId} after confirmation.`, new Error("DeleteTaskFailed"), { functionName, taskId });
+            LoggingService.error(`[UIEventHandlers] Error deleting task ID: ${taskId} via service.`, new Error("DeleteTaskFailed"), { functionName, taskId });
             showMessage('Error deleting task.', 'error');
         }
     } else {
@@ -504,6 +513,24 @@ function handleAddTempSubTaskForAddModal() {
 export function setupEventListeners() {
     const functionName = 'setupEventListeners';
     LoggingService.info('[UIEventHandlers] Setting up event listeners.', { functionName });
+
+    // MODIFIED: Subscribe to custom UI events
+    if (EventBus) {
+        EventBus.subscribe('uiRequestToggleComplete', (data) => {
+            if (data && data.taskId) {
+                toggleComplete(data.taskId); // Call internal handler
+            }
+        });
+        EventBus.subscribe('uiRequestDeleteTask', (data) => {
+            if (data && data.taskId) {
+                deleteTask(data.taskId); // Call internal handler
+            }
+        });
+        LoggingService.debug('[UIEventHandlers] Subscribed to uiRequestToggleComplete and uiRequestDeleteTask.', { functionName });
+    } else {
+        LoggingService.error('[UIEventHandlers] EventBus not available for subscribing to custom UI events.', new Error("EventBusMissing"), { functionName });
+    }
+
 
     const attachListener = (elementId, eventType, handler, handlerName) => {
         const element = document.getElementById(elementId);
@@ -660,7 +687,7 @@ export function setupEventListeners() {
             const handlerName = 'deleteFromViewModalHandler';
             const taskId = ModalStateService.getCurrentViewTaskId();
             LoggingService.debug(`[UIEventHandlers] Delete from View Modal button clicked for task ID: ${taskId}.`, { functionName: handlerName, taskId });
-            if(taskId) deleteTask(taskId); 
+            if(taskId) deleteTask(taskId); // Call internal handler
             else { LoggingService.warn(`[UIEventHandlers] No task ID to delete from View Modal.`, { functionName: handlerName }); }
         });
         LoggingService.debug(`[UIEventHandlers] Delete From View Modal listener attached.`, { functionName, elementId: 'deleteFromViewModalBtn' });

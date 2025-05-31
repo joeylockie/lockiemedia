@@ -11,7 +11,7 @@ import * as TaskService from './taskService.js';
 import * as BulkActionService from './bulkActionService.js';
 import ModalStateService from './modalStateService.js';
 import TooltipService from './tooltipService.js';
-import EventBus from './eventBus.js';
+import EventBus from './eventBus.js'; // EventBus is key for this change
 import { formatDate, formatTime, formatDuration, formatMillisecondsToHMS } from './utils.js';
 
 // Import functions from other UI modules
@@ -21,17 +21,18 @@ import {
     populateManageLabelsList
 } from './modal_interactions.js';
 
-import {
-    toggleComplete,
-    deleteTask
-} from './ui_event_handlers.js';
+// REMOVED: toggleComplete and deleteTask imports from ui_event_handlers.js
+// import {
+//     toggleComplete,
+//     deleteTask
+// } from './ui_event_handlers.js';
 
 // Import Feature Modules needed for direct calls
 import { ProjectsFeature } from './feature_projects.js';
 import { KanbanBoardFeature } from './feature_kanban_board.js';
 import { CalendarViewFeature } from './feature_calendar_view.js';
 import { PomodoroTimerHybridFeature } from './pomodoro_timer.js';
-import { SubTasksFeature } from './feature_sub_tasks.js'; // IMPORT SubTasksFeature
+import { SubTasksFeature } from './feature_sub_tasks.js';
 // NEW: Import DataVersioningFeature to potentially use its functions if needed here, though likely called from modal_interactions
 // For now, we primarily need its output (version history) to render.
 // import { DataVersioningFeature } from './feature_data_versioning.js';
@@ -377,7 +378,8 @@ export function renderTaskListView() { //
         mainContentClickableArea.addEventListener('click', (event) => { if (event.target.type === 'checkbox' || event.target.closest('.task-actions') || event.target.closest('.bulk-select-checkbox-container')) return; openViewTaskDetailsModal(task.id); });  //
         const bulkSelectCheckboxContainer = document.createElement('div'); bulkSelectCheckboxContainer.className = 'bulk-select-checkbox-container flex-shrink-0 mr-2 sm:mr-3 bulk-actions-feature-element'; if (isFeatureEnabled('bulkActionsFeature')) { const bulkCheckbox = document.createElement('input'); bulkCheckbox.type = 'checkbox'; bulkCheckbox.className = 'form-checkbox h-5 w-5 text-blue-500 rounded border-slate-400 dark:border-slate-500 focus:ring-blue-400 dark:focus:ring-blue-500 mt-0.5 cursor-pointer'; bulkCheckbox.checked = BulkActionService.getSelectedIds().includes(task.id); bulkCheckbox.title = "Select for bulk action"; bulkCheckbox.addEventListener('change', () => { BulkActionService.toggleTaskSelection(task.id); }); bulkSelectCheckboxContainer.appendChild(bulkCheckbox); } else { bulkSelectCheckboxContainer.classList.add('hidden'); } //
         const completeCheckbox = document.createElement('input'); completeCheckbox.type = 'checkbox'; completeCheckbox.checked = task.completed; completeCheckbox.className = 'form-checkbox h-5 w-5 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 dark:focus:ring-sky-500 mt-0.5 mr-2 sm:mr-3 cursor-pointer flex-shrink-0'; //
-        completeCheckbox.addEventListener('change', () => toggleComplete(task.id));  //
+        // MODIFIED: Listener now publishes an event
+        completeCheckbox.addEventListener('change', () => EventBus.publish('uiRequestToggleComplete', { taskId: task.id }));  //
         if (hasOpenPrerequisites) { completeCheckbox.disabled = true; completeCheckbox.title = "This task is blocked by incomplete prerequisites."; completeCheckbox.classList.add('opacity-50', 'cursor-not-allowed'); } //
         const textDetailsDiv = document.createElement('div'); textDetailsDiv.className = 'flex flex-col flex-grow min-w-0'; const span = document.createElement('span'); span.textContent = task.text; let textColorClass = task.completed ? 'text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-200'; span.className = `text-sm sm:text-base break-words ${textColorClass} ${task.completed ? 'completed-text' : ''}`; textDetailsDiv.appendChild(span); //
         const detailsContainer = document.createElement('div'); detailsContainer.className = 'flex items-center flex-wrap gap-x-2 gap-y-1 mt-1 sm:mt-1.5 text-xs'; //
@@ -402,7 +404,8 @@ export function renderTaskListView() { //
             }
         }); actionsDiv.appendChild(editButton); //
         const deleteButton = document.createElement('button'); deleteButton.className = 'task-action-btn text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-500'; deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i>'; deleteButton.setAttribute('aria-label', 'Delete task'); deleteButton.title = 'Delete task'; //
-        deleteButton.addEventListener('click', () => deleteTask(task.id));  //
+        // MODIFIED: Listener now publishes an event
+        deleteButton.addEventListener('click', () => EventBus.publish('uiRequestDeleteTask', { taskId: task.id }));  //
         actionsDiv.appendChild(deleteButton); //
         li.appendChild(mainContentClickableArea); li.appendChild(actionsDiv); //
         if (taskList) { taskList.appendChild(li); } //
