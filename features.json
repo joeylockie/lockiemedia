@@ -23,5 +23,6 @@
   "socialMediaLinksFeature": false,
   "aboutUsFeature": true,
   "dataVersioningFeature": false,
+  "desktopNotificationsFeature": true,
   "debugMode": true
 }

@@ -196,7 +196,11 @@ body { font-family: 'Inter', sans-serif; }
 .bulk-actions-feature-element, /* For Bulk Action elements */
 .pomodoro-timer-hybrid-feature-element, /* For Pomodoro Timer Hybrid elements */
 .background-feature-element, /* Added for Background Feature elements */
-.contact-us-feature-element /* Added for Contact Us elements */
+.contact-us-feature-element, /* Added for Contact Us elements */
+.social-media-links-feature-element, /* Added for Social Media Links elements */
+.about-us-feature-element, /* Added for About Us elements */
+.data-versioning-feature-element, /* Added for Data Versioning elements */
+.desktop-notifications-feature-element /* ADDED for Desktop Notification elements */
 { display: block; } /* Default, JS hides if feature off */
 
 

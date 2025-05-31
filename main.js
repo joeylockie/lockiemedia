@@ -40,6 +40,9 @@ import { DataVersioningFeature } from './feature_data_versioning.js';
 import LoggingService, { LOG_LEVELS } from './loggingService.js';
 // NEW: Import firebaseService (though it's not directly initialized here, ensure it's part of the build/load order)
 import * as firebaseService from './firebaseService.js';
+// ADDED: Import NotificationService and DesktopNotificationsFeature
+import NotificationService from './notificationService.js';
+import { DesktopNotificationsFeature } from './feature_desktop_notifications.js';
 
 
 let uiRendering;
@@ -62,6 +65,8 @@ if (typeof window.TooltipService === 'undefined') window.TooltipService = Toolti
 if (typeof window.LoggingService === 'undefined') window.LoggingService = LoggingService;
 // NEW: Make firebaseService globally available if needed by other modules directly (optional)
 if (typeof window.firebaseService === 'undefined') window.firebaseService = firebaseService;
+// ADDED: Make NotificationService globally available
+if (typeof window.NotificationService === 'undefined') window.NotificationService = NotificationService;
 
 
 // --- Global Error Handlers ---
@@ -211,6 +216,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.AppFeatures.SocialMediaLinksFeature = SocialMediaLinksFeature; 
     window.AppFeatures.AboutUsFeature = AboutUsFeature; 
     window.AppFeatures.DataVersioningFeature = DataVersioningFeature;
+    // ADDED: Add DesktopNotificationsFeature to AppFeatures
+    window.AppFeatures.DesktopNotificationsFeature = DesktopNotificationsFeature;
 
     if (typeof isFeatureEnabledFromService !== 'undefined' && typeof window.AppFeatures !== 'undefined') { 
         LoggingService.info("[Main] Initializing other feature modules..."); 
@@ -232,7 +239,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     "bulk-actions": "bulkActionsFeature", "pomodoro-timer-hybrid": "pomodoroTimerHybridFeature", 
                     "background": "backgroundFeature", "contact-us": "contactUsFeature", 
                     "social-media-links": "socialMediaLinksFeature", "about-us": "aboutUsFeature", 
-                    "data-versioning": "dataVersioningFeature"
+                    "data-versioning": "dataVersioningFeature",
+                    "desktop-notifications": "desktopNotificationsFeature" // ADDED MAPPING
                 };
                 const effectiveFlagKey = flagMappings[flagKey] || flagKey; 
                 if (isFeatureEnabledFromService(effectiveFlagKey) || !Object.keys(AppStore.getFeatureFlags()).includes(effectiveFlagKey) ) { 

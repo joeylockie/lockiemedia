@@ -71,6 +71,7 @@ import { ContactUsFeature } from './feature_contact_us.js';
 import { SocialMediaLinksFeature } from './feature_social_media_links.js';
 import { AboutUsFeature } from './feature_about_us.js';
 import { DataVersioningFeature } from './feature_data_versioning.js';
+// Note: DesktopNotificationsFeature is imported in main.js and added to window.AppFeatures
 
 
 let tempSubTasksForAddModal = [];
@@ -117,6 +118,7 @@ function populateFeatureFlagsModal() {
         socialMediaLinksFeature: "Social Media Links in Settings",
         aboutUsFeature: "About Us Page in Settings",
         dataVersioningFeature: "Data Versioning & History",
+        desktopNotificationsFeature: "Desktop Notifications", // Added friendly name
         debugMode: "Developer: Debug Mode"
     };
     const featureOrder = Object.keys(currentFlags).sort((a,b) => {
@@ -167,6 +169,9 @@ export function applyActiveFeatures() {
     //     document.querySelectorAll(selector).forEach(el => el.classList.toggle('hidden', !isEnabled));
     // };
 
+    // This loop will iterate over all features in window.AppFeatures,
+    // including DesktopNotificationsFeature once it's added in main.js.
+    // It will call DesktopNotificationsFeature.updateUIVisibility().
     if (window.AppFeatures) {
         for (const featureKey in window.AppFeatures) {
             if (window.AppFeatures[featureKey] && typeof window.AppFeatures[featureKey].updateUIVisibility === 'function') {
@@ -603,6 +608,7 @@ export function setupEventListeners() {
     attachListener('settingsTooltipsGuideBtn', 'click', openTooltipsGuideModal, 'openTooltipsGuideModal');
     attachListener('settingsAboutUsBtn', 'click', openAboutUsModal, 'openAboutUsModal');
     attachListener('settingsVersionHistoryBtn', 'click', openDataVersionHistoryModal, 'openDataVersionHistoryModal');
+    // The listener for 'settingsManageNotificationsBtn' is set up within DesktopNotificationsFeature.initialize()
 
 
     const openFeatureFlagsModalBtn = document.getElementById('openFeatureFlagsModalBtn');

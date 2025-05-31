@@ -31,10 +31,9 @@ let _featureFlags = { //
     contactUsFeature: false, // Added new feature flag
     socialMediaLinksFeature: false, // ADDED: New feature flag for social media links
     aboutUsFeature: false, // ADDED: New feature flag for About Us
-    // NEW: Add dataVersioningFeature flag
-    dataVersioningFeature: false,
-    // NEW: Add debugMode flag for logging control demonstration
-    debugMode: false
+    dataVersioningFeature: false, // NEW: Add dataVersioningFeature flag
+    desktopNotificationsFeature: false, // ADDED: New feature flag for Desktop Notifications
+    debugMode: false // NEW: Add debugMode flag for logging control demonstration
 };
 
 /**
