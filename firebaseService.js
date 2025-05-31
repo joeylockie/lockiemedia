@@ -33,11 +33,8 @@ export async function saveUserDataToFirestore(userId, data) {
         return;
     }
 
-    // Ensure global firebase and its firestore FieldValue are available for serverTimestamp
     if (typeof firebase === 'undefined' || typeof firebase.firestore === 'undefined' || typeof firebase.firestore.FieldValue === 'undefined') {
         LoggingService.error('[FirebaseService] firebase.firestore.FieldValue not available for server timestamp.', new Error('FirebaseGlobalMissing'), { functionName, userId });
-        // Fallback or throw error, for now logging and proceeding without timestamp if it fails
-        // This shouldn't happen if todo.html includes firebase-firestore-compat.js correctly.
     }
 
     LoggingService.info(`[FirebaseService] Attempting to save data for user ${userId}.`, { functionName, userId, dataKeys: Object.keys(data) });
@@ -48,7 +45,6 @@ export async function saveUserDataToFirestore(userId, data) {
             tasks: data.tasks || [],
             projects: data.projects || [],
             kanbanColumns: data.kanbanColumns || [],
-            // Use global firebase for FieldValue
             lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
         };
 
@@ -62,7 +58,7 @@ export async function saveUserDataToFirestore(userId, data) {
 }
 
 /**
- * Loads the user's application data from Firestore.
+ * Loads the user's application data from Firestore ONCE.
  * @param {string} userId - The UID of the user.
  * @returns {Promise<object|null>} An object containing tasks, projects, and kanbanColumns, or null if not found/error.
  */
@@ -79,7 +75,7 @@ export async function loadUserDataFromFirestore(userId) {
         return null;
     }
 
-    LoggingService.info(`[FirebaseService] Attempting to load data for user ${userId}.`, { functionName, userId });
+    LoggingService.info(`[FirebaseService] Attempting to load data ONCE for user ${userId}.`, { functionName, userId });
 
     try {
         const userDocRef = db.collection(USERS_COLLECTION).doc(userId);
@@ -87,7 +83,7 @@ export async function loadUserDataFromFirestore(userId) {
 
         if (appDataDoc.exists) {
             const data = appDataDoc.data();
-            LoggingService.info(`[FirebaseService] User data loaded successfully for user ${userId}.`, {
+            LoggingService.info(`[FirebaseService] User data loaded successfully (once) for user ${userId}.`, {
                 functionName,
                 userId,
                 tasksCount: data.tasks?.length || 0,
@@ -99,7 +95,7 @@ export async function loadUserDataFromFirestore(userId) {
                 kanbanColumns: data.kanbanColumns || []
             };
         } else {
-            LoggingService.info(`[FirebaseService] No data found for user ${userId}. Returning empty structure.`, { functionName, userId });
+            LoggingService.info(`[FirebaseService] No data found for user ${userId} (load once). Returning empty structure.`, { functionName, userId });
             return {
                 tasks: [],
                 projects: [],
@@ -107,10 +103,67 @@ export async function loadUserDataFromFirestore(userId) {
             };
         }
     } catch (error) {
-        LoggingService.error(`[FirebaseService] Error loading user data for ${userId}:`, error, { functionName, userId });
+        LoggingService.error(`[FirebaseService] Error loading user data (once) for ${userId}:`, error, { functionName, userId });
         return null;
     }
 }
+
+/**
+ * Sets up a real-time stream for user's application data from Firestore.
+ * @param {string} userId - The UID of the user.
+ * @param {function} callback - Function to call with the data snapshot. Receives (data, error).
+ * @returns {function} Unsubscribe function to detach the listener, or null if setup failed.
+ */
+export function streamUserDataFromFirestore(userId, callback) {
+    const functionName = 'streamUserDataFromFirestore (firebaseService)';
+    if (!userId) {
+        LoggingService.error('[FirebaseService] User ID is required to stream data.', new Error('MissingUserId'), { functionName });
+        if (callback) callback(null, new Error('MissingUserIde'));
+        return null;
+    }
+    if (typeof callback !== 'function') {
+        LoggingService.error('[FirebaseService] Callback function is required to stream data.', new Error('MissingCallback'), { functionName, userId });
+        return null;
+    }
+
+    const db = getFirestoreInstance();
+    if (!db) {
+        LoggingService.error('[FirebaseService] Firestore instance not available for streaming.', new Error('FirestoreUnavailable'), { functionName, userId });
+        if (callback) callback(null, new Error('FirestoreUnavailable'));
+        return null;
+    }
+
+    LoggingService.info(`[FirebaseService] Setting up real-time stream for user ${userId}.`, { functionName, userId });
+
+    const userDocRef = db.collection(USERS_COLLECTION).doc(userId)
+                         .collection(APP_DATA_DOC).doc(USER_SPECIFIC_DATA_DOC);
+
+    const unsubscribe = userDocRef.onSnapshot(docSnapshot => {
+        LoggingService.debug(`[FirebaseService] Snapshot received for user ${userId}.`, { functionName, userId, docExists: docSnapshot.exists });
+        if (docSnapshot.exists) {
+            const data = docSnapshot.data();
+            callback({
+                tasks: data.tasks || [],
+                projects: data.projects || [],
+                kanbanColumns: data.kanbanColumns || []
+            }, null);
+        } else {
+            LoggingService.info(`[FirebaseService] No data document found for user ${userId} in stream. Providing empty structure.`, { functionName, userId });
+            // Call back with empty structure so the app can reset or show "no data" state
+            callback({
+                tasks: [],
+                projects: [],
+                kanbanColumns: []
+            }, null);
+        }
+    }, error => {
+        LoggingService.error(`[FirebaseService] Error in real-time stream for user ${userId}:`, error, { functionName, userId });
+        callback(null, error);
+    });
+
+    return unsubscribe; // Return the unsubscribe function
+}
+
 
 /**
  * Deletes all application data for a specific user from Firestore.
