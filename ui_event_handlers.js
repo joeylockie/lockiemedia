@@ -9,15 +9,16 @@ import * as TaskService from './taskService.js';
 import * as LabelService from './labelService.js';
 import ModalStateService from './modalStateService.js';
 import TooltipService from './tooltipService.js';
-import EventBus from './eventBus.js'; 
+import EventBus from './eventBus.js';
 import * as BulkActionService from './bulkActionService.js';
 
 import LoggingService from './loggingService.js';
 
 // MODIFIED: showMessage is no longer imported directly
+// import { showMessage } from './ui_rendering.js'; // Removed
+// refreshTaskView is also removed as we will rely on event-driven updates.
 import {
-    // showMessage, 
-    refreshTaskView,
+    // refreshTaskView, // Removed
     showTooltip,
     hideTooltip,
     setSidebarMinimized,
@@ -91,7 +92,7 @@ function populateFeatureFlagsModal() {
     const currentFlags = getAllFeatureFlags();
     LoggingService.debug('[UIEventHandlers] Populating feature flags modal.', { functionName, flagCount: Object.keys(currentFlags).length });
 
-    const friendlyNames = { 
+    const friendlyNames = {
         testButtonFeature: "Test Button",
         reminderFeature: "Task Reminders",
         taskTimerSystem: "Task Time Tracking",
@@ -162,9 +163,9 @@ function populateFeatureFlagsModal() {
 export function applyActiveFeatures() {
     const functionName = 'applyActiveFeatures';
     LoggingService.info('[UIEventHandlers] Applying active features based on current flags.', { functionName });
-    const toggleElements = (selector, isEnabled) => { 
-        document.querySelectorAll(selector).forEach(el => el.classList.toggle('hidden', !isEnabled)); 
-    };
+    // const toggleElements = (selector, isEnabled) => { // This local helper is no longer used directly here
+    //     document.querySelectorAll(selector).forEach(el => el.classList.toggle('hidden', !isEnabled));
+    // };
 
     if (window.AppFeatures) {
         for (const featureKey in window.AppFeatures) {
@@ -173,20 +174,21 @@ export function applyActiveFeatures() {
             }
         }
     }
-    
-    const settingsTooltipsGuideBtnEl = document.getElementById('settingsTooltipsGuideBtn'); 
-    if (settingsTooltipsGuideBtnEl) settingsTooltipsGuideBtnEl.classList.toggle('hidden', !isFeatureEnabled('tooltipsGuide')); 
 
-    const bulkControls = document.getElementById('bulkActionControlsContainer'); 
-    if (bulkControls) { 
-        if (!isFeatureEnabled('bulkActionsFeature')) { 
-            if (BulkActionService && BulkActionService.clearSelections) BulkActionService.clearSelections(); 
-            bulkControls.classList.add('hidden'); 
+    const settingsTooltipsGuideBtnEl = document.getElementById('settingsTooltipsGuideBtn');
+    if (settingsTooltipsGuideBtnEl) settingsTooltipsGuideBtnEl.classList.toggle('hidden', !isFeatureEnabled('tooltipsGuide'));
+
+    const bulkControls = document.getElementById('bulkActionControlsContainer');
+    if (bulkControls) {
+        if (!isFeatureEnabled('bulkActionsFeature')) {
+            if (BulkActionService && BulkActionService.clearSelections) BulkActionService.clearSelections();
+            bulkControls.classList.add('hidden');
         }
     }
-    document.querySelectorAll('.bulk-actions-feature-element').forEach(el => el.classList.toggle('hidden', !isFeatureEnabled('bulkActionsFeature'))); 
+    document.querySelectorAll('.bulk-actions-feature-element').forEach(el => el.classList.toggle('hidden', !isFeatureEnabled('bulkActionsFeature')));
 
-    refreshTaskView();
+    // refreshTaskView(); // This call is deferred to event listeners in ui_rendering.js
+    EventBus.publish('requestViewRefresh'); // Or let individual events handle it.
 
     const featureFlagsModalElement = document.getElementById('featureFlagsModal');
     if (featureFlagsModalElement && !featureFlagsModalElement.classList.contains('hidden')) {
@@ -237,7 +239,6 @@ function handleAddTask(event) {
         reminderEmail = modalReminderEmailAddEl.value.trim();
         if (!reminderDate || !reminderTime || !reminderEmail) {
             LoggingService.warn('[UIEventHandlers] Reminder fields not completely filled for new task.', { functionName, reminderDate, reminderTime, reminderEmail });
-            // MODIFIED: Publish event instead of direct call
             EventBus.publish('displayUserMessage', { text: 'Please fill all reminder fields or disable the reminder.', type: 'error' });
             return;
         }
@@ -245,7 +246,7 @@ function handleAddTask(event) {
 
     if (taskText) {
         let parsedResult = { parsedDate: dueDate, remainingText: taskText };
-        if (!dueDate) { 
+        if (!dueDate) {
             parsedResult = TaskService.parseDateFromText(taskText);
         }
 
@@ -253,24 +254,25 @@ function handleAddTask(event) {
 
         TaskService.addTask({
             text: parsedResult.remainingText,
-            dueDate: parsedResult.parsedDate || dueDate, 
+            dueDate: parsedResult.parsedDate || dueDate,
             time, priority, label, notes, projectId,
             isReminderSet, reminderDate, reminderTime, reminderEmail,
             estimatedHours: estHours, estimatedMinutes: estMinutes,
             subTasks: subTasksToAdd
         });
         LoggingService.info(`[UIEventHandlers] Task added via form: "${parsedResult.remainingText.substring(0, 30)}..."`, { functionName, taskLength: parsedResult.remainingText.length });
-        // MODIFIED: Publish event instead of direct call
         EventBus.publish('displayUserMessage', { text: 'Task added successfully!', type: 'success' });
-        closeAddModal(); 
+        closeAddModal();
         if (ViewManager.getCurrentFilter() !== 'inbox') {
-            ViewManager.setCurrentFilter('inbox'); 
+            ViewManager.setCurrentFilter('inbox'); // This will trigger filterChanged, which should refresh the view
         } else {
-            refreshTaskView();
+            // If already in inbox, the tasksChanged event from AppStore (after TaskService.addTask)
+            // should be sufficient to trigger refreshTaskView via its subscription in ui_rendering.js.
+            // The direct call to refreshTaskView(); is removed here.
+            LoggingService.debug('[UIEventHandlers] Task added while in inbox. Relying on tasksChanged event for view refresh.', { functionName });
         }
     } else {
         LoggingService.warn('[UIEventHandlers] Task description was empty on add attempt.', { functionName });
-        // MODIFIED: Publish event instead of direct call
         EventBus.publish('displayUserMessage', { text: 'Task description cannot be empty.', type: 'error' });
     }
 }
@@ -317,7 +319,6 @@ function handleEditTask(event) {
         reminderEmail = modalReminderEmailViewEditEl.value.trim();
         if (!reminderDate || !reminderTime || !reminderEmail) {
             LoggingService.warn(`[UIEventHandlers] Reminder fields not completely filled for editing task ID: ${taskId}.`, { functionName, taskId, reminderDate, reminderTime, reminderEmail });
-            // MODIFIED: Publish event instead of direct call
             EventBus.publish('displayUserMessage', { text: 'Please fill all reminder fields or disable the reminder for edit.', type: 'error' });
             return;
         }
@@ -330,24 +331,21 @@ function handleEditTask(event) {
             estimatedHours: estHours, estimatedMinutes: estMinutes
         });
         LoggingService.info(`[UIEventHandlers] Task ID ${taskId} updated successfully.`, { functionName, taskId });
-        // MODIFIED: Publish event instead of direct call
         EventBus.publish('displayUserMessage', { text: 'Task updated successfully!', type: 'success' });
         closeViewEditModal();
     } else {
         LoggingService.warn('[UIEventHandlers] Task description empty or task ID missing for edit.', { functionName, taskId, taskTextIsEmpty: !taskText });
-        // MODIFIED: Publish event instead of direct call
         EventBus.publish('displayUserMessage', { text: 'Task description cannot be empty.', type: 'error' });
     }
 }
 
 // This function is now internal, not exported. Called by EventBus subscription.
 function toggleComplete(taskId) {
-    const functionName = 'toggleComplete (Internal Handler)'; 
+    const functionName = 'toggleComplete (Internal Handler)';
     LoggingService.debug(`[UIEventHandlers] Handling request to toggle completion for task ID: ${taskId}.`, { functionName, taskId });
-    const updatedTask = TaskService.toggleTaskComplete(taskId); 
+    const updatedTask = TaskService.toggleTaskComplete(taskId);
     if (updatedTask && updatedTask._blocked) {
         LoggingService.info(`[UIEventHandlers] Task ${taskId} completion blocked by prerequisites.`, { functionName, taskId });
-        // MODIFIED: Publish event instead of direct call
         EventBus.publish('displayUserMessage', { text: 'Cannot complete task: It has incomplete prerequisite tasks.', type: 'warn' });
     } else if (updatedTask) {
         LoggingService.info(`[UIEventHandlers] Task ${taskId} completion status toggled to ${updatedTask.completed} via service.`, { functionName, taskId, newStatus: updatedTask.completed });
@@ -357,19 +355,17 @@ function toggleComplete(taskId) {
         }
     } else {
         LoggingService.error(`[UIEventHandlers] Error toggling task completion for task ID: ${taskId} via service.`, new Error("ToggleCompleteFailed"), { functionName, taskId });
-        // MODIFIED: Publish event instead of direct call
         EventBus.publish('displayUserMessage', { text: 'Error toggling task completion.', type: 'error' });
     }
 }
 
 // This function is now internal, not exported. Called by EventBus subscription.
 function deleteTask(taskId) {
-    const functionName = 'deleteTask (Internal Handler)'; 
+    const functionName = 'deleteTask (Internal Handler)';
     LoggingService.info(`[UIEventHandlers] Handling request to delete task ID: ${taskId}.`, { functionName, taskId });
     if (confirm('Are you sure you want to delete this task?')) {
-        if (TaskService.deleteTaskById(taskId)) { 
+        if (TaskService.deleteTaskById(taskId)) {
             LoggingService.info(`[UIEventHandlers] Task ID ${taskId} deleted successfully via service.`, { functionName, taskId });
-            // MODIFIED: Publish event instead of direct call
             EventBus.publish('displayUserMessage', { text: 'Task deleted successfully!', type: 'success' });
             const currentViewingId = ModalStateService.getCurrentViewTaskId();
             const currentEditingId = ModalStateService.getEditingTaskId();
@@ -378,7 +374,6 @@ function deleteTask(taskId) {
             if (currentEditingId === taskId) closeViewEditModal();
         } else {
             LoggingService.error(`[UIEventHandlers] Error deleting task ID: ${taskId} via service.`, new Error("DeleteTaskFailed"), { functionName, taskId });
-            // MODIFIED: Publish event instead of direct call
             EventBus.publish('displayUserMessage', { text: 'Error deleting task.', type: 'error' });
         }
     } else {
@@ -393,7 +388,7 @@ export function setFilter(filter) {
         return;
     }
     LoggingService.info(`[UIEventHandlers] Setting filter to: ${filter}.`, { functionName, filter });
-    ViewManager.setCurrentFilter(filter); 
+    ViewManager.setCurrentFilter(filter);
 }
 
 function clearCompletedTasks() {
@@ -412,12 +407,10 @@ function clearCompletedTasks() {
             });
         }
         LoggingService.info(`[UIEventHandlers] Cleared ${deletedCount} completed task(s).`, { functionName, deletedCount });
-        if (deletedCount > 0) { 
-            // MODIFIED: Publish event instead of direct call
+        if (deletedCount > 0) {
             EventBus.publish('displayUserMessage', { text: `${deletedCount} completed task(s) cleared.`, type: 'success' });
         }
-        else { 
-            // MODIFIED: Publish event instead of direct call
+        else {
             EventBus.publish('displayUserMessage', { text: 'No completed tasks to clear.', type: 'info' });
         }
         closeSettingsModal();
@@ -445,9 +438,8 @@ export function handleDeleteLabel(labelNameToDelete) {
     const functionName = 'handleDeleteLabel';
     LoggingService.info(`[UIEventHandlers] User initiated delete for label: "${labelNameToDelete}".`, { functionName, labelNameToDelete });
     if (confirm(`Are you sure you want to delete the label "${labelNameToDelete}" from all tasks? This will remove the label from any task currently using it. This action cannot be undone.`)) {
-        if (LabelService.deleteLabelUsageFromTasks(labelNameToDelete)) { // deleteLabelUsageFromTasks calls showMessage internally
+        if (LabelService.deleteLabelUsageFromTasks(labelNameToDelete)) {
             LoggingService.info(`[UIEventHandlers] Label "${labelNameToDelete}" removed from tasks.`, { functionName, labelNameToDelete });
-            // MODIFIED: Publish event instead of direct call (if LabelService doesn't do it)
             EventBus.publish('displayUserMessage', { text: `Label "${labelNameToDelete}" removed from all tasks.`, type: 'success' });
             const manageLabelsModalEl = document.getElementById('manageLabelsModal');
              if (manageLabelsModalEl && !manageLabelsModalEl.classList.contains('hidden')) {
@@ -472,14 +464,12 @@ async function handleAddSubTaskViewEdit() {
 
     if (!parentId || !subTaskText) {
         LoggingService.warn('[UIEventHandlers] Parent task ID or sub-task text is missing for adding sub-task in edit modal.', { functionName, parentId, hasSubTaskText: !!subTaskText });
-        // MODIFIED: Publish event instead of direct call
         EventBus.publish('displayUserMessage', { text: 'Parent task ID or sub-task text is missing.', type: 'error' });
         return;
     }
 
     if (SubTasksFeature?.add(parentId, subTaskText)) {
         LoggingService.info(`[UIEventHandlers] Sub-task added to parent ID ${parentId}.`, { functionName, parentId });
-        // MODIFIED: Publish event instead of direct call
         EventBus.publish('displayUserMessage', { text: 'Sub-task added.', type: 'success' });
         modalSubTaskInputViewEditEl.value = '';
         try {
@@ -492,7 +482,6 @@ async function handleAddSubTaskViewEdit() {
         }
     } else {
         LoggingService.error(`[UIEventHandlers] Failed to add sub-task to parent ID ${parentId}.`, new Error("AddSubTaskFailed"), { functionName, parentId });
-        // MODIFIED: Publish event instead of direct call
         EventBus.publish('displayUserMessage', { text: 'Failed to add sub-task.', type: 'error' });
     }
 }
@@ -507,14 +496,13 @@ function handleAddTempSubTaskForAddModal() {
 
     if (!subTaskText) {
         LoggingService.warn('[UIEventHandlers] Sub-task text cannot be empty for temporary add.', { functionName });
-        // MODIFIED: Publish event instead of direct call
         EventBus.publish('displayUserMessage', { text: 'Sub-task text cannot be empty.', type: 'error' });
         return;
     }
     tempSubTasksForAddModal.push({ id: `temp_${Date.now()}_${Math.random()}`, text: subTaskText, completed: false });
     LoggingService.debug(`[UIEventHandlers] Temporary sub-task added. Current temp count: ${tempSubTasksForAddModal.length}`, { functionName });
     modalSubTaskInputAddEl.value = '';
-    
+
     const uiRenderingModule = globalThis.uiRenderingModule || (globalThis.uiRenderingModule = import('./ui_rendering.js'));
     uiRenderingModule.then(ui => {
         if (ui.renderTempSubTasksForAddModal) {
@@ -532,12 +520,12 @@ export function setupEventListeners() {
     if (EventBus) {
         EventBus.subscribe('uiRequestToggleComplete', (data) => {
             if (data && data.taskId) {
-                toggleComplete(data.taskId); 
+                toggleComplete(data.taskId);
             }
         });
         EventBus.subscribe('uiRequestDeleteTask', (data) => {
             if (data && data.taskId) {
-                deleteTask(data.taskId); 
+                deleteTask(data.taskId);
             }
         });
         LoggingService.debug('[UIEventHandlers] Subscribed to uiRequestToggleComplete and uiRequestDeleteTask.', { functionName });
@@ -559,7 +547,7 @@ export function setupEventListeners() {
     // Sidebar Toggle
     const sidebarToggleBtnEl = document.getElementById('sidebarToggleBtn');
     if (sidebarToggleBtnEl) {
-        sidebarToggleBtnEl.addEventListener('click', () => { 
+        sidebarToggleBtnEl.addEventListener('click', () => {
             const sidebarHandlerFuncName = 'sidebarToggleClickHandler';
             const taskSidebarEl = document.getElementById('taskSidebar');
             if (!taskSidebarEl) {
@@ -571,9 +559,9 @@ export function setupEventListeners() {
             localStorage.setItem('sidebarState', newMinimizedState ? 'minimized' : 'expanded');
             setSidebarMinimized(newMinimizedState);
             if (newMinimizedState) {
-                hideTooltip(); 
+                hideTooltip();
             } else {
-                TooltipService.clearTooltipTimeout(); 
+                TooltipService.clearTooltipTimeout();
             }
             if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) {
                 ProjectsFeature.populateProjectFilterList();
@@ -687,7 +675,7 @@ export function setupEventListeners() {
             const taskId = ModalStateService.getCurrentViewTaskId();
             LoggingService.debug(`[UIEventHandlers] Edit from View Modal button clicked for task ID: ${taskId}.`, { functionName: handlerName, taskId });
             if (taskId) {
-                closeViewTaskDetailsModal(); 
+                closeViewTaskDetailsModal();
                 openViewEditModal(taskId);
             } else {
                 LoggingService.warn(`[UIEventHandlers] No task ID to edit from View Modal.`, { functionName: handlerName });
@@ -701,7 +689,7 @@ export function setupEventListeners() {
             const handlerName = 'deleteFromViewModalHandler';
             const taskId = ModalStateService.getCurrentViewTaskId();
             LoggingService.debug(`[UIEventHandlers] Delete from View Modal button clicked for task ID: ${taskId}.`, { functionName: handlerName, taskId });
-            if(taskId) deleteTask(taskId); 
+            if(taskId) deleteTask(taskId);
             else { LoggingService.warn(`[UIEventHandlers] No task ID to delete from View Modal.`, { functionName: handlerName }); }
         });
         LoggingService.debug(`[UIEventHandlers] Delete From View Modal listener attached.`, { functionName, elementId: 'deleteFromViewModalBtn' });
@@ -726,7 +714,7 @@ export function setupEventListeners() {
     attachListener('addNewLabelForm', 'submit', handleAddNewLabel, 'handleAddNewLabel');
 
     // User Accounts Form Submissions & Sign Out
-    if (UserAccountsFeature) { 
+    if (UserAccountsFeature) {
         attachListener('signUpForm', 'submit', (event) => {
             event.preventDefault();
             const emailEl = document.getElementById('signUpEmail');
@@ -832,44 +820,44 @@ export function setupEventListeners() {
         if (event.key === 'Escape') {
             LoggingService.debug('[UIEventHandlers] Escape key pressed, attempting to close modals.', { functionName: keydownHandlerName, key: event.key });
             const contactUsModalEl = document.getElementById('contactUsModal');
-            const aboutUsModalEl = document.getElementById('aboutUsModal'); 
-            const dataVersionHistoryModalEl = document.getElementById('dataVersionHistoryModal'); 
+            const aboutUsModalEl = document.getElementById('aboutUsModal');
+            const dataVersionHistoryModalEl = document.getElementById('dataVersionHistoryModal');
 
 
-            if (document.getElementById('authModal') && !document.getElementById('authModal').classList.contains('hidden') && UserAccountsFeature?.closeAuthModal) UserAccountsFeature.closeAuthModal(); 
-            else if (document.getElementById('addTaskModal') && !document.getElementById('addTaskModal').classList.contains('hidden')) closeAddModal(); 
-            else if (document.getElementById('viewEditTaskModal') && !document.getElementById('viewEditTaskModal').classList.contains('hidden')) closeViewEditModal(); 
-            else if (document.getElementById('viewTaskDetailsModal') && !document.getElementById('viewTaskDetailsModal').classList.contains('hidden')) closeViewTaskDetailsModal(); 
-            else if (document.getElementById('settingsModal') && !document.getElementById('settingsModal').classList.contains('hidden')) closeSettingsModal(); 
-            else if (document.getElementById('manageLabelsModal') && !document.getElementById('manageLabelsModal').classList.contains('hidden')) closeManageLabelsModal(); 
-            else if (document.getElementById('taskReviewModal') && !document.getElementById('taskReviewModal').classList.contains('hidden')) closeTaskReviewModal(); 
-            else if (document.getElementById('tooltipsGuideModal') && !document.getElementById('tooltipsGuideModal').classList.contains('hidden')) closeTooltipsGuideModal(); 
-            else if (contactUsModalEl && !contactUsModalEl.classList.contains('hidden')) closeContactUsModal(); 
+            if (document.getElementById('authModal') && !document.getElementById('authModal').classList.contains('hidden') && UserAccountsFeature?.closeAuthModal) UserAccountsFeature.closeAuthModal();
+            else if (document.getElementById('addTaskModal') && !document.getElementById('addTaskModal').classList.contains('hidden')) closeAddModal();
+            else if (document.getElementById('viewEditTaskModal') && !document.getElementById('viewEditTaskModal').classList.contains('hidden')) closeViewEditModal();
+            else if (document.getElementById('viewTaskDetailsModal') && !document.getElementById('viewTaskDetailsModal').classList.contains('hidden')) closeViewTaskDetailsModal();
+            else if (document.getElementById('settingsModal') && !document.getElementById('settingsModal').classList.contains('hidden')) closeSettingsModal();
+            else if (document.getElementById('manageLabelsModal') && !document.getElementById('manageLabelsModal').classList.contains('hidden')) closeManageLabelsModal();
+            else if (document.getElementById('taskReviewModal') && !document.getElementById('taskReviewModal').classList.contains('hidden')) closeTaskReviewModal();
+            else if (document.getElementById('tooltipsGuideModal') && !document.getElementById('tooltipsGuideModal').classList.contains('hidden')) closeTooltipsGuideModal();
+            else if (contactUsModalEl && !contactUsModalEl.classList.contains('hidden')) closeContactUsModal();
             else if (aboutUsModalEl && !aboutUsModalEl.classList.contains('hidden')) closeAboutUsModal();
             else if (dataVersionHistoryModalEl && !dataVersionHistoryModalEl.classList.contains('hidden')) closeDataVersionHistoryModal();
 
 
-            const ffModal = document.getElementById('featureFlagsModal'); 
-            if (ffModal && !ffModal.classList.contains('hidden')) { 
-                ffModalCloseHandler(); 
+            const ffModal = document.getElementById('featureFlagsModal');
+            if (ffModal && !ffModal.classList.contains('hidden')) {
+                ffModalCloseHandler();
             }
-            const projModal = document.getElementById('manageProjectsModal'); 
-            if (projModal && !projModal.classList.contains('hidden') && window.AppFeatures?.ProjectsFeature?.closeManageProjectsModal) { 
-                 window.AppFeatures.ProjectsFeature.closeManageProjectsModal(); 
-            } else if (projModal && !projModal.classList.contains('hidden')) { 
-                const projDialog = document.getElementById('modalDialogManageProjects'); 
-                if (projDialog) projDialog.classList.add('scale-95', 'opacity-0'); 
-                setTimeout(() => { projModal.classList.add('hidden'); }, 200); 
+            const projModal = document.getElementById('manageProjectsModal');
+            if (projModal && !projModal.classList.contains('hidden') && window.AppFeatures?.ProjectsFeature?.closeManageProjectsModal) {
+                 window.AppFeatures.ProjectsFeature.closeManageProjectsModal();
+            } else if (projModal && !projModal.classList.contains('hidden')) {
+                const projDialog = document.getElementById('modalDialogManageProjects');
+                if (projDialog) projDialog.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => { projModal.classList.add('hidden'); }, 200);
             }
 
 
-        } else if ((event.key === '+' || event.key === '=') && 
-            !event.altKey && !event.ctrlKey && !event.metaKey && 
-            !['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName.toUpperCase()) && 
-            document.querySelectorAll('.fixed.inset-0:not(.hidden)').length === 0) { 
+        } else if ((event.key === '+' || event.key === '=') &&
+            !event.altKey && !event.ctrlKey && !event.metaKey &&
+            !['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName.toUpperCase()) &&
+            document.querySelectorAll('.fixed.inset-0:not(.hidden)').length === 0) {
             LoggingService.debug('[UIEventHandlers] Add task shortcut key pressed.', { functionName: keydownHandlerName, key: event.key });
-            event.preventDefault(); 
-            openAddModal(); 
+            event.preventDefault();
+            openAddModal();
         }
     });
     LoggingService.debug(`[UIEventHandlers] Document keydown listener attached.`, { functionName });
@@ -879,16 +867,16 @@ export function setupEventListeners() {
     attachListener('modalAddSubTaskBtnViewEdit', 'click', handleAddSubTaskViewEdit, 'handleAddSubTaskViewEdit');
 
     // Bulk Action Listeners
-    const selectAllTasksCheckboxEl = document.getElementById('selectAllTasksCheckbox'); 
-    if (selectAllTasksCheckboxEl && isFeatureEnabled('bulkActionsFeature')) { 
-        selectAllTasksCheckboxEl.addEventListener('change', (e) => { 
+    const selectAllTasksCheckboxEl = document.getElementById('selectAllTasksCheckbox');
+    if (selectAllTasksCheckboxEl && isFeatureEnabled('bulkActionsFeature')) {
+        selectAllTasksCheckboxEl.addEventListener('change', (e) => {
             const handlerName = 'selectAllTasksCheckboxHandler';
             LoggingService.debug(`[UIEventHandlers] Select All Tasks checkbox changed: ${e.target.checked}`, { functionName: handlerName, checked: e.target.checked });
-            const tasksToSelect = ViewManager.getFilteredTasksForBulkAction(); 
-            if (e.target.checked) { 
-                tasksToSelect.forEach(task => BulkActionService.selectTaskIfNotSelected(task.id)); 
-            } else { 
-                tasksToSelect.forEach(task => BulkActionService.deselectTaskIfSelected(task.id)); 
+            const tasksToSelect = ViewManager.getFilteredTasksForBulkAction();
+            if (e.target.checked) {
+                tasksToSelect.forEach(task => BulkActionService.selectTaskIfNotSelected(task.id));
+            } else {
+                tasksToSelect.forEach(task => BulkActionService.deselectTaskIfSelected(task.id));
             }
         });
         LoggingService.debug(`[UIEventHandlers] Select All Tasks checkbox listener attached.`, { functionName, elementId: 'selectAllTasksCheckbox' });
