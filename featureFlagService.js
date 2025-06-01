@@ -33,6 +33,7 @@ let _featureFlags = { //
     aboutUsFeature: false, // ADDED: New feature flag for About Us
     dataVersioningFeature: false, // NEW: Add dataVersioningFeature flag
     desktopNotificationsFeature: false, // ADDED: New feature flag for Desktop Notifications
+    appUpdateNotificationFeature: false, // ADDED: New feature flag for App Update Notifications
     debugMode: false // NEW: Add debugMode flag for logging control demonstration
 };
 

@@ -24,5 +24,6 @@
   "aboutUsFeature": true,
   "dataVersioningFeature": false,
   "desktopNotificationsFeature": true,
+  "appUpdateNotificationFeature": true,
   "debugMode": true
 }
