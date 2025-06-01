@@ -9,12 +9,9 @@ import AppStore from './store.js'; // To access tasks and now user preferences
 
 // --- DOM Element References (will be populated in initialize or when settings UI is rendered) ---
 let settingsDesktopNotificationsBtnEl;
-// MODIFIED: The section element is no longer directly controlled here for visibility,
-// but the content area within the new modal will be.
-// let notificationSettingsSectionEl; 
-let notificationSettingsModalEl; // Reference to the new modal
-let notificationSettingsModalDialogEl; // Reference to the new modal's dialog
-let notificationSettingsContentAreaEl; // Specific content area within the new modal
+let notificationSettingsModalEl; 
+let notificationSettingsModalDialogEl; 
+let notificationSettingsContentAreaEl; 
 
 let enableNotificationsToggleEl;
 let notifyOnTaskDueToggleEl;
@@ -80,12 +77,12 @@ function _updateSettingsUI() {
     const functionName = '_updateSettingsUI';
     if (!isFeatureEnabled('desktopNotificationsFeature')) return;
 
-    // Ensure DOM elements for controls are fresh, especially if modal was just opened
     if (!enableNotificationsToggleEl) enableNotificationsToggleEl = document.getElementById('enableNotificationsToggle');
     if (!notifyOnTaskDueToggleEl) notifyOnTaskDueToggleEl = document.getElementById('notifyOnTaskDueToggle');
     if (!notifyMinutesBeforeDueEl) notifyMinutesBeforeDueEl = document.getElementById('notifyMinutesBeforeDue');
     if (!notificationPermissionStatusTextEl) notificationPermissionStatusTextEl = document.getElementById('notificationPermissionStatusText');
     if (!testNotificationBtnEl) testNotificationBtnEl = document.getElementById('testNotificationBtn');
+
 
     const permission = NotificationService.getPermissionStatus();
     const canEnableBasedOnPermission = permission === 'granted';
@@ -108,7 +105,6 @@ function _updateSettingsUI() {
 
     if (enableNotificationsToggleEl) {
         enableNotificationsToggleEl.checked = currentSettings.notificationsEnabled && canEnableBasedOnPermission;
-        // Disable toggle if permission is 'denied'. Allow interaction if 'default' (to trigger request) or 'granted'.
         enableNotificationsToggleEl.disabled = permission === 'denied';
     }
 
@@ -208,13 +204,18 @@ function initialize() {
 
     _loadSettings();
 
-    // References to elements within the new modal (IDs remain the same for the controls)
+    settingsDesktopNotificationsBtnEl = document.getElementById('settingsManageNotificationsBtn');
+    // These are now part of a separate modal, their direct manipulation for visibility is less of a concern for this function.
+    // notificationSettingsModalEl = document.getElementById('desktopNotificationsSettingsModal');
+    // notificationSettingsContentAreaEl = document.getElementById('desktopNotificationSettingsContentArea');
+
     enableNotificationsToggleEl = document.getElementById('enableNotificationsToggle');
     notifyOnTaskDueToggleEl = document.getElementById('notifyOnTaskDueToggle');
     notifyMinutesBeforeDueEl = document.getElementById('notifyMinutesBeforeDue');
     testNotificationBtnEl = document.getElementById('testNotificationBtn');
     notificationPermissionStatusTextEl = document.getElementById('notificationPermissionStatusText');
-    // The main button to open this modal is handled by ui_event_handlers.js now
+
+    // The listener for settingsDesktopNotificationsBtnEl to OPEN the modal is now in ui_event_handlers.js
 
     if (enableNotificationsToggleEl) {
         enableNotificationsToggleEl.addEventListener('change', async (event) => {
@@ -287,8 +288,8 @@ function initialize() {
             currentSettings = { ...defaultDesktopNotificationSettings, ...allPreferences.desktopNotifications };
             if (JSON.stringify(currentSettings) !== oldSettingsJSON) {
                 LoggingService.info('[DesktopNotificationsFeature] Local notification settings updated from AppStore.', { funcName, newSettings: currentSettings });
-                _updateSettingsUI(); // Update UI if modal is open
-                _manageDueTaskChecker(); // Re-evaluate checker
+                _updateSettingsUI(); 
+                _manageDueTaskChecker(); 
             }
         }
     });
@@ -298,7 +299,6 @@ function initialize() {
          _manageDueTaskChecker();
     });
 
-    // _updateSettingsUI(); // UI will be updated when modal is opened by modal_interactions.js calling refreshSettingsUIDisplay
     _manageDueTaskChecker();
 
     LoggingService.info('[DesktopNotificationsFeature] Initialized.', { functionName });
@@ -309,37 +309,62 @@ function updateUIVisibility() {
     const isActuallyEnabled = isFeatureEnabled('desktopNotificationsFeature');
     LoggingService.debug(`[DesktopNotificationsFeature] Updating UI visibility. Feature enabled: ${isActuallyEnabled}.`, { functionName, isActuallyEnabled });
 
-    // Visibility of the button to open this modal is handled by ui_event_handlers.js
-    // via the .desktop-notifications-feature-element class on the button in todo.html
+    if (!settingsDesktopNotificationsBtnEl) settingsDesktopNotificationsBtnEl = document.getElementById('settingsManageNotificationsBtn');
+    
+    // ADDED LOGS FOR DIAGNOSIS
+    LoggingService.debug('[DesktopNotificationsFeature] settingsManageNotificationsBtnEl before toggle:', { element: settingsDesktopNotificationsBtnEl, initialHiddenState: settingsDesktopNotificationsBtnEl ? settingsDesktopNotificationsBtnEl.classList.contains('hidden') : 'not_found' });
 
-    // If feature is disabled, ensure due task checker is stopped
-    if (!isActuallyEnabled && dueTaskCheckInterval) {
-        clearInterval(dueTaskCheckInterval);
-        dueTaskCheckInterval = null;
-        LoggingService.info('[DesktopNotificationsFeature] Feature disabled, due task checker stopped.', { functionName });
-    } else if (isActuallyEnabled) {
-        // If feature just enabled, reload settings and manage checker
-        _loadSettings();
-        _updateSettingsUI(); // This will correctly reflect current permission and settings in the (potentially hidden) modal controls
-        _manageDueTaskChecker();
+    if (settingsDesktopNotificationsBtnEl) {
+        settingsDesktopNotificationsBtnEl.classList.toggle('hidden', !isActuallyEnabled);
+        // ADDED LOGS FOR DIAGNOSIS
+        LoggingService.debug('[DesktopNotificationsFeature] settingsManageNotificationsBtnEl AFTER toggle:', { finalHiddenState: settingsDesktopNotificationsBtnEl.classList.contains('hidden'), shouldBeHidden: !isActuallyEnabled });
+    } else {
+        LoggingService.warn('[DesktopNotificationsFeature] settingsManageNotificationsBtnEl NOT FOUND during updateUIVisibility.', { functionName });
     }
-    // The modal itself is hidden by default and only shown by modal_interactions.js
-    // So, this function doesn't need to directly hide/show the modal itself,
-    // only ensure its internal state and dependent processes (like checker) are correct.
-    LoggingService.info(`[DesktopNotificationsFeature] UI Visibility logic executed. Actual enabled: ${isActuallyEnabled}`, { functionName });
+    
+    // The new modal itself also has 'desktop-notifications-feature-element'
+    // So it would be hidden/shown by the generic loop in main.js's applyActiveFeatures if we used that,
+    // but it's better to manage modal visibility explicitly via open/close functions.
+    // This function should mainly ensure the *button to open* the modal is visible if feature is on.
+    // And ensure the checker is running/stopped.
+
+    if (!isActuallyEnabled) {
+        if (dueTaskCheckInterval) {
+            clearInterval(dueTaskCheckInterval);
+            dueTaskCheckInterval = null;
+            LoggingService.info('[DesktopNotificationsFeature] Feature disabled, due task checker stopped.', { functionName });
+        }
+        // If modal is open and feature gets disabled, it should be closed.
+        // modal_interactions.js handles opening. Closing on feature disable can be added if necessary,
+        // e.g. by checking if modal is open and calling closeDesktopNotificationsSettingsModal().
+        const modalEl = document.getElementById('desktopNotificationsSettingsModal');
+        if (modalEl && !modalEl.classList.contains('hidden')) {
+            // This is a direct call, ideally modal_interactions would expose this close
+            // Or ui_event_handlers would handle it in its escape key logic / feature toggle logic
+            // For now, let's assume modal_interactions.closeDesktopNotificationsSettingsModal() would be called
+            // if this scenario needs to be handled more gracefully by other parts of the system.
+            // LoggingService.info('[DesktopNotificationsFeature] Feature disabled, ensuring settings modal is hidden.', { functionName });
+            // modalEl.classList.add('hidden'); // Failsafe
+        }
+    } else {
+        _loadSettings(); // Ensure settings are current if feature just enabled
+        _updateSettingsUI(); // Update UI of controls (which might be in a hidden modal)
+        _manageDueTaskChecker(); // Restart checker if conditions met
+    }
+    LoggingService.info(`[DesktopNotificationsFeature] UI Visibility logic executed for its elements. Actual enabled: ${isActuallyEnabled}`, { functionName });
 }
 
-// ADDED: Function to be called by modal_interactions when the settings modal is opened
 function refreshSettingsUIDisplay() {
     const functionName = 'refreshSettingsUIDisplay (DesktopNotificationsFeature)';
-    LoggingService.debug('[DesktopNotificationsFeature] Refreshing settings UI display.', { functionName });
-    _updateSettingsUI();
+    LoggingService.debug('[DesktopNotificationsFeature] Refreshing settings UI display on modal open.', { functionName });
+    _loadSettings(); // Ensure current settings from AppStore are loaded
+    _updateSettingsUI(); // Then update the UI elements
 }
 
 export const DesktopNotificationsFeature = {
     initialize,
     updateUIVisibility,
-    refreshSettingsUIDisplay // ADDED: Expose this function
+    refreshSettingsUIDisplay
 };
 
 LoggingService.debug("feature_desktop_notifications.js loaded as ES6 module.", { module: 'feature_desktop_notifications' });
