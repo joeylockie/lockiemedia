@@ -46,7 +46,7 @@ export async function saveUserDataToFirestore(userId, data) {
             projects: data.projects || [],
             kanbanColumns: data.kanbanColumns || [],
             preferences: data.preferences || {},
-            profile: data.profile || {}, // ADDED: Save profile data
+            profile: data.profile || {}, // This will include the role if present in data.profile
             lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
         };
 
@@ -98,7 +98,7 @@ export async function loadUserDataFromFirestore(userId) {
                 projects: data.projects || [],
                 kanbanColumns: data.kanbanColumns || [],
                 preferences: data.preferences || {},
-                profile: data.profile || {} // ADDED: Load profile data, default to empty object
+                profile: data.profile || {} // This will include the role if present in Firestore
             };
         } else {
             LoggingService.info(`[FirebaseService] No data found for user ${userId} (load once). Returning empty structure.`, { functionName, userId });
@@ -107,7 +107,7 @@ export async function loadUserDataFromFirestore(userId) {
                 projects: [],
                 kanbanColumns: [],
                 preferences: {},
-                profile: {} // ADDED: Default empty profile
+                profile: {} // Default empty profile
             };
         }
     } catch (error) {
@@ -155,7 +155,7 @@ export function streamUserDataFromFirestore(userId, callback) {
                 projects: data.projects || [],
                 kanbanColumns: data.kanbanColumns || [],
                 preferences: data.preferences || {},
-                profile: data.profile || {} // ADDED: Stream profile data
+                profile: data.profile || {} // This will include the role if present in Firestore
             }, null);
         } else {
             LoggingService.info(`[FirebaseService] No data document found for user ${userId} in stream. Providing empty structure.`, { functionName, userId });
@@ -164,7 +164,7 @@ export function streamUserDataFromFirestore(userId, callback) {
                 projects: [],
                 kanbanColumns: [],
                 preferences: {},
-                profile: {} // ADDED: Default empty profile for new users/empty doc
+                profile: {} // Default empty profile for new users/empty doc
             }, null);
         }
     }, error => {

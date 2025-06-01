@@ -25,5 +25,6 @@
   "dataVersioningFeature": false,
   "desktopNotificationsFeature": true,
   "appUpdateNotificationFeature": true,
-  "debugMode": true
+  "debugMode": true,
+  "userRoleFeature": true
 }

@@ -140,9 +140,6 @@ function initialize() {
                 }
             }
             updateUIVisibility(); 
-            // Profile specific UI (like the profile button in settings) is not feature-flagged,
-            // so its visibility should be handled by its own logic or generic UI updates elsewhere if needed.
-            // For now, the "Manage Profile" button is always part of the HTML.
         });
         LoggingService.info('[UserAccountsFeature] Auth state change listener set up.', { functionName });
 
@@ -171,7 +168,6 @@ function updateUIVisibility() {
     }
     
     if (settingsSignOutBtn) {
-        // Show sign-out button only if user accounts feature is on AND a user is signed in.
         settingsSignOutBtn.classList.toggle('hidden', !(isUserAccountsActuallyEnabled && currentUser));
     }
     
@@ -183,13 +179,10 @@ function updateUIVisibility() {
         }
     });
     
-    // The "Manage Profile" button in settings is NOT a '.user-accounts-feature-element'
-    // and is not feature-flagged. It should be visible if a user is logged in.
     const settingsManageProfileBtn = document.getElementById('settingsManageProfileBtn');
     if (settingsManageProfileBtn) {
         settingsManageProfileBtn.classList.toggle('hidden', !currentUser);
     }
-
 
     LoggingService.info(`[UserAccountsFeature] UI Visibility updated. UserAccounts Feature: ${isUserAccountsActuallyEnabled}, User: ${currentUser ? currentUser.email : 'None'}`, { functionName });
 }
@@ -207,10 +200,23 @@ async function handleSignUp(email, password) {
     try {
         const userCredential = await firebaseAuth.createUserWithEmailAndPassword(email, password);
         LoggingService.info(`[UserAccountsFeature] User signed up successfully: ${userCredential.user.email}`, { functionName, userEmail: userCredential.user.email });
+        
+        // Create a default profile with a role for the new user
+        const defaultProfile = {
+            displayName: userCredential.user.email, // Or a default name like 'New User'
+            role: 'user' // Assign default role
+        };
+        // Save this initial profile through AppStore.setUserProfile which will also save to Firestore
+        if (AppStore && typeof AppStore.setUserProfile === 'function') {
+            await AppStore.setUserProfile(defaultProfile, 'UserAccountsFeature.handleSignUp_defaultProfile');
+            LoggingService.info(`[UserAccountsFeature] Default profile with role set for new user ${userCredential.user.uid}`, { functionName, userId: userCredential.user.uid, profile: defaultProfile });
+        } else {
+            LoggingService.error('[UserAccountsFeature] AppStore.setUserProfile not available. Cannot set default profile for new user.', new Error("AppStoreFunctionMissing"), { functionName, userId: userCredential.user.uid });
+        }
+
         EventBus.publish('displayUserMessage', { text: 'Account created successfully! You are now signed in.', type: 'success' });
         if(signUpEmailInput) signUpEmailInput.value = '';
         if(signUpPasswordInputEl) signUpPasswordInputEl.value = '';
-        // Profile will be empty initially, user can set it up via the new modal.
     } catch (error) {
         LoggingService.error('[UserAccountsFeature] Error signing up:', error, { functionName, email });
         EventBus.publish('displayUserMessage', { text: `Error creating account: ${error.message}`, type: 'error' });
@@ -286,10 +292,14 @@ async function handleSaveProfile(profileData) {
     }
 
     try {
-        await AppStore.setUserProfile(profileData, 'UserAccountsFeature.handleSaveProfile'); // This triggers save to local and Firestore via AppStore
+        // The role is part of the profile managed by AppStore.
+        // When saving, AppStore.setUserProfile merges intelligently.
+        // This function focuses on saving what the modal provides (e.g., displayName).
+        // If roles were editable via this modal, profileData would include the new role.
+        await AppStore.setUserProfile(profileData, 'UserAccountsFeature.handleSaveProfile'); 
         LoggingService.info(`[UserAccountsFeature] Profile saved successfully for user ${firebaseAuth.currentUser.uid}.`, { functionName });
         EventBus.publish('displayUserMessage', { text: 'Profile saved successfully!', type: 'success' });
-        closeProfileModal(); // Close the profile modal after saving
+        closeProfileModal(); 
     } catch (error) {
         LoggingService.error('[UserAccountsFeature] Error saving profile:', error, { functionName });
         EventBus.publish('displayUserMessage', { text: `Error saving profile: ${error.message}`, type: 'error' });
@@ -318,7 +328,7 @@ export const UserAccountsFeature = {
     openAuthModal,
     closeAuthModal,
     getFirestoreInstance,
-    handleSaveProfile // ADDED: Export the new function
+    handleSaveProfile
 };
 
 LoggingService.debug("feature_user_accounts.js loaded as ES6 module.", { module: 'feature_user_accounts' });

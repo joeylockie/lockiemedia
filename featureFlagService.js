@@ -34,7 +34,8 @@ let _featureFlags = { //
     dataVersioningFeature: false, // NEW: Add dataVersioningFeature flag
     desktopNotificationsFeature: false, // ADDED: New feature flag for Desktop Notifications
     appUpdateNotificationFeature: false, // ADDED: New feature flag for App Update Notifications
-    debugMode: false // NEW: Add debugMode flag for logging control demonstration
+    debugMode: false, // NEW: Add debugMode flag for logging control demonstration
+    userRoleFeature: false // ADDED: New feature flag for user roles
 };
 
 /**
