@@ -158,7 +158,7 @@ function _checkAndNotifyForDueTasks() {
 
                 NotificationService.showNotification('Task Due!', {
                     body: body,
-                    icon: './assets/icons/icon-72x72.png',
+                    icon: './icon-32x32.png',
                     tag: `task_due_${task.id}`,
                     data: { taskId: task.id, url: window.location.href }
                 }, (event) => {
@@ -259,7 +259,7 @@ function initialize() {
             if (NotificationService.getPermissionStatus() === 'granted' && currentSettings.notificationsEnabled) {
                 NotificationService.showNotification('Test Notification', {
                     body: 'If you see this, notifications are working!',
-                    icon: './assets/icons/icon-72x72.png'
+                    icon: './icon-32x32.png'
                 });
                 EventBus.publish('displayUserMessage', {text: 'Test notification sent!', type: 'success'});
             } else if (NotificationService.getPermissionStatus() !== 'granted') {
