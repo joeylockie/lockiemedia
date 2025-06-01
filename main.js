@@ -217,21 +217,53 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Initialize UserAccountsFeature (Firebase)
     if (typeof window.AppFeatures === 'undefined') window.AppFeatures = {};
-    window.AppFeatures.UserAccountsFeature = UserAccountsFeature;
+    window.AppFeatures.UserAccountsFeature = UserAccountsFeature; // Assuming UserAccountsFeature is imported
+    // Assign all imported feature modules to window.AppFeatures
+    window.AppFeatures.TestButtonFeature = TestButtonFeature;
+    window.AppFeatures.ReminderFeature = ReminderFeature;
+    window.AppFeatures.AdvancedRecurrenceFeature = AdvancedRecurrenceFeature;
+    window.AppFeatures.FileAttachmentsFeature = FileAttachmentsFeature;
+    window.AppFeatures.IntegrationsServicesFeature = IntegrationsServicesFeature;
+    window.AppFeatures.CollaborationSharingFeature = CollaborationSharingFeature;
+    window.AppFeatures.CrossDeviceSyncFeature = CrossDeviceSyncFeature;
+    window.AppFeatures.TaskDependenciesFeature = TaskDependenciesFeature;
+    window.AppFeatures.SmarterSearchFeature = SmarterSearchFeature;
+    window.AppFeatures.DataManagementFeature = DataManagementFeature;
+    window.AppFeatures.CalendarViewFeature = CalendarViewFeature;
+    window.AppFeatures.TaskTimerSystemFeature = TaskTimerSystemFeature;
+    window.AppFeatures.KanbanBoardFeature = KanbanBoardFeature;
+    window.AppFeatures.PomodoroTimerHybridFeature = PomodoroTimerHybridFeature;
+    window.AppFeatures.ProjectsFeature = ProjectsFeature; // Already had this one
+    window.AppFeatures.TooltipsGuideFeature = TooltipsGuideFeature;
+    window.AppFeatures.SubTasksFeature = SubTasksFeature;
+    window.AppFeatures.BackgroundFeature = BackgroundFeature;
+    window.AppFeatures.ContactUsFeature = ContactUsFeature;
+    window.AppFeatures.SocialMediaLinksFeature = SocialMediaLinksFeature;
+    window.AppFeatures.AboutUsFeature = AboutUsFeature; // Make sure this is assigned
+    window.AppFeatures.DataVersioningFeature = DataVersioningFeature;
+    window.AppFeatures.DesktopNotificationsFeature = DesktopNotificationsFeature;
+
+
     if (window.AppFeatures.UserAccountsFeature && typeof window.AppFeatures.UserAccountsFeature.initialize === 'function') {
         try {
             LoggingService.info("[Main] Initializing UserAccountsFeature (includes Firebase SDK setup)...");
             window.AppFeatures.UserAccountsFeature.initialize(); // This can now proceed
             LoggingService.info("[Main] UserAccountsFeature initialization complete.");
-        } catch (e) { /* ... */ }
-    } else { /* ... */ }
+        } catch (e) {
+            LoggingService.error('[Main] Error initializing UserAccountsFeature:', e);
+        }
+    } else {
+        LoggingService.warn('[Main] UserAccountsFeature or its initialize function is not available.');
+    }
 
     // Initialize Store (after Firebase Auth is ready if store depends on user ID)
     if (AppStore && typeof AppStore.initializeStore === 'function') {
         await AppStore.initializeStore();
         LoggingService.info("[Main] AppStore initialized.");
     }
-    else { /* ... */ }
+    else {
+        LoggingService.error('[Main] AppStore or its initializeStore function is not available.');
+    }
 
 
     // Start the app update checker if the feature is enabled
@@ -264,14 +296,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (uiRendering && uiRendering.initializeUiRenderingSubscriptions) {
         uiRendering.initializeUiRenderingSubscriptions();
         LoggingService.info("[Main] UI Rendering event subscriptions initialized.");
-    } else { /* ... */ }
-
-    // Initialize other Feature Modules
-    window.AppFeatures.ProjectsFeature = ProjectsFeature;
-    // ... (all other AppFeatures assignments) ...
-    window.AppFeatures.DataVersioningFeature = DataVersioningFeature;
-    window.AppFeatures.DesktopNotificationsFeature = DesktopNotificationsFeature;
-    // No specific AppFeature for AppUpdateNotification as its logic is in versionService and main.js
+    } else {
+        LoggingService.error('[Main] uiRendering or its initializeUiRenderingSubscriptions function is not available.');
+    }
 
     if (typeof isFeatureEnabledFromService !== 'undefined' && typeof window.AppFeatures !== 'undefined') {
         LoggingService.info("[Main] Initializing other feature modules...");
@@ -281,24 +308,28 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (window.AppFeatures.hasOwnProperty(featureName) &&
                 window.AppFeatures[featureName] &&
                 typeof window.AppFeatures[featureName].initialize === 'function') {
-                let flagKey = featureName.replace(/Feature$/, '').replace(/([A-Z])/g, (match, p1, offset) => (offset > 0 ? "-" : "") + p1.toLowerCase());
-                const flagMappings = {
-                    "test-button": "testButtonFeature", "reminder": "reminderFeature", /* ... other mappings ... */
-                    "desktop-notifications": "desktopNotificationsFeature",
-                    // No direct mapping needed for appUpdateNotificationFeature as it's not a standalone module in AppFeatures
-                };
-                const effectiveFlagKey = flagMappings[flagKey] || flagKey;
-                // Initialize if the feature is explicitly enabled OR if its flag is not in the known list (meaning it's a core/unflagged init)
-                // However, for most features, we want to respect the flag.
-                if (isFeatureEnabledFromService(effectiveFlagKey) || !Object.keys(AppStore.getFeatureFlags()).includes(effectiveFlagKey) ) {
+                
+                // MODIFIED: Correctly derive the flag key from the feature module name
+                // e.g., "AboutUsFeature" -> "aboutUsFeature"
+                let derivedFlagKey = featureName.charAt(0).toLowerCase() + featureName.slice(1);
+                if (derivedFlagKey.endsWith('Feature')) {
+                    derivedFlagKey = derivedFlagKey.slice(0, -'Feature'.length);
+                }
+                // Special handling for "TaskTimerSystemFeature" -> "taskTimerSystem"
+                if (featureName === "TaskTimerSystemFeature") {
+                    derivedFlagKey = "taskTimerSystem";
+                }
+
+
+                if (isFeatureEnabledFromService(derivedFlagKey) || !Object.keys(AppStore.getFeatureFlags()).includes(derivedFlagKey) ) {
                      try {
-                        LoggingService.debug(`[Main] Initializing ${featureName} (flag key for check: ${effectiveFlagKey})...`);
+                        LoggingService.debug(`[Main] Initializing ${featureName} (flag key for check: ${derivedFlagKey})...`);
                         window.AppFeatures[featureName].initialize();
                     } catch (e) {
                         LoggingService.error(`[Main] Error initializing feature ${featureName}:`, e);
                     }
                 } else {
-                     LoggingService.info(`[Main] Skipping initialization of ${featureName} as its flag (${effectiveFlagKey}) is disabled.`);
+                     LoggingService.info(`[Main] Skipping initialization of ${featureName} as its flag (${derivedFlagKey}) is disabled.`);
                 }
             }
         }
@@ -311,12 +342,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (ViewManager && typeof setFilter === 'function') {
         setFilter(ViewManager.getCurrentFilter());
         LoggingService.info("[Main] Initial filter styles applied.");
-    } else { /* ... */ }
+    } else {
+        LoggingService.error('[Main] ViewManager or setFilter function is not available for initial filter styles.');
+    }
 
     const savedSidebarState = localStorage.getItem('sidebarState');
     if (uiRendering && uiRendering.setSidebarMinimized) {
         uiRendering.setSidebarMinimized(savedSidebarState === 'minimized');
-    } else { /* ... */ }
+    } else {
+        LoggingService.error('[Main] uiRendering or its setSidebarMinimized function is not available for sidebar state.');
+    }
 
     if (isFeatureEnabledFromService('projectFeature') && window.AppFeatures?.ProjectsFeature) {
         if(window.AppFeatures.ProjectsFeature.populateProjectFilterList) window.AppFeatures.ProjectsFeature.populateProjectFilterList();
@@ -325,7 +360,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (uiRendering && uiRendering.updateSortButtonStates) {
         uiRendering.updateSortButtonStates();
-    } else { /* ... */ }
+    } else {
+        LoggingService.error('[Main] uiRendering or its updateSortButtonStates function is not available for sort button states.');
+    }
 
     setupEventListeners();
     LoggingService.info("[Main] Global event listeners set up.");
