@@ -17,7 +17,8 @@ let _kanbanColumns = [
     { id: 'done', title: 'Done' }
 ];
 let _featureFlags = {};
-let _userPreferences = {}; // ADDED: For user-specific settings
+let _userPreferences = {};
+let _userProfile = {}; // ADDED: For user profile data
 
 let _firestoreUnsubscribe = null;
 let _isDataLoadedFromFirebase = false;
@@ -26,7 +27,8 @@ let _isDataLoadedFromFirebase = false;
 const TASKS_KEY = 'todos_v3';
 const PROJECTS_KEY = 'projects_v1';
 const KANBAN_COLUMNS_KEY = 'kanbanColumns_v1';
-const USER_PREFERENCES_KEY = 'userPreferences_v1'; // ADDED
+const USER_PREFERENCES_KEY = 'userPreferences_v1';
+const USER_PROFILE_KEY = 'userProfile_v1'; // ADDED: For user profile data
 
 // Helper to get current user UID
 function getCurrentUserUID() {
@@ -102,12 +104,14 @@ async function _saveAllData(source = 'unknown') {
         localStorage.setItem(TASKS_KEY, JSON.stringify(_tasks));
         localStorage.setItem(PROJECTS_KEY, JSON.stringify(_projects));
         localStorage.setItem(KANBAN_COLUMNS_KEY, JSON.stringify(_kanbanColumns));
-        localStorage.setItem(USER_PREFERENCES_KEY, JSON.stringify(_userPreferences)); // ADDED: Save preferences to localStorage
+        localStorage.setItem(USER_PREFERENCES_KEY, JSON.stringify(_userPreferences));
+        localStorage.setItem(USER_PROFILE_KEY, JSON.stringify(_userProfile)); // ADDED: Save profile to localStorage
         LoggingService.info('[Store] All data saved to localStorage.', {
             taskCount: _tasks.length,
             projectCount: _projects.length,
             columnCount: _kanbanColumns.length,
-            preferencesKeys: Object.keys(_userPreferences).length, // Log preference save
+            preferencesKeys: Object.keys(_userPreferences).length,
+            profileKeys: Object.keys(_userProfile).length, // Log profile save
             module: 'store',
             functionName,
             source
@@ -127,7 +131,8 @@ async function _saveAllData(source = 'unknown') {
                 tasks: _tasks,
                 projects: _projects,
                 kanbanColumns: _kanbanColumns,
-                preferences: _userPreferences // ADDED: Include preferences for Firestore
+                preferences: _userPreferences,
+                profile: _userProfile // ADDED: Include profile for Firestore
             };
             if (typeof saveUserDataToFirestore === 'function') {
                  await saveUserDataToFirestore(userId, dataToSave);
@@ -155,7 +160,8 @@ const AppStore = {
     getFeatureFlags: () => ({ ..._featureFlags }),
     getUniqueLabels: () => [..._uniqueLabels],
     getUniqueProjects: () => [..._uniqueProjects],
-    getUserPreferences: () => JSON.parse(JSON.stringify(_userPreferences)), // ADDED getter
+    getUserPreferences: () => JSON.parse(JSON.stringify(_userPreferences)),
+    getUserProfile: () => JSON.parse(JSON.stringify(_userProfile)), // ADDED getter for profile
 
     setTasks: async (newTasksArray, source = 'setTasks') => {
         _tasks = JSON.parse(JSON.stringify(newTasksArray));
@@ -174,13 +180,19 @@ const AppStore = {
         await _saveAllData(source);
         _publish('kanbanColumnsChanged', [..._kanbanColumns]);
     },
-    setUserPreferences: async (newPreferences, source = 'setUserPreferences') => { // ADDED setter
+    setUserPreferences: async (newPreferences, source = 'setUserPreferences') => {
         const functionName = 'setUserPreferences (AppStore)';
         LoggingService.debug(`[AppStore] Setting user preferences. Source: ${source}`, { functionName, newPreferences });
-        // Deep merge to allow partial updates, e.g., only updating notification settings
         _userPreferences = _deepMerge({ ..._userPreferences }, JSON.parse(JSON.stringify(newPreferences)));
         await _saveAllData(source);
         _publish('userPreferencesChanged', { ..._userPreferences });
+    },
+    setUserProfile: async (newProfile, source = 'setUserProfile') => { // ADDED setter for profile
+        const functionName = 'setUserProfile (AppStore)';
+        LoggingService.debug(`[AppStore] Setting user profile. Source: ${source}`, { functionName, newProfileData: newProfile });
+        _userProfile = _deepMerge({ ..._userProfile }, JSON.parse(JSON.stringify(newProfile)));
+        await _saveAllData(source);
+        _publish('userProfileChanged', { ..._userProfile });
     },
 
     setFeatureFlags: (loadedFlags) => {
@@ -204,11 +216,12 @@ const AppStore = {
         }
 
         if (data) {
-            LoggingService.info(`[AppStore] Data received from Firestore stream. Tasks: ${data.tasks?.length}, Projects: ${data.projects?.length}, Prefs: ${!!data.preferences}`, { functionName });
+            LoggingService.info(`[AppStore] Data received from Firestore stream. Tasks: ${data.tasks?.length}, Projects: ${data.projects?.length}, Prefs: ${!!data.preferences}, Profile: ${!!data.profile}`, { functionName });
 
             const incomingPreferences = data.preferences || {};
-            const currentDataString = JSON.stringify({ tasks: _tasks, projects: _projects, kanbanColumns: _kanbanColumns, preferences: _userPreferences });
-            const newDataString = JSON.stringify({ tasks: data.tasks, projects: data.projects, kanbanColumns: data.kanbanColumns, preferences: incomingPreferences });
+            const incomingProfile = data.profile || {}; // ADDED: Handle incoming profile
+            const currentDataString = JSON.stringify({ tasks: _tasks, projects: _projects, kanbanColumns: _kanbanColumns, preferences: _userPreferences, profile: _userProfile });
+            const newDataString = JSON.stringify({ tasks: data.tasks, projects: data.projects, kanbanColumns: data.kanbanColumns, preferences: incomingPreferences, profile: incomingProfile });
 
             if (currentDataString === newDataString && _isDataLoadedFromFirebase) {
                 LoggingService.debug('[AppStore] Firestore stream update identical to current state. No changes applied.', { functionName });
@@ -223,8 +236,8 @@ const AppStore = {
             _kanbanColumns = data.kanbanColumns && data.kanbanColumns.length > 0 ? data.kanbanColumns : [
                 { id: 'todo', title: 'To Do' }, { id: 'inprogress', title: 'In Progress' }, { id: 'done', title: 'Done' }
             ];
-            // Merge incoming preferences with existing ones to preserve any local-only or new settings
             _userPreferences = _deepMerge({ ..._userPreferences }, incomingPreferences);
+            _userProfile = _deepMerge({ ..._userProfile }, incomingProfile); // ADDED: Merge profile data
 
             _isDataLoadedFromFirebase = true;
 
@@ -232,7 +245,8 @@ const AppStore = {
                 localStorage.setItem(TASKS_KEY, JSON.stringify(_tasks));
                 localStorage.setItem(PROJECTS_KEY, JSON.stringify(_projects));
                 localStorage.setItem(KANBAN_COLUMNS_KEY, JSON.stringify(_kanbanColumns));
-                localStorage.setItem(USER_PREFERENCES_KEY, JSON.stringify(_userPreferences)); // ADDED: Save merged preferences to localStorage
+                localStorage.setItem(USER_PREFERENCES_KEY, JSON.stringify(_userPreferences));
+                localStorage.setItem(USER_PROFILE_KEY, JSON.stringify(_userProfile)); // ADDED: Save merged profile to localStorage
                 LoggingService.info('[AppStore] Firestore stream data saved to localStorage.', { functionName });
             } catch (e) {
                 LoggingService.error('[AppStore] Failed to save Firestore stream data to localStorage.', e, { functionName });
@@ -244,7 +258,8 @@ const AppStore = {
             _publish('tasksChanged', [..._tasks]);
             _publish('projectsChanged', [..._projects]);
             _publish('kanbanColumnsChanged', [..._kanbanColumns]);
-            _publish('userPreferencesChanged', { ..._userPreferences }); // ADDED: Publish preferences change
+            _publish('userPreferencesChanged', { ..._userPreferences });
+            _publish('userProfileChanged', { ..._userProfile }); // ADDED: Publish profile change
             _publish('storeDataUpdatedFromFirebase');
             LoggingService.info(`[AppStore] Local store updated from Firestore stream.`, { functionName });
         } else {
@@ -291,7 +306,7 @@ const AppStore = {
         }
     },
 
-    loadDataFromFirestore: async (userId) => { // Kept for potential one-time load scenarios
+    loadDataFromFirestore: async (userId) => {
         const functionName = 'loadDataFromFirestore (AppStore - One Time)';
         LoggingService.info(`[AppStore] Attempting a ONE-TIME load from Firestore for user ${userId}. Consider using startStreamingUserData for real-time.`, { functionName, userId });
         try {
@@ -306,7 +321,7 @@ const AppStore = {
                 LoggingService.info(`[AppStore] Data successfully loaded (once) and applied for user ${userId}.`, { functionName, userId });
             } else {
                  LoggingService.warn(`[AppStore] No data returned from one-time Firestore load for user ${userId}.`, { functionName, userId });
-                 AppStore._handleFirestoreDataUpdate({ tasks: [], projects: [], kanbanColumns: [], preferences: {} }, null); // Handle as no data
+                 AppStore._handleFirestoreDataUpdate({ tasks: [], projects: [], kanbanColumns: [], preferences: {}, profile: {} }, null); // Handle as no data
             }
         } catch (error) {
             LoggingService.error(`[AppStore] Error in one-time load from Firestore for user ${userId}.`, error, { functionName, userId });
@@ -328,13 +343,15 @@ const AppStore = {
         _kanbanColumns = [
             { id: 'todo', title: 'To Do' }, { id: 'inprogress', title: 'In Progress' }, { id: 'done', title: 'Done' }
         ];
-        _userPreferences = {}; // ADDED: Reset user preferences to default (empty object)
+        _userPreferences = {};
+        _userProfile = {}; // ADDED: Reset user profile to default
         
         try {
             localStorage.removeItem(TASKS_KEY);
             localStorage.removeItem(PROJECTS_KEY);
             localStorage.removeItem(KANBAN_COLUMNS_KEY);
-            localStorage.removeItem(USER_PREFERENCES_KEY); // ADDED: Clear preferences from localStorage
+            localStorage.removeItem(USER_PREFERENCES_KEY);
+            localStorage.removeItem(USER_PROFILE_KEY); // ADDED: Clear profile from localStorage
             LoggingService.info('[AppStore] localStorage items cleared.', { functionName });
         } catch (e) {
             LoggingService.error('[AppStore] Failed to clear items from localStorage.', e, { functionName });
@@ -346,12 +363,14 @@ const AppStore = {
         localStorage.setItem(TASKS_KEY, JSON.stringify(_tasks));
         localStorage.setItem(PROJECTS_KEY, JSON.stringify(_projects));
         localStorage.setItem(KANBAN_COLUMNS_KEY, JSON.stringify(_kanbanColumns));
-        localStorage.setItem(USER_PREFERENCES_KEY, JSON.stringify(_userPreferences)); // ADDED: Save default preferences to localStorage
+        localStorage.setItem(USER_PREFERENCES_KEY, JSON.stringify(_userPreferences));
+        localStorage.setItem(USER_PROFILE_KEY, JSON.stringify(_userProfile)); // ADDED: Save default profile to localStorage
 
         _publish('tasksChanged', [..._tasks]);
         _publish('projectsChanged', [..._projects]);
         _publish('kanbanColumnsChanged', [..._kanbanColumns]);
-        _publish('userPreferencesChanged', { ..._userPreferences }); // ADDED: Publish preference change
+        _publish('userPreferencesChanged', { ..._userPreferences });
+        _publish('userProfileChanged', { ..._userProfile }); // ADDED: Publish profile change
         _publish('storeDataCleared');
 
         LoggingService.info(`[AppStore] Local store cleared and defaults applied. Firestore save was SKIPPED.`, { functionName });
@@ -398,7 +417,6 @@ const AppStore = {
 
         const defaultKanbanColId = _kanbanColumns[0]?.id || 'todo';
         _tasks = storedTasks.map(task => ({
-            // ... (task properties remain the same)
             id: task.id || Date.now() + Math.random(), text: task.text || '', completed: task.completed || false, creationDate: task.creationDate || task.id,
             dueDate: task.dueDate || null, time: task.time || null, priority: task.priority || 'medium', label: task.label || '', notes: task.notes || '',
             isReminderSet: task.isReminderSet || false, reminderDate: task.reminderDate || null, reminderTime: task.reminderTime || null, reminderEmail: task.reminderEmail || null,
@@ -411,17 +429,30 @@ const AppStore = {
             dependsOn: task.dependsOn || [], blocksTasks: task.blocksTasks || []
         }));
 
-        // ADDED: Load User Preferences
+        // Load User Preferences
         try {
             const prefsString = localStorage.getItem(USER_PREFERENCES_KEY);
             if (prefsString) {
                 _userPreferences = JSON.parse(prefsString) || {};
             } else {
-                _userPreferences = {}; // Default to empty object if not found
+                _userPreferences = {};
             }
         } catch (e) {
             LoggingService.error('[AppStore Init] Error parsing user preferences from localStorage. Initializing with empty object.', e, { item: USER_PREFERENCES_KEY });
             _userPreferences = {};
+        }
+
+        // ADDED: Load User Profile
+        try {
+            const profileString = localStorage.getItem(USER_PROFILE_KEY);
+            if (profileString) {
+                _userProfile = JSON.parse(profileString) || {};
+            } else {
+                _userProfile = {}; // Default to empty object if not found
+            }
+        } catch (e) {
+            LoggingService.error('[AppStore Init] Error parsing user profile from localStorage. Initializing with empty object.', e, { item: USER_PROFILE_KEY });
+            _userProfile = {};
         }
 
 

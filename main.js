@@ -309,13 +309,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 window.AppFeatures[featureName] &&
                 typeof window.AppFeatures[featureName].initialize === 'function') {
                 
-                // MODIFIED: Correctly derive the flag key from the feature module name
-                // e.g., "AboutUsFeature" -> "aboutUsFeature"
                 let derivedFlagKey = featureName.charAt(0).toLowerCase() + featureName.slice(1);
                 if (derivedFlagKey.endsWith('Feature')) {
                     derivedFlagKey = derivedFlagKey.slice(0, -'Feature'.length);
                 }
-                // Special handling for "TaskTimerSystemFeature" -> "taskTimerSystem"
                 if (featureName === "TaskTimerSystemFeature") {
                     derivedFlagKey = "taskTimerSystem";
                 }

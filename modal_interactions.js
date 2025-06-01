@@ -22,7 +22,6 @@ import { handleDeleteLabel, clearTempSubTasksForAddModal } from './ui_event_hand
 import { ProjectsFeature } from './feature_projects.js';
 import { TaskTimerSystemFeature } from './task_timer_system.js';
 import { DataVersioningFeature } from './feature_data_versioning.js';
-// ADDED: Import DesktopNotificationsFeature to call its UI update function
 import { DesktopNotificationsFeature } from './feature_desktop_notifications.js';
 
 
@@ -718,7 +717,6 @@ export function closeDataVersionHistoryModal() {
     }, 200);
 }
 
-// ADDED: Functions for Desktop Notifications Settings Modal
 export function openDesktopNotificationsSettingsModal() {
     const functionName = 'openDesktopNotificationsSettingsModal';
     LoggingService.debug(`[ModalInteractions] Attempting to open Desktop Notifications Settings Modal.`, { functionName });
@@ -741,7 +739,6 @@ export function openDesktopNotificationsSettingsModal() {
     setTimeout(() => {
         dialogEl.classList.remove('scale-95', 'opacity-0');
         dialogEl.classList.add('scale-100', 'opacity-100');
-        // Call the feature module to update its UI elements now that the modal is visible
         if (DesktopNotificationsFeature && typeof DesktopNotificationsFeature.refreshSettingsUIDisplay === 'function') {
             DesktopNotificationsFeature.refreshSettingsUIDisplay();
         } else {
@@ -767,6 +764,73 @@ export function closeDesktopNotificationsSettingsModal() {
     setTimeout(() => {
         modalEl.classList.add('hidden');
         LoggingService.info(`[ModalInteractions] Desktop Notifications Settings Modal closed.`, { functionName });
+    }, 200);
+}
+
+// --- NEW Profile Modal Functions ---
+export function openProfileModal() {
+    const functionName = 'openProfileModal (ModalInteractions)';
+    LoggingService.debug(`[ModalInteractions] Attempting to open Profile Modal.`, { functionName });
+
+    const profileModalEl = document.getElementById('profileModal');
+    const modalDialogProfileEl = document.getElementById('modalDialogProfile');
+    const profileDisplayNameInputEl = document.getElementById('profileDisplayName');
+    const profileEmailInputEl = document.getElementById('profileEmail');
+    const profileFormEl = document.getElementById('profileForm');
+
+    if (!profileModalEl || !modalDialogProfileEl || !profileDisplayNameInputEl || !profileEmailInputEl || !profileFormEl) {
+        LoggingService.error("[ModalInteractions] Core Profile Modal DOM elements not found.", new Error("DOMElementMissing"), { functionName });
+        EventBus.publish('displayUserMessage', { text: 'Could not open profile editor.', type: 'error' });
+        return;
+    }
+
+    const currentUser = firebase.auth().currentUser;
+    if (!currentUser) {
+        LoggingService.warn("[ModalInteractions] No user signed in. Cannot open profile modal.", { functionName });
+        EventBus.publish('displayUserMessage', { text: 'Please sign in to manage your profile.', type: 'error' });
+        return;
+    }
+
+    profileEmailInputEl.value = currentUser.email || 'No email associated';
+
+    const userProfile = AppStore.getUserProfile();
+    profileDisplayNameInputEl.value = userProfile.displayName || '';
+    // Future: Populate other fields like avatarURL from userProfile
+
+    profileFormEl.reset(); // Reset form to clear any previous validation states, then re-populate
+    profileEmailInputEl.value = currentUser.email || 'No email associated'; // Re-populate read-only field
+    profileDisplayNameInputEl.value = userProfile.displayName || '';
+
+
+    profileModalEl.classList.remove('hidden');
+    setTimeout(() => {
+        modalDialogProfileEl.classList.remove('scale-95', 'opacity-0');
+        modalDialogProfileEl.classList.add('scale-100', 'opacity-100');
+        profileDisplayNameInputEl.focus();
+    }, 10);
+    LoggingService.info(`[ModalInteractions] Profile Modal opened for user: ${currentUser.email}.`, { functionName, userEmail: currentUser.email });
+}
+
+export function closeProfileModal() {
+    const functionName = 'closeProfileModal (ModalInteractions)';
+    LoggingService.debug(`[ModalInteractions] Attempting to close Profile Modal.`, { functionName });
+
+    const profileModalEl = document.getElementById('profileModal');
+    const modalDialogProfileEl = document.getElementById('modalDialogProfile');
+    const profileFormEl = document.getElementById('profileForm');
+
+    if (!profileModalEl || !modalDialogProfileEl) {
+        LoggingService.warn("[ModalInteractions] Profile Modal DOM elements not found for closing.", { functionName });
+        return;
+    }
+
+    modalDialogProfileEl.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => {
+        profileModalEl.classList.add('hidden');
+        if (profileFormEl) {
+            profileFormEl.reset(); // Optional: reset form on close
+        }
+        LoggingService.info(`[ModalInteractions] Profile Modal closed.`, { functionName });
     }, 200);
 }
 

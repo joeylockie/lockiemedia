@@ -41,9 +41,10 @@ import {
     closeAboutUsModal,
     openDataVersionHistoryModal,
     closeDataVersionHistoryModal,
-    // ADDED: Import new modal functions
     openDesktopNotificationsSettingsModal,
-    closeDesktopNotificationsSettingsModal
+    closeDesktopNotificationsSettingsModal,
+    openProfileModal, // ADDED: Import for profile modal
+    closeProfileModal // ADDED: Import for profile modal
 } from './modal_interactions.js';
 
 // Import Feature Modules
@@ -118,6 +119,7 @@ function populateFeatureFlagsModal() {
         aboutUsFeature: "About Us Page in Settings",
         dataVersioningFeature: "Data Versioning & History",
         desktopNotificationsFeature: "Desktop Notifications",
+        appUpdateNotificationFeature: "App Update Notifications", // Added
         debugMode: "Developer: Debug Mode"
     };
     const featureOrder = Object.keys(currentFlags).sort((a,b) => {
@@ -168,10 +170,19 @@ export function applyActiveFeatures() {
     if (window.AppFeatures) {
         for (const featureKey in window.AppFeatures) {
             if (window.AppFeatures[featureKey] && typeof window.AppFeatures[featureKey].updateUIVisibility === 'function') {
-                window.AppFeatures[featureKey].updateUIVisibility();
+                // UserAccountsFeature visibility is handled internally based on auth state primarily
+                // Profile related UI (button, modal) is not feature flagged so not handled here
+                if (featureKey !== 'UserAccountsFeature') { 
+                    window.AppFeatures[featureKey].updateUIVisibility();
+                }
             }
         }
+        // Ensure UserAccountsFeature UI (like sign-out button) is also updated if it exists
+        if (window.AppFeatures.UserAccountsFeature && typeof window.AppFeatures.UserAccountsFeature.updateUIVisibility === 'function') {
+            window.AppFeatures.UserAccountsFeature.updateUIVisibility();
+        }
     }
+
 
     const settingsTooltipsGuideBtnEl = document.getElementById('settingsTooltipsGuideBtn');
     if (settingsTooltipsGuideBtnEl) settingsTooltipsGuideBtnEl.classList.toggle('hidden', !isFeatureEnabled('tooltipsGuide'));
@@ -332,6 +343,38 @@ function handleEditTask(event) {
         EventBus.publish('displayUserMessage', { text: 'Task description cannot be empty.', type: 'error' });
     }
 }
+
+// ADDED: Handler for Profile Form Submission
+function handleProfileFormSubmit(event) {
+    const functionName = 'handleProfileFormSubmit';
+    event.preventDefault();
+    LoggingService.info('[UIEventHandlers] Attempting to save profile.', { functionName });
+
+    const profileDisplayNameInputEl = document.getElementById('profileDisplayName');
+    // const profileAvatarUrlInputEl = document.getElementById('profileAvatarUrl'); // If you add this field
+
+    const displayName = profileDisplayNameInputEl.value.trim();
+    // const avatarUrl = profileAvatarUrlInputEl ? profileAvatarUrlInputEl.value.trim() : null; // If you add this field
+
+    if (!displayName) {
+        LoggingService.warn('[UIEventHandlers] Display name cannot be empty.', { functionName });
+        EventBus.publish('displayUserMessage', { text: 'Display name cannot be empty.', type: 'error' });
+        return;
+    }
+
+    const profileData = {
+        displayName: displayName,
+        // avatarUrl: avatarUrl // If you add this field
+    };
+
+    if (UserAccountsFeature && UserAccountsFeature.handleSaveProfile) {
+        UserAccountsFeature.handleSaveProfile(profileData);
+    } else {
+        LoggingService.error('[UIEventHandlers] UserAccountsFeature.handleSaveProfile not available.', new Error("DependencyMissing"), { functionName });
+        EventBus.publish('displayUserMessage', { text: 'Error saving profile: System component missing.', type: 'error' });
+    }
+}
+
 
 function toggleComplete(taskId) {
     const functionName = 'toggleComplete (Internal Handler)';
@@ -595,8 +638,8 @@ export function setupEventListeners() {
     attachListener('settingsTooltipsGuideBtn', 'click', openTooltipsGuideModal, 'openTooltipsGuideModal');
     attachListener('settingsAboutUsBtn', 'click', openAboutUsModal, 'openAboutUsModal');
     attachListener('settingsVersionHistoryBtn', 'click', openDataVersionHistoryModal, 'openDataVersionHistoryModal');
-    // ADDED: Listener for the new Manage Notifications button
     attachListener('settingsManageNotificationsBtn', 'click', openDesktopNotificationsSettingsModal, 'openDesktopNotificationsSettingsModal');
+    attachListener('settingsManageProfileBtn', 'click', openProfileModal, 'openProfileModal'); // ADDED: Listener for Profile Modal
 
 
     const openFeatureFlagsModalBtn = document.getElementById('openFeatureFlagsModalBtn');
@@ -657,10 +700,13 @@ export function setupEventListeners() {
         { id: 'closeDataVersionHistoryModalBtn', handler: closeDataVersionHistoryModal, name: 'closeDataVersionHistoryModal (primary)' },
         { id: 'closeDataVersionHistorySecondaryBtn', handler: closeDataVersionHistoryModal, name: 'closeDataVersionHistoryModal (secondary)' },
         { id: 'dataVersionHistoryModal', handler: (event) => { if (event.target.id === 'dataVersionHistoryModal') closeDataVersionHistoryModal(); }, name: 'closeDataVersionHistoryModal (backdrop)' },
-        // ADDED: Listeners for the new Desktop Notifications Settings Modal
         { id: 'closeDesktopNotificationsSettingsModalBtn', handler: closeDesktopNotificationsSettingsModal, name: 'closeDesktopNotificationsSettingsModal (primary)'},
         { id: 'closeDesktopNotificationsSettingsSecondaryBtn', handler: closeDesktopNotificationsSettingsModal, name: 'closeDesktopNotificationsSettingsModal (secondary)'},
-        { id: 'desktopNotificationsSettingsModal', handler: (event) => { if (event.target.id === 'desktopNotificationsSettingsModal') closeDesktopNotificationsSettingsModal(); }, name: 'closeDesktopNotificationsSettingsModal (backdrop)'}
+        { id: 'desktopNotificationsSettingsModal', handler: (event) => { if (event.target.id === 'desktopNotificationsSettingsModal') closeDesktopNotificationsSettingsModal(); }, name: 'closeDesktopNotificationsSettingsModal (backdrop)'},
+        // ADDED: Listeners for the new Profile Modal
+        { id: 'closeProfileModalBtn', handler: closeProfileModal, name: 'closeProfileModal (primary)' },
+        { id: 'closeProfileSecondaryBtn', handler: closeProfileModal, name: 'closeProfileModal (secondary)' },
+        { id: 'profileModal', handler: (event) => { if (event.target.id === 'profileModal') closeProfileModal(); }, name: 'closeProfileModal (backdrop)' }
     ];
     modalCloserListeners.forEach(listener => attachListener(listener.id, 'click', listener.handler, listener.name));
 
@@ -710,6 +756,8 @@ export function setupEventListeners() {
     attachListener('modalTodoFormAdd', 'submit', handleAddTask, 'handleAddTask');
     attachListener('modalTodoFormViewEdit', 'submit', handleEditTask, 'handleEditTask');
     attachListener('addNewLabelForm', 'submit', handleAddNewLabel, 'handleAddNewLabel');
+    attachListener('profileForm', 'submit', handleProfileFormSubmit, 'handleProfileFormSubmit'); // ADDED: Listener for Profile Form
+
 
     // User Accounts Form Submissions & Sign Out
     if (UserAccountsFeature) {
@@ -820,16 +868,17 @@ export function setupEventListeners() {
             const contactUsModalEl = document.getElementById('contactUsModal');
             const aboutUsModalEl = document.getElementById('aboutUsModal');
             const dataVersionHistoryModalEl = document.getElementById('dataVersionHistoryModal');
-            // ADDED: Get reference to the new notifications settings modal
             const desktopNotificationsSettingsModalEl = document.getElementById('desktopNotificationsSettingsModal');
+            const profileModalEl = document.getElementById('profileModal'); // ADDED: Profile modal reference
 
 
             if (document.getElementById('authModal') && !document.getElementById('authModal').classList.contains('hidden') && UserAccountsFeature?.closeAuthModal) UserAccountsFeature.closeAuthModal();
+            else if (profileModalEl && !profileModalEl.classList.contains('hidden')) closeProfileModal(); // ADDED: Close profile modal
             else if (document.getElementById('addTaskModal') && !document.getElementById('addTaskModal').classList.contains('hidden')) closeAddModal();
             else if (document.getElementById('viewEditTaskModal') && !document.getElementById('viewEditTaskModal').classList.contains('hidden')) closeViewEditModal();
             else if (document.getElementById('viewTaskDetailsModal') && !document.getElementById('viewTaskDetailsModal').classList.contains('hidden')) closeViewTaskDetailsModal();
-            else if (desktopNotificationsSettingsModalEl && !desktopNotificationsSettingsModalEl.classList.contains('hidden')) closeDesktopNotificationsSettingsModal(); // ADDED: Close new modal
-            else if (document.getElementById('settingsModal') && !document.getElementById('settingsModal').classList.contains('hidden')) closeSettingsModal(); // Keep this after more specific modals
+            else if (desktopNotificationsSettingsModalEl && !desktopNotificationsSettingsModalEl.classList.contains('hidden')) closeDesktopNotificationsSettingsModal(); 
+            else if (document.getElementById('settingsModal') && !document.getElementById('settingsModal').classList.contains('hidden')) closeSettingsModal(); 
             else if (document.getElementById('manageLabelsModal') && !document.getElementById('manageLabelsModal').classList.contains('hidden')) closeManageLabelsModal();
             else if (document.getElementById('taskReviewModal') && !document.getElementById('taskReviewModal').classList.contains('hidden')) closeTaskReviewModal();
             else if (document.getElementById('tooltipsGuideModal') && !document.getElementById('tooltipsGuideModal').classList.contains('hidden')) closeTooltipsGuideModal();
