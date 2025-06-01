@@ -126,11 +126,12 @@ function getFilteredTasksForBulkAction() {
     } else if (_currentFilter === 'completed') { //
         filteredTasks = currentTasks.filter(task => task.completed); //
     } else if (_currentFilter.startsWith('project_')) { //
-        const projectId = parseInt(_currentFilter.split('_')[1]); //
-        if (!isNaN(projectId)) { //
-            filteredTasks = currentTasks.filter(task => task.projectId === projectId && !task.completed); //
+        const projectIdToFilter = parseInt(_currentFilter.split('_')[1]); // Renamed for clarity
+        if (!isNaN(projectIdToFilter)) { //
+            filteredTasks = currentTasks.filter(task => task.projectId === projectIdToFilter && !task.completed); //
         } else { // This might handle a "No Project" filter if its value is project_0 or similar //
-            filteredTasks = currentTasks.filter(task => !task.projectId && !task.completed); //
+             // Assuming "No Project" tasks have projectId as 0 or undefined/null
+            filteredTasks = currentTasks.filter(task => (task.projectId === 0 || !task.projectId) && !task.completed);
         }
     } else { // Assume label filter //
         filteredTasks = currentTasks.filter(task => task.label && task.label.toLowerCase() === _currentFilter.toLowerCase() && !task.completed); //

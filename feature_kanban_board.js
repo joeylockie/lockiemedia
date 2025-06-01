@@ -4,47 +4,50 @@
 
 import { isFeatureEnabled } from './featureFlagService.js';
 import AppStore from './store.js';
-import { getPriorityClass } from './taskService.js'; // For styling task priority
-import { formatDate, formatTime } from './utils.js'; // For formatting dates and times
-import { openViewTaskDetailsModal } from './modal_interactions.js'; // To open task details
+import { getPriorityClass } from './taskService.js'; 
+import { formatDate, formatTime } from './utils.js'; 
+import { openViewTaskDetailsModal } from './modal_interactions.js'; 
+// MODIFIED: showMessage import removed
 import { 
     updateYourTasksHeading, 
-    updateViewToggleButtonsState, 
-    showMessage 
+    updateViewToggleButtonsState
+    // showMessage // Removed
 } from './ui_rendering.js';
+import EventBus from './eventBus.js'; // MODIFIED: Added EventBus import
+import LoggingService from './loggingService.js'; // MODIFIED: Added LoggingService import
 
-console.log('[KanbanFeatureFile] feature_kanban_board.js script STARTING to execute as ES6 module.');
+// MODIFIED: Replaced console.log with LoggingService.debug or .info
+LoggingService.debug('[KanbanFeatureFile] feature_kanban_board.js script STARTING to execute as ES6 module.', {module: 'feature_kanban_board'});
 
-let draggedTask = null; // Holds the DOM element of the task being dragged
+let draggedTask = null; 
 
 /**
  * Initializes the Kanban board feature.
  */
 function initializeKanbanBoardFeature() {
-    console.log('[KanbanFeature] Kanban Board Feature Initialized.');
+    const functionName = "initializeKanbanBoardFeature";
+    LoggingService.info('[KanbanFeature] Kanban Board Feature Initialized.', {functionName, module: 'feature_kanban_board'});
 }
 
 /**
  * Updates the UI visibility of elements specifically managed by this module,
  * if any, based on whether the Kanban feature is enabled.
  */
-function updateKanbanBoardUIVisibility() { // Removed isEnabledParam as it's not used
+function updateKanbanBoardUIVisibility() { 
+    const functionName = "updateKanbanBoardUIVisibility";
     if (typeof isFeatureEnabled !== 'function') {
-        console.error("[KanbanBoardFeature] isFeatureEnabled function not available.");
+        LoggingService.error("[KanbanBoardFeature] isFeatureEnabled function not available.", new Error("DependencyMissing"), {functionName, module: 'feature_kanban_board'});
         return;
     }
     const isActuallyEnabled = isFeatureEnabled('kanbanBoardFeature');
-    console.log(`[KanbanFeature] updateKanbanBoardUIVisibility called. Feature enabled: ${isActuallyEnabled}`);
+    LoggingService.debug(`[KanbanFeature] updateKanbanBoardUIVisibility called. Feature enabled: ${isActuallyEnabled}`, {functionName, isEnabled: isActuallyEnabled, module: 'feature_kanban_board'});
 
-    // Handle generic elements with the class
     document.querySelectorAll('.kanban-board-feature-element').forEach(el => el.classList.toggle('hidden', !isActuallyEnabled));
 
-    // Specifically handle the toggle button if it doesn't have the generic class or needs special handling
     const kanbanViewToggleBtn = document.getElementById('kanbanViewToggleBtn');
     if (kanbanViewToggleBtn) {
         kanbanViewToggleBtn.classList.toggle('hidden', !isActuallyEnabled);
     }
-    // The main board container (kanbanBoardContainer) visibility is handled by refreshTaskView.
 }
 
 /**
@@ -53,6 +56,7 @@ function updateKanbanBoardUIVisibility() { // Removed isEnabledParam as it's not
  * @param {string} newTitle - The new title for the column.
  */
 function updateKanbanColumnTitle(columnId, newTitle) {
+    const functionName = "updateKanbanColumnTitle";
     let currentKanbanColumns = AppStore.getKanbanColumns();
     const currentTaskViewMode = window.ViewManager ? window.ViewManager.getCurrentTaskViewMode() : 'list'; 
 
@@ -62,7 +66,7 @@ function updateKanbanColumnTitle(columnId, newTitle) {
         if (currentKanbanColumns[columnIndex].title !== trimmedNewTitle && trimmedNewTitle !== "") {
             currentKanbanColumns[columnIndex].title = trimmedNewTitle;
             AppStore.setKanbanColumns(currentKanbanColumns); 
-            console.log(`[KanbanFeature] Column "${columnId}" title updated to "${trimmedNewTitle}".`);
+            LoggingService.info(`[KanbanFeature] Column "${columnId}" title updated to "${trimmedNewTitle}".`, {functionName, columnId, newTitle: trimmedNewTitle, module: 'feature_kanban_board'});
 
             if (currentTaskViewMode === 'kanban' && isFeatureEnabled('kanbanBoardFeature')) {
                 renderKanbanBoardInternal();
@@ -70,10 +74,12 @@ function updateKanbanColumnTitle(columnId, newTitle) {
         } else if (trimmedNewTitle === "") {
             const titleInputElement = document.querySelector(`.kanban-column[data-column-id="${columnId}"] .kanban-column-title-input`);
             if(titleInputElement) titleInputElement.value = currentKanbanColumns[columnIndex].title; 
-            if (typeof showMessage === 'function') showMessage("Column title cannot be empty.", "error");
+            // MODIFIED: Publish event instead of direct call
+            EventBus.publish('displayUserMessage', {text: "Column title cannot be empty.", type: "error"});
+            LoggingService.warn(`[KanbanFeature] Attempt to set empty title for column "${columnId}".`, {functionName, columnId, module: 'feature_kanban_board'});
         }
     } else {
-        console.warn(`[KanbanFeature] Column with ID "${columnId}" not found for title update.`);
+        LoggingService.warn(`[KanbanFeature] Column with ID "${columnId}" not found for title update.`, {functionName, columnId, module: 'feature_kanban_board'});
     }
 }
 
@@ -81,11 +87,12 @@ function updateKanbanColumnTitle(columnId, newTitle) {
  * Internal function to render the entire Kanban board view.
  */
 function renderKanbanBoardInternal() {
-    console.log('[KanbanFeature] renderKanbanBoardInternal function START.');
+    const functionName = "renderKanbanBoardInternal";
+    LoggingService.debug('[KanbanFeature] renderKanbanBoardInternal function START.', {functionName, module: 'feature_kanban_board'});
     
     const currentMainContentArea = window.mainContentArea || document.querySelector('main');
     if (!currentMainContentArea) {
-        console.error("[KanbanFeature] Main content area not found to render board.");
+        LoggingService.error("[KanbanFeature] Main content area not found to render board.", new Error("DOMElementMissing"), {functionName, module: 'feature_kanban_board'});
         return;
     }
     currentMainContentArea.innerHTML = ''; 
@@ -119,7 +126,7 @@ function renderKanbanBoardInternal() {
 
     const currentKanbanColumns = AppStore.getKanbanColumns();
     if (!Array.isArray(currentKanbanColumns)) {
-        console.error("[KanbanFeature] 'kanbanColumns' is not defined or not an array.");
+        LoggingService.error("[KanbanFeature] 'kanbanColumns' is not defined or not an array.", new Error("DataError"), {functionName, module: 'feature_kanban_board'});
         return;
     }
     currentKanbanColumns.forEach(column => {
@@ -131,7 +138,7 @@ function renderKanbanBoardInternal() {
 
     if (typeof updateYourTasksHeading === 'function') updateYourTasksHeading();
     if (typeof updateViewToggleButtonsState === 'function') updateViewToggleButtonsState();
-    console.log('[KanbanFeature] Kanban board rendered internally.');
+    LoggingService.info('[KanbanFeature] Kanban board rendered internally.', {functionName, module: 'feature_kanban_board'});
 }
 
 /**
@@ -168,7 +175,7 @@ function createKanbanColumnElement(column) {
 
     const currentTasks = AppStore.getTasks();
     if (!Array.isArray(currentTasks)) {
-        console.error("[KanbanFeature] 'tasks' array not found from AppStore.");
+        LoggingService.error("[KanbanFeature] 'tasks' array not found from AppStore.", new Error("DataError"), {functionName: 'createKanbanColumnElement', module: 'feature_kanban_board'});
     } else {
         const tasksInColumn = currentTasks.filter(task => {
             if (column.id === 'done') {
@@ -299,6 +306,7 @@ function handleDragLeave(event) {
 }
 
 function handleDrop(event) {
+    const functionName = "handleDrop (KanbanFeature)";
     event.preventDefault();
     const targetColumnUl = event.target.closest('.kanban-task-list');
 
@@ -316,7 +324,7 @@ function handleDrop(event) {
 
     const taskIndex = currentTasks.findIndex(t => t.id === taskId);
     if (taskIndex === -1) {
-        console.error("[Kanban D&D] Dropped task not found in tasks array.");
+        LoggingService.error("[Kanban D&D] Dropped task not found in tasks array.", new Error("TaskNotFound"), {functionName, taskId, module: 'feature_kanban_board'});
         handleDragEnd({target: draggedTask});
         return;
     }
@@ -350,10 +358,10 @@ function handleDrop(event) {
     }
     AppStore.setTasks(currentTasks); 
 
-    if (typeof showMessage === 'function') {
-        const targetCol = currentKanbanColumns.find(c => c.id === targetColumnId);
-        showMessage(`Task moved to "${targetCol?.title || targetColumnId}"`, 'success');
-    }
+    // MODIFIED: Publish event instead of direct call
+    const targetCol = currentKanbanColumns.find(c => c.id === targetColumnId);
+    EventBus.publish('displayUserMessage', { text: `Task moved to "${targetCol?.title || targetColumnId}"`, type: 'success' });
+    LoggingService.info(`[KanbanFeature] Task ${taskId} moved to column ${targetColumnId}.`, {functionName, taskId, targetColumnId, module: 'feature_kanban_board'});
 }
 
 /**
@@ -361,9 +369,10 @@ function handleDrop(event) {
  * Called by refreshTaskView (in ui_rendering.js) when mode is 'kanban'.
  */
 function publicRenderKanbanView() {
-    console.log('[KanbanFeature] publicRenderKanbanView called.');
+    const functionName = "publicRenderKanbanView";
+    LoggingService.debug('[KanbanFeature] publicRenderKanbanView called.', {functionName, module: 'feature_kanban_board'});
     if (!isFeatureEnabled('kanbanBoardFeature')) {
-         console.warn("[KanbanFeature] publicRenderKanbanView called but feature flag is off.");
+         LoggingService.warn("[KanbanFeature] publicRenderKanbanView called but feature flag is off.", {functionName, module: 'feature_kanban_board'});
          return;
     }
     renderKanbanBoardInternal();
@@ -375,5 +384,6 @@ export const KanbanBoardFeature = {
     renderKanbanView: publicRenderKanbanView
 };
 
-console.log('[KanbanFeatureFile] KanbanBoardFeature object EXPORTED.');
-console.log('[KanbanFeatureFile] feature_kanban_board.js script FINISHED executing as ES6 module.');
+// MODIFIED: Replaced console.log
+LoggingService.debug('[KanbanFeatureFile] KanbanBoardFeature object EXPORTED.', {module: 'feature_kanban_board'});
+LoggingService.debug('[KanbanFeatureFile] feature_kanban_board.js script FINISHED executing as ES6 module.', {module: 'feature_kanban_board'});

@@ -4,39 +4,42 @@
 
 import { isFeatureEnabled } from './featureFlagService.js';
 import AppStore from './store.js'; // To get data for export
+import EventBus from './eventBus.js'; // MODIFIED: Added EventBus import
+import LoggingService from './loggingService.js'; // MODIFIED: Added LoggingService import (was missing)
 
-// DOM elements are accessed by ID within initialize.
-// showMessage, closeSettingsModal are currently global functions.
+// MODIFIED: showMessage and closeSettingsModal are no longer assumed to be global or directly called.
+// These will be handled via EventBus or specific imports if other interactions are needed.
 
 // --- DOM Element References (initialized in initialize) ---
-let settingsExportDataBtnEl; // Renamed to avoid conflict if other modules use similar names
+let settingsExportDataBtnEl; 
 
 /**
  * Prepares all application data for export.
  * @returns {object} An object containing all data to be exported.
  */
 function prepareDataForExport() {
+    const functionName = "prepareDataForExport (DataManagement)"; // For logging
     if (!AppStore || typeof AppStore.getTasks !== 'function' || 
         typeof AppStore.getProjects !== 'function' || 
         typeof AppStore.getKanbanColumns !== 'function' ||
         typeof AppStore.getFeatureFlags !== 'function') {
-        console.error("[DataManagement] AppStore API not available for prepareDataForExport.");
+        LoggingService.error("[DataManagement] AppStore API not available for prepareDataForExport.", new Error("AppStoreMissing"), { functionName });
         return {
             error: "Missing core data access for export.",
-            version: "1.0.0",
+            version: "1.0.0", // Consider getting from versionService
             exportDate: new Date().toISOString(),
             data: {}
         };
     }
 
     return {
-        version: "1.0.0",
+        version: "1.0.0", // Consider getting from versionService
         exportDate: new Date().toISOString(),
         data: {
             tasks: AppStore.getTasks(),
             projects: AppStore.getProjects(),
             kanbanColumns: AppStore.getKanbanColumns(),
-            featureFlags: AppStore.getFeatureFlags() // Get current flags from AppStore (which got them from FeatureFlagService)
+            featureFlags: AppStore.getFeatureFlags() 
         }
     };
 }
@@ -45,18 +48,20 @@ function prepareDataForExport() {
  * Handles the data export process.
  */
 function handleExportData() {
+    const functionName = "handleExportData (DataManagement)"; // For logging
     if (!isFeatureEnabled('exportDataFeature')) {
-        if (typeof showMessage === 'function') {
-            showMessage('Export feature is not enabled.', 'error');
-        }
+        // MODIFIED: Publish event instead of direct/conditional call
+        EventBus.publish('displayUserMessage', { text: 'Export feature is not enabled.', type: 'error' });
+        LoggingService.warn("[DataManagement] Export attempt while feature is disabled.", { functionName });
         return;
     }
 
     try {
         const allData = prepareDataForExport();
         if (allData.error) {
-            console.error('[DataManagement] Error preparing data for export:', allData.error);
-            if (typeof showMessage === 'function') showMessage(allData.error, 'error');
+            LoggingService.error('[DataManagement] Error preparing data for export:', new Error(allData.error), { functionName });
+            // MODIFIED: Publish event instead of direct call
+            EventBus.publish('displayUserMessage', { text: allData.error, type: 'error' });
             return;
         }
 
@@ -74,17 +79,29 @@ function handleExportData() {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        if (typeof showMessage === 'function') showMessage('Data exported successfully!', 'success');
+        // MODIFIED: Publish event instead of direct call
+        EventBus.publish('displayUserMessage', { text: 'Data exported successfully!', type: 'success' });
+        LoggingService.info("[DataManagement] Data exported successfully.", { functionName, fileName: a.download });
         
-        // Close settings modal if open (modal_interactions.js functions are global for now)
-        const settingsModalEl = document.getElementById('settingsModal'); // Direct DOM access
-        if (typeof closeSettingsModal === 'function' && settingsModalEl && !settingsModalEl.classList.contains('hidden')) {
-            closeSettingsModal();
+        // Closing settings modal is best handled by an event or a more direct call if this module
+        // has a reference to the modal closing function from modal_interactions.js
+        // For now, if settings modal needs to close, that logic should be in ui_event_handlers.js
+        // or modal_interactions.js listening to a 'dataExportedSuccessfully' event if needed.
+        // Direct DOM manipulation or global calls from here are avoided.
+        const settingsModalEl = document.getElementById('settingsModal'); 
+        if (settingsModalEl && !settingsModalEl.classList.contains('hidden') && window.ModalInteractions && window.ModalInteractions.closeSettingsModal) {
+             // This relies on ModalInteractions being exposed globally, which we are trying to move away from.
+             // Ideally, this module shouldn't be responsible for closing a generic settings modal.
+             // The event handler that calls handleExportData could be responsible.
+            LoggingService.debug("[DataManagement] Attempting to close settings modal via global call (consider refactoring).", {functionName});
+            window.ModalInteractions.closeSettingsModal();
         }
 
+
     } catch (error) {
-        console.error('[DataManagement] Error during data export:', error);
-        if (typeof showMessage === 'function') showMessage('An error occurred during export.', 'error');
+        LoggingService.error('[DataManagement] Error during data export:', error, { functionName });
+        // MODIFIED: Publish event instead of direct call
+        EventBus.publish('displayUserMessage', { text: 'An error occurred during export.', type: 'error' });
     }
 }
 
@@ -92,38 +109,39 @@ function handleExportData() {
  * Initializes the Data Management Feature.
  */
 function initialize() {
+    const functionName = "initialize (DataManagement)"; // For logging
     settingsExportDataBtnEl = document.getElementById('settingsExportDataBtn');
     if (settingsExportDataBtnEl) {
         settingsExportDataBtnEl.addEventListener('click', handleExportData);
+        LoggingService.debug("[DataManagement] Event listener attached to export data button.", {functionName});
     } else {
-        console.warn('[DataManagement] Export data button not found during initialization.');
+        LoggingService.warn('[DataManagement] Export data button not found during initialization.', {functionName});
     }
-    console.log('[DataManagementFeature] Initialized.');
+    LoggingService.info('[DataManagementFeature] Initialized.', {functionName});
 }
 
 /**
  * Updates the visibility of Data Management UI elements based on feature flags.
- * @param {boolean} isEnabledParam - (Not used directly, uses imported isFeatureEnabled)
  */
-function updateUIVisibility(isEnabledParam) {
+function updateUIVisibility() { // Removed isEnabledParam
+    const functionName = "updateUIVisibility (DataManagement)"; // For logging
     if (typeof isFeatureEnabled !== 'function') {
-        console.error("[DataManagementFeature] isFeatureEnabled function not available.");
+        LoggingService.error("[DataManagementFeature] isFeatureEnabled function not available.", new Error("DependencyMissing"), { functionName });
         return;
     }
     const isActuallyEnabled = isFeatureEnabled('exportDataFeature');
+    LoggingService.debug(`[DataManagement] Updating UI visibility. Feature 'exportDataFeature' enabled: ${isActuallyEnabled}.`, {functionName});
 
-    // The .export-data-feature-element class on UI parts (e.g., button in settings)
-    // is toggled by applyActiveFeatures in ui_event_handlers.js.
-    if (settingsExportDataBtnEl) { // Direct toggle if element reference is available
+    if (settingsExportDataBtnEl) { 
         settingsExportDataBtnEl.classList.toggle('hidden', !isActuallyEnabled);
     }
-    console.log(`[DataManagementFeature] UI Visibility (partially handled by applyActiveFeatures) set based on flag: ${isActuallyEnabled}`);
+    // The generic '.export-data-feature-element' class handling is in ui_event_handlers.js applyActiveFeatures
+    LoggingService.info(`[DataManagementFeature] UI Visibility updated based on flag: ${isActuallyEnabled}`, { functionName, isEnabled: isActuallyEnabled });
 }
 
 export const DataManagementFeature = {
     initialize,
     updateUIVisibility
-    // prepareDataForExport and handleExportData are internal to this module
 };
 
-console.log("feature_data_management.js loaded as ES6 module.");
+LoggingService.debug("feature_data_management.js loaded as ES6 module.", { module: 'feature_data_management' });

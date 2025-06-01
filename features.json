@@ -5,7 +5,7 @@
   "advancedRecurrence": false,
   "fileAttachments": false,
   "integrationsServices": false,
-  "userAccounts": false,
+  "userAccounts": true,
   "collaborationSharing": false,
   "crossDeviceSync": false,
   "tooltipsGuide": true,
@@ -23,5 +23,7 @@
   "socialMediaLinksFeature": false,
   "aboutUsFeature": true,
   "dataVersioningFeature": false,
+  "desktopNotificationsFeature": true,
+  "appUpdateNotificationFeature": true,
   "debugMode": true
 }
