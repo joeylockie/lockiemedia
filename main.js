@@ -58,10 +58,11 @@ const CHANGELOG_STORAGE_KEY_PREFIX = 'changelogDismissedForVersion_';
 
 
 // --- App Update Notification Banner ---
+// --- App Update Notification Banner ---
 function showUpdateNotificationBar(data) {
     const functionName = 'showUpdateNotificationBar (main.js)';
     const newVersionString = data.newVersion;
-    const newVersionObject = data.newVersionObject; // Contains major, minor, feature, patch
+    // const newVersionObject = data.newVersionObject; // This line can be removed if newVersionObject is not used elsewhere in this function
 
     LoggingService.info(`[Main] Preparing update notification for version: ${newVersionString}`, { functionName, newVersionString });
 
@@ -72,12 +73,10 @@ function showUpdateNotificationBar(data) {
     }
 
     if (updateNotificationElement && updateNotificationElement.parentNode) {
-        // If a banner for an *older* update is somehow still showing, remove it.
         if (updateNotificationElement.dataset.version !== newVersionString) {
             updateNotificationElement.parentNode.removeChild(updateNotificationElement);
             updateNotificationElement = null;
         } else {
-            // Already showing for current new version, do nothing.
             LoggingService.debug(`[Main] Update notification for ${newVersionString} already visible.`, { functionName });
             return;
         }
@@ -93,12 +92,11 @@ function showUpdateNotificationBar(data) {
 
     const messageP = document.createElement('p');
     messageP.className = 'text-sm sm:text-base text-left sm:text-center flex-grow';
-    messageP.innerHTML = `� A new version (<strong>v${newVersionString}</strong>) is available! Refresh to get the latest features and improvements.`;
+    messageP.innerHTML = `� A new version (<strong>v${newVersionString}</strong>) is available! Refresh to get the latest features and improvements.`; // Removed the trailing space here if the BR and link are gone
 
     const buttonsDiv = document.createElement('div');
     buttonsDiv.className = 'flex-shrink-0 flex flex-col sm:flex-row gap-2 sm:gap-3 items-center mt-2 sm:mt-0';
 
-    
     const refreshButton = document.createElement('button');
     refreshButton.textContent = 'Refresh Now';
     refreshButton.className = 'w-full sm:w-auto px-3 py-1.5 sm:px-4 sm:py-2 bg-white text-sky-700 rounded-md hover:bg-sky-100 font-semibold text-xs sm:text-sm shadow-sm';
@@ -121,6 +119,27 @@ function showUpdateNotificationBar(data) {
                 updateNotificationElement = null;
             }, 300);
         }
+        localStorage.setItem(dismissedKey, 'true');
+    };
+
+    // The following lines related to changelogLink have been removed:
+    // messageP.appendChild(document.createElement('br'));
+    // messageP.appendChild(changelogLink); 
+
+    buttonsDiv.appendChild(dismissButton);
+    buttonsDiv.appendChild(refreshButton);
+
+    containerDiv.appendChild(messageP);
+    containerDiv.appendChild(buttonsDiv);
+    updateNotificationElement.appendChild(containerDiv);
+    document.body.appendChild(updateNotificationElement);
+
+    setTimeout(() => {
+        if (updateNotificationElement) {
+            updateNotificationElement.classList.remove('translate-y-full');
+        }
+    }, 50);
+}
         localStorage.setItem(dismissedKey, 'true');
     };
 
