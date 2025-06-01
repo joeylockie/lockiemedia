@@ -79,7 +79,8 @@
                 <button id="settingsClearCompletedBtn" type="button" class="settings-modal-button bg-red-50 hover:bg-red-100 text-red-700 dark:bg-red-900/50 dark:hover:bg-red-800/70 dark:text-red-300"> <i class="fas fa-eraser"></i> Clear Completed Tasks </button>
                 <button id="settingsManageProjectsBtn" type="button" class="settings-modal-button bg-purple-50 hover:bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:hover:bg-purple-800/70 dark:text-purple-300 project-feature-element"> <i class="fas fa-project-diagram"></i> Manage Projects </button>
                 <button id="settingsManageLabelsBtn" type="button" class="settings-modal-button bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:hover:bg-indigo-800/70 dark:text-indigo-300"> <i class="fas fa-tags"></i> Manage Labels </button>
-                <button id="settingsManageNotificationsBtn" type="button" class="settings-modal-button bg-lime-50 hover:bg-lime-100 text-lime-700 dark:bg-lime-900/50 dark:hover:bg-lime-800/70 dark:text-lime-300 desktop-notifications-feature-element hidden"> <i class="fas fa-bell-on"></i> Manage Notifications </button> <button id="settingsExportDataBtn" type="button" class="settings-modal-button bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:hover:bg-emerald-800/70 dark:text-emerald-300 export-data-feature-element"> <i class="fas fa-file-export"></i> Export Data </button>
+                <button id="settingsManageNotificationsBtn" type="button" class="settings-modal-button bg-lime-50 hover:bg-lime-100 text-lime-700 dark:bg-lime-900/50 dark:hover:bg-lime-800/70 dark:text-lime-300 desktop-notifications-feature-element hidden"> <i class="fas fa-bell-on"></i> Manage Notifications </button>
+                <button id="settingsExportDataBtn" type="button" class="settings-modal-button bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:hover:bg-emerald-800/70 dark:text-emerald-300 export-data-feature-element"> <i class="fas fa-file-export"></i> Export Data </button>
                 <button id="settingsVersionHistoryBtn" type="button" class="settings-modal-button bg-orange-50 hover:bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:hover:bg-orange-800/70 dark:text-orange-300 data-versioning-feature-element hidden"> <i class="fas fa-history"></i> Data History & Restore </button>
                 <button id="settingsContactUsBtn" type="button" class="settings-modal-button bg-pink-50 hover:bg-pink-100 text-pink-700 dark:bg-pink-900/50 dark:hover:bg-pink-800/70 dark:text-pink-300 contact-us-feature-element hidden"> <i class="fas fa-envelope"></i> Contact Us </button>
                 <button id="settingsAboutUsBtn" type="button" class="settings-modal-button bg-gray-50 hover:bg-gray-100 text-gray-700 dark:bg-gray-900/50 dark:hover:bg-gray-800/70 dark:text-gray-300 about-us-feature-element hidden"> <i class="fas fa-info-circle"></i> About Us </button>
@@ -88,38 +89,6 @@
                 <button id="settingsCollaborationBtn" type="button" class="settings-modal-button bg-fuchsia-50 hover:bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/50 dark:hover:bg-fuchsia-800/70 dark:text-fuchsia-300 collaboration-sharing-element"> <i class="fas fa-share-alt"></i> Collaboration (Soon) </button>
                 <button id="settingsSyncBackupBtn" type="button" class="settings-modal-button bg-sky-50 hover:bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:hover:bg-sky-800/70 dark:text-sky-300 cross-device-sync-element"> <i class="fas fa-sync-alt"></i> Sync & Backup (Soon) </button>
                 <button id="settingsSignOutBtn" type="button" class="settings-modal-button bg-red-50 hover:bg-red-100 text-red-700 dark:bg-red-900/50 dark:hover:bg-red-800/70 dark:text-red-300 user-accounts-feature-element hidden"> <i class="fas fa-sign-out-alt"></i> Sign Out </button>
-            </div>
-
-            <div id="desktopNotificationSettingsSection" class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 space-y-4 desktop-notifications-feature-element hidden">
-                <h4 class="text-lg font-semibold text-slate-700 dark:text-slate-200">Desktop Notification Settings</h4>
-                
-                <div class="flex items-center justify-between">
-                    <label for="enableNotificationsToggle" class="text-sm font-medium text-slate-700 dark:text-slate-300 flex-grow">Enable Desktop Notifications</label>
-                    <div class="relative">
-                        <input type="checkbox" id="enableNotificationsToggle" class="toggle-checkbox"/>
-                        <label for="enableNotificationsToggle" class="toggle-label"></label>
-                    </div>
-                </div>
-                <p id="notificationPermissionStatusText" class="text-xs text-slate-500 dark:text-slate-400">Browser permission: <span class="font-medium">Not Granted</span>. Click "Enable" to request.</p>
-
-
-                <div class="flex items-center justify-between">
-                    <label for="notifyOnTaskDueToggle" class="text-sm font-medium text-slate-700 dark:text-slate-300 flex-grow">Notify on Task Due</label>
-                    <div class="relative">
-                        <input type="checkbox" id="notifyOnTaskDueToggle" class="toggle-checkbox"/>
-                        <label for="notifyOnTaskDueToggle" class="toggle-label"></label>
-                    </div>
-                </div>
-
-                <div>
-                    <label for="notifyMinutesBeforeDue" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Notify Minutes Before Due</label>
-                    <input type="number" id="notifyMinutesBeforeDue" min="0" max="1440" step="1" class="w-full p-2 border-2 bg-white text-slate-900 border-slate-300 rounded-lg focus:ring-2 focus:ring-lime-500 focus:border-lime-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600">
-                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Set to 0 to notify exactly when due.</p>
-                </div>
-                
-                <button id="testNotificationBtn" type="button" class="w-full px-4 py-2 bg-lime-500 hover:bg-lime-600 text-white rounded-lg transition-colors font-medium text-sm">
-                    Send Test Notification
-                </button>
             </div>
 
             <div id="settingsSocialMediaLinksContainer" class="mt-6 pt-4 border-t border-slate-200 dark:border-slate-700 social-media-links-feature-element hidden">
@@ -220,6 +189,50 @@
         </div>
     </div>
 
+    <div id="desktopNotificationsSettingsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-opacity-70 overflow-y-auto h-full w-full flex items-center justify-center hidden z-[188] desktop-notifications-feature-element">
+        <div class="relative mx-auto p-5 sm:p-6 border w-full max-w-md shadow-xl rounded-xl bg-white dark:bg-slate-800 transform transition-all duration-300 ease-in-out scale-95 opacity-0" id="modalDialogDesktopNotificationsSettings">
+            <div class="flex justify-between items-center pb-3 mb-4 border-b border-slate-200 dark:border-slate-700">
+                <h3 class="text-2xl font-semibold text-slate-800 dark:text-slate-100">Desktop Notification Settings</h3>
+                <button id="closeDesktopNotificationsSettingsModalBtn" type="button" class="text-slate-400 hover:text-slate-600 dark:text-slate-300 dark:hover:text-slate-100 transition-colors p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700" aria-label="Close modal">
+                    <i class="fas fa-times fa-lg"></i>
+                </button>
+            </div>
+            
+            <div id="desktopNotificationSettingsContentArea" class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <label for="enableNotificationsToggle" class="text-sm font-medium text-slate-700 dark:text-slate-300 flex-grow">Enable Desktop Notifications</label>
+                    <div class="relative">
+                        <input type="checkbox" id="enableNotificationsToggle" class="toggle-checkbox"/>
+                        <label for="enableNotificationsToggle" class="toggle-label"></label>
+                    </div>
+                </div>
+                <p id="notificationPermissionStatusText" class="text-xs text-slate-500 dark:text-slate-400">Browser permission: <span class="font-medium">Not Granted</span>. Click "Enable" to request.</p>
+
+                <div class="flex items-center justify-between">
+                    <label for="notifyOnTaskDueToggle" class="text-sm font-medium text-slate-700 dark:text-slate-300 flex-grow">Notify on Task Due</label>
+                    <div class="relative">
+                        <input type="checkbox" id="notifyOnTaskDueToggle" class="toggle-checkbox"/>
+                        <label for="notifyOnTaskDueToggle" class="toggle-label"></label>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="notifyMinutesBeforeDue" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Notify Minutes Before Due</label>
+                    <input type="number" id="notifyMinutesBeforeDue" min="0" max="1440" step="1" class="w-full p-2 border-2 bg-white text-slate-900 border-slate-300 rounded-lg focus:ring-2 focus:ring-lime-500 focus:border-lime-500 outline-none dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600">
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Set to 0 to notify exactly when due.</p>
+                </div>
+                
+                <button id="testNotificationBtn" type="button" class="w-full px-4 py-2 bg-lime-500 hover:bg-lime-600 text-white rounded-lg transition-colors font-medium text-sm">
+                    Send Test Notification
+                </button>
+            </div>
+
+            <div class="mt-6 flex justify-end">
+                <button type="button" id="closeDesktopNotificationsSettingsSecondaryBtn" class="px-5 py-2.5 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500 transition-colors font-medium">Close</button>
+            </div>
+        </div>
+    </div>
+
 
     <div class="w-full max-w-6xl mx-auto">
         <h1 class="text-4xl sm:text-5xl font-bold text-center text-white mb-8 sm:mb-10">My Todo List</h1>
@@ -252,7 +265,9 @@
     <script src="labelService.js" type="module"></script> 
     <script src="viewManager.js" type="module"></script>
     <script src="bulkActionService.js" type="module"></script>
-    <script src="notificationService.js" type="module"></script> <script src="app_logic.js" type="module"></script> 
+    <script src="notificationService.js" type="module"></script>
+    
+    <script src="app_logic.js" type="module"></script> 
     <script src="modal_interactions.js" type="module"></script>
 
     <script src="feature_test_button.js" type="module"></script>
@@ -275,9 +290,11 @@
     <script src="feature_social_media_links.js" type="module"></script>
     <script src="feature_about_us.js" type="module"></script> 
     <script src="feature_data_versioning.js" type="module"></script>
-    <script src="feature_desktop_notifications.js" type="module"></script> <script src="ui_rendering.js" type="module"></script>
+    <script src="feature_desktop_notifications.js" type="module"></script>
+    
+    <script src="ui_rendering.js" type="module"></script>
     <script src="ui_event_handlers.js" type="module"></script>
 
     <script src="main.js" type="module"></script>
-</body>  
+</body>
 </html>

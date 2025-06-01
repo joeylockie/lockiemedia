@@ -14,11 +14,7 @@ import * as BulkActionService from './bulkActionService.js';
 
 import LoggingService from './loggingService.js';
 
-// MODIFIED: showMessage is no longer imported directly
-// import { showMessage } from './ui_rendering.js'; // Removed
-// refreshTaskView is also removed as we will rely on event-driven updates.
 import {
-    // refreshTaskView, // Removed
     showTooltip,
     hideTooltip,
     setSidebarMinimized,
@@ -44,7 +40,10 @@ import {
     openAboutUsModal,
     closeAboutUsModal,
     openDataVersionHistoryModal,
-    closeDataVersionHistoryModal
+    closeDataVersionHistoryModal,
+    // ADDED: Import new modal functions
+    openDesktopNotificationsSettingsModal,
+    closeDesktopNotificationsSettingsModal
 } from './modal_interactions.js';
 
 // Import Feature Modules
@@ -71,7 +70,7 @@ import { ContactUsFeature } from './feature_contact_us.js';
 import { SocialMediaLinksFeature } from './feature_social_media_links.js';
 import { AboutUsFeature } from './feature_about_us.js';
 import { DataVersioningFeature } from './feature_data_versioning.js';
-// Note: DesktopNotificationsFeature is imported in main.js and added to window.AppFeatures
+// DesktopNotificationsFeature is initialized in main.js and its internal listeners are set there.
 
 
 let tempSubTasksForAddModal = [];
@@ -118,7 +117,7 @@ function populateFeatureFlagsModal() {
         socialMediaLinksFeature: "Social Media Links in Settings",
         aboutUsFeature: "About Us Page in Settings",
         dataVersioningFeature: "Data Versioning & History",
-        desktopNotificationsFeature: "Desktop Notifications", // Added friendly name
+        desktopNotificationsFeature: "Desktop Notifications",
         debugMode: "Developer: Debug Mode"
     };
     const featureOrder = Object.keys(currentFlags).sort((a,b) => {
@@ -165,13 +164,7 @@ function populateFeatureFlagsModal() {
 export function applyActiveFeatures() {
     const functionName = 'applyActiveFeatures';
     LoggingService.info('[UIEventHandlers] Applying active features based on current flags.', { functionName });
-    // const toggleElements = (selector, isEnabled) => { // This local helper is no longer used directly here
-    //     document.querySelectorAll(selector).forEach(el => el.classList.toggle('hidden', !isEnabled));
-    // };
 
-    // This loop will iterate over all features in window.AppFeatures,
-    // including DesktopNotificationsFeature once it's added in main.js.
-    // It will call DesktopNotificationsFeature.updateUIVisibility().
     if (window.AppFeatures) {
         for (const featureKey in window.AppFeatures) {
             if (window.AppFeatures[featureKey] && typeof window.AppFeatures[featureKey].updateUIVisibility === 'function') {
@@ -192,8 +185,7 @@ export function applyActiveFeatures() {
     }
     document.querySelectorAll('.bulk-actions-feature-element').forEach(el => el.classList.toggle('hidden', !isFeatureEnabled('bulkActionsFeature')));
 
-    // refreshTaskView(); // This call is deferred to event listeners in ui_rendering.js
-    EventBus.publish('requestViewRefresh'); // Or let individual events handle it.
+    EventBus.publish('requestViewRefresh');
 
     const featureFlagsModalElement = document.getElementById('featureFlagsModal');
     if (featureFlagsModalElement && !featureFlagsModalElement.classList.contains('hidden')) {
@@ -269,11 +261,8 @@ function handleAddTask(event) {
         EventBus.publish('displayUserMessage', { text: 'Task added successfully!', type: 'success' });
         closeAddModal();
         if (ViewManager.getCurrentFilter() !== 'inbox') {
-            ViewManager.setCurrentFilter('inbox'); // This will trigger filterChanged, which should refresh the view
+            ViewManager.setCurrentFilter('inbox');
         } else {
-            // If already in inbox, the tasksChanged event from AppStore (after TaskService.addTask)
-            // should be sufficient to trigger refreshTaskView via its subscription in ui_rendering.js.
-            // The direct call to refreshTaskView(); is removed here.
             LoggingService.debug('[UIEventHandlers] Task added while in inbox. Relying on tasksChanged event for view refresh.', { functionName });
         }
     } else {
@@ -344,7 +333,6 @@ function handleEditTask(event) {
     }
 }
 
-// This function is now internal, not exported. Called by EventBus subscription.
 function toggleComplete(taskId) {
     const functionName = 'toggleComplete (Internal Handler)';
     LoggingService.debug(`[UIEventHandlers] Handling request to toggle completion for task ID: ${taskId}.`, { functionName, taskId });
@@ -364,7 +352,6 @@ function toggleComplete(taskId) {
     }
 }
 
-// This function is now internal, not exported. Called by EventBus subscription.
 function deleteTask(taskId) {
     const functionName = 'deleteTask (Internal Handler)';
     LoggingService.info(`[UIEventHandlers] Handling request to delete task ID: ${taskId}.`, { functionName, taskId });
@@ -430,7 +417,7 @@ function handleAddNewLabel(event) {
     const newLabelInputEl = document.getElementById('newLabelInput');
     const labelName = newLabelInputEl.value.trim();
     LoggingService.info(`[UIEventHandlers] Attempting to add new label: "${labelName}".`, { functionName, labelName });
-    if (LabelService.addConceptualLabel(labelName)) { // addConceptualLabel calls showMessage internally
+    if (LabelService.addConceptualLabel(labelName)) {
         newLabelInputEl.value = '';
         const manageLabelsModalEl = document.getElementById('manageLabelsModal');
         if (manageLabelsModalEl && !manageLabelsModalEl.classList.contains('hidden')) {
@@ -608,7 +595,8 @@ export function setupEventListeners() {
     attachListener('settingsTooltipsGuideBtn', 'click', openTooltipsGuideModal, 'openTooltipsGuideModal');
     attachListener('settingsAboutUsBtn', 'click', openAboutUsModal, 'openAboutUsModal');
     attachListener('settingsVersionHistoryBtn', 'click', openDataVersionHistoryModal, 'openDataVersionHistoryModal');
-    // The listener for 'settingsManageNotificationsBtn' is set up within DesktopNotificationsFeature.initialize()
+    // ADDED: Listener for the new Manage Notifications button
+    attachListener('settingsManageNotificationsBtn', 'click', openDesktopNotificationsSettingsModal, 'openDesktopNotificationsSettingsModal');
 
 
     const openFeatureFlagsModalBtn = document.getElementById('openFeatureFlagsModalBtn');
@@ -668,7 +656,11 @@ export function setupEventListeners() {
         { id: 'aboutUsModal', handler: (event) => { if (event.target.id === 'aboutUsModal') closeAboutUsModal(); }, name: 'closeAboutUsModal (backdrop)' },
         { id: 'closeDataVersionHistoryModalBtn', handler: closeDataVersionHistoryModal, name: 'closeDataVersionHistoryModal (primary)' },
         { id: 'closeDataVersionHistorySecondaryBtn', handler: closeDataVersionHistoryModal, name: 'closeDataVersionHistoryModal (secondary)' },
-        { id: 'dataVersionHistoryModal', handler: (event) => { if (event.target.id === 'dataVersionHistoryModal') closeDataVersionHistoryModal(); }, name: 'closeDataVersionHistoryModal (backdrop)' }
+        { id: 'dataVersionHistoryModal', handler: (event) => { if (event.target.id === 'dataVersionHistoryModal') closeDataVersionHistoryModal(); }, name: 'closeDataVersionHistoryModal (backdrop)' },
+        // ADDED: Listeners for the new Desktop Notifications Settings Modal
+        { id: 'closeDesktopNotificationsSettingsModalBtn', handler: closeDesktopNotificationsSettingsModal, name: 'closeDesktopNotificationsSettingsModal (primary)'},
+        { id: 'closeDesktopNotificationsSettingsSecondaryBtn', handler: closeDesktopNotificationsSettingsModal, name: 'closeDesktopNotificationsSettingsModal (secondary)'},
+        { id: 'desktopNotificationsSettingsModal', handler: (event) => { if (event.target.id === 'desktopNotificationsSettingsModal') closeDesktopNotificationsSettingsModal(); }, name: 'closeDesktopNotificationsSettingsModal (backdrop)'}
     ];
     modalCloserListeners.forEach(listener => attachListener(listener.id, 'click', listener.handler, listener.name));
 
@@ -828,13 +820,16 @@ export function setupEventListeners() {
             const contactUsModalEl = document.getElementById('contactUsModal');
             const aboutUsModalEl = document.getElementById('aboutUsModal');
             const dataVersionHistoryModalEl = document.getElementById('dataVersionHistoryModal');
+            // ADDED: Get reference to the new notifications settings modal
+            const desktopNotificationsSettingsModalEl = document.getElementById('desktopNotificationsSettingsModal');
 
 
             if (document.getElementById('authModal') && !document.getElementById('authModal').classList.contains('hidden') && UserAccountsFeature?.closeAuthModal) UserAccountsFeature.closeAuthModal();
             else if (document.getElementById('addTaskModal') && !document.getElementById('addTaskModal').classList.contains('hidden')) closeAddModal();
             else if (document.getElementById('viewEditTaskModal') && !document.getElementById('viewEditTaskModal').classList.contains('hidden')) closeViewEditModal();
             else if (document.getElementById('viewTaskDetailsModal') && !document.getElementById('viewTaskDetailsModal').classList.contains('hidden')) closeViewTaskDetailsModal();
-            else if (document.getElementById('settingsModal') && !document.getElementById('settingsModal').classList.contains('hidden')) closeSettingsModal();
+            else if (desktopNotificationsSettingsModalEl && !desktopNotificationsSettingsModalEl.classList.contains('hidden')) closeDesktopNotificationsSettingsModal(); // ADDED: Close new modal
+            else if (document.getElementById('settingsModal') && !document.getElementById('settingsModal').classList.contains('hidden')) closeSettingsModal(); // Keep this after more specific modals
             else if (document.getElementById('manageLabelsModal') && !document.getElementById('manageLabelsModal').classList.contains('hidden')) closeManageLabelsModal();
             else if (document.getElementById('taskReviewModal') && !document.getElementById('taskReviewModal').classList.contains('hidden')) closeTaskReviewModal();
             else if (document.getElementById('tooltipsGuideModal') && !document.getElementById('tooltipsGuideModal').classList.contains('hidden')) closeTooltipsGuideModal();

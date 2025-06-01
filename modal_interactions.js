@@ -5,30 +5,25 @@ import AppStore from './store.js';
 import { isFeatureEnabled } from './featureFlagService.js';
 import ModalStateService from './modalStateService.js';
 import { formatDate, formatTime, formatDuration, getTodayDateString, formatMillisecondsToHMS } from './utils.js';
-import EventBus from './eventBus.js'; // Ensure EventBus is imported
+import EventBus from './eventBus.js';
 
-// NEW: Import LoggingService
 import LoggingService from './loggingService.js';
 
-// Import functions from ui_rendering.js
 import {
     populateDatalist,
     renderTempSubTasksForAddModal,
     renderSubTasksForEditModal,
     renderSubTasksForViewModal,
     renderTaskDependenciesForViewModal,
-    // showMessage, // MODIFIED: showMessage is no longer imported
     renderVersionHistoryList 
 } from './ui_rendering.js';
 
-// Import functions/objects from other modules
 import { handleDeleteLabel, clearTempSubTasksForAddModal } from './ui_event_handlers.js';
 import { ProjectsFeature } from './feature_projects.js';
 import { TaskTimerSystemFeature } from './task_timer_system.js';
-// ContactUsFeature is not directly needed here, but its elements are.
-// AboutUsFeature is not directly needed here if modal open/close is generic enough.
-// NEW: Import DataVersioningFeature
 import { DataVersioningFeature } from './feature_data_versioning.js';
+// ADDED: Import DesktopNotificationsFeature to call its UI update function
+import { DesktopNotificationsFeature } from './feature_desktop_notifications.js';
 
 
 export function openAddModal() {
@@ -266,8 +261,6 @@ export function openViewTaskDetailsModal(taskId) {
     const viewSubTaskProgressEl = document.getElementById('viewSubTaskProgress');
     const noSubTasksMessageViewDetailsEl = document.getElementById('noSubTasksMessageViewDetails');
     const viewTaskDependenciesSectionEl = document.getElementById('viewTaskDependenciesSection');
-    // const viewTaskDependsOnListEl = document.getElementById('viewTaskDependsOnList'); // Already declared in ui_rendering
-    // const viewTaskBlocksTasksListEl = document.getElementById('viewTaskBlocksTasksList'); // Already declared in ui_rendering
 
 
     if (!AppStore || typeof AppStore.getTasks !== 'function' || !ModalStateService) { 
@@ -467,7 +460,6 @@ export function openTaskReviewModal() {
     const modalDialogTaskReviewEl = document.getElementById('modalDialogTaskReview'); 
     if (!isFeatureEnabled('taskTimerSystem')) { 
         LoggingService.warn(`[ModalInteractions] Task Timer System feature is disabled. Cannot open Task Review Modal.`, { functionName });
-        // MODIFIED: Publish event instead of direct call
         EventBus.publish('displayUserMessage', { text: "Task Timer System feature is currently disabled.", type: "error" });
         return; 
     }
@@ -548,7 +540,6 @@ export function openTooltipsGuideModal() {
     const modalDialogTooltipsGuideEl = document.getElementById('modalDialogTooltipsGuide'); 
     if (!isFeatureEnabled('tooltipsGuide')) { 
         LoggingService.warn(`[ModalInteractions] Tooltips Guide feature is disabled. Cannot open modal.`, { functionName });
-        // MODIFIED: Publish event instead of direct call
         EventBus.publish('displayUserMessage', { text: "Tooltips Guide feature is disabled.", type: "error" });
         return; 
     }
@@ -584,8 +575,7 @@ export function openContactUsModal() {
 
     if (!isFeatureEnabled('contactUsFeature')) {
         LoggingService.warn('[ModalInteractions] Contact Us feature is disabled. Cannot open modal.', { functionName });
-        // MODIFIED: Publish event instead of direct call
-        EventBus.publish('displayUserMessage', { text: "Contact Us feature is currently disabled.", type: "info" });
+        if (EventBus && EventBus.publish) EventBus.publish('displayUserMessage', { text: "Contact Us feature is currently disabled.", type: "info" });
         return;
     }
     if (!contactUsModalEl || !modalDialogContactUsEl) {
@@ -634,7 +624,6 @@ export function openAboutUsModal() {
 
     if (!isFeatureEnabled('aboutUsFeature')) {
         LoggingService.warn('[ModalInteractions] About Us feature is disabled. Cannot open modal.', { functionName });
-        // MODIFIED: Publish event instead of direct call
         if (EventBus && EventBus.publish) EventBus.publish('displayUserMessage', { text: "About Us feature is currently disabled.", type: "info" });
         return;
     }
@@ -677,7 +666,6 @@ export function openDataVersionHistoryModal() {
 
     if (!isFeatureEnabled('dataVersioningFeature')) {
         LoggingService.warn('[ModalInteractions] Data Versioning feature is disabled. Cannot open history modal.', { functionName });
-        // MODIFIED: Publish event instead of direct call
         if (EventBus && EventBus.publish) EventBus.publish('displayUserMessage', { text: "Data Versioning feature is currently disabled.", type: "info" });
         return;
     }
@@ -689,7 +677,6 @@ export function openDataVersionHistoryModal() {
 
     if (typeof DataVersioningFeature === 'undefined' || typeof DataVersioningFeature.getVersionHistory !== 'function') {
         LoggingService.error("[ModalInteractions] DataVersioningFeature or getVersionHistory function is not available.", new Error("FeatureUnavailable"), { functionName });
-        // MODIFIED: Publish event instead of direct call
         if (EventBus && EventBus.publish) EventBus.publish('displayUserMessage', { text: "Error: Could not load version history.", type: "error" });
         const contentArea = document.getElementById('dataVersionHistoryContent');
         if (contentArea) contentArea.innerHTML = '<p class="text-slate-500 dark:text-slate-400 text-center p-4">Error loading version history service.</p>';
@@ -728,6 +715,58 @@ export function closeDataVersionHistoryModal() {
     setTimeout(() => {
         dataVersionHistoryModalEl.classList.add('hidden');
         LoggingService.info(`[ModalInteractions] Data Version History Modal closed.`, { functionName });
+    }, 200);
+}
+
+// ADDED: Functions for Desktop Notifications Settings Modal
+export function openDesktopNotificationsSettingsModal() {
+    const functionName = 'openDesktopNotificationsSettingsModal';
+    LoggingService.debug(`[ModalInteractions] Attempting to open Desktop Notifications Settings Modal.`, { functionName });
+
+    if (!isFeatureEnabled('desktopNotificationsFeature')) {
+        LoggingService.warn('[ModalInteractions] Desktop Notifications feature is disabled. Cannot open settings modal.', { functionName });
+        EventBus.publish('displayUserMessage', { text: "Desktop Notifications feature is currently disabled.", type: "info" });
+        return;
+    }
+
+    const modalEl = document.getElementById('desktopNotificationsSettingsModal');
+    const dialogEl = document.getElementById('modalDialogDesktopNotificationsSettings');
+
+    if (!modalEl || !dialogEl) {
+        LoggingService.error("[ModalInteractions] Core Desktop Notifications Settings modal DOM elements not found.", new Error("DOMElementMissing"), { functionName });
+        return;
+    }
+
+    modalEl.classList.remove('hidden');
+    setTimeout(() => {
+        dialogEl.classList.remove('scale-95', 'opacity-0');
+        dialogEl.classList.add('scale-100', 'opacity-100');
+        // Call the feature module to update its UI elements now that the modal is visible
+        if (DesktopNotificationsFeature && typeof DesktopNotificationsFeature.refreshSettingsUIDisplay === 'function') {
+            DesktopNotificationsFeature.refreshSettingsUIDisplay();
+        } else {
+            LoggingService.warn('[ModalInteractions] DesktopNotificationsFeature.refreshSettingsUIDisplay is not available.', { functionName });
+        }
+    }, 10);
+    LoggingService.info(`[ModalInteractions] Desktop Notifications Settings Modal opened.`, { functionName });
+}
+
+export function closeDesktopNotificationsSettingsModal() {
+    const functionName = 'closeDesktopNotificationsSettingsModal';
+    LoggingService.debug(`[ModalInteractions] Attempting to close Desktop Notifications Settings Modal.`, { functionName });
+
+    const modalEl = document.getElementById('desktopNotificationsSettingsModal');
+    const dialogEl = document.getElementById('modalDialogDesktopNotificationsSettings');
+
+    if (!modalEl || !dialogEl) {
+        LoggingService.warn("[ModalInteractions] Desktop Notifications Settings modal DOM elements not found for closing.", { functionName });
+        return;
+    }
+
+    dialogEl.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => {
+        modalEl.classList.add('hidden');
+        LoggingService.info(`[ModalInteractions] Desktop Notifications Settings Modal closed.`, { functionName });
     }, 200);
 }
 
