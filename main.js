@@ -20,7 +20,7 @@ import { ReminderFeature } from './feature_reminder.js';
 import { AdvancedRecurrenceFeature } from './feature_advanced_recurrence.js';
 import { FileAttachmentsFeature } from './feature_file_attachments.js';
 import { IntegrationsServicesFeature } from './feature_integrations_services.js';
-import { UserAccountsFeature } from './feature_user_accounts.js'; 
+import { UserAccountsFeature } from './feature_user_accounts.js';
 import { CollaborationSharingFeature } from './feature_collaboration_sharing.js';
 import { CrossDeviceSyncFeature } from './feature_cross_device_sync.js';
 import { TaskDependenciesFeature } from './feature_task_dependencies.js';
@@ -58,7 +58,6 @@ const CHANGELOG_STORAGE_KEY_PREFIX = 'changelogDismissedForVersion_';
 
 
 // --- App Update Notification Banner ---
-// --- App Update Notification Banner ---
 function showUpdateNotificationBar(data) {
     const functionName = 'showUpdateNotificationBar (main.js)';
     const newVersionString = data.newVersion;
@@ -92,7 +91,7 @@ function showUpdateNotificationBar(data) {
 
     const messageP = document.createElement('p');
     messageP.className = 'text-sm sm:text-base text-left sm:text-center flex-grow';
-    messageP.innerHTML = `� A new version (<strong>v${newVersionString}</strong>) is available! Refresh to get the latest features and improvements.`; // Removed the trailing space here if the BR and link are gone
+    messageP.innerHTML = `� A new version (<strong>v${newVersionString}</strong>) is available! Refresh to get the latest features and improvements.`;
 
     const buttonsDiv = document.createElement('div');
     buttonsDiv.className = 'flex-shrink-0 flex flex-col sm:flex-row gap-2 sm:gap-3 items-center mt-2 sm:mt-0';
@@ -122,9 +121,7 @@ function showUpdateNotificationBar(data) {
         localStorage.setItem(dismissedKey, 'true');
     };
 
-    // The following lines related to changelogLink have been removed:
-    // messageP.appendChild(document.createElement('br'));
-    // messageP.appendChild(changelogLink); 
+    // Changelog link related lines removed here
 
     buttonsDiv.appendChild(dismissButton);
     buttonsDiv.appendChild(refreshButton);
@@ -135,26 +132,6 @@ function showUpdateNotificationBar(data) {
     document.body.appendChild(updateNotificationElement);
 
     setTimeout(() => {
-        if (updateNotificationElement) {
-            updateNotificationElement.classList.remove('translate-y-full');
-        }
-    }, 50);
-}
-        localStorage.setItem(dismissedKey, 'true');
-    };
-
-    messageP.appendChild(document.createElement('br'));
-    messageP.appendChild(changelogLink);
-    
-    buttonsDiv.appendChild(dismissButton);
-    buttonsDiv.appendChild(refreshButton);
-
-    containerDiv.appendChild(messageP);
-    containerDiv.appendChild(buttonsDiv);
-    updateNotificationElement.appendChild(containerDiv);
-    document.body.appendChild(updateNotificationElement);
-
-    setTimeout(() => { // Animate in
         if (updateNotificationElement) {
             updateNotificationElement.classList.remove('translate-y-full');
         }
@@ -173,7 +150,7 @@ window.onerror = function(message, source, lineno, colno, error) {
         type: 'window.onerror'
     });
     showCriticalErrorImported(`An unexpected error occurred. Please report ID: ${errorId}`, errorId);
-    return true; 
+    return true;
 };
 
 window.onunhandledrejection = function(event) {
@@ -187,7 +164,7 @@ window.onunhandledrejection = function(event) {
         type: 'window.onunhandledrejection'
     });
     showCriticalErrorImported(`An operation failed unexpectedly. Please report ID: ${errorId}`, errorId);
-    event.preventDefault(); 
+    event.preventDefault();
 };
 
 
@@ -206,7 +183,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     catch (e) {
         LoggingService.critical("[Main] CRITICAL: Error loading feature flags!", e);
         showCriticalErrorImported("Failed to load application configuration. Please try again later.", "CONFIG_LOAD_FAIL");
-        return; 
+        return;
     }
 
     // Load app version *before* potentially starting the update checker
@@ -226,7 +203,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             LoggingService.warn("[Main] showCriticalError function not found in ui_rendering.js. Using fallback.");
         }
         if (uiRendering.initializeDOMElements) {
-            uiRendering.initializeDOMElements(); 
+            uiRendering.initializeDOMElements();
             LoggingService.info("[Main] DOM elements initialized and initial version rendered.");
         } else {
             throw new Error("initializeDOMElements not found in ui_rendering.js");
@@ -237,10 +214,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         alert("CRITICAL: UI Initialization Failed. Please refresh. " + e.message);
         return;
     }
-    
+
     // Initialize UserAccountsFeature (Firebase)
-    if (typeof window.AppFeatures === 'undefined') window.AppFeatures = {}; 
-    window.AppFeatures.UserAccountsFeature = UserAccountsFeature; 
+    if (typeof window.AppFeatures === 'undefined') window.AppFeatures = {};
+    window.AppFeatures.UserAccountsFeature = UserAccountsFeature;
     if (window.AppFeatures.UserAccountsFeature && typeof window.AppFeatures.UserAccountsFeature.initialize === 'function') {
         try {
             LoggingService.info("[Main] Initializing UserAccountsFeature (includes Firebase SDK setup)...");
@@ -251,7 +228,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Initialize Store (after Firebase Auth is ready if store depends on user ID)
     if (AppStore && typeof AppStore.initializeStore === 'function') {
-        await AppStore.initializeStore(); 
+        await AppStore.initializeStore();
         LoggingService.info("[Main] AppStore initialized.");
     }
     else { /* ... */ }
@@ -290,70 +267,70 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else { /* ... */ }
 
     // Initialize other Feature Modules
-    window.AppFeatures.ProjectsFeature = ProjectsFeature; 
+    window.AppFeatures.ProjectsFeature = ProjectsFeature;
     // ... (all other AppFeatures assignments) ...
     window.AppFeatures.DataVersioningFeature = DataVersioningFeature;
     window.AppFeatures.DesktopNotificationsFeature = DesktopNotificationsFeature;
     // No specific AppFeature for AppUpdateNotification as its logic is in versionService and main.js
 
-    if (typeof isFeatureEnabledFromService !== 'undefined' && typeof window.AppFeatures !== 'undefined') { 
-        LoggingService.info("[Main] Initializing other feature modules..."); 
-        for (const featureName in window.AppFeatures) { 
-            if (featureName === 'UserAccountsFeature') continue; 
+    if (typeof isFeatureEnabledFromService !== 'undefined' && typeof window.AppFeatures !== 'undefined') {
+        LoggingService.info("[Main] Initializing other feature modules...");
+        for (const featureName in window.AppFeatures) {
+            if (featureName === 'UserAccountsFeature') continue;
 
             if (window.AppFeatures.hasOwnProperty(featureName) &&
                 window.AppFeatures[featureName] &&
-                typeof window.AppFeatures[featureName].initialize === 'function') { 
-                let flagKey = featureName.replace(/Feature$/, '').replace(/([A-Z])/g, (match, p1, offset) => (offset > 0 ? "-" : "") + p1.toLowerCase()); 
-                const flagMappings = { 
+                typeof window.AppFeatures[featureName].initialize === 'function') {
+                let flagKey = featureName.replace(/Feature$/, '').replace(/([A-Z])/g, (match, p1, offset) => (offset > 0 ? "-" : "") + p1.toLowerCase());
+                const flagMappings = {
                     "test-button": "testButtonFeature", "reminder": "reminderFeature", /* ... other mappings ... */
                     "desktop-notifications": "desktopNotificationsFeature",
                     // No direct mapping needed for appUpdateNotificationFeature as it's not a standalone module in AppFeatures
                 };
-                const effectiveFlagKey = flagMappings[flagKey] || flagKey; 
+                const effectiveFlagKey = flagMappings[flagKey] || flagKey;
                 // Initialize if the feature is explicitly enabled OR if its flag is not in the known list (meaning it's a core/unflagged init)
                 // However, for most features, we want to respect the flag.
-                if (isFeatureEnabledFromService(effectiveFlagKey) || !Object.keys(AppStore.getFeatureFlags()).includes(effectiveFlagKey) ) { 
+                if (isFeatureEnabledFromService(effectiveFlagKey) || !Object.keys(AppStore.getFeatureFlags()).includes(effectiveFlagKey) ) {
                      try {
-                        LoggingService.debug(`[Main] Initializing ${featureName} (flag key for check: ${effectiveFlagKey})...`); 
-                        window.AppFeatures[featureName].initialize(); 
+                        LoggingService.debug(`[Main] Initializing ${featureName} (flag key for check: ${effectiveFlagKey})...`);
+                        window.AppFeatures[featureName].initialize();
                     } catch (e) {
-                        LoggingService.error(`[Main] Error initializing feature ${featureName}:`, e); 
+                        LoggingService.error(`[Main] Error initializing feature ${featureName}:`, e);
                     }
                 } else {
                      LoggingService.info(`[Main] Skipping initialization of ${featureName} as its flag (${effectiveFlagKey}) is disabled.`);
                 }
             }
         }
-        LoggingService.info("[Main] Other feature modules initialization process completed."); 
+        LoggingService.info("[Main] Other feature modules initialization process completed.");
     }
 
-    applyActiveFeatures(); 
-    LoggingService.info("[Main] Active features applied to UI (initial)."); 
+    applyActiveFeatures();
+    LoggingService.info("[Main] Active features applied to UI (initial).");
 
-    if (ViewManager && typeof setFilter === 'function') { 
-        setFilter(ViewManager.getCurrentFilter()); 
-        LoggingService.info("[Main] Initial filter styles applied."); 
+    if (ViewManager && typeof setFilter === 'function') {
+        setFilter(ViewManager.getCurrentFilter());
+        LoggingService.info("[Main] Initial filter styles applied.");
     } else { /* ... */ }
 
-    const savedSidebarState = localStorage.getItem('sidebarState'); 
-    if (uiRendering && uiRendering.setSidebarMinimized) { 
-        uiRendering.setSidebarMinimized(savedSidebarState === 'minimized'); 
+    const savedSidebarState = localStorage.getItem('sidebarState');
+    if (uiRendering && uiRendering.setSidebarMinimized) {
+        uiRendering.setSidebarMinimized(savedSidebarState === 'minimized');
     } else { /* ... */ }
 
-    if (isFeatureEnabledFromService('projectFeature') && window.AppFeatures?.ProjectsFeature) { 
-        if(window.AppFeatures.ProjectsFeature.populateProjectFilterList) window.AppFeatures.ProjectsFeature.populateProjectFilterList(); 
-        if(window.AppFeatures.ProjectsFeature.populateProjectDropdowns) window.AppFeatures.ProjectsFeature.populateProjectDropdowns(); 
+    if (isFeatureEnabledFromService('projectFeature') && window.AppFeatures?.ProjectsFeature) {
+        if(window.AppFeatures.ProjectsFeature.populateProjectFilterList) window.AppFeatures.ProjectsFeature.populateProjectFilterList();
+        if(window.AppFeatures.ProjectsFeature.populateProjectDropdowns) window.AppFeatures.ProjectsFeature.populateProjectDropdowns();
     }
 
-    if (uiRendering && uiRendering.updateSortButtonStates) { 
-        uiRendering.updateSortButtonStates(); 
+    if (uiRendering && uiRendering.updateSortButtonStates) {
+        uiRendering.updateSortButtonStates();
     } else { /* ... */ }
 
-    setupEventListeners(); 
-    LoggingService.info("[Main] Global event listeners set up."); 
+    setupEventListeners();
+    LoggingService.info("[Main] Global event listeners set up.");
 
-    LoggingService.info("[Main] Application initialization complete."); 
+    LoggingService.info("[Main] Application initialization complete.");
 });
 
 // Ensure global functions are available if not already.
