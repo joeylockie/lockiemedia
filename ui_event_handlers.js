@@ -1,11 +1,12 @@
 // ui_event_handlers.js
-// Handles event listeners, user interaction handlers (forms, buttons),
-// applying feature flags to UI.
+// Handles event listeners, user interaction handlers (buttons, non-form interactions),
+// applying feature flags to UI. Form submission logic is now in formEventHandlers.js.
 
 import AppStore from './store.js';
 import ViewManager from './viewManager.js';
 import { isFeatureEnabled, setFeatureFlag, getAllFeatureFlags } from './featureFlagService.js';
 import * as TaskService from './taskService.js';
+// LabelService is used by handleDeleteLabel, which is still here for now
 import * as LabelService from './labelService.js';
 import ModalStateService from './modalStateService.js';
 import TooltipService from './tooltipService.js';
@@ -14,12 +15,16 @@ import * as BulkActionService from './bulkActionService.js';
 
 import LoggingService from './loggingService.js';
 
+// Import UI rendering functions needed by handlers still in this file
 import {
     showTooltip,
     hideTooltip,
     setSidebarMinimized,
+    // renderTempSubTasksForAddModal, // This will be called by handleAddTempSubTaskForAddModal which is still here
+    // renderSubTasksForEditModal // This will be called by handleAddSubTaskViewEdit which is still here
 } from './ui_rendering.js';
 
+// Import modal interaction functions
 import {
     openAddModal,
     closeAddModal,
@@ -43,11 +48,22 @@ import {
     closeDataVersionHistoryModal,
     openDesktopNotificationsSettingsModal,
     closeDesktopNotificationsSettingsModal,
-    openProfileModal, // ADDED: Import for profile modal
-    closeProfileModal // ADDED: Import for profile modal
+    openProfileModal,
+    closeProfileModal
 } from './modal_interactions.js';
 
-// Import Feature Modules
+// Import the new form event handlers
+import {
+    handleAddTaskFormSubmit,
+    handleEditTaskFormSubmit,
+    handleProfileFormSubmit,
+    handleAddNewLabelFormSubmit,
+    handleUserSignUpFormSubmit,
+    handleUserSignInFormSubmit
+} from './formEventHandlers.js';
+
+
+// Import Feature Modules (some might be used by handlers still in this file)
 import { TestButtonFeature } from './feature_test_button.js';
 import { TaskTimerSystemFeature } from './task_timer_system.js';
 import { ReminderFeature } from './feature_reminder.js';
@@ -74,10 +90,12 @@ import { DataVersioningFeature } from './feature_data_versioning.js';
 // DesktopNotificationsFeature is initialized in main.js and its internal listeners are set there.
 
 
-let tempSubTasksForAddModal = [];
+// This state is temporarily exported for formEventHandlers.js
+// It should ideally move to a subTaskEventHandlers.js or ModalStateService
+export let tempSubTasksForAddModal = [];
 
 export function clearTempSubTasksForAddModal() {
-    const functionName = 'clearTempSubTasksForAddModal';
+    const functionName = 'clearTempSubTasksForAddModal (ui_event_handlers)'; // Context for logging
     LoggingService.debug('[UIEventHandlers] Temporary sub-tasks for add modal cleared.', { functionName, count: tempSubTasksForAddModal.length });
     tempSubTasksForAddModal = [];
 }
@@ -119,7 +137,7 @@ function populateFeatureFlagsModal() {
         aboutUsFeature: "About Us Page in Settings",
         dataVersioningFeature: "Data Versioning & History",
         desktopNotificationsFeature: "Desktop Notifications",
-        appUpdateNotificationFeature: "App Update Notifications", // Added
+        appUpdateNotificationFeature: "App Update Notifications",
         debugMode: "Developer: Debug Mode"
     };
     const featureOrder = Object.keys(currentFlags).sort((a,b) => {
@@ -170,14 +188,11 @@ export function applyActiveFeatures() {
     if (window.AppFeatures) {
         for (const featureKey in window.AppFeatures) {
             if (window.AppFeatures[featureKey] && typeof window.AppFeatures[featureKey].updateUIVisibility === 'function') {
-                // UserAccountsFeature visibility is handled internally based on auth state primarily
-                // Profile related UI (button, modal) is not feature flagged so not handled here
-                if (featureKey !== 'UserAccountsFeature') { 
+                if (featureKey !== 'UserAccountsFeature') {
                     window.AppFeatures[featureKey].updateUIVisibility();
                 }
             }
         }
-        // Ensure UserAccountsFeature UI (like sign-out button) is also updated if it exists
         if (window.AppFeatures.UserAccountsFeature && typeof window.AppFeatures.UserAccountsFeature.updateUIVisibility === 'function') {
             window.AppFeatures.UserAccountsFeature.updateUIVisibility();
         }
@@ -205,179 +220,12 @@ export function applyActiveFeatures() {
     LoggingService.info('[UIEventHandlers] Finished applying active features.', { functionName });
 }
 
+// Form handlers (handleAddTask, handleEditTask, handleProfileFormSubmit, handleAddNewLabel) have been moved to formEventHandlers.js
 
-function handleAddTask(event) {
-    const functionName = 'handleAddTask';
-    event.preventDefault();
-    LoggingService.info('[UIEventHandlers] Attempting to add task.', { functionName });
-
-    const modalTaskInputAddEl = document.getElementById('modalTaskInputAdd');
-    const modalDueDateInputAddEl = document.getElementById('modalDueDateInputAdd');
-    const modalTimeInputAddEl = document.getElementById('modalTimeInputAdd');
-    const modalPriorityInputAddEl = document.getElementById('modalPriorityInputAdd');
-    const modalLabelInputAddEl = document.getElementById('modalLabelInputAdd');
-    const modalNotesInputAddEl = document.getElementById('modalNotesInputAdd');
-    const modalProjectSelectAddEl = document.getElementById('modalProjectSelectAdd');
-    const modalEstHoursAddEl = document.getElementById('modalEstHoursAdd');
-    const modalEstMinutesAddEl = document.getElementById('modalEstMinutesAdd');
-    const modalRemindMeAddEl = document.getElementById('modalRemindMeAdd');
-    const modalReminderDateAddEl = document.getElementById('modalReminderDateAdd');
-    const modalReminderTimeAddEl = document.getElementById('modalReminderTimeAdd');
-    const modalReminderEmailAddEl = document.getElementById('modalReminderEmailAdd');
-
-    const taskText = modalTaskInputAddEl.value.trim();
-    const dueDate = modalDueDateInputAddEl.value;
-    const time = modalTimeInputAddEl.value;
-    const priority = modalPriorityInputAddEl.value;
-    const label = modalLabelInputAddEl.value.trim();
-    const notes = modalNotesInputAddEl.value.trim();
-    const projectId = isFeatureEnabled('projectFeature') && modalProjectSelectAddEl ? parseInt(modalProjectSelectAddEl.value) : 0;
-
-    let estHours = 0, estMinutes = 0;
-    if (isFeatureEnabled('taskTimerSystem') && modalEstHoursAddEl && modalEstMinutesAddEl) {
-        estHours = parseInt(modalEstHoursAddEl.value) || 0;
-        estMinutes = parseInt(modalEstMinutesAddEl.value) || 0;
-    }
-
-    let isReminderSet = false, reminderDate = null, reminderTime = null, reminderEmail = null;
-    if (isFeatureEnabled('reminderFeature') && modalRemindMeAddEl && modalRemindMeAddEl.checked) {
-        isReminderSet = true;
-        reminderDate = modalReminderDateAddEl.value;
-        reminderTime = modalReminderTimeAddEl.value;
-        reminderEmail = modalReminderEmailAddEl.value.trim();
-        if (!reminderDate || !reminderTime || !reminderEmail) {
-            LoggingService.warn('[UIEventHandlers] Reminder fields not completely filled for new task.', { functionName, reminderDate, reminderTime, reminderEmail });
-            EventBus.publish('displayUserMessage', { text: 'Please fill all reminder fields or disable the reminder.', type: 'error' });
-            return;
-        }
-    }
-
-    if (taskText) {
-        let parsedResult = { parsedDate: dueDate, remainingText: taskText };
-        if (!dueDate) {
-            parsedResult = TaskService.parseDateFromText(taskText);
-        }
-
-        const subTasksToAdd = isFeatureEnabled('subTasksFeature') ? [...tempSubTasksForAddModal] : [];
-
-        TaskService.addTask({
-            text: parsedResult.remainingText,
-            dueDate: parsedResult.parsedDate || dueDate,
-            time, priority, label, notes, projectId,
-            isReminderSet, reminderDate, reminderTime, reminderEmail,
-            estimatedHours: estHours, estimatedMinutes: estMinutes,
-            subTasks: subTasksToAdd
-        });
-        LoggingService.info(`[UIEventHandlers] Task added via form: "${parsedResult.remainingText.substring(0, 30)}..."`, { functionName, taskLength: parsedResult.remainingText.length });
-        EventBus.publish('displayUserMessage', { text: 'Task added successfully!', type: 'success' });
-        closeAddModal();
-        if (ViewManager.getCurrentFilter() !== 'inbox') {
-            ViewManager.setCurrentFilter('inbox');
-        } else {
-            LoggingService.debug('[UIEventHandlers] Task added while in inbox. Relying on tasksChanged event for view refresh.', { functionName });
-        }
-    } else {
-        LoggingService.warn('[UIEventHandlers] Task description was empty on add attempt.', { functionName });
-        EventBus.publish('displayUserMessage', { text: 'Task description cannot be empty.', type: 'error' });
-    }
-}
-
-function handleEditTask(event) {
-    const functionName = 'handleEditTask';
-    event.preventDefault();
-    const modalViewEditTaskIdEl = document.getElementById('modalViewEditTaskId');
-    const taskId = parseInt(modalViewEditTaskIdEl.value);
-    LoggingService.info(`[UIEventHandlers] Attempting to edit task ID: ${taskId}.`, { functionName, taskId });
-
-    const modalTaskInputViewEditEl = document.getElementById('modalTaskInputViewEdit');
-    const modalDueDateInputViewEditEl = document.getElementById('modalDueDateInputViewEdit');
-    const modalTimeInputViewEditEl = document.getElementById('modalTimeInputViewEdit');
-    const modalPriorityInputViewEditEl = document.getElementById('modalPriorityInputViewEdit');
-    const modalLabelInputViewEditEl = document.getElementById('modalLabelInputViewEdit');
-    const modalNotesInputViewEditEl = document.getElementById('modalNotesInputViewEdit');
-    const modalProjectSelectViewEditEl = document.getElementById('modalProjectSelectViewEdit');
-    const modalRemindMeViewEditEl = document.getElementById('modalRemindMeViewEdit');
-    const modalReminderDateViewEditEl = document.getElementById('modalReminderDateViewEdit');
-    const modalReminderTimeViewEditEl = document.getElementById('modalReminderTimeViewEdit');
-    const modalReminderEmailViewEditEl = document.getElementById('modalReminderEmailViewEdit');
-
-    const taskText = modalTaskInputViewEditEl.value.trim();
-    const dueDate = modalDueDateInputViewEditEl.value;
-    const time = modalTimeInputViewEditEl.value;
-    const priority = modalPriorityInputViewEditEl.value;
-    const label = modalLabelInputViewEditEl.value.trim();
-    const notes = modalNotesInputViewEditEl.value.trim();
-    const projectId = isFeatureEnabled('projectFeature') && modalProjectSelectViewEditEl ? parseInt(modalProjectSelectViewEditEl.value) : 0;
-
-    let estHours = 0, estMinutes = 0;
-    if (isFeatureEnabled('taskTimerSystem') && TaskTimerSystemFeature?.getEstimatesFromEditModal) {
-        const estimates = TaskTimerSystemFeature.getEstimatesFromEditModal();
-        estHours = estimates.estHours;
-        estMinutes = estimates.estMinutes;
-    }
-
-    let isReminderSet = false, reminderDate = null, reminderTime = null, reminderEmail = null;
-    if (isFeatureEnabled('reminderFeature') && modalRemindMeViewEditEl && modalRemindMeViewEditEl.checked) {
-        isReminderSet = true;
-        reminderDate = modalReminderDateViewEditEl.value;
-        reminderTime = modalReminderTimeViewEditEl.value;
-        reminderEmail = modalReminderEmailViewEditEl.value.trim();
-        if (!reminderDate || !reminderTime || !reminderEmail) {
-            LoggingService.warn(`[UIEventHandlers] Reminder fields not completely filled for editing task ID: ${taskId}.`, { functionName, taskId, reminderDate, reminderTime, reminderEmail });
-            EventBus.publish('displayUserMessage', { text: 'Please fill all reminder fields or disable the reminder for edit.', type: 'error' });
-            return;
-        }
-    }
-
-    if (taskText && taskId) {
-        TaskService.updateTask(taskId, {
-            text: taskText, dueDate, time, priority, label, notes, projectId,
-            isReminderSet, reminderDate, reminderTime, reminderEmail,
-            estimatedHours: estHours, estimatedMinutes: estMinutes
-        });
-        LoggingService.info(`[UIEventHandlers] Task ID ${taskId} updated successfully.`, { functionName, taskId });
-        EventBus.publish('displayUserMessage', { text: 'Task updated successfully!', type: 'success' });
-        closeViewEditModal();
-    } else {
-        LoggingService.warn('[UIEventHandlers] Task description empty or task ID missing for edit.', { functionName, taskId, taskTextIsEmpty: !taskText });
-        EventBus.publish('displayUserMessage', { text: 'Task description cannot be empty.', type: 'error' });
-    }
-}
-
-// ADDED: Handler for Profile Form Submission
-function handleProfileFormSubmit(event) {
-    const functionName = 'handleProfileFormSubmit';
-    event.preventDefault();
-    LoggingService.info('[UIEventHandlers] Attempting to save profile.', { functionName });
-
-    const profileDisplayNameInputEl = document.getElementById('profileDisplayName');
-    // const profileAvatarUrlInputEl = document.getElementById('profileAvatarUrl'); // If you add this field
-
-    const displayName = profileDisplayNameInputEl.value.trim();
-    // const avatarUrl = profileAvatarUrlInputEl ? profileAvatarUrlInputEl.value.trim() : null; // If you add this field
-
-    if (!displayName) {
-        LoggingService.warn('[UIEventHandlers] Display name cannot be empty.', { functionName });
-        EventBus.publish('displayUserMessage', { text: 'Display name cannot be empty.', type: 'error' });
-        return;
-    }
-
-    const profileData = {
-        displayName: displayName,
-        // avatarUrl: avatarUrl // If you add this field
-    };
-
-    if (UserAccountsFeature && UserAccountsFeature.handleSaveProfile) {
-        UserAccountsFeature.handleSaveProfile(profileData);
-    } else {
-        LoggingService.error('[UIEventHandlers] UserAccountsFeature.handleSaveProfile not available.', new Error("DependencyMissing"), { functionName });
-        EventBus.publish('displayUserMessage', { text: 'Error saving profile: System component missing.', type: 'error' });
-    }
-}
-
-
+// Task action handlers (toggleComplete, deleteTask)
+// These are called by EventBus subscriptions, not direct DOM listeners in this file anymore.
 function toggleComplete(taskId) {
-    const functionName = 'toggleComplete (Internal Handler)';
+    const functionName = 'toggleComplete (Internal Handler in ui_event_handlers)';
     LoggingService.debug(`[UIEventHandlers] Handling request to toggle completion for task ID: ${taskId}.`, { functionName, taskId });
     const updatedTask = TaskService.toggleTaskComplete(taskId);
     if (updatedTask && updatedTask._blocked) {
@@ -396,7 +244,7 @@ function toggleComplete(taskId) {
 }
 
 function deleteTask(taskId) {
-    const functionName = 'deleteTask (Internal Handler)';
+    const functionName = 'deleteTask (Internal Handler in ui_event_handlers)';
     LoggingService.info(`[UIEventHandlers] Handling request to delete task ID: ${taskId}.`, { functionName, taskId });
     if (confirm('Are you sure you want to delete this task?')) {
         if (TaskService.deleteTaskById(taskId)) {
@@ -454,22 +302,9 @@ function clearCompletedTasks() {
     }
 }
 
-function handleAddNewLabel(event) {
-    const functionName = 'handleAddNewLabel';
-    event.preventDefault();
-    const newLabelInputEl = document.getElementById('newLabelInput');
-    const labelName = newLabelInputEl.value.trim();
-    LoggingService.info(`[UIEventHandlers] Attempting to add new label: "${labelName}".`, { functionName, labelName });
-    if (LabelService.addConceptualLabel(labelName)) {
-        newLabelInputEl.value = '';
-        const manageLabelsModalEl = document.getElementById('manageLabelsModal');
-        if (manageLabelsModalEl && !manageLabelsModalEl.classList.contains('hidden')) {
-             populateManageLabelsList();
-        }
-    }
-}
+// handleAddNewLabel moved to formEventHandlers.js
 
-export function handleDeleteLabel(labelNameToDelete) {
+export function handleDeleteLabel(labelNameToDelete) { // Stays here as it's a direct action from Manage Labels modal
     const functionName = 'handleDeleteLabel';
     LoggingService.info(`[UIEventHandlers] User initiated delete for label: "${labelNameToDelete}".`, { functionName, labelNameToDelete });
     if (confirm(`Are you sure you want to delete the label "${labelNameToDelete}" from all tasks? This will remove the label from any task currently using it. This action cannot be undone.`)) {
@@ -478,7 +313,7 @@ export function handleDeleteLabel(labelNameToDelete) {
             EventBus.publish('displayUserMessage', { text: `Label "${labelNameToDelete}" removed from all tasks.`, type: 'success' });
             const manageLabelsModalEl = document.getElementById('manageLabelsModal');
              if (manageLabelsModalEl && !manageLabelsModalEl.classList.contains('hidden')) {
-                 populateManageLabelsList();
+                 populateManageLabelsList(); // This function is in modal_interactions.js
             }
         } else {
             LoggingService.info(`[UIEventHandlers] Deletion of label "${labelNameToDelete}" did not result in changes or failed (see LabelService logs).`, { functionName, labelNameToDelete });
@@ -488,6 +323,7 @@ export function handleDeleteLabel(labelNameToDelete) {
     }
 }
 
+// Sub-task handlers (will be moved later)
 async function handleAddSubTaskViewEdit() {
     const functionName = 'handleAddSubTaskViewEdit';
     const modalSubTaskInputViewEditEl = document.getElementById('modalSubTaskInputViewEdit');
@@ -508,9 +344,10 @@ async function handleAddSubTaskViewEdit() {
         EventBus.publish('displayUserMessage', { text: 'Sub-task added.', type: 'success' });
         modalSubTaskInputViewEditEl.value = '';
         try {
-            const uiRendering = await import('./ui_rendering.js');
-            if (uiRendering.renderSubTasksForEditModal) {
-                uiRendering.renderSubTasksForEditModal(parentId, modalSubTasksListViewEditEl);
+            // Dynamically import renderSubTasksForEditModal to avoid circular dependency if it moves
+            const { renderSubTasksForEditModal } = await import('./ui_rendering.js');
+            if (renderSubTasksForEditModal) {
+                renderSubTasksForEditModal(parentId, modalSubTasksListViewEditEl);
             }
         } catch (e) {
             LoggingService.error("[UIEventHandlers] Failed to load ui_rendering for sub-task update in edit modal.", e, { functionName, parentId });
@@ -538,6 +375,7 @@ function handleAddTempSubTaskForAddModal() {
     LoggingService.debug(`[UIEventHandlers] Temporary sub-task added. Current temp count: ${tempSubTasksForAddModal.length}`, { functionName });
     modalSubTaskInputAddEl.value = '';
 
+    // Dynamically import for now, this will be cleaner when ui_rendering is further split
     const uiRenderingModule = globalThis.uiRenderingModule || (globalThis.uiRenderingModule = import('./ui_rendering.js'));
     uiRenderingModule.then(ui => {
         if (ui.renderTempSubTasksForAddModal) {
@@ -547,6 +385,7 @@ function handleAddTempSubTaskForAddModal() {
         LoggingService.error('[UIEventHandlers] Failed to load ui_rendering for rendering temp sub-tasks.', e, { functionName });
     });
 }
+
 
 export function setupEventListeners() {
     const functionName = 'setupEventListeners';
@@ -592,9 +431,9 @@ export function setupEventListeners() {
             const isCurrentlyMinimized = taskSidebarEl.classList.contains('sidebar-minimized');
             const newMinimizedState = !isCurrentlyMinimized;
             localStorage.setItem('sidebarState', newMinimizedState ? 'minimized' : 'expanded');
-            setSidebarMinimized(newMinimizedState);
+            setSidebarMinimized(newMinimizedState); // from ui_rendering.js
             if (newMinimizedState) {
-                hideTooltip();
+                hideTooltip(); // from ui_rendering.js
             } else {
                 TooltipService.clearTooltipTimeout();
             }
@@ -619,12 +458,12 @@ export function setupEventListeners() {
             button.addEventListener('mouseenter', () => {
                 if (taskSidebarElForTooltips.classList.contains('sidebar-minimized')) {
                     TooltipService.clearTooltipTimeout();
-                    const timeoutId = setTimeout(() => showTooltip(button, button.title), 500);
+                    const timeoutId = setTimeout(() => showTooltip(button, button.title), 500); // showTooltip from ui_rendering.js
                     TooltipService.setTooltipTimeout(timeoutId);
                 }
             });
             button.addEventListener('mouseleave', () => {
-                hideTooltip();
+                hideTooltip(); // from ui_rendering.js
             });
         });
         LoggingService.debug(`[UIEventHandlers] Sidebar icon tooltips listeners attached for ${sidebarIconOnlyButtonsEls.length} buttons.`, { functionName });
@@ -639,7 +478,7 @@ export function setupEventListeners() {
     attachListener('settingsAboutUsBtn', 'click', openAboutUsModal, 'openAboutUsModal');
     attachListener('settingsVersionHistoryBtn', 'click', openDataVersionHistoryModal, 'openDataVersionHistoryModal');
     attachListener('settingsManageNotificationsBtn', 'click', openDesktopNotificationsSettingsModal, 'openDesktopNotificationsSettingsModal');
-    attachListener('settingsManageProfileBtn', 'click', openProfileModal, 'openProfileModal'); // ADDED: Listener for Profile Modal
+    attachListener('settingsManageProfileBtn', 'click', openProfileModal, 'openProfileModal');
 
 
     const openFeatureFlagsModalBtn = document.getElementById('openFeatureFlagsModalBtn');
@@ -649,7 +488,7 @@ export function setupEventListeners() {
             const ffModal = document.getElementById('featureFlagsModal');
             const ffDialog = document.getElementById('modalDialogFeatureFlags');
             if (ffModal && ffDialog) {
-                populateFeatureFlagsModal();
+                populateFeatureFlagsModal(); // Still in this file
                 ffModal.classList.remove('hidden');
                 setTimeout(() => { ffDialog.classList.remove('scale-95', 'opacity-0'); ffDialog.classList.add('scale-100', 'opacity-100'); }, 10);
             } else {
@@ -703,7 +542,6 @@ export function setupEventListeners() {
         { id: 'closeDesktopNotificationsSettingsModalBtn', handler: closeDesktopNotificationsSettingsModal, name: 'closeDesktopNotificationsSettingsModal (primary)'},
         { id: 'closeDesktopNotificationsSettingsSecondaryBtn', handler: closeDesktopNotificationsSettingsModal, name: 'closeDesktopNotificationsSettingsModal (secondary)'},
         { id: 'desktopNotificationsSettingsModal', handler: (event) => { if (event.target.id === 'desktopNotificationsSettingsModal') closeDesktopNotificationsSettingsModal(); }, name: 'closeDesktopNotificationsSettingsModal (backdrop)'},
-        // ADDED: Listeners for the new Profile Modal
         { id: 'closeProfileModalBtn', handler: closeProfileModal, name: 'closeProfileModal (primary)' },
         { id: 'closeProfileSecondaryBtn', handler: closeProfileModal, name: 'closeProfileModal (secondary)' },
         { id: 'profileModal', handler: (event) => { if (event.target.id === 'profileModal') closeProfileModal(); }, name: 'closeProfileModal (backdrop)' }
@@ -733,7 +571,7 @@ export function setupEventListeners() {
             const handlerName = 'deleteFromViewModalHandler';
             const taskId = ModalStateService.getCurrentViewTaskId();
             LoggingService.debug(`[UIEventHandlers] Delete from View Modal button clicked for task ID: ${taskId}.`, { functionName: handlerName, taskId });
-            if(taskId) deleteTask(taskId);
+            if(taskId) deleteTask(taskId); // deleteTask is still in this file
             else { LoggingService.warn(`[UIEventHandlers] No task ID to delete from View Modal.`, { functionName: handlerName }); }
         });
         LoggingService.debug(`[UIEventHandlers] Delete From View Modal listener attached.`, { functionName, elementId: 'deleteFromViewModalBtn' });
@@ -752,36 +590,17 @@ export function setupEventListeners() {
     attachListener('featureFlagsModal', 'click', (event) => { if(event.target.id === 'featureFlagsModal') ffModalCloseHandler(); }, 'ffModalCloseHandler (backdrop)');
 
 
-    // Form Submissions
-    attachListener('modalTodoFormAdd', 'submit', handleAddTask, 'handleAddTask');
-    attachListener('modalTodoFormViewEdit', 'submit', handleEditTask, 'handleEditTask');
-    attachListener('addNewLabelForm', 'submit', handleAddNewLabel, 'handleAddNewLabel');
-    attachListener('profileForm', 'submit', handleProfileFormSubmit, 'handleProfileFormSubmit'); // ADDED: Listener for Profile Form
+    // Form Submissions - Now handled by imported functions
+    attachListener('modalTodoFormAdd', 'submit', handleAddTaskFormSubmit, 'handleAddTaskFormSubmit');
+    attachListener('modalTodoFormViewEdit', 'submit', handleEditTaskFormSubmit, 'handleEditTaskFormSubmit');
+    attachListener('addNewLabelForm', 'submit', handleAddNewLabelFormSubmit, 'handleAddNewLabelFormSubmit');
+    attachListener('profileForm', 'submit', handleProfileFormSubmit, 'handleProfileFormSubmit');
 
 
     // User Accounts Form Submissions & Sign Out
-    if (UserAccountsFeature) {
-        attachListener('signUpForm', 'submit', (event) => {
-            event.preventDefault();
-            const emailEl = document.getElementById('signUpEmail');
-            const passwordEl = document.getElementById('signUpPassword');
-            if (emailEl && passwordEl) {
-                UserAccountsFeature.handleSignUp(emailEl.value, passwordEl.value);
-            } else {
-                LoggingService.warn('[UIEventHandlers] Sign up form elements not found.', {functionName:'signUpSubmitHandler'});
-            }
-        }, 'handleUserSignUp');
-
-        attachListener('signInForm', 'submit', (event) => {
-            event.preventDefault();
-            const emailEl = document.getElementById('signInEmail');
-            const passwordEl = document.getElementById('signInPassword');
-             if (emailEl && passwordEl) {
-                UserAccountsFeature.handleSignIn(emailEl.value, passwordEl.value);
-            } else {
-                LoggingService.warn('[UIEventHandlers] Sign in form elements not found.', {functionName:'signInSubmitHandler'});
-            }
-        }, 'handleUserSignIn');
+    if (UserAccountsFeature) { // UserAccountsFeature is imported
+        attachListener('signUpForm', 'submit', handleUserSignUpFormSubmit, 'handleUserSignUpFormSubmit');
+        attachListener('signInForm', 'submit', handleUserSignInFormSubmit, 'handleUserSignInFormSubmit');
 
         attachListener('settingsSignOutBtn', 'click', () => {
             if (UserAccountsFeature.handleSignOut) {
@@ -800,7 +619,7 @@ export function setupEventListeners() {
             const button = event.target.closest('.smart-view-btn');
             if (button && button.dataset.filter) {
                 LoggingService.debug(`[UIEventHandlers] Smart view button clicked: ${button.dataset.filter}`, { functionName: 'smartViewButtonHandler', filter: button.dataset.filter });
-                setFilter(button.dataset.filter);
+                setFilter(button.dataset.filter); // setFilter is still in this file
             }
         });
         LoggingService.debug(`[UIEventHandlers] Smart view buttons container listener attached.`, { functionName, elementId: 'smartViewButtonsContainer' });
@@ -820,9 +639,10 @@ export function setupEventListeners() {
                 LoggingService.debug(`[UIEventHandlers] Sort button clicked: ${item.type}`, { functionName: 'sortButtonHandler', sortType: item.type });
                 ViewManager.setCurrentSort(item.type);
                 try {
-                    const uiRenderingModule = await import('./ui_rendering.js');
-                    if (uiRenderingModule.updateSortButtonStates) {
-                        uiRenderingModule.updateSortButtonStates();
+                    // Dynamically import updateSortButtonStates to avoid circular dependency if it moves
+                    const { updateSortButtonStates } = await import('./ui_rendering.js');
+                    if (updateSortButtonStates) {
+                        updateSortButtonStates();
                     }
                 } catch (e) {
                     LoggingService.error("[UIEventHandlers] Failed to load ui_rendering for sort button update", e, { functionName: 'sortButtonHandler', sortType: item.type });
@@ -858,7 +678,7 @@ export function setupEventListeners() {
 
 
     // Settings Actions
-    attachListener('settingsClearCompletedBtn', 'click', clearCompletedTasks, 'clearCompletedTasks');
+    attachListener('settingsClearCompletedBtn', 'click', clearCompletedTasks, 'clearCompletedTasks'); // clearCompletedTasks is still here
 
     // Keydown listener for Escape and Add Task Shortcut
     document.addEventListener('keydown', (event) => {
@@ -869,16 +689,16 @@ export function setupEventListeners() {
             const aboutUsModalEl = document.getElementById('aboutUsModal');
             const dataVersionHistoryModalEl = document.getElementById('dataVersionHistoryModal');
             const desktopNotificationsSettingsModalEl = document.getElementById('desktopNotificationsSettingsModal');
-            const profileModalEl = document.getElementById('profileModal'); // ADDED: Profile modal reference
+            const profileModalEl = document.getElementById('profileModal');
 
 
             if (document.getElementById('authModal') && !document.getElementById('authModal').classList.contains('hidden') && UserAccountsFeature?.closeAuthModal) UserAccountsFeature.closeAuthModal();
-            else if (profileModalEl && !profileModalEl.classList.contains('hidden')) closeProfileModal(); // ADDED: Close profile modal
+            else if (profileModalEl && !profileModalEl.classList.contains('hidden')) closeProfileModal();
             else if (document.getElementById('addTaskModal') && !document.getElementById('addTaskModal').classList.contains('hidden')) closeAddModal();
             else if (document.getElementById('viewEditTaskModal') && !document.getElementById('viewEditTaskModal').classList.contains('hidden')) closeViewEditModal();
             else if (document.getElementById('viewTaskDetailsModal') && !document.getElementById('viewTaskDetailsModal').classList.contains('hidden')) closeViewTaskDetailsModal();
-            else if (desktopNotificationsSettingsModalEl && !desktopNotificationsSettingsModalEl.classList.contains('hidden')) closeDesktopNotificationsSettingsModal(); 
-            else if (document.getElementById('settingsModal') && !document.getElementById('settingsModal').classList.contains('hidden')) closeSettingsModal(); 
+            else if (desktopNotificationsSettingsModalEl && !desktopNotificationsSettingsModalEl.classList.contains('hidden')) closeDesktopNotificationsSettingsModal();
+            else if (document.getElementById('settingsModal') && !document.getElementById('settingsModal').classList.contains('hidden')) closeSettingsModal();
             else if (document.getElementById('manageLabelsModal') && !document.getElementById('manageLabelsModal').classList.contains('hidden')) closeManageLabelsModal();
             else if (document.getElementById('taskReviewModal') && !document.getElementById('taskReviewModal').classList.contains('hidden')) closeTaskReviewModal();
             else if (document.getElementById('tooltipsGuideModal') && !document.getElementById('tooltipsGuideModal').classList.contains('hidden')) closeTooltipsGuideModal();
@@ -912,7 +732,7 @@ export function setupEventListeners() {
     });
     LoggingService.debug(`[UIEventHandlers] Document keydown listener attached.`, { functionName });
 
-    // Sub-task add buttons
+    // Sub-task add buttons (still here for now)
     attachListener('modalAddSubTaskBtnAdd', 'click', handleAddTempSubTaskForAddModal, 'handleAddTempSubTaskForAddModal');
     attachListener('modalAddSubTaskBtnViewEdit', 'click', handleAddSubTaskViewEdit, 'handleAddSubTaskViewEdit');
 
