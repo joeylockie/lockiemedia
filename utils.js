@@ -115,5 +115,5 @@ export function formatMillisecondsToHMS(ms) {
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`; //
 }
 
-// MODIFIED: Use LoggingService
-LoggingService.debug("utils.js loaded as ES6 module.", { module: 'utils' });
+// REMOVED: LoggingService.debug("utils.js loaded as ES6 module.", { module: 'utils' });
+// console.log("utils.js module parsed and functions defined."); // Optional

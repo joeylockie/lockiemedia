@@ -136,5 +136,5 @@ export function getSelectedIds() { //
     return [..._selectedTaskIds]; // Return a copy //
 }
 
-// MODIFIED: Use LoggingService
-LoggingService.debug("bulkActionService.js loaded as ES6 module.", { module: 'bulkActionService' });
+// REMOVED: LoggingService.debug("bulkActionService.js loaded as ES6 module.", { module: 'bulkActionService' });
+// console.log("bulkActionService.js module parsed and functions defined."); // Optional

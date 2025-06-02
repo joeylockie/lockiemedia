@@ -174,5 +174,5 @@ const ViewManager = { //
 
 export default ViewManager; //
 
-// MODIFIED: Use LoggingService
-LoggingService.debug("viewManager.js loaded as ES6 module, owns its UI state.", { module: 'viewManager' });
+// REMOVED: LoggingService.debug("viewManager.js loaded as ES6 module, owns its UI state.", { module: 'viewManager' });
+// console.log("viewManager.js module parsed and ViewManager object is now defined."); // Optional

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LockieMedia - Admin Panel</title>
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="style.css"> <style>
+        /* Admin panel specific styles can go here or in a new admin.css */
+        body {
+            background-color: #f3f4f6; /* A light gray background for the admin panel */
+        }
+        .admin-section {
+            background-color: white;
+            padding: 1.5rem; /* p-6 */
+            border-radius: 0.75rem; /* rounded-xl */
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); /* shadow-md */
+            margin-bottom: 2rem; /* mb-8 */
+        }
+        .admin-section-title {
+            font-size: 1.5rem; /* text-2xl */
+            font-weight: 600; /* semibold */
+            color: #1f2937; /* text-gray-800 */
+            margin-bottom: 1rem; /* mb-4 */
+            border-bottom: 1px solid #e5e7eb; /* border-gray-200 */
+            padding-bottom: 0.5rem; /* pb-2 */
+        }
+        .stat-card {
+            background-color: #f9fafb; /* gray-50 */
+            padding: 1rem;
+            border-radius: 0.5rem; /* rounded-lg */
+            border: 1px solid #e5e7eb; /* border-gray-200 */
+        }
+        /* Basic table styling */
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .admin-table th, .admin-table td {
+            border: 1px solid #e5e7eb; /* border-gray-200 */
+            padding: 0.5rem 0.75rem; /* py-2 px-3 */
+            text-align: left;
+            font-size: 0.875rem; /* text-sm */
+        }
+        .admin-table th {
+            background-color: #f9fafb; /* bg-gray-50 */
+            font-weight: 600; /* semibold */
+        }
+        .admin-table tbody tr:nth-child(odd) {
+            background-color: #f9fafb; /* bg-gray-50 */
+        }
+        .admin-table tbody tr:hover {
+            background-color: #f3f4f6; /* bg-gray-100 */
+        }
+        #adminMessageBox {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        .admin-message {
+            padding: 1rem;
+            border-radius: 0.375rem;
+            color: white;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .admin-message.error { background-color: #ef4444; } /* Red-500 */
+        .admin-message.success { background-color: #22c55e; } /* Green-500 */
+        .admin-message.info { background-color: #3b82f6; } /* Blue-500 */
+
+    </style>
+    <script defer src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+</head>
+<body class="font-sans">
+
+    <div id="adminMessageBox"></div>
+
+    <div id="adminAuthModal" class="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-[200] hidden">
+        <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-sm">
+            <h2 class="text-2xl font-semibold text-center mb-6">Admin Panel Login</h2>
+            <form id="adminLoginForm">
+                <div class="mb-4">
+                    <label for="adminEmail" class="block text-sm font-medium text-gray-700">Email</label>
+                    <input type="email" id="adminEmail" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm">
+                </div>
+                <div class="mb-6">
+                    <label for="adminPassword" class="block text-sm font-medium text-gray-700">Password</label>
+                    <input type="password" id="adminPassword" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm">
+                </div>
+                <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500">
+                    Sign In
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div id="adminContent" class="hidden">
+        <header class="bg-slate-800 text-white shadow-lg">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16">
+                <h1 class="text-xl sm:text-2xl font-bold">LockieMedia App - Admin Dashboard</h1>
+                <div>
+                    <span id="adminUserDisplay" class="text-sm mr-4"></span>
+                    <button id="adminSignOutButton" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg text-sm transition-colors">
+                        Sign Out
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="container mx-auto p-4 sm:p-6 lg:p-8">
+            <section id="overviewStatsSection" class="admin-section">
+                <h2 class="admin-section-title">Overview</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="stat-card">
+                        <h3 class="text-lg font-medium text-gray-700">Total Users</h3>
+                        <p id="totalUsersStat" class="text-3xl font-bold text-sky-600">Loading...</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3 class="text-lg font-medium text-gray-700">Logged Errors (24h)</h3>
+                        <p id="errorsTodayStat" class="text-3xl font-bold text-red-600">Loading...</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3 class="text-lg font-medium text-gray-700">Active Features</h3>
+                        <p id="activeFeaturesStat" class="text-3xl font-bold text-green-600">Loading...</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="featureFlagsSection" class="admin-section">
+                <h2 class="admin-section-title">Feature Flags Status (Read-Only)</h2>
+                <div id="featureFlagsList" class="overflow-x-auto">
+                    <p>Loading feature flags...</p>
+                    </div>
+            </section>
+
+            <section id="errorLogsSection" class="admin-section">
+                <h2 class="admin-section-title">Application Error Logs</h2>
+                <div class="flex justify-end mb-2">
+                    <button id="refreshErrorLogsButton" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-3 rounded-lg text-xs transition-colors flex items-center">
+                        <i class="fas fa-sync-alt mr-1"></i> Refresh Logs
+                    </button>
+                </div>
+                <div id="errorLogsList" class="overflow-x-auto max-h-96 overflow-y-auto">
+                    <p>Loading error logs...</p>
+                    </div>
+            </section>
+
+            <section id="userManagementSection" class="admin-section">
+                <h2 class="admin-section-title">User Management (Basic Info)</h2>
+                <div id="userList" class="overflow-x-auto">
+                    <p>User listing functionality coming soon. Requires careful consideration of data access rules.</p>
+                    </div>
+            </section>
+
+            <section id="abTestingSection" class="admin-section">
+                <h2 class="admin-section-title">A/B Testing Stats</h2>
+                <p>A/B testing statistics display coming soon.</p>
+            </section>
+
+        </main>
+    </div>
+
+    <script src="loggingService.js" type="module"></script> <script src="eventBus.js" type="module"></script> <script src="featureFlagService.js" type="module"></script> <script src="firebaseService.js" type="module"></script> <script src="admin_main.js" type="module"></script>
+
+</body>
+</html>

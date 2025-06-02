@@ -2,7 +2,7 @@
 // Manages User Accounts Feature using Firebase Authentication.
 
 import { isFeatureEnabled } from './featureFlagService.js';
-import LoggingService from './loggingService.js';
+import LoggingService, { initializeFirestoreLogging } from './loggingService.js'; // Import the new initializer
 import AppStore from './store.js';
 import EventBus from './eventBus.js';
 // Import modal_interactions to close the profile modal after saving
@@ -22,11 +22,11 @@ const firebaseConfig = {
 
 let firebaseApp;
 let firebaseAuth;
-let firestoreDB;
+let firestoreDB; // This is the instance we need to pass to LoggingService
 
 // DOM Elements
 let authModal;
-let authModalDialog;
+let authModalDialog; // Ensure this ID is correct in your HTML ('modalDialogAuth')
 let settingsSignOutBtn;
 let signUpEmailInput, signInEmailInput;
 
@@ -97,11 +97,17 @@ function initialize() {
             LoggingService.critical('[UserAccountsFeature] CRITICAL: Firebase Firestore SDK not loaded.', new Error('FirebaseFirestoreNotLoaded'), { functionName });
             return;
         }
-        firestoreDB = firebase.firestore();
+        firestoreDB = firebase.firestore(); 
         LoggingService.info('[UserAccountsFeature] Firebase Firestore instance obtained.', { functionName });
+        
+        initializeFirestoreLogging(firestoreDB); 
+
 
         authModal = document.getElementById('authModal');
-        authModalDialog = document.getElementById('authModalDialog');
+        // Corrected ID here based on typical modal structure in provided HTML
+        authModalDialog = document.getElementById('authModalDialog') || document.getElementById('modalDialogAuth'); // Fallback if ID varies
+        if (!authModalDialog && authModal) authModalDialog = authModal.querySelector('div[id^="modalDialog"]'); // More generic fallback
+
         settingsSignOutBtn = document.getElementById('settingsSignOutBtn');
         signUpEmailInput = document.getElementById('signUpEmail');
         signInEmailInput = document.getElementById('signInEmail');
@@ -113,7 +119,7 @@ function initialize() {
                 closeAuthModal();
                 if (AppStore.startStreamingUserData) {
                     LoggingService.info(`[UserAccountsFeature] Attempting to START streaming data for user: ${user.uid}`, { functionName: authStateFunctionName });
-                    AppStore.startStreamingUserData(user.uid); // This stream now includes profile data
+                    AppStore.startStreamingUserData(user.uid);
                 } else {
                     LoggingService.warn('[UserAccountsFeature] AppStore.startStreamingUserData not available.', { functionName: authStateFunctionName });
                 }
@@ -133,7 +139,7 @@ function initialize() {
                     LoggingService.warn('[UserAccountsFeature] AppStore.clearLocalStoreAndReloadDefaults not available.', { functionName: authStateFunctionName });
                 }
 
-                if (isFeatureEnabled('userAccounts')) { // This check remains for the auth modal itself
+                if (isFeatureEnabled('userAccounts')) {
                     openAuthModal();
                 } else {
                     closeAuthModal();
@@ -172,7 +178,7 @@ function updateUIVisibility() {
     }
     
     document.querySelectorAll('.user-accounts-feature-element').forEach(el => {
-        if (el.id === 'authModal' && !isUserAccountsActuallyEnabled) {
+        if (el.id === 'authModal' && !isUserAccountsActuallyEnabled) { // Keep authModal logic specific
             el.classList.add('hidden');
         } else if (el.id !== 'authModal') { 
             el.classList.toggle('hidden', !isUserAccountsActuallyEnabled);
@@ -181,7 +187,7 @@ function updateUIVisibility() {
     
     const settingsManageProfileBtn = document.getElementById('settingsManageProfileBtn');
     if (settingsManageProfileBtn) {
-        settingsManageProfileBtn.classList.toggle('hidden', !currentUser);
+        settingsManageProfileBtn.classList.toggle('hidden', !currentUser); // Only show if a user is logged in, regardless of userAccounts feature flag for this specific button
     }
 
     LoggingService.info(`[UserAccountsFeature] UI Visibility updated. UserAccounts Feature: ${isUserAccountsActuallyEnabled}, User: ${currentUser ? currentUser.email : 'None'}`, { functionName });
@@ -201,12 +207,10 @@ async function handleSignUp(email, password) {
         const userCredential = await firebaseAuth.createUserWithEmailAndPassword(email, password);
         LoggingService.info(`[UserAccountsFeature] User signed up successfully: ${userCredential.user.email}`, { functionName, userEmail: userCredential.user.email });
         
-        // Create a default profile with a role for the new user
         const defaultProfile = {
-            displayName: userCredential.user.email, // Or a default name like 'New User'
-            role: 'user' // Assign default role
+            displayName: userCredential.user.email.split('@')[0] || 'New User', // Default display name
+            role: 'user' 
         };
-        // Save this initial profile through AppStore.setUserProfile which will also save to Firestore
         if (AppStore && typeof AppStore.setUserProfile === 'function') {
             await AppStore.setUserProfile(defaultProfile, 'UserAccountsFeature.handleSignUp_defaultProfile');
             LoggingService.info(`[UserAccountsFeature] Default profile with role set for new user ${userCredential.user.uid}`, { functionName, userId: userCredential.user.uid, profile: defaultProfile });
@@ -259,11 +263,9 @@ async function handleSignOut() {
         EventBus.publish('displayUserMessage', { text: 'Signed out successfully.', type: 'success' });
         
         const settingsModalEl = document.getElementById('settingsModal');
-        const closeSettingsModalFn = (typeof window !== 'undefined' && window.ModalInteractions?.closeSettingsModal) || 
-                                     (typeof closeSettingsModal === 'function' ? closeSettingsModal : null);
-
-        if (settingsModalEl && !settingsModalEl.classList.contains('hidden') && closeSettingsModalFn) {
-            closeSettingsModalFn();
+        // Ensure ModalInteractions is available if trying to close modal this way
+        if (settingsModalEl && !settingsModalEl.classList.contains('hidden') && window.AppFeatures && window.AppFeatures.ModalInteractions && window.AppFeatures.ModalInteractions.closeSettingsModal) {
+            window.AppFeatures.ModalInteractions.closeSettingsModal();
         }
     } catch (error) {
         LoggingService.error('[UserAccountsFeature] Error signing out:', error, { functionName });
@@ -271,10 +273,6 @@ async function handleSignOut() {
     }
 }
 
-/**
- * Handles saving the user's profile data.
- * @param {object} profileData - The profile data to save (e.g., { displayName: '...' }).
- */
 async function handleSaveProfile(profileData) {
     const functionName = 'handleSaveProfile (UserAccountsFeature)';
     LoggingService.info('[UserAccountsFeature] Attempting to save profile.', { functionName, profileData });
@@ -292,10 +290,6 @@ async function handleSaveProfile(profileData) {
     }
 
     try {
-        // The role is part of the profile managed by AppStore.
-        // When saving, AppStore.setUserProfile merges intelligently.
-        // This function focuses on saving what the modal provides (e.g., displayName).
-        // If roles were editable via this modal, profileData would include the new role.
         await AppStore.setUserProfile(profileData, 'UserAccountsFeature.handleSaveProfile'); 
         LoggingService.info(`[UserAccountsFeature] Profile saved successfully for user ${firebaseAuth.currentUser.uid}.`, { functionName });
         EventBus.publish('displayUserMessage', { text: 'Profile saved successfully!', type: 'success' });
@@ -306,12 +300,11 @@ async function handleSaveProfile(profileData) {
     }
 }
 
-
 export function getFirestoreInstance() {
     if (!firestoreDB) {
-        LoggingService.warn('[UserAccountsFeature] Firestore instance requested before proper initialization or if init failed.', { functionName: 'getFirestoreInstance' });
-        if (typeof firebase !== 'undefined' && typeof firebase.firestore === 'function') {
-            LoggingService.info('[UserAccountsFeature] Attempting to get Firestore instance on-demand in getFirestoreInstance.', { functionName: 'getFirestoreInstance' });
+        LoggingService.warn('[UserAccountsFeature] Firestore instance requested before proper initialization or if init failed in UserAccounts.', { functionName: 'getFirestoreInstance' });
+        if (typeof firebase !== 'undefined' && typeof firebase.firestore === 'function' && firebase.apps.length > 0) {
+             LoggingService.info('[UserAccountsFeature] Attempting to get Firestore instance on-demand in getFirestoreInstance.', { functionName: 'getFirestoreInstance' });
             return firebase.firestore(); 
         }
         return null;
@@ -331,4 +324,5 @@ export const UserAccountsFeature = {
     handleSaveProfile
 };
 
-LoggingService.debug("feature_user_accounts.js loaded as ES6 module.", { module: 'feature_user_accounts' });
+// REMOVED: LoggingService.debug("feature_user_accounts.js loaded as ES6 module.", { module: 'feature_user_accounts' });
+// console.log("feature_user_accounts.js module parsed and UserAccountsFeature object is now defined."); // Optional

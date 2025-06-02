@@ -45,5 +45,5 @@ const TooltipService = { //
 
 export default TooltipService; //
 
-// MODIFIED: Use LoggingService
-LoggingService.debug("tooltipService.js loaded as ES6 module.", { module: 'tooltipService' });
+// REMOVED: LoggingService.debug("tooltipService.js loaded as ES6 module.", { module: 'tooltipService' });
+// console.log("tooltipService.js module parsed and TooltipService object is now defined."); // Optional

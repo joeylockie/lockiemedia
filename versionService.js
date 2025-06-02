@@ -197,5 +197,5 @@ export function getAppVersionObject() {
   return { ..._currentVersion }; // Return a copy to prevent modification
 }
 
-// Initialize LoggingService message
-LoggingService.debug("versionService.js loaded as ES6 module.", { module: 'versionService' });
+// REMOVED: LoggingService.debug("versionService.js loaded as ES6 module.", { module: 'versionService' });
+// console.log("versionService.js module parsed and functions defined."); // Optional

@@ -37,7 +37,7 @@ function startTimerLogic(taskId) {
         LoggingService.warn(`[TaskTimerSystem] Task ID ${taskId} not found for starting timer.`, { functionName, taskId });
         return false;
     }
-    
+
     const task = currentTasks[taskIndex]; //
     // If timer was previously stopped and recorded, or task completed, reset before re-timing
     if (task.completed || (task.actualDurationMs && task.actualDurationMs > 0 && !task.timerIsPaused && !task.timerIsRunning)) { //
@@ -70,7 +70,7 @@ function pauseTimerLogic(taskId) {
         LoggingService.warn(`[TaskTimerSystem] Task ID ${taskId} not found or timer not running for pausing.`, { functionName, taskId, timerIsRunning: currentTasks[taskIndex]?.timerIsRunning });
         return false;
     }
-    
+
     const task = currentTasks[taskIndex]; //
     const elapsed = Date.now() - (task.timerStartTime || Date.now()); // Ensure timerStartTime is not null //
     task.timerAccumulatedTime = (task.timerAccumulatedTime || 0) + elapsed; //
@@ -284,7 +284,7 @@ function setupTimerForModal(task) {
     LoggingService.debug(`[TaskTimerSystem] Setting up timer for modal for task ID: ${task.id}.`, { functionName, taskId: task.id, taskEstHours: task.estimatedHours, taskEstMinutes: task.estimatedMinutes });
     const viewTaskEstDurationEl = document.getElementById('viewTaskEstDuration'); //
     if (viewTaskEstDurationEl) viewTaskEstDurationEl.textContent = formatDuration(task.estimatedHours, task.estimatedMinutes); //
-    
+
     updateTimerControlsUI(task); // This will set button visibility and timer display based on task state //
 
     if (task.timerIsRunning && !task.completed && task.timerStartTime) { //
@@ -353,5 +353,5 @@ export const TaskTimerSystemFeature = { //
     getEstimatesFromEditModal //
 };
 
-// MODIFIED: Use LoggingService
-LoggingService.debug("task_timer_system.js loaded as ES6 module.", { module: 'task_timer_system' });
+// REMOVED: LoggingService.debug("task_timer_system.js loaded as ES6 module.", { module: 'task_timer_system' });
+// console.log("task_timer_system.js module parsed and TaskTimerSystemFeature object is now defined."); // Optional

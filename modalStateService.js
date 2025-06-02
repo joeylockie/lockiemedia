@@ -6,14 +6,13 @@ import EventBus from './eventBus.js';
 import LoggingService from './loggingService.js';
 
 // --- Internal State (scoped to this module) ---
-let _editingTaskId = null; //
-let _currentViewTaskId = null; //
+let _editingTaskId = null;
+let _currentViewTaskId = null;
 
 function _publish(eventName, data) {
-    if (EventBus && typeof EventBus.publish === 'function') { //
-        EventBus.publish(eventName, data); //
+    if (EventBus && typeof EventBus.publish === 'function') {
+        EventBus.publish(eventName, data);
     } else {
-        // MODIFIED: Use LoggingService
         LoggingService.warn(`[ModalStateService] EventBus not available to publish event: ${eventName}`, {
             eventName,
             data,
@@ -28,17 +27,15 @@ function _publish(eventName, data) {
  */
 function setEditingTaskId(taskId) {
     const functionName = 'setEditingTaskId'; // For logging context
-    if (_editingTaskId !== taskId) { //
-        _editingTaskId = taskId; //
-        // MODIFIED: Use LoggingService
+    if (_editingTaskId !== taskId) {
+        const oldId = _editingTaskId; // Capture old ID for logging
+        _editingTaskId = taskId;
         LoggingService.info(`[ModalStateService] Editing Task ID set to: ${_editingTaskId}`, {
             functionName,
             newEditingTaskId: _editingTaskId,
-            previousEditingTaskId: _editingTaskId === taskId ? 'N/A (was same)' : _editingTaskId // This logic is a bit off here, corrected below
+            previousEditingTaskId: oldId 
         });
-        // Corrected logging for previous ID before reassignment
-        // LoggingService.info(`[ModalStateService] Editing Task ID changed.`, { functionName, newEditingTaskId: taskId, previousEditingTaskId: oldId });
-        _publish('editingTaskChanged', _editingTaskId); // Optional: if other modules need to react
+        _publish('editingTaskChanged', _editingTaskId);
     }
 }
 
@@ -46,8 +43,8 @@ function setEditingTaskId(taskId) {
  * Gets the ID of the task currently being edited.
  * @returns {number|null}
  */
-function getEditingTaskId() { //
-    return _editingTaskId; //
+function getEditingTaskId() {
+    return _editingTaskId;
 }
 
 /**
@@ -56,17 +53,15 @@ function getEditingTaskId() { //
  */
 function setCurrentViewTaskId(taskId) {
     const functionName = 'setCurrentViewTaskId'; // For logging context
-    if (_currentViewTaskId !== taskId) { //
-        // Let's capture the old ID before changing, for more accurate logging.
+    if (_currentViewTaskId !== taskId) {
         const oldViewTaskId = _currentViewTaskId;
-        _currentViewTaskId = taskId; //
-        // MODIFIED: Use LoggingService
+        _currentViewTaskId = taskId;
         LoggingService.info(`[ModalStateService] Current View Task ID set to: ${_currentViewTaskId}`, {
             functionName,
             newViewTaskId: _currentViewTaskId,
             previousViewTaskId: oldViewTaskId
         });
-        _publish('viewingTaskChanged', _currentViewTaskId); // Optional: if other modules need to react
+        _publish('viewingTaskChanged', _currentViewTaskId);
     }
 }
 
@@ -74,18 +69,18 @@ function setCurrentViewTaskId(taskId) {
  * Gets the ID of the task currently being viewed in detail.
  * @returns {number|null}
  */
-function getCurrentViewTaskId() { //
-    return _currentViewTaskId; //
+function getCurrentViewTaskId() {
+    return _currentViewTaskId;
 }
 
-const ModalStateService = { //
-    setEditingTaskId, //
-    getEditingTaskId, //
-    setCurrentViewTaskId, //
-    getCurrentViewTaskId //
+const ModalStateService = {
+    setEditingTaskId,
+    getEditingTaskId,
+    setCurrentViewTaskId,
+    getCurrentViewTaskId
 };
 
-export default ModalStateService; //
+export default ModalStateService;
 
-// MODIFIED: Use LoggingService
-LoggingService.debug("modalStateService.js loaded as ES6 module.", { module: 'modalStateService' });
+// REMOVED: LoggingService.debug("modalStateService.js loaded as ES6 module.", { module: 'modalStateService' });
+// console.log("modalStateService.js module parsed and ModalStateService object is now defined."); // Optional
