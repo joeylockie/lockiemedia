@@ -88,7 +88,7 @@ function showUpdateNotificationBar(data) {
 
     const messageP = document.createElement('p');
     messageP.className = 'text-sm sm:text-base text-left sm:text-center flex-grow';
-    messageP.innerHTML = `� A new version (<strong>v${newVersionString}</strong>) is available! Refresh to get the latest features and improvements.`;
+    messageP.innerHTML = `&#x1F680; A new version (<strong>v${newVersionString}</strong>) is available! Refresh to get the latest features and improvements.`;
 
     const buttonsDiv = document.createElement('div');
     buttonsDiv.className = 'flex-shrink-0 flex flex-col sm:flex-row gap-2 sm:gap-3 items-center mt-2 sm:mt-0';
@@ -174,27 +174,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     LoggingService.info("[Main] DOMContentLoaded event fired. Starting application initialization...");
 
     try {
-        await loadFeatureFlags(); // Load flags from Firestore/JSON/localStorage
-        LoggingService.info("[Main] Feature flags loading process completed.");
-
-        // Now that flags are loaded, initialize log level based on 'debugMode' flag
-        LoggingService.initializeLogLevel(); // This will re-check and set the level
-        LoggingService.info(`[Main] Log level set to: ${LoggingService.getCurrentLevelName()} after feature flag load.`);
-
-    } catch (e) {
-        LoggingService.critical("[Main] CRITICAL: Error loading feature flags!", e, { step: "loadFeatureFlags" });
-        showCriticalErrorImported("Failed to load application configuration. Please try again later.", "CONFIG_LOAD_FAIL");
-        return; // Stop further execution if flags can't load
-    }
-
-    try {
-        await loadAppVersion();
-        LoggingService.info(`[Main] Application Version: ${getAppVersionString()} successfully loaded.`);
-    } catch (e) {
-        LoggingService.error("[Main] Error loading application version. Default will be used.", e);
-    }
-
-    try {
         uiRendering = await import('./ui_rendering.js');
         if (uiRendering.showCriticalError) {
             showCriticalErrorImported = uiRendering.showCriticalError;
@@ -214,6 +193,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         showCriticalErrorImported("CRITICAL: UI Initialization Failed. Please refresh. " + e.message, "UI_INIT_FAIL");
         return; // Stop further execution
     }
+
 
     // Expose essential services and features globally under AppFeatures namespace
     // This helps avoid circular dependencies and makes them accessible for event handlers or console debugging.
@@ -267,6 +247,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     } else {
         LoggingService.warn('[Main] UserAccountsFeature or its initialize function is not available.');
+    }
+
+    // Now that Firebase is initialized, load feature flags
+    try {
+        await loadFeatureFlags(); // Load flags from Firestore/JSON/localStorage
+        LoggingService.info("[Main] Feature flags loading process completed.");
+
+        // Now that flags are loaded, initialize log level based on 'debugMode' flag
+        LoggingService.initializeLogLevel(); // This will re-check and set the level
+        LoggingService.info(`[Main] Log level set to: ${LoggingService.getCurrentLevelName()} after feature flag load.`);
+
+    } catch (e) {
+        LoggingService.critical("[Main] CRITICAL: Error loading feature flags!", e, { step: "loadFeatureFlags" });
+        showCriticalErrorImported("Failed to load application configuration. Please try again later.", "CONFIG_LOAD_FAIL");
+        return; // Stop further execution if flags can't load
+    }
+
+
+    try {
+        await loadAppVersion();
+        LoggingService.info(`[Main] Application Version: ${getAppVersionString()} successfully loaded.`);
+    } catch (e) {
+        LoggingService.error("[Main] Error loading application version. Default will be used.", e);
     }
 
     // Initialize Store
@@ -394,7 +397,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     LoggingService.info("[Main] Global event listeners set up.");
 
     LoggingService.info("---------------------------------------------------------");
-    LoggingService.info("         Todo App Initialization Complete �");
+    LoggingService.info("         Todo App Initialization Complete &#x2705;");
     LoggingService.info("---------------------------------------------------------");
 });
 
