@@ -1,6 +1,8 @@
 # AI Project Curation Log: LockieMedia Todo App & Admin Panel
 
-**Last Updated:** 2025-06-02 18:47 (EDT) ## 0. Instructions for AI (Gemini)
+**Last Updated:** 2025-06-02 18:47 (EDT) ## 
+
+0. Instructions for AI (Gemini)
 
 **Purpose of this Document:** This document is your primary source of truth for the LockieMedia Todo App & Admin Panel project. It provides context, tracks progress, outlines current tasks, and lists future goals. Please refer to it to understand:
     * The overall project scope.
@@ -9,37 +11,29 @@
     * The specific sub-tasks and files involved in the current session.
     * Any known issues or important decisions made.
 
-**How to Use:**
-1.  **Prioritize this Document:** When the user provides this document or refers to it, consider its content as the most up-to-date information, potentially overriding previous chat history if there are discrepancies regarding project state.
-2.  **Understand Current Focus:** Pay close attention to **Section 5: Current Focus / Next Steps** to understand the immediate objectives.
-3.  **Avoid Redundancy:** Use the "Work Completed" sections (3 and 4) to avoid re-suggesting solutions or code for tasks already finished.
-4.  **Contextual Awareness:** Use the "Project Overview" (Section 1) and "Important Notes / Decisions Made" (Section 8) for broader context.
-5.  **Updating (AI - Your Role):** While you cannot directly edit this file, at the end of a productive session, if the user asks you to "help update the AI Project Log" or similar, your task is to:
-    * Summarize the key accomplishments of the session.
-    * Identify what the next logical steps or remaining sub-tasks are based on our conversation.
-    * Point out any new known issues or important decisions made during the session.
-    * Present this summary to the user in a clear, bulleted format, specifically referencing which sections of this document they should update with the information you provide. For example:
-        * "User, please update Section 4 (Work Completed - Current Task) with: ..."
-        * "User, for Section 5 (Current Focus / Next Steps), we should note that the next step is: ..."
+**How to Use & Update This Document:** 
 
-## 0. Instructions for User (Joey)
+* **Prioritize this Document:** When the user provides this document or refers to it at the start of a session, consider its content as the most up-to-date information, potentially overriding previous chat history if there are discrepancies regarding project state.
+* **Understand Current Focus:** Pay close attention to Section 5: Current Focus / Next Steps from the previous version of this log to understand the immediate objectives for the current session.
+* **Track Session Progress:** During our development session, keep track of:
+    * Tasks completed and files modified/created.
+    * New issues or bugs identified.
+    * Key decisions made.
+    * The next logical steps or remaining sub-tasks.
+* **Generate Updated Log Content (End of Session):**
+    * When the user asks you to "update the AI Project Log" (or similar), your task is to regenerate the entire Markdown content for this document.
+    * You will use the previous version of this log (provided by the user at the start of the session or from the current context if it's the same session) as your base.
+    * Update all relevant sections based on the work done during the session, including:
+        * The "Last Updated" timestamp at the top (use the current date and time).
+        * Section 4: Work Completed (Specific to Current Major Task): Add a new dated entry summarizing the session's accomplishments.
+        * Section 5: Current Focus / Next Steps: Update this to reflect what the next immediate actions should be. If the current sub-task is complete, define the next one. Clear out old "Specific questions for AI" if answered, or add new ones.
+        * Section 6: Known Issues / Bugs: Add any new issues identified.
+        * Section 8: Important Notes / Decisions Made: Add any significant decisions.
+        * If a major feature part of Section 2 is completed, update its status and summarize in Section 3.
+    * Maintain Format: Preserve the existing Markdown structure and formatting.
+    * Provide Complete Output: Present the entire, fully updated Markdown content back to the user so they can replace the content of their AI_PROJECT_LOG.md file.
+* **Avoid Redundancy:** Use the "Work Completed" sections (3 and 4) from the previous log version to avoid re-suggesting solutions or code for tasks already finished before the current session began.
 
-**Purpose:** This log helps you maintain continuity and clarity when working on this project with an AI assistant (like Gemini). It ensures the AI has the best possible context to help you efficiently.
-
-**How to Update:**
-1.  **Last Updated:** ALWAYS update the timestamp at the top of this document at the beginning and end of each development session.
-2.  **Section 2 (Current Major Task):** Update this when you shift focus to a new major feature or component.
-3.  **Section 4 (Work Completed - Current Major Task):** At the end of each session, or after completing a significant sub-task, add a dated entry summarizing what was accomplished. The AI can help you formulate this summary.
-4.  **Section 5 (Current Focus / Next Steps):**
-    * **Before ending a session:** Clearly define what the *very next action* or *file to work on* will be when you resume.
-    * **At the start of a new session:** Review this section to refresh your own memory and to guide the AI.
-    * List any specific questions you have for the AI here.
-5.  **Section 3 (Work Completed - Overall):** Update this less frequently, perhaps after a major feature (like the initial admin panel setup) is mostly complete.
-6.  **Other Sections (Known Issues, Future Work, Important Notes):** Update these as new issues are found, new ideas for the future emerge, or key decisions are made.
-7.  **Be Specific:** The more specific you are (e.g., file names, function names, exact errors), the better the AI can assist.
-8.  **Share with AI:** At the start of a new session, copy and paste the *entire content* of this updated Markdown file into the chat with the AI.
-
----
 
 ## 1. Project Overview & Goals:
 
@@ -104,8 +98,6 @@
 
 ## 6. Known Issues / Bugs (Related to current work or recently discovered):
 
-* The error `FirebaseError: Missing or insufficient permissions` when `featureFlagService.js` tried to fetch flags from Firestore initially. This was mitigated by ensuring an authenticated user exists before the fetch, but the root cause might be that the initial, unauthenticated read is still attempted by some part of Firebase's auto-initialization if not carefully managed. For now, the admin panel works once an admin is logged in.
-* The Firestore `Write` 400 errors in the console when the admin panel loads and signs out a non-admin user. This might be related to Firestore trying to persist some state or pending writes from a previous (potentially anonymous) session that gets terminated abruptly. (This is an observation from the user's console log, needs more investigation if it persists or causes issues).
 
 ## 7. Future/Pending Work (Overall Project - High Level):
 
