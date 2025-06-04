@@ -1,10 +1,10 @@
-# AI Project Curation Log: LockieMedia Todo App & Admin Panel
+# AI Project Curation Log: LockieMedia Personal and Business Management Service
 
-**Last Updated:** 2025-06-03 21:40 (EDT) ## 
+**Last Updated:** 2025-06-03 23:36 (EDT) ## 
 
 0. Instructions for AI (Gemini)
 
-**Purpose of this Document:** This document is your primary source of truth for the LockieMedia Todo App & Admin Panel project. It provides context, tracks progress, outlines current tasks, and lists future goals. Please refer to it to understand:
+**Purpose of this Document:** This document is your primary source of truth for the LockieMedia Personal and Business Management Service project. It provides context, tracks progress, outlines current tasks, and lists future goals. Please refer to it to understand:
     * The overall project scope.
     * What has already been completed.
     * What the user (Joey) is currently working on with your assistance.
@@ -35,22 +35,23 @@
 
 ## 1. Project Overview & Goals:
 
-* **Application:** A feature-rich "LockieMedia Todo App" and an accompanying "Admin Panel".
+* **Application:** "LockieMedia Personal and Business Management Service" and an accompanying "Admin Panel".
+* **Vision:** To become an all-in-one personal and business management service.
 * **Technology:** Client-side HTML, CSS (Tailwind), JavaScript (ES6 Modules), Firebase (Auth & Firestore - Compat SDK v8 style) for backend.
-* **Todo App Core:** Task management (CRUD, due dates, priority, labels, notes), feature flag system, modular services. Data stored in Firebase for authenticated users, with local fallbacks.
-* **Admin Panel Core:** Separate HTML page (`admin.html`) using the same Firebase backend. Provides insights and monitoring for the Todo App. Includes admin authentication, display of error logs from Firestore, and read-only view of feature flags.
-* **Overall Goal:** Develop a robust, feature-complete Todo application with a functional Admin Panel for application monitoring and management insights.
+* **Core Service Features (Initial Focus):** Task management (CRUD, due dates, priority, labels, notes), project organization, time management tools, feature flag system, modular services. Data stored in Firebase for authenticated users, with local fallbacks.
+* **Admin Panel Core:** Separate HTML page (`admin.html`) using the same Firebase backend. Provides insights and monitoring for the Service. Includes admin authentication, display of error logs from Firestore, and read-only view of feature flags.
+* **Overall Goal:** Develop a robust, feature-complete Personal and Business Management Service with a functional Admin Panel for application monitoring and management insights.
 
 ## 2. Current Major Task/Feature Being Worked On:
 
-* **Name:** Admin Panel - Initial Setup & Core Features (with parallel debugging of Todo App)
-* **Goal for this Task:** Establish a functional Admin Panel with admin authentication, display of critical application data (error logs, feature flags), and lay the groundwork for user management and overview statistics. Concurrently, address critical bugs in the main Todo App that affect core functionality like feature flag interpretation and UI rendering.
-* **Status:** In Progress (Admin login, error log display, feature flag display, and error logging test functionality are functional in Admin Panel. Several critical bugs in Todo App resolved).
+* **Name:** Admin Panel - Initial Setup & Core Features (with parallel debugging of the core Service)
+* **Goal for this Task:** Establish a functional Admin Panel with admin authentication, display of critical application data (error logs, feature flags), and lay the groundwork for user management and overview statistics. Concurrently, address critical bugs in the main Service that affect core functionality like feature flag interpretation and UI rendering.
+* **Status:** In Progress (Admin login, error log display, feature flag display, and error logging test functionality are functional in Admin Panel. Several critical bugs in the core Service resolved).
 
 ## 3. Work Completed (Overall Project - High Level):
 
-* **Todo App (Main Application):**
-    * Core task management functionalities implemented.
+* **LockieMedia Service (Main Application):**
+    * Core task management functionalities implemented as a foundational module.
     * Feature flag system (`featureFlagService.js`, `features.json`) established.
     * Modular architecture with services for logging, events, view management, tasks, projects, labels, etc.
     * Firebase integration for user authentication and data persistence (tasks, projects, preferences, profile with roles) via `firebaseService.js` and `store.js`.
@@ -60,7 +61,7 @@
 * **Admin Panel (as part of the current major task):**
     * Initial setup and core features, including enhanced logging and testing capabilities (see Section 4 for details).
 
-## 4. Work Completed (Specific to Current Major Task - "Admin Panel - Initial Setup & Core Features" and Todo App Debugging):
+## 4. Work Completed (Specific to Current Major Task - "Admin Panel - Initial Setup & Core Features" and Service Debugging):
 
 * **Date: 2025-06-02**
     * Created `admin.html` with a basic layout, sections, and an admin login modal.
@@ -77,26 +78,34 @@
     * Fixed issue where the UI version display (e.g., in the footer) did not match the version specified in `version.json`.
     * Addressed issue where smart view filter buttons initially appeared as text-only.
     * Fixed a `SyntaxError` in `modalEventHandlers.js` related to `getAllFeatureFlags`.
-* **Date: 2025-06-03 (Current Session)**
+* **Date: 2025-06-03 (Current Session - Prior to this update)**
     * **Enhanced Logging System & Admin Panel Error Testing:**
         * Updated `loggingService.js` for more comprehensive Firestore log payloads (detailed context, user agent, URL) and robust console logging fallbacks. Added more careful context serialization.
         * Modified `admin_main.js` to correctly initialize `LoggingService` with Firestore for the admin panel context, to properly initialize log levels based on feature flags, and to add a `handleSendTestError` function.
         * Added a "Send Test Error" button to `admin.html`, which triggers the `handleSendTestError` function in `admin_main.js` to send sample ERROR and CRITICAL logs to Firestore.
         * Corrected Firestore security rules for the `app_errors` collection to allow admins to read logs based on the correct path to their role (`users/{uid}/appData/userSpecificData -> profile.role`).
         * Confirmed that the "Send Test Error" button successfully logs errors to Firestore and they are displayed in the Admin Panel.
+* **Date: 2025-06-03 (This Session's Rebranding Start)**
+    * Updated `AI_PROJECT_LOG.md` to reflect the project's rebranding from a "Todo App" to the "LockieMedia Personal and Business Management Service". Project scope and goals have been broadened.
 
 ## 5. Current Focus / Next Steps (Specific to Current Major Task):
 
-* **Current Sub-Task:** Enhanced logging system and added "Send Test Error" functionality to Admin Panel - **Completed.**
+* **Current Sub-Task:** Rebrand the project within documentation and in-app text to "LockieMedia Personal and Business Management Service".
+    * **File in progress:** `AI_PROJECT_LOG.md` (This file).
 * **Immediate Next File/Action:**
-    1.  **Review Project Status:** We've made significant progress on debugging the main app and establishing core admin panel functionality, including robust logging.
-    2.  **Discuss Next Development Phase:** What would you like to focus on next? Options include:
+    1.  **Continue Rebranding:** Update `README.md` next to reflect the name change and broader scope.
+    2.  Then, update in-app text, starting with `todo.html` (e.g., page titles, main headings).
+    3.  Subsequently, update `admin.html` titles and headings.
+    4.  Review JavaScript files for any user-facing strings that need updating (e.g., in `modal_interactions.js` or feature files like `feature_about_us.js`).
+* **After Rebranding:**
+    * **Discuss Next Development Phase:**
         * **Further Admin Panel Enhancements:**
             * Implement User Management display (listing users).
             * Develop Overview Statistics display.
             * Refine error log display (e.g., better detail view).
-        * **Main Todo App Feature Enablement:**
-            * Start enabling features in `features.json` (e.g., `projectFeature`, `subTasksFeature`, `kanbanBoardFeature`) one by one, test their functionality, and refine their implementation.
+        * **Main Service Feature Enablement & Expansion:**
+            * Start enabling existing foundational features (e.g., `projectFeature`, `subTasksFeature`, `kanbanBoardFeature`) in `features.json`, test their functionality, and refine their implementation.
+            * Begin planning and implementing new modules relevant to a "Personal and Business Management Service" (e.g., basic CRM, notes/document management, finance tracking placeholders).
             * Update the `README.md` to accurately reflect the status of these features as they are enabled and tested.
         * **Address any other pending issues or minor bugs.**
 * **Specific questions for AI (if any):**
@@ -123,17 +132,24 @@
     * Implement A/B Testing stats display section.
     * Add more sophisticated filtering/pagination for Error Logs.
     * Improve the "Details" view for individual error logs beyond a simple `alert()`.
-* **Todo App (Main Application):**
-    * Complete and refine planned features like Calendar View, Pomodoro Timer, Sub-tasks, Task Dependencies, Reminders, File Attachments, etc. (as per `features.json` and README). This involves changing their flags to `true` in `features.json` and testing/refining their implementation.
+* **LockieMedia Service (Main Application):**
+    * Complete and refine foundational features like Calendar View, Pomodoro Timer, Sub-tasks, Task Dependencies, Reminders, File Attachments, etc. (as per `features.json` and README). This involves changing their flags to `true` in `features.json` and testing/refining their implementation.
+    * **Expand Scope:** Plan and implement new modules appropriate for a Personal and Business Management Service. This could include areas like:
+        * Basic CRM (contact management).
+        * Enhanced Notes/Document Management.
+        * Simple Finance Tracking (income/expense logging).
+        * Goal Setting and Tracking.
+        * Habit Tracking.
     * Address any UI/UX improvements.
 
 ## 8. Important Notes / Decisions Made:
 
+* **Project Rebranding:** The project is now known as the "LockieMedia Personal and Business Management Service" to reflect a broader scope beyond a simple todo list.
 * Admin role is defined in Firestore at `users/{uid}/appData/userSpecificData` within a `profile` map, as `profile: { role: "admin" }`.
 * Feature flags are intended to be read-only in the current iteration of the admin panel (manual changes to Firestore `app_config/feature_flags` or `features.json` still needed for modification by admin, unless `setFeatureFlag` in `featureFlagService.js` is enhanced for admin writes to Firestore, which it now does).
 * Error logs are stored in the `app_errors` Firestore collection.
 * The project uses the Firebase JavaScript SDK (Compat version - v8 style syntax).
-* The Admin Panel is a separate HTML page (`admin.html`) but shares Firebase configuration and some services (logging, feature flags) with the main Todo app.
+* The Admin Panel is a separate HTML page (`admin.html`) but shares Firebase configuration and some services (logging, feature flags) with the main Service.
 * `loggingService.js` has been enhanced to send more detailed logs to Firestore for `ERROR` and `CRITICAL` levels.
 * A "Send Test Error" button was added to `admin.html` and corresponding logic to `admin_main.js` to test the error logging pipeline.
 * Corrected Firestore security rule for `app_errors` to allow admins to read based on the correct path: `get(/databases/$(database)/documents/users/$(request.auth.uid)/appData/userSpecificData).data.profile.role == 'admin'`.
