@@ -43,7 +43,9 @@ import NotificationService from './notificationService.js';
 import { DesktopNotificationsFeature } from './feature_desktop_notifications.js';
 
 // This will be dynamically imported
-let uiRendering;
+// MODIFIED: Import uiRendering directly for the explicit call
+import * as uiRendering from './ui_rendering.js';
+
 
 // Fallback critical error display until uiRendering is loaded
 let showCriticalErrorImported = (message, errorId) => {
@@ -173,24 +175,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Logging starts with default level (INFO or DEBUG if debugMode was true initially in LoggingService)
     LoggingService.info("[Main] DOMContentLoaded event fired. Starting application initialization...");
 
-    try {
-        uiRendering = await import('./ui_rendering.js');
-        if (uiRendering.showCriticalError) {
-            showCriticalErrorImported = uiRendering.showCriticalError;
-            LoggingService.info("[Main] showCriticalError function imported from ui_rendering.");
-        } else {
-            LoggingService.warn("[Main] showCriticalError function not found in ui_rendering.js. Using fallback.");
-        }
+    // MODIFIED: uiRendering is now imported directly, no need for dynamic import here for this specific usage
+    // try {
+    //     uiRendering = await import('./ui_rendering.js'); // This line is no longer needed here if imported at top
+    //     if (uiRendering.showCriticalError) {
+    //         showCriticalErrorImported = uiRendering.showCriticalError;
+    //         LoggingService.info("[Main] showCriticalError function imported from ui_rendering.");
+    //     } else {
+    //         LoggingService.warn("[Main] showCriticalError function not found in ui_rendering.js. Using fallback.");
+    //     }
+    //     // ...
+    // }
+    // Use the imported uiRendering directly
+    if (uiRendering && uiRendering.showCriticalError) {
+        showCriticalErrorImported = uiRendering.showCriticalError;
+        LoggingService.info("[Main] showCriticalError function assigned from imported ui_rendering.");
+    } else {
+        LoggingService.warn("[Main] showCriticalError function not found in imported ui_rendering.js. Using fallback.");
+    }
 
-        if (uiRendering.initializeDOMElements) {
-            uiRendering.initializeDOMElements(); // This also calls renderAppVersion
-            LoggingService.info("[Main] DOM elements initialized and initial version rendered.");
-        } else {
-            throw new Error("initializeDOMElements not found in ui_rendering.js");
-        }
-    } catch (e) {
-        LoggingService.critical("[Main] CRITICAL: Error importing or initializing ui_rendering.js or its DOM elements!", e, { step: "uiRenderingImportInit" });
-        showCriticalErrorImported("CRITICAL: UI Initialization Failed. Please refresh. " + e.message, "UI_INIT_FAIL");
+
+    if (uiRendering && uiRendering.initializeDOMElements) {
+        uiRendering.initializeDOMElements(); // This also calls renderAppVersion
+        LoggingService.info("[Main] DOM elements initialized and initial version rendered.");
+    } else {
+        const initError = new Error("initializeDOMElements not found in ui_rendering.js");
+        LoggingService.critical("[Main] CRITICAL: Error initializing ui_rendering.js or its DOM elements!", initError, { step: "uiRenderingInit" });
+        showCriticalErrorImported("CRITICAL: UI Initialization Failed. Please refresh. " + initError.message, "UI_INIT_FAIL");
         return; // Stop further execution
     }
 
@@ -395,6 +406,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     setupEventListeners(); // Setup global (non-modal, non-form specific) event listeners
     LoggingService.info("[Main] Global event listeners set up.");
+
+    // **** ADDED CODE START ****
+    // Explicitly style smart view buttons after all initializations
+    if (uiRendering && uiRendering.styleSmartViewButtons) {
+        LoggingService.debug("[Main] Explicitly calling styleSmartViewButtons after initial setup.");
+        uiRendering.styleSmartViewButtons();
+    } else {
+        LoggingService.warn("[Main] uiRendering.styleSmartViewButtons not available for explicit call.");
+    }
+    // **** ADDED CODE END ****
 
     LoggingService.info("---------------------------------------------------------");
     LoggingService.info("         Todo App Initialization Complete &#x2705;");

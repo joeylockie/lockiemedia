@@ -155,17 +155,26 @@ export async function loadFeatureFlags() {
 
 /**
  * Checks if a specific feature is enabled.
- * @param {string} featureName - The name of the feature flag (e.g., 'projectFeature').
+ * @param {string} featureName - The name of the feature flag (e.g., 'projectFeature' or 'project').
  * @returns {boolean} True if the feature is enabled, false otherwise.
  */
 export function isFeatureEnabled(featureName) {
+    // First, check for the exact featureName
     if (typeof _featureFlags[featureName] === 'boolean') {
         return _featureFlags[featureName];
     }
-    LoggingService.debug(`[FeatureFlagService] Unknown feature flag checked: "${featureName}". Defaulting to false.`, { featureName });
+
+    // If not found, try appending "Feature" to the featureName and check again
+    const featureNameWithSuffix = featureName + 'Feature';
+    if (typeof _featureFlags[featureNameWithSuffix] === 'boolean') {
+        return _featureFlags[featureNameWithSuffix];
+    }
+
+    LoggingService.debug(`[FeatureFlagService] Unknown feature flag checked: "${featureName}" (and also tried "${featureNameWithSuffix}"). Defaulting to false.`, { featureName, attemptedSuffix: featureNameWithSuffix });
     return false;
 }
 
+// **** ADD THIS FUNCTION BACK ****
 /**
  * Returns a copy of all current feature flags.
  * @returns {Object} A copy of the feature flags object.
@@ -173,6 +182,7 @@ export function isFeatureEnabled(featureName) {
 export function getAllFeatureFlags() {
     return { ..._featureFlags };
 }
+// **** END OF ADDED FUNCTION ****
 
 /**
  * Allows setting a feature flag dynamically, primarily for user overrides in localStorage.
