@@ -15,6 +15,7 @@ import ModalStateService from './modalStateService.js';
 import TooltipService from './tooltipService.js';
 import EventBus from './eventBus.js';
 import { formatDate, formatTime, formatDuration, formatMillisecondsToHMS } from './utils.js';
+import LoggingService from './loggingService.js'; // Added LoggingService import
 
 // Import functions from other UI modules
 import {
@@ -99,7 +100,7 @@ export let appVersionAboutUsDisplayEl;
 
 
 export function initializeDOMElements() {
-    console.log('[DOM Init] Attempting to initialize DOM elements...');
+    LoggingService.debug('[DOM Init] Attempting to initialize DOM elements...', { module: 'ui_rendering' }); // Changed console.log
     mainContentArea = document.querySelector('main');
     kanbanViewToggleBtn = document.getElementById('kanbanViewToggleBtn');
     kanbanViewToggleBtnText = document.getElementById('kanbanViewToggleBtnText');
@@ -305,8 +306,8 @@ export function initializeDOMElements() {
     if (closeCriticalErrorBtn) {
         closeCriticalErrorBtn.addEventListener('click', hideCriticalError);
     }
-    console.log('[DOM Init] Finished initializing DOM elements.');
-    renderAppVersion();
+    LoggingService.debug('[DOM Init] Finished initializing DOM elements.', { module: 'ui_rendering' }); // Changed console.log
+    // renderAppVersion(); // MODIFICATION: Removed direct call here
 }
 
 // --- UI Helper Functions ---
@@ -319,6 +320,7 @@ export function renderAppVersion() {
     if (appVersionAboutUsDisplayEl) {
         appVersionAboutUsDisplayEl.textContent = versionString;
     }
+    LoggingService.debug(`[UI Rendering] App version rendered in UI: ${versionString}`, {module: 'ui_rendering'});
 }
 
 export function showCriticalError(message, errorId) {
@@ -327,9 +329,9 @@ export function showCriticalError(message, errorId) {
         criticalErrorId.textContent = errorId ? `Error ID: ${errorId}` : '';
         criticalErrorDisplay.classList.remove('hidden', 'translate-y-full');
         criticalErrorDisplay.classList.add('translate-y-0');
-        console.error(`[UI Critical Error] Displayed: ${message}, ID: ${errorId}`);
+        LoggingService.error(`[UI Critical Error] Displayed: ${message}, ID: ${errorId}`, null, {module: 'ui_rendering'});
     } else {
-        console.error(`[UI Critical Error] Fallback: ${message}, ID: ${errorId}`);
+        LoggingService.error(`[UI Critical Error] Fallback: ${message}, ID: ${errorId}`, null, {module: 'ui_rendering'});
         alert(`CRITICAL ERROR: ${message}\nID: ${errorId}\n(UI element for error display not found)`);
     }
 }
@@ -366,17 +368,17 @@ export function populateDatalist(datalistElement) { // Exported for renderTaskLi
 
 export function setSidebarMinimized(minimize) {
     if (!taskSidebar) {
-        console.error("[UI Rendering] setSidebarMinimized: taskSidebar element not initialized. Aborting.");
+        LoggingService.error("[UI Rendering] setSidebarMinimized: taskSidebar element not initialized. Aborting.", null, {module: 'ui_rendering'});
         return;
     }
     taskSidebar.classList.toggle('sidebar-minimized', minimize);
-    console.log(`[UI Rendering] taskSidebar classList after toggle: ${taskSidebar.classList}`);
+    LoggingService.debug(`[UI Rendering] taskSidebar classList after toggle: ${taskSidebar.classList}`, {module: 'ui_rendering'});
 
 
     if (sidebarToggleIcon) {
         sidebarToggleIcon.className = `fas ${minimize ? 'fa-chevron-right' : 'fa-chevron-left'}`;
     } else {
-        console.warn("[UI Rendering] setSidebarMinimized: sidebarToggleIcon element not initialized.");
+        LoggingService.warn("[UI Rendering] setSidebarMinimized: sidebarToggleIcon element not initialized.", {module: 'ui_rendering'});
     }
 
     const taskSearchInputContainerEl = document.getElementById('taskSearchInputContainer');
@@ -388,12 +390,12 @@ export function setSidebarMinimized(minimize) {
     if (testFeatureButtonContainerEl) {
         const shouldBeHidden = minimize || !isFeatureEnabled('testButtonFeature');
         testFeatureButtonContainerEl.classList.toggle('hidden', shouldBeHidden);
-        
+
         if (!isFeatureEnabled('testButtonFeature')) {
             testFeatureButtonContainerEl.classList.add('hidden');
         }
     }
-    
+
     const allTextElements = taskSidebar.querySelectorAll('.sidebar-text-content');
     allTextElements.forEach(el => {
         el.classList.toggle('hidden', minimize);
@@ -412,7 +414,7 @@ export function setSidebarMinimized(minimize) {
             }
         }
     });
-    
+
     if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) {
         ProjectsFeature.populateProjectFilterList();
     }
@@ -423,7 +425,7 @@ export function setSidebarMinimized(minimize) {
     if (minimize && iconTooltip && iconTooltip.style.display === 'block') {
         hideTooltip();
     }
-    console.log(`[UI Rendering] Sidebar minimized state set to: ${minimize}. CSS should now apply relevant styles.`);
+    LoggingService.debug(`[UI Rendering] Sidebar minimized state set to: ${minimize}. CSS should now apply relevant styles.`, {module: 'ui_rendering'});
 }
 
 
@@ -446,7 +448,7 @@ export function hideTooltip() {
 
 // --- Task Rendering ---
 export function refreshTaskView() {
-    if (!mainContentArea || !ViewManager || !isFeatureEnabled) { console.error("[RefreshTaskView] Core dependencies not found."); return; }
+    if (!mainContentArea || !ViewManager || !isFeatureEnabled) { LoggingService.error("[RefreshTaskView] Core dependencies not found.", null, {module: 'ui_rendering'}); return; }
     const currentView = ViewManager.getCurrentTaskViewMode();
     updateViewToggleButtonsState();
     updateYourTasksHeading();
@@ -480,7 +482,7 @@ export function refreshTaskView() {
     if (isFeatureEnabled('pomodoroTimerHybridFeature') && PomodoroTimerHybridFeature?.updateSidebarDisplay) {
         PomodoroTimerHybridFeature.updateSidebarDisplay();
     }
-    console.log("[UI] Task view refreshed for mode:", currentView);
+    LoggingService.debug(`[UI Rendering] Task view refreshed for mode: ${currentView}`, {module: 'ui_rendering'});
 }
 
 // renderTaskListView and renderBulkActionControls have been moved to renderTaskListView.js
@@ -546,7 +548,7 @@ export function renderSubTasksForEditModal(parentId, subTasksListElement) {
     if (!AppStore || !subTasksListElement || !ModalStateService) return;
     const actualParentId = parentId || ModalStateService.getEditingTaskId();
     if (!actualParentId) {
-        console.error("[RenderSubTasksEdit] Parent ID missing.");
+        LoggingService.error("[RenderSubTasksEdit] Parent ID missing.", null, {module: 'ui_rendering'});
         subTasksListElement.innerHTML = '<li class="text-xs text-red-500 dark:text-red-400">Error: Parent task ID not found.</li>';
         return;
     }
@@ -562,11 +564,11 @@ export function renderSubTasksForEditModal(parentId, subTasksListElement) {
     parentTask.subTasks.forEach(st => {
         const li = document.createElement('li');
         li.className = 'flex items-center justify-between text-sm bg-slate-100 dark:bg-slate-600 p-1.5 rounded';
-        
+
         const textSpan = document.createElement('span');
         textSpan.textContent = st.text;
         textSpan.className = `dark:text-slate-200 ${st.completed ? 'line-through text-slate-500 dark:text-slate-400' : ''}`;
-        
+
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.checked = st.completed;
@@ -579,7 +581,7 @@ export function renderSubTasksForEditModal(parentId, subTasksListElement) {
                     _displayMessage('Failed to toggle sub-task.', 'error');
                 }
             } else {
-                 console.warn("SubTasksFeature.toggleComplete not available.");
+                 LoggingService.warn("SubTasksFeature.toggleComplete not available.", {module: 'ui_rendering'});
             }
         };
 
@@ -597,11 +599,11 @@ export function renderSubTasksForEditModal(parentId, subTasksListElement) {
                         _displayMessage('Failed to edit sub-task.', 'error');
                     }
                 } else {
-                     console.warn("SubTasksFeature.edit not available.");
+                     LoggingService.warn("SubTasksFeature.edit not available.", {module: 'ui_rendering'});
                 }
             }
         };
-        
+
         const removeBtn = document.createElement('button');
         removeBtn.type = 'button';
         removeBtn.innerHTML = '<i class="fas fa-times text-red-500 hover:text-red-700 text-xs"></i>';
@@ -615,7 +617,7 @@ export function renderSubTasksForEditModal(parentId, subTasksListElement) {
                         _displayMessage('Failed to delete sub-task.', 'error');
                     }
                 } else {
-                    console.warn("SubTasksFeature.delete not available.");
+                    LoggingService.warn("SubTasksFeature.delete not available.", {module: 'ui_rendering'});
                 }
             }
         };
@@ -628,7 +630,7 @@ export function renderSubTasksForEditModal(parentId, subTasksListElement) {
         contentDiv.className = 'flex items-center flex-grow';
         contentDiv.appendChild(checkbox);
         contentDiv.appendChild(textSpan);
-        
+
         li.appendChild(contentDiv);
         li.appendChild(controlsDiv);
 
@@ -689,7 +691,7 @@ export function styleSmartViewButtons() {
         if (icon) {
             icon.classList.toggle('text-white', isActive);
             icon.classList.toggle('dark:text-sky-300', isActive);
-            
+
             icon.classList.toggle('text-slate-500', !isActive);
             icon.classList.toggle('dark:text-slate-400', !isActive);
         }
@@ -788,7 +790,7 @@ export function updateYourTasksHeading() {
 
 export function renderVersionHistoryList(versions) {
     if (!dataVersionHistoryContent) {
-        console.error("[UI Rendering] Data version history content element not found.");
+        LoggingService.error("[UI Rendering] Data version history content element not found.", null, {module: 'ui_rendering'});
         return;
     }
     dataVersionHistoryContent.innerHTML = '';
@@ -809,7 +811,7 @@ export function renderVersionHistoryList(versions) {
         const timeSpan = document.createElement('span');
         timeSpan.className = 'font-semibold text-slate-800 dark:text-slate-200 block text-sm';
         timeSpan.textContent = new Date(version.timestamp).toLocaleString();
-        
+
         const descSpan = document.createElement('span');
         descSpan.className = 'text-xs text-slate-600 dark:text-slate-400 block';
         descSpan.textContent = version.description || 'No description';
@@ -835,7 +837,7 @@ export function renderVersionHistoryList(versions) {
                         _displayMessage('Error: Restore function not available.', 'error');
                     }
                 } catch (e) {
-                    console.error("Error importing DataVersioningFeature for restore:", e);
+                    LoggingService.error("Error importing DataVersioningFeature for restore:", e, {module: 'ui_rendering'});
                     _displayMessage('Error trying to restore version.', 'error');
                 }
             }
@@ -850,58 +852,64 @@ export function renderVersionHistoryList(versions) {
 
 
 export function initializeUiRenderingSubscriptions() {
-    if (!EventBus || !ViewManager || !isFeatureEnabled) { console.error("[UI Rendering] Core dependencies for subscriptions not available."); return; }
-    
+    if (!EventBus || !ViewManager || !isFeatureEnabled) { LoggingService.error("[UI Rendering] Core dependencies for subscriptions not available.", null, {module: 'ui_rendering'}); return; }
+
     EventBus.subscribe('displayUserMessage', (data) => {
         if (data && data.text) {
             _displayMessage(data.text, data.type || 'success');
         }
     });
 
-    EventBus.subscribe('tasksChanged', (updatedTasks) => { console.log("[UI Rendering] Event received: tasksChanged. Refreshing view."); refreshTaskView(); updateClearCompletedButtonState(); });
+    // MODIFICATION: Added subscription for appVersionLoaded
+    EventBus.subscribe('appVersionLoaded', (versionData) => {
+        LoggingService.debug("[UI Rendering] Event received: appVersionLoaded. Re-rendering app version.", { versionData, module: 'ui_rendering' });
+        renderAppVersion();
+    });
+
+    EventBus.subscribe('tasksChanged', (updatedTasks) => { LoggingService.debug("[UI Rendering] Event received: tasksChanged. Refreshing view.", {module: 'ui_rendering'}); refreshTaskView(); updateClearCompletedButtonState(); });
     EventBus.subscribe('projectsChanged', (updatedProjects) => {
-        console.log("[UI Rendering] Event received: projectsChanged. Refreshing view and project UI.");
+        LoggingService.debug("[UI Rendering] Event received: projectsChanged. Refreshing view and project UI.", {module: 'ui_rendering'});
         refreshTaskView();
         if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) ProjectsFeature.populateProjectFilterList();
         if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectDropdowns) ProjectsFeature.populateProjectDropdowns();
         styleSmartViewButtons();
     });
     EventBus.subscribe('uniqueProjectsChanged', (newUniqueProjects) => {
-        console.log("[UI Rendering] Event received: uniqueProjectsChanged. Repopulating project UI.");
+        LoggingService.debug("[UI Rendering] Event received: uniqueProjectsChanged. Repopulating project UI.", {module: 'ui_rendering'});
         if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) ProjectsFeature.populateProjectFilterList();
         if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectDropdowns) ProjectsFeature.populateProjectDropdowns();
         styleSmartViewButtons();
     });
-    EventBus.subscribe('kanbanColumnsChanged', (updatedColumns) => { console.log("[UI Rendering] Event received: kanbanColumnsChanged."); if (ViewManager.getCurrentTaskViewMode() === 'kanban' && isFeatureEnabled('kanbanBoardFeature')) { refreshTaskView(); } });
-    
+    EventBus.subscribe('kanbanColumnsChanged', (updatedColumns) => { LoggingService.debug("[UI Rendering] Event received: kanbanColumnsChanged.", {module: 'ui_rendering'}); if (ViewManager.getCurrentTaskViewMode() === 'kanban' && isFeatureEnabled('kanbanBoardFeature')) { refreshTaskView(); } });
+
     EventBus.subscribe('filterChanged', (eventData) => {
-        console.log("[UI Rendering] Event received: filterChanged. Refreshing view, heading, and button styles.");
+        LoggingService.debug("[UI Rendering] Event received: filterChanged. Refreshing view, heading, and button styles.", {module: 'ui_rendering'});
         refreshTaskView();
         updateYourTasksHeading();
         updateSortButtonStates();
         styleSmartViewButtons();
     });
 
-    EventBus.subscribe('sortChanged', (newSort) => { console.log("[UI Rendering] Event received: sortChanged. Refreshing view and sort buttons."); refreshTaskView(); updateSortButtonStates(); });
-    EventBus.subscribe('searchTermChanged', (newSearchTerm) => { console.log("[UI Rendering] Event received: searchTermChanged. Refreshing view."); refreshTaskView(); });
-    EventBus.subscribe('viewModeChanged', (newViewMode) => { console.log("[UI Rendering] Event received: viewModeChanged. Refreshing view and UI states."); refreshTaskView();  });
-    EventBus.subscribe('featureFlagsUpdated', (updateData) => { console.log("[UI Rendering] Event received: featureFlagsUpdated. Certain UI states might need refresh."); refreshTaskView();  });
+    EventBus.subscribe('sortChanged', (newSort) => { LoggingService.debug("[UI Rendering] Event received: sortChanged. Refreshing view and sort buttons.", {module: 'ui_rendering'}); refreshTaskView(); updateSortButtonStates(); });
+    EventBus.subscribe('searchTermChanged', (newSearchTerm) => { LoggingService.debug("[UI Rendering] Event received: searchTermChanged. Refreshing view.", {module: 'ui_rendering'}); refreshTaskView(); });
+    EventBus.subscribe('viewModeChanged', (newViewMode) => { LoggingService.debug("[UI Rendering] Event received: viewModeChanged. Refreshing view and UI states.", {module: 'ui_rendering'}); refreshTaskView();  });
+    EventBus.subscribe('featureFlagsUpdated', (updateData) => { LoggingService.debug("[UI Rendering] Event received: featureFlagsUpdated. Certain UI states might need refresh.", {module: 'ui_rendering'}); refreshTaskView();  });
     EventBus.subscribe('labelsChanged', (newLabels) => {
-        console.log("[UI Rendering] Event received: labelsChanged. Populating datalists.");
+        LoggingService.debug("[UI Rendering] Event received: labelsChanged. Populating datalists.", {module: 'ui_rendering'});
         if(existingLabelsDatalist) populateDatalist(existingLabelsDatalist);
         if(existingLabelsEditDatalist) populateDatalist(existingLabelsEditDatalist);
         if (manageLabelsModal && !manageLabelsModal.classList.contains('hidden')) {
             populateManageLabelsList();
         }
     });
-    EventBus.subscribe('bulkSelectionChanged', (selectedIds) => { console.log("[UI Rendering] Event received: bulkSelectionChanged. Rendering controls."); renderBulkActionControls(); }); // renderBulkActionControls is now imported
+    EventBus.subscribe('bulkSelectionChanged', (selectedIds) => { LoggingService.debug("[UI Rendering] Event received: bulkSelectionChanged. Rendering controls.", {module: 'ui_rendering'}); renderBulkActionControls(); }); // renderBulkActionControls is now imported
     EventBus.subscribe('pomodoroStateUpdated', (pomodoroData) => {
-        console.log("[UI Rendering] Event received: pomodoroStateUpdated.", pomodoroData);
+        LoggingService.debug("[UI Rendering] Event received: pomodoroStateUpdated.", { pomodoroData, module: 'ui_rendering' });
         if (isFeatureEnabled('pomodoroTimerHybridFeature') && PomodoroTimerHybridFeature?.updateSidebarDisplay) {
             PomodoroTimerHybridFeature.updateSidebarDisplay();
         }
     });
-    console.log("[UI Rendering] Event subscriptions initialized.");
+    LoggingService.debug("[UI Rendering] Event subscriptions initialized.", {module: 'ui_rendering'});
 }
 
-console.log("ui_rendering.js loaded, using imported services and functions.");
+LoggingService.debug("ui_rendering.js loaded, using imported services and functions.", { module: 'ui_rendering' }); // Changed console.log

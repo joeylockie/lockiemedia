@@ -1,6 +1,6 @@
 # AI Project Curation Log: LockieMedia Todo App & Admin Panel
 
-**Last Updated:** 2025-06-02 18:47 (EDT) ## 
+**Last Updated:** 2025-06-03 21:02 (EDT) ## 
 
 0. Instructions for AI (Gemini)
 
@@ -11,9 +11,7 @@
     * The specific sub-tasks and files involved in the current session.
     * Any known issues or important decisions made.
 
-**How to Use & Update This Document:** 
-
-* **Prioritize this Document:** When the user provides this document or refers to it at the start of a session, consider its content as the most up-to-date information, potentially overriding previous chat history if there are discrepancies regarding project state.
+**How to Use & Update This Document:** * **Prioritize this Document:** When the user provides this document or refers to it at the start of a session, consider its content as the most up-to-date information, potentially overriding previous chat history if there are discrepancies regarding project state.
 * **Understand Current Focus:** Pay close attention to Section 5: Current Focus / Next Steps from the previous version of this log to understand the immediate objectives for the current session.
 * **Track Session Progress:** During our development session, keep track of:
     * Tasks completed and files modified/created.
@@ -45,9 +43,9 @@
 
 ## 2. Current Major Task/Feature Being Worked On:
 
-* **Name:** Admin Panel - Initial Setup & Core Features
-* **Goal for this Task:** Establish a functional Admin Panel with admin authentication, display of critical application data (error logs, feature flags), and lay the groundwork for user management and overview statistics.
-* **Status:** In Progress (Admin login, error log display, and feature flag display are functional).
+* **Name:** Admin Panel - Initial Setup & Core Features (with parallel debugging of Todo App)
+* **Goal for this Task:** Establish a functional Admin Panel with admin authentication, display of critical application data (error logs, feature flags), and lay the groundwork for user management and overview statistics. Concurrently, address critical bugs in the main Todo App that affect core functionality like feature flag interpretation and UI rendering.
+* **Status:** In Progress (Admin login, error log display, and feature flag display are functional in Admin Panel. Several critical bugs in Todo App resolved).
 
 ## 3. Work Completed (Overall Project - High Level):
 
@@ -58,10 +56,11 @@
     * Firebase integration for user authentication and data persistence (tasks, projects, preferences, profile with roles) via `firebaseService.js` and `store.js`.
     * Client-side error logging to console via `loggingService.js`.
     * Basic UI rendering and event handling structures in place.
+    * **Critical bug fixes related to feature flag interpretation, UI rendering timing (version display, smart button styling), and module exports implemented (see Section 4).**
 * **Admin Panel (as part of the current major task):**
-    * Initial setup and core features (see Section 4 for details).
+    * Initial setup and core features (see Section 4 for details from previous sessions).
 
-## 4. Work Completed (Specific to Current Major Task - "Admin Panel - Initial Setup & Core Features"):
+## 4. Work Completed (Specific to Current Major Task - "Admin Panel - Initial Setup & Core Features" and Todo App Debugging):
 
 * **Date: 2025-06-02**
     * Created `admin.html` with a basic layout, sections, and an admin login modal.
@@ -69,7 +68,7 @@
     * Modified `featureFlagService.js` to prioritize loading flags from Firestore (`app_config/feature_flags`), with fallbacks to `features.json` and `localStorage`. Added a check to ensure an authenticated user exists before attempting Firestore read for flags.
     * Updated `main.js` (Todo app) to correctly initialize `LoggingService` (log level based on `debugMode` flag) and to ensure proper initialization order with `featureFlagService.js`.
     * Created initial Admin Panel JavaScript files:
-        * `admin_main.js`: Handles Firebase initialization (using the same config as the main app), admin authentication flow (including checking for `profile.role === 'admin'` in the user's Firestore document at `users/{uid}/appData/userSpecificData`), orchestration of data loading, and basic event listeners.
+        * `admin_main.js`: Handles Firebase initialization (using the same config as the main app), admin authentication flow (including checking for `profile.role === 'admin'` in the user's Firestore document at `users/{uid}/appData/userSpecificData.profile`), orchestration of data loading, and basic event listeners.
         * `adminUI.js`: Manages DOM manipulation for displaying data in the admin panel (e.g., feature flags table, error logs table) and showing admin messages.
         * `adminDataService.js`: Encapsulates data fetching logic for the admin panel. Currently implements `fetchErrorLogs()` and placeholders for user lists/stats. Initialized with the Firestore instance by `admin_main.js`.
     * Systematically resolved numerous "Cannot access 'LoggingService' before initialization" errors across various modules by:
@@ -79,25 +78,43 @@
     * Admin login to `admin.html` is now functional.
     * The admin dashboard displays a read-only list of Feature Flags.
     * The admin dashboard displays a list of Error Logs fetched from the `app_errors` Firestore collection.
+* **Date: 2025-06-03**
+    * Resolved issue where the "Send Test Notification" button in the `DesktopNotificationsFeature` was not working:
+        * Corrected `isFeatureEnabled` in `featureFlagService.js` to properly check feature flag names (e.g., `desktopNotifications` and `desktopNotificationsFeature`). This ensured `DesktopNotificationsFeature` initializes correctly when its flag is true.
+        * Added detailed debug logging to the test notification button handler in `feature_desktop_notifications.js` to confirm its operational state and conditions for sending a notification.
+    * Fixed issue where the UI version display (e.g., in the footer) did not match the version specified in `version.json`:
+        * Modified `main.js` to call `uiRendering.renderAppVersion()` directly *after* `versionService.loadAppVersion()` completes. This ensures the UI updates with the fetched version rather than a default or stale value.
+        * The previous attempt to fix this by only adding an event listener in `ui_rendering.js` for `appVersionLoaded` was kept as a fallback but the direct call in `main.js` is now the primary mechanism.
+    * Addressed issue where smart view filter buttons initially appeared as text-only, without icons or proper styling, until a filter was clicked:
+        * Added an explicit call to `uiRendering.styleSmartViewButtons()` at the end of the `DOMContentLoaded` event handler in `main.js`. This ensures correct initial styling is applied after all other initializations are complete.
+    * Fixed a `SyntaxError` in `modalEventHandlers.js` that reported `featureFlagService.js` did not provide an export named `getAllFeatureFlags`:
+        * Ensured the `getAllFeatureFlags` function was correctly present and exported in the `featureFlagService.js` file being used by the browser.
 
 ## 5. Current Focus / Next Steps (Specific to Current Major Task):
 
-* **Current Sub-Task:** You (Joey) just asked to create this AI Project Curation Log.
-* **Immediate Next File/Action (after this log is created):** Decide on the next feature/section for the Admin Panel. Suggestions:
-    1.  **User Management (Basic Info):**
-        * Discuss and define Firestore security rule changes needed for admins to read user data (e.g., list UIDs, emails, displayNames, roles from `/users/{uid}/appData/userSpecificData.profile`).
-        * Implement `fetchUserList()` in `adminDataService.js`.
-        * Implement `displayUserList()` in `adminUI.js`.
-        * Update `admin_main.js` to call these and display the list.
-    2.  **Overview Stats:**
-        * Implement "Total Users" stat (depends on user list fetching capability).
+* **Current Sub-Task:** Major debugging session for the Todo App completed, resolving critical UI rendering and feature flag interaction bugs. The main application functionality appears stable now.
+* **Immediate Next File/Action:**
+    1.  **Verify all resolved issues:** Confirm that the version display, smart button styling, and test desktop notification are all working as expected in the user's environment.
+    2.  **Review minor warnings:**
+        * `[ProjectsFeature] Cannot populate project filter list. Dependencies missing.` - Confirm this is acceptable as the `projectFeature` is currently disabled in `features.json`.
+        * `[ModalEventHandlers] Element #openFeatureFlagsModalBtn not found.` - Confirm this is acceptable as this button is not intended to be part of the main `todo.html` UI.
+    3.  **Decide on next development steps:**
+        * Continue with Admin Panel enhancements (e.g., User Management, Overview Stats).
+        * Start enabling and testing more features in the main Todo App by updating `features.json`.
 * **Specific questions for AI (if any):**
-    * [User: Add your questions here]
+    * None at this moment.
 * **Blockers (if any):**
-    * Implementing User Management requires careful changes to Firestore security rules.
+    * Implementing Admin Panel User Management still requires careful planning and changes to Firestore security rules.
 
 ## 6. Known Issues / Bugs (Related to current work or recently discovered):
 
+* **Resolved (during this session):**
+    * Desktop Notification test button not working due to `DesktopNotificationsFeature` not initializing because of an issue in `featureFlagService.isFeatureEnabled`'s key lookup.
+    * UI version display mismatching `version.json` due to timing of `renderAppVersion` call.
+    * Smart view filter buttons having incorrect initial styling (text-only).
+    * `SyntaxError` in `modalEventHandlers.js` due to `getAllFeatureFlags` not being exported from the version of `featureFlagService.js` the browser was loading.
+* **Minor Warning (Understood/Expected):** `[ProjectsFeature] Cannot populate project filter list. Dependencies missing.` - This occurs because the `projectFeature` is currently disabled in `features.json`, so the `projectFilterContainer` DOM element is not expected to be fully set up or visible.
+* **Minor Warning (Understood/Expected):** `[ModalEventHandlers] Element #openFeatureFlagsModalBtn not found.` - This button ID is not present in the `todo.html` markup, so the event listener attachment is correctly skipped.
 
 ## 7. Future/Pending Work (Overall Project - High Level):
 
@@ -108,7 +125,7 @@
     * Add more sophisticated filtering/pagination for Error Logs.
     * Improve the "Details" view for individual error logs beyond a simple `alert()`.
 * **Todo App (Main Application):**
-    * Complete and refine planned features like Calendar View, Pomodoro Timer, Sub-tasks, Task Dependencies, Reminders, File Attachments, etc. (as per `features.json` and README).
+    * Complete and refine planned features like Calendar View, Pomodoro Timer, Sub-tasks, Task Dependencies, Reminders, File Attachments, etc. (as per `features.json` and README). This involves changing their flags to `true` in `features.json` and testing/refining their implementation.
     * Address any UI/UX improvements.
 
 ## 8. Important Notes / Decisions Made:
@@ -119,3 +136,7 @@
 * The project uses the Firebase JavaScript SDK (Compat version - v8 style syntax).
 * The Admin Panel is a separate HTML page (`admin.html`) but shares Firebase configuration and some services (logging, feature flags) with the main Todo app.
 * Module loading initialization errors related to `LoggingService` were resolved by removing top-level "module loaded" logs and fixing a circular dependency with `feature_user_accounts.js` via an explicit initializer for Firestore logging in `LoggingService`.
+* The `isFeatureEnabled` function in `featureFlagService.js` was updated to check for feature flag keys both with and without the "Feature" suffix to align with how `main.js` was deriving flag names for checks.
+* The UI version display was fixed by ensuring `uiRendering.renderAppVersion()` is called in `main.js` *after* `versionService.loadAppVersion()` has completed.
+* The initial styling of smart view filter buttons was fixed by an explicit call to `uiRendering.styleSmartViewButtons()` in `main.js` after all initializations.
+* The `SyntaxError` related to `getAllFeatureFlags` was resolved by ensuring the function was correctly exported from the `featureFlagService.js` file being loaded by the browser.
