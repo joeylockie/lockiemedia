@@ -139,11 +139,16 @@
             </section>
 
             <section id="errorLogsSection" class="admin-section">
-                <h2 class="admin-section-title">Application Error Logs</h2>
-                <div class="flex justify-end mb-2">
-                    <button id="refreshErrorLogsButton" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-3 rounded-lg text-xs transition-colors flex items-center">
-                        <i class="fas fa-sync-alt mr-1"></i> Refresh Logs
-                    </button>
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="admin-section-title mb-0 pb-0 border-b-0">Application Error Logs</h2>
+                    <div class="flex gap-2">
+                        <button id="sendTestErrorButton" class="bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-3 rounded-lg text-xs transition-colors flex items-center">
+                            <i class="fas fa-bug mr-1"></i> Send Test Error
+                        </button>
+                        <button id="refreshErrorLogsButton" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-3 rounded-lg text-xs transition-colors flex items-center">
+                            <i class="fas fa-sync-alt mr-1"></i> Refresh Logs
+                        </button>
+                    </div>
                 </div>
                 <div id="errorLogsList" class="overflow-x-auto max-h-96 overflow-y-auto">
                     <p>Loading error logs...</p>
@@ -165,7 +170,12 @@
         </main>
     </div>
 
-    <script src="loggingService.js" type="module"></script> <script src="eventBus.js" type="module"></script> <script src="featureFlagService.js" type="module"></script> <script src="firebaseService.js" type="module"></script> <script src="admin_main.js" type="module"></script>
+    <script src="loggingService.js" type="module"></script>
+    <script src="eventBus.js" type="module"></script>
+    <script src="featureFlagService.js" type="module"></script>
+    <script src="adminDataService.js" type="module"></script>
+    <script src="adminUI.js" type="module"></script>
+    <script src="admin_main.js" type="module"></script>
 
 </body>
 </html>
