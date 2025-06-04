@@ -98,7 +98,8 @@ export function displayErrorLogsInTable(logs, containerElementId) {
             
             const displayTimestamp = log.clientTimestamp ? 
                 (log.clientTimestamp.toDate ? log.clientTimestamp.toDate().toLocaleString() : new Date(log.clientTimestamp.seconds * 1000).toLocaleString()) : 
-                new Date(log.timestamp).toLocaleString();
+                (log.timestamp ? new Date(log.timestamp).toLocaleString() : 'N/A');
+
 
             row.insertCell().textContent = displayTimestamp;
             row.insertCell().textContent = log.level;
@@ -109,22 +110,30 @@ export function displayErrorLogsInTable(logs, containerElementId) {
             const detailsCell = row.insertCell();
             const detailsButton = document.createElement('button');
             detailsButton.textContent = 'View';
-            detailsButton.className = 'text-xs bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded';
+            detailsButton.className = 'text-xs bg-sky-500 hover:bg-sky-600 text-white py-1 px-2 rounded-md shadow-sm transition-colors';
             detailsButton.onclick = () => {
                 // Create a readable version of the log for the alert
                 const readableLog = { ...log };
                 if (readableLog.clientTimestamp && readableLog.clientTimestamp.toDate) {
                     readableLog.clientTimestamp = readableLog.clientTimestamp.toDate().toISOString();
                 }
-                if (readableLog.timestamp) {
-                    readableLog.timestamp = new Date(readableLog.timestamp).toISOString();
+                 if (readableLog.serverTimestamp && readableLog.serverTimestamp.toDate) { // Check for serverTimestamp as well
+                    readableLog.serverTimestamp = readableLog.serverTimestamp.toDate().toISOString();
                 }
+                // Ensure log.timestamp (if it's the primary one from older logs) is also formatted
+                if (log.timestamp && !log.clientTimestamp && !log.serverTimestamp) {
+                     readableLog.timestamp = new Date(log.timestamp).toISOString();
+                }
+
+
+                // Simple alert for now, could be a modal
                 alert(JSON.stringify(readableLog, null, 2));
             };
             detailsCell.appendChild(detailsButton);
 
-            const logDate = log.clientTimestamp && log.clientTimestamp.toDate ? log.clientTimestamp.toDate() : new Date(log.timestamp);
-            if (logDate > twentyFourHoursAgo) {
+            // Use clientTimestamp for date comparison if available, otherwise fallback
+            const logDateToSort = log.clientTimestamp && log.clientTimestamp.toDate ? log.clientTimestamp.toDate() : (log.timestamp ? new Date(log.timestamp) : new Date(0));
+            if (logDateToSort > twentyFourHoursAgo) {
                 errorsInLast24h++;
             }
         });
@@ -148,22 +157,24 @@ export function showAdminMessage(message, type = 'info', duration = 4000) {
         return;
     }
     const messageEl = document.createElement('div');
-    messageEl.className = `admin-message ${type} transition-all duration-500 ease-in-out opacity-0 transform translate-y-2`;
+    // Tailwind classes for base styling + type-specific color
+    messageEl.className = `admin-message ${type}`; 
     messageEl.textContent = message;
+    
     adminMessageBox.appendChild(messageEl);
 
-    // Trigger reflow for transition
-    setTimeout(() => {
-        messageEl.classList.remove('opacity-0', 'translate-y-2');
-        messageEl.classList.add('opacity-100', 'translate-y-0');
-    }, 10);
+    // Trigger reflow for transition by requesting animation frame
+    requestAnimationFrame(() => {
+        messageEl.classList.add('show');
+    });
 
 
     setTimeout(() => {
-        messageEl.classList.remove('opacity-100', 'translate-y-0');
-        messageEl.classList.add('opacity-0', 'translate-y-2');
+        messageEl.classList.remove('show');
         setTimeout(() => {
-            messageEl.remove();
+            if (messageEl.parentNode) { // Check if still in DOM
+                messageEl.remove();
+            }
         }, 500); // Allow time for fade out transition
     }, duration);
 }
@@ -173,18 +184,32 @@ export function showAdminMessage(message, type = 'info', duration = 4000) {
 export function displayUserList(users, containerElementId) {
     const container = document.getElementById(containerElementId);
     if (!container) return;
-    container.innerHTML = '<p class="text-gray-500">User list display (coming soon).</p>';
+    container.innerHTML = '<p class="text-slate-400">User list display (coming soon).</p>';
     // TODO: Implement user list rendering
 }
 
 export function updateOverviewStats(stats) {
-    const { totalUsers, errorsToday, activeFeatures } = stats;
+    const { totalUsers, errorsToday, activeFeatures } = stats; // errorsToday and activeFeatures might be redundant if set elsewhere
     const totalUsersStatEl = document.getElementById('totalUsersStat');
-    const errorsTodayStatEl = document.getElementById('errorsTodayStat'); // Already updated by error log display
-    const activeFeaturesStatEl = document.getElementById('activeFeaturesStat'); // Already updated by feature flag display
+    // const errorsTodayStatEl = document.getElementById('errorsTodayStat'); // Already updated by error log display
+    // const activeFeaturesStatEl = document.getElementById('activeFeaturesStat'); // Already updated by feature flag display
 
     if (totalUsersStatEl && totalUsers !== undefined) totalUsersStatEl.textContent = totalUsers.toString();
-    // errorsTodayStatEl and activeFeaturesStatEl are updated by their respective display functions
+    // If other stats are passed and need updating:
+    const dauStatEl = document.getElementById('dauStat');
+    if (dauStatEl && stats.dau !== undefined) dauStatEl.textContent = stats.dau.toString();
+
+    const newSignupsStatEl = document.getElementById('newSignupsStat');
+    if (newSignupsStatEl && stats.newSignups !== undefined) newSignupsStatEl.textContent = stats.newSignups.toString();
+    
+    const avgLoadTimeStatEl = document.getElementById('avgLoadTimeStat');
+    if (avgLoadTimeStatEl && stats.avgLoadTime !== undefined) avgLoadTimeStatEl.textContent = stats.avgLoadTime.toString();
+
+    const totalItemsStatEl = document.getElementById('totalItemsStat');
+    if (totalItemsStatEl && stats.totalItems !== undefined) totalItemsStatEl.textContent = stats.totalItems.toString();
+
+    const apiErrorRateStatEl = document.getElementById('apiErrorRateStat');
+    if (apiErrorRateStatEl && stats.apiErrorRate !== undefined) apiErrorRateStatEl.textContent = stats.apiErrorRate.toString();
 }
 
 

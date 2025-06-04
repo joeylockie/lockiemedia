@@ -110,7 +110,31 @@ function handleAuthStateChanged(user) {
                 adminContent.classList.remove('hidden');
                 if (adminUserDisplay) adminUserDisplay.textContent = `Admin: ${user.email}`;
                 LoggingService.info(`[AdminMain] Admin access confirmed for ${user.email}. Loading dashboard.`, { functionName, email: user.email });
-                loadAdminDashboardData();
+                loadAdminDashboardData(); // This function loads data into the sections
+                 // Restore active section after data is loaded and UI is ready
+                const lastSection = localStorage.getItem('adminActiveSection') || 'overview';
+                const lastTitle = localStorage.getItem('adminActiveSectionTitle') || 'Overview';
+                // Call the global setActiveSection if it's defined by the inline script
+                if (typeof window.setActiveAdminSection === 'function') {
+                    window.setActiveAdminSection(lastSection, lastTitle);
+                } else {
+                    // Fallback or initial setup if inline script hasn't run or function isn't global
+                    // This part might be redundant if the inline script in admin.html handles it robustly on its own.
+                    const sidebarLinks = document.querySelectorAll('.admin-sidebar-link');
+                    const contentSections = document.querySelectorAll('.admin-content-section');
+                    const currentSectionTitleEl = document.getElementById('currentSectionTitle');
+                    sidebarLinks.forEach(link => {
+                        link.classList.toggle('active', link.dataset.section === lastSection);
+                    });
+                    contentSections.forEach(section => {
+                        section.classList.toggle('active', section.id === `${lastSection}Section`);
+                    });
+                    if (currentSectionTitleEl) {
+                        currentSectionTitleEl.textContent = lastTitle;
+                    }
+                }
+
+
             } else {
                 LoggingService.warn(`[AdminMain] User ${user.email} is NOT an admin. Forcing sign out from admin panel.`, { functionName, email: user.email });
                 AdminUI.showAdminMessage('Access Denied: You do not have admin privileges for this panel.', 'error', 6000);
@@ -224,7 +248,7 @@ function handleSendTestError() {
 async function loadAdminDashboardData() {
     const functionName = 'loadAdminDashboardData (AdminMain)';
     LoggingService.info('[AdminMain] Loading admin dashboard data...', { functionName });
-    callDisplayFeatureFlags(); // This is synchronous if flags are already loaded
+    callDisplayFeatureFlags(); 
     await callFetchAndDisplayErrorLogs();
     await callFetchAndDisplayUserList(); 
     await callFetchAndDisplayOverviewStats(); 
@@ -234,7 +258,7 @@ async function loadAdminDashboardData() {
 function callDisplayFeatureFlags() {
     const functionName = 'callDisplayFeatureFlags (AdminMain)';
     try {
-        const flags = getAllFeatureFlags(); // Assumes featureFlagService is loaded
+        const flags = getAllFeatureFlags(); 
         LoggingService.debug(`[AdminMain] Displaying ${Object.keys(flags).length} feature flags.`, { functionName, flagCount: Object.keys(flags).length });
         AdminUI.displayFeatureFlagsInTable(flags, 'featureFlagsList');
     } catch (error) {
@@ -269,9 +293,8 @@ async function callFetchAndDisplayUserList() {
     const functionName = 'callFetchAndDisplayUserList (AdminMain)';
     LoggingService.debug('[AdminMain] Fetching and displaying user list (placeholder).', { functionName });
     try {
-        const users = await AdminDataService.fetchUserList(); // Placeholder returns empty array
+        const users = await AdminDataService.fetchUserList(); 
         AdminUI.displayUserList(users, 'userList');
-        // Update totalUsersStat here once implemented in AdminDataService
         const totalUsersStatEl = document.getElementById('totalUsersStat');
         if(totalUsersStatEl && users.length === 0) totalUsersStatEl.textContent = users.length.toString() + (AdminDataService.fetchUserList.toString().includes("Placeholder") ? " (Dev)" : "");
 
@@ -285,7 +308,7 @@ async function callFetchAndDisplayOverviewStats() {
     const functionName = 'callFetchAndDisplayOverviewStats (AdminMain)';
     LoggingService.debug('[AdminMain] Fetching and displaying overview stats (placeholder).', { functionName });
     try {
-        const stats = await AdminDataService.fetchOverviewStats(); // Placeholder
+        const stats = await AdminDataService.fetchOverviewStats(); 
         AdminUI.updateOverviewStats(stats); 
     } catch (error) {
         LoggingService.error('[AdminMain] Error fetching/displaying overview stats (placeholder).', error, {functionName});
@@ -293,11 +316,55 @@ async function callFetchAndDisplayOverviewStats() {
     }
 }
 
+// --- Sidebar Navigation Logic (moved from inline script for better organization) ---
+function initializeSidebarNavigation() {
+    const sidebarLinks = document.querySelectorAll('.admin-sidebar-link');
+    const contentSections = document.querySelectorAll('.admin-content-section');
+    const currentSectionTitleEl = document.getElementById('currentSectionTitle');
+
+    function setActiveAdminSection(sectionId, sectionTitle) { // Renamed to avoid conflict if inline script is still there
+        sidebarLinks.forEach(link => {
+            link.classList.toggle('active', link.dataset.section === sectionId);
+        });
+        contentSections.forEach(section => {
+            section.classList.toggle('active', section.id === `${sectionId}Section`);
+        });
+        if (currentSectionTitleEl) {
+            currentSectionTitleEl.textContent = sectionTitle;
+        }
+        localStorage.setItem('adminActiveSection', sectionId);
+        localStorage.setItem('adminActiveSectionTitle', sectionTitle);
+    }
+    // Make it globally accessible IF NEEDED by onAuthStateChanged, or pass as callback
+    window.setActiveAdminSection = setActiveAdminSection;
+
+
+    sidebarLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const sectionId = link.dataset.section;
+            // Ensure span exists and has text content before trying to access it
+            const spanElement = link.querySelector('span');
+            const sectionTitle = spanElement ? spanElement.textContent : 'Admin Section'; // Default title
+            setActiveAdminSection(sectionId, sectionTitle);
+        });
+    });
+
+    // Restore active section on initial load (if user is already "logged in" and adminContent is visible)
+    // This part is now better handled within onAuthStateChanged after role check.
+    // const adminAuthModal = document.getElementById('adminAuthModal');
+    // const adminContent = document.getElementById('adminContent');
+    // if (adminAuthModal && adminContent && adminAuthModal.classList.contains('hidden') && !adminContent.classList.contains('hidden')) {
+    //     const lastSection = localStorage.getItem('adminActiveSection') || 'overview';
+    //     const lastTitle = localStorage.getItem('adminActiveSectionTitle') || 'Overview';
+    //     setActiveAdminSection(lastSection, lastTitle);
+    // }
+}
+
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', async () => {
     const functionName = 'DOMContentLoaded (AdminMain)';
-    // LoggingService might not have Firestore yet, so initial logs are console only or might be queued by LoggingService.
     LoggingService.info('[AdminMain] DOMContentLoaded. Initializing Admin Panel...', { functionName });
 
     adminAuthModal = document.getElementById('adminAuthModal');
@@ -306,40 +373,42 @@ document.addEventListener('DOMContentLoaded', async () => {
     adminSignOutButton = document.getElementById('adminSignOutButton');
     adminUserDisplay = document.getElementById('adminUserDisplay');
     refreshErrorLogsButton = document.getElementById('refreshErrorLogsButton');
-    sendTestErrorButton = document.getElementById('sendTestErrorButton'); // Get the new button
+    sendTestErrorButton = document.getElementById('sendTestErrorButton'); 
 
     if (!adminAuthModal || !adminLoginForm || !adminContent || !adminSignOutButton) {
         const errorMsg = 'Essential admin panel DOM elements for auth/content are missing.';
         LoggingService.critical(`[AdminMain] ${errorMsg}`, new Error(errorMsg),{ functionName, missingElements: { adminAuthModal: !!adminAuthModal, adminLoginForm: !!adminLoginForm, adminContent: !!adminContent, adminSignOutButton: !!adminSignOutButton }});
-        AdminUI.showAdminMessage('Critical error: Admin panel UI is broken. Please check console.', 'error', 10000);
+        // AdminUI might not be ready here if this critical part fails.
+        // A simple alert might be necessary or a pre-UI error display div.
+        alert('Critical error: Admin panel UI is broken. Please check console.');
         return;
     }
     if (!refreshErrorLogsButton) LoggingService.warn('[AdminMain] Refresh error logs button not found.', {functionName});
-    if (!sendTestErrorButton) LoggingService.warn('[AdminMain] Send test error button not found. (This is expected if HTML is not yet updated)', {functionName});
+    if (!sendTestErrorButton) LoggingService.warn('[AdminMain] Send test error button not found.', {functionName});
 
 
     const firebaseReady = await initializeFirebase(); 
     if (!firebaseReady) {
         LoggingService.critical('[AdminMain] Firebase initialization failed. Admin panel will not load further.', new Error("FirebaseInitFailed"), { functionName });
-        // initializeFirebase already shows a UI message
         return;
     }
 
     try {
-        await loadFeatureFlags(); // Load flags for the admin panel context
+        await loadFeatureFlags(); 
         LoggingService.info('[AdminMain] Feature flags loaded for admin panel.', { functionName });
-        LoggingService.initializeLogLevel(); // Initialize log level based on debugMode flag
+        LoggingService.initializeLogLevel(); 
         LoggingService.info(`[AdminMain] Admin panel log level set to: ${LoggingService.getCurrentLevelName()} based on feature flags.`, { functionName });
 
     } catch (error) {
         LoggingService.error('[AdminMain] Failed to load feature flags for admin panel. Using defaults.', error, { functionName });
-        // LogLevel will use its default if flags fail to load
     }
+    
+    initializeSidebarNavigation(); // Initialize sidebar click listeners
 
     adminLoginForm.addEventListener('submit', handleAdminLogin);
     adminSignOutButton.addEventListener('click', handleAdminSignOut);
     if (refreshErrorLogsButton) refreshErrorLogsButton.addEventListener('click', callFetchAndDisplayErrorLogs);
-    if (sendTestErrorButton) sendTestErrorButton.addEventListener('click', handleSendTestError); // Attach listener
+    if (sendTestErrorButton) sendTestErrorButton.addEventListener('click', handleSendTestError); 
 
     if (firebaseAuth) {
         firebaseAuth.onAuthStateChanged(handleAuthStateChanged);
