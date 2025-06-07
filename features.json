@@ -2,7 +2,7 @@
   "testButtonFeature": false,
   "reminderFeature": false,
   "taskTimerSystem": false,
-  "advancedRecurrence": false,
+  "advancedRecurrence": true,
   "fileAttachments": false,
   "integrationsServices": false,
   "userAccounts": true,
