@@ -42,6 +42,7 @@ import * as firebaseService from './firebaseService.js';
 import NotificationService from './notificationService.js';
 import { DesktopNotificationsFeature } from './feature_desktop_notifications.js';
 import * as uiRendering from './ui_rendering.js';
+import { logPerformanceMetrics } from './performanceService.js';
 
 
 let showCriticalErrorImported = (message, errorId) => {
@@ -360,6 +361,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     LoggingService.info("---------------------------------------------------------");
     LoggingService.info("         Todo App Initialization Complete &#x2705;");
     LoggingService.info("---------------------------------------------------------");
+    
+    logPerformanceMetrics();
 });
 
 if (typeof window.isFeatureEnabled === 'undefined') window.isFeatureEnabled = isFeatureEnabledFromService;

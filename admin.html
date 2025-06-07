@@ -3,11 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LockieMedia - Admin Panel (Redesigned)</title> <!-- Changed title -->
-    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <title>LockieMedia - Admin Panel (Redesigned)</title> <link rel="icon" href="favicon.ico" type="image/x-icon">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Removed link to style.css as styles are now inline or specific to admin -->
     <style>
         body { 
             font-family: 'Inter', sans-serif; 
@@ -194,8 +192,7 @@
         </div>
     </div>
 
-    <div id="adminContent" class="hidden"> <!-- Renamed from adminAppContainer to match original admin.html -->
-        <header class="bg-slate-800 shadow-lg sticky top-0 z-[100] border-b border-slate-700">
+    <div id="adminContent" class="hidden"> <header class="bg-slate-800 shadow-lg sticky top-0 z-[100] border-b border-slate-700">
             <div class="container mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-20">
                 <div class="flex items-center">
                     <img src="https://placehold.co/40x40/0ea5e9/ffffff?text=LM&font=inter" alt="LockieMedia Logo" class="h-10 w-10 mr-3 rounded-md">
@@ -279,8 +276,8 @@
                             <p id="totalItemsStat" class="stat-card-value">N/A</p><p class="stat-card-footer">Tasks, projects, etc.</p>
                         </div>
                         <div class="bg-slate-800 p-6 rounded-xl shadow-xl border border-slate-700 hover:border-yellow-500 transition-all stat-card-content">
-                            <div class="stat-card-header"><h3 class="stat-card-title text-yellow-400">API Error Rate</h3><i class="fas fa-network-wired stat-card-icon text-yellow-500"></i></div>
-                            <p id="apiErrorRateStat" class="stat-card-value">N/A</p><p class="stat-card-footer">Last hour</p>
+                            <div class="stat-card-header"><h3 class="stat-card-title text-yellow-400">API Errors (1hr)</h3><i class="fas fa-network-wired stat-card-icon text-yellow-500"></i></div>
+                            <p id="apiErrorRateStat" class="stat-card-value">N/A</p><p class="stat-card-footer">Errors in the last hour</p>
                         </div>
                     </div>
                     <div class="bg-slate-800 p-6 rounded-xl shadow-xl border border-slate-700 mt-8">
@@ -296,7 +293,6 @@
                 </section>
 
                 <section id="featureFlagsSection" class="admin-content-section bg-slate-800 p-6 rounded-xl shadow-xl border border-slate-700">
-                    <!-- Content for featureFlagsList will be populated by adminUI.js -->
                     <div id="featureFlagsList" class="overflow-x-auto max-h-[70vh]">
                         <p class="text-slate-400">Loading feature flags...</p>
                     </div>
@@ -314,14 +310,12 @@
                             </button>
                         </div>
                     </div>
-                    <!-- Content for errorLogsList will be populated by adminUI.js -->
                     <div id="errorLogsList" class="overflow-x-auto max-h-[70vh]">
                         <p class="text-slate-400">Loading error logs...</p>
                     </div>
                 </section>
 
                 <section id="userManagementSection" class="admin-content-section bg-slate-800 p-6 rounded-xl shadow-xl border border-slate-700">
-                    <!-- Content for userList will be populated by adminUI.js -->
                     <div id="userList" class="overflow-x-auto max-h-[70vh]">
                         <p class="text-slate-400">User listing and management tools will appear here.</p>
                     </div>
@@ -341,12 +335,9 @@
             </main>
         </div>
         <footer class="text-center text-slate-500 py-8 border-t border-slate-700">
-            <p>&copy; 2025 LockieMedia. Admin Panel</p> <!-- Simplified version for actual file -->
-        </footer>
+            <p>&copy; 2025 LockieMedia. Admin Panel</p> </footer>
     </div>
 
-    <!-- Firebase SDKs are already included in the head -->
-    <!-- App-specific JS modules -->
     <script src="loggingService.js" type="module"></script>
     <script src="eventBus.js" type="module"></script>
     <script src="featureFlagService.js" type="module"></script>
@@ -354,7 +345,6 @@
     <script src="adminUI.js" type="module"></script>
     <script src="admin_main.js" type="module"></script> 
     
-    <!-- Inline script for sidebar navigation - can be moved to admin_main.js later -->
     <script type="module">
         // This script is for the new layout's interactivity.
         // Your existing admin_main.js will handle the core logic, data fetching, auth, etc.

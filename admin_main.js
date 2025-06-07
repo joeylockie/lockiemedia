@@ -251,7 +251,8 @@ async function loadAdminDashboardData() {
     callDisplayFeatureFlags(); 
     await callFetchAndDisplayErrorLogs();
     await callFetchAndDisplayUserList(); 
-    await callFetchAndDisplayOverviewStats(); 
+    await callFetchAndDisplayOverviewStats();
+    await callFetchAndDisplayApiErrorCount();
     LoggingService.info('[AdminMain] Admin dashboard data loading process completed.', { functionName });
 }
 
@@ -316,6 +317,28 @@ async function callFetchAndDisplayOverviewStats() {
     }
 }
 
+async function callFetchAndDisplayApiErrorCount() {
+    const functionName = 'callFetchAndDisplayApiErrorCount (AdminMain)';
+    LoggingService.debug('[AdminMain] Fetching and displaying API error count.', { functionName });
+    const apiErrorRateStatEl = document.getElementById('apiErrorRateStat');
+
+    try {
+        const errorCount = await AdminDataService.fetchErrorCountLastHour();
+        if (apiErrorRateStatEl) {
+            apiErrorRateStatEl.textContent = errorCount.toString();
+        } else {
+             LoggingService.warn('[AdminMain] apiErrorRateStat element not found.', { functionName });
+        }
+    } catch (error) {
+        LoggingService.error('[AdminMain] Error fetching or displaying API error count.', error, { functionName });
+        if (apiErrorRateStatEl) {
+            apiErrorRateStatEl.textContent = "Error";
+        }
+        AdminUI.showAdminMessage('Failed to load API Error count. Check console.', 'error');
+    }
+}
+
+
 // --- Sidebar Navigation Logic (moved from inline script for better organization) ---
 function initializeSidebarNavigation() {
     const sidebarLinks = document.querySelectorAll('.admin-sidebar-link');
@@ -349,16 +372,6 @@ function initializeSidebarNavigation() {
             setActiveAdminSection(sectionId, sectionTitle);
         });
     });
-
-    // Restore active section on initial load (if user is already "logged in" and adminContent is visible)
-    // This part is now better handled within onAuthStateChanged after role check.
-    // const adminAuthModal = document.getElementById('adminAuthModal');
-    // const adminContent = document.getElementById('adminContent');
-    // if (adminAuthModal && adminContent && adminAuthModal.classList.contains('hidden') && !adminContent.classList.contains('hidden')) {
-    //     const lastSection = localStorage.getItem('adminActiveSection') || 'overview';
-    //     const lastTitle = localStorage.getItem('adminActiveSectionTitle') || 'Overview';
-    //     setActiveAdminSection(lastSection, lastTitle);
-    // }
 }
 
 

@@ -1,6 +1,6 @@
 # AI Project Curation Log: LockieMedia Personal and Business Management Service
 
-**Last Updated:** 2025-06-07 14:40 (EDT) ## 
+**Last Updated:** 2025-06-07 15:17 (EDT) ## 
 
 0. Instructions for AI (Gemini)
 
@@ -46,7 +46,7 @@
 
 * **Name:** Admin Panel - Initial Setup & Core Features (with parallel debugging of the core Service)
 * **Goal for this Task:** Establish a functional Admin Panel with admin authentication, display of critical application data (error logs, feature flags), and lay the groundwork for user management and overview statistics. Concurrently, address critical bugs in the main Service that affect core functionality like feature flag interpretation and UI rendering.
-* **Status:** In Progress (Admin login, error log display, feature flag display, and error logging test functionality are functional in Admin Panel. Several critical bugs in the core Service resolved).
+* **Status:** In Progress (Admin login, error log display, feature flag display, and several metric widgets are now functional. Core service debugging ongoing).
 
 ## 3. Work Completed (Overall Project - High Level):
 
@@ -58,8 +58,10 @@
     * Client-side error logging to console and Firestore via `loggingService.js`.
     * Basic UI rendering and event handling structures in place.
     * Critical bug fixes related to feature flag interpretation, UI rendering timing (version display, smart button styling), and module exports implemented.
+    * **Performance logging implemented** to capture and send app load times to Firestore.
 * **Admin Panel (as part of the current major task):**
     * Initial setup and core features, including enhanced logging and testing capabilities (see Section 4 for details).
+    * **Key metric widgets are now functional**, including Avg. Load Time and API Errors (1hr).
 
 ## 4. Work Completed (Specific to Current Major Task - "Admin Panel - Initial Setup & Core Features" and Service Debugging):
 
@@ -81,25 +83,32 @@
 * **Date: 2025-06-03 (Rebranding Start)**
     * Updated `AI_PROJECT_LOG.md` to reflect the project's rebranding from a "Todo App" to the "LockieMedia Personal and Business Management Service". Project scope and goals have been broadened.
 * **Date: 2025-06-07 (Current Session)**
-    * **Added Admin Panel Link to Main App**:
-        * Modified `todo.html` to include a new "Admin Panel" link within the settings modal. This link is styled like other buttons and is hidden by default. It has the ID `settingsAdminPanelBtn` and a class of `admin-only-feature-element`.
-        * Updated the `applyActiveFeatures` function in `ui_event_handlers.js` to show/hide any element with the `.admin-only-feature-element` class based on whether the current user's profile in the `AppStore` has the role of "admin". This successfully makes the link visible only to administrators.
+    * **Implemented "Avg. Load Time" Widget:**
+        * Created a new `performanceService.js` to capture main app load times.
+        * Modified `main.js` to use this service, sending metrics to a new `performance_metrics` Firestore collection.
+        * Updated `adminDataService.js` to fetch these metrics.
+        * Updated `admin_main.js` to calculate and display the average load time.
+        * Defined and provided the necessary Firestore security rules for the new collection.
+    * **Implemented "API Error Rate" Widget (Re-scoped):**
+        * Re-scoped the widget to "API Errors (1hr)" for feasibility.
+        * Updated `admin.html` to reflect the new widget title and description.
+        * Updated `adminDataService.js` to fetch the count of errors from the `app_errors` collection within the last hour.
+        * Updated `admin_main.js` to display this count in the widget.
 
 ## 5. Current Focus / Next Steps (Specific to Current Major Task):
 
-* **Current Sub-Task:** The implementation of the admin-only link is complete.
+* **Current Sub-Task:** The implementation of the "Avg. Load Time" and "API Errors (1hr)" widgets is complete.
 * **Immediate Next Action:** Discuss the next development phase with the user. The next logical steps could be:
     * **Further Admin Panel Enhancements:**
         * Implement User Management display (listing users).
-        * Develop Overview Statistics display.
-        * Refine error log display (e.g., better detail view).
+        * Implement the remaining placeholder statistics on the Overview page.
+        * Add more sophisticated filtering/pagination for the Error Logs table.
     * **Main Service Feature Enablement & Expansion:**
         * Start enabling existing foundational features (e.g., `projectFeature`, `subTasksFeature`, `kanbanBoardFeature`) in `features.json`, test their functionality, and refine their implementation.
         * Begin planning and implementing new modules relevant to a "Personal and Business Management Service" (e.g., basic CRM, notes/document management, finance tracking placeholders).
         * Update the `README.md` to accurately reflect the status of these features as they are enabled and tested.
     * **Rebranding Continuation:**
         * Continue rebranding the UI from a "Todo app" to the "LockieMedia Service" by updating text in `todo.html`, `admin.html`, `README.md`, and other user-facing strings.
-    * **Address any other pending issues or minor bugs.**
 * **Specific questions for AI (if any):**
     * None at this moment.
 * **Blockers (if any):**
@@ -107,6 +116,7 @@
 
 ## 6. Known Issues / Bugs (Related to current work or recently discovered):
 
+* **Potential Setup Step:** The queries for performance metrics and error counts in the admin panel rely on a composite index in Firestore. The first time the admin panel is loaded, an error message may appear in the browser console with a link to create the necessary index in the Firebase Console. This is expected behavior.
 * **Minor Warning (Understood/Expected):** `[ProjectsFeature] Cannot populate project filter list. Dependencies missing.` - This occurs because the `projectFeature` is currently disabled in `features.json`.
 * **Minor Warning (Understood/Expected):** `[ModalEventHandlers] Element #openFeatureFlagsModalBtn not found.` - This button ID is not present in the `todo.html` markup.
 
@@ -116,7 +126,6 @@
     * Flesh out User Management (view details, potentially disable users - requires careful rule changes).
     * Implement all Overview Stats.
     * Implement A/B Testing stats display section.
-    * Add more sophisticated filtering/pagination for Error Logs.
     * Improve the "Details" view for individual error logs beyond a simple `alert()`.
 * **LockieMedia Service (Main Application):**
     * Complete and refine foundational features like Calendar View, Pomodoro Timer, Sub-tasks, Task Dependencies, Reminders, File Attachments, etc. (as per `features.json` and README). This involves changing their flags to `true` in `features.json` and testing/refining their implementation.
@@ -130,6 +139,8 @@
 
 ## 8. Important Notes / Decisions Made:
 
+* **"API Error Rate" Re-scoped:** The widget was changed to "API Errors (1hr)" to show a raw count of recent errors. This was more feasible than calculating a true "rate," which would require logging every successful API call.
+* **Performance Metrics:** A new `performance_metrics` collection has been introduced in Firestore to store application load time data.
 * **Admin-Only UI Elements:** A new class, `admin-only-feature-element`, has been established to control the visibility of UI components that should only be seen by administrators.
 * **Project Rebranding:** The project is now known as the "LockieMedia Personal and Business Management Service" to reflect a broader scope beyond a simple todo list.
 * Admin role is defined in Firestore at `users/{uid}/appData/userSpecificData` within a `profile` map, as `profile: { role: "admin" }`.

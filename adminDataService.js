@@ -59,6 +59,45 @@ export async function fetchErrorLogs() {
 }
 
 /**
+ * Fetches the count of error logs from the last hour.
+ * @returns {Promise<number>} A promise that resolves to the number of error logs.
+ * @throws {Error} If Firestore is not available or if there's an error during fetching.
+ */
+export async function fetchErrorCountLastHour() {
+    const functionName = 'fetchErrorCountLastHour (AdminDataService)';
+    if (!firestoreDB) {
+        LoggingService.error('[AdminDataService] FirestoreDB not available for fetching error count.', new Error("FirestoreInstanceMissing"), { functionName });
+        throw new Error('Firestore service is not initialized for AdminDataService.');
+    }
+
+    LoggingService.debug('[AdminDataService] Fetching error count for the last hour from Firestore.', { functionName });
+
+    if (typeof firebase === 'undefined' || !firebase.firestore || !firebase.firestore.Timestamp) {
+         LoggingService.error('[AdminDataService] firebase.firestore.Timestamp is not available.', new Error("FirebaseGlobalMissing"), { functionName });
+         throw new Error('Firebase Timestamp global is not available.');
+    }
+
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const oneHourAgoTimestamp = firebase.firestore.Timestamp.fromDate(oneHourAgo);
+
+    try {
+        // This query needs a composite index on (serverTimestamp, clientTimestamp) or just (serverTimestamp) if that's what you use for ordering/filtering.
+        const querySnapshot = await firestoreDB.collection('app_errors')
+                                       .where('serverTimestamp', '>=', oneHourAgoTimestamp)
+                                       .get();
+
+        const errorCount = querySnapshot.size;
+        LoggingService.info(`[AdminDataService] Found ${errorCount} errors in the last hour.`, { functionName, count: errorCount });
+        return errorCount;
+
+    } catch (error) {
+        LoggingService.error('[AdminDataService] Error fetching error count from Firestore. Check for missing index.', error, { functionName });
+        throw error;
+    }
+}
+
+
+/**
  * Fetches a list of users (basic information).
  * This is a placeholder and needs careful implementation regarding data access and privacy.
  * For now, it will just return an empty array.
@@ -104,6 +143,7 @@ LoggingService.info("adminDataService.js loaded.", { module: 'adminDataService' 
 const AdminDataService = {
     initializeAdminDataService,
     fetchErrorLogs,
+    fetchErrorCountLastHour,
     fetchUserList,
     fetchOverviewStats
 };
