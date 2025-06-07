@@ -2,9 +2,12 @@
 // Manages User Accounts Feature using Firebase Authentication.
 
 import { isFeatureEnabled } from './featureFlagService.js';
-import LoggingService from './loggingService.js';
+import LoggingService, { initializeFirestoreLogging } from './loggingService.js'; // Import the new initializer
 import AppStore from './store.js';
 import EventBus from './eventBus.js';
+// Import modal_interactions to close the profile modal after saving
+import { closeProfileModal } from './modal_interactions.js';
+
 
 // Firebase configuration
 const firebaseConfig = {
@@ -19,15 +22,13 @@ const firebaseConfig = {
 
 let firebaseApp;
 let firebaseAuth;
-let firestoreDB;
+let firestoreDB; // This is the instance we need to pass to LoggingService
 
 // DOM Elements
 let authModal;
-let authModalDialog;
-// ... (other DOM elements remain the same)
+let authModalDialog; // Ensure this ID is correct in your HTML ('modalDialogAuth')
 let settingsSignOutBtn;
-let signUpForm, signInForm;
-let signUpEmailInput, signUpPasswordInput, signInEmailInput, signInPasswordInput;
+let signUpEmailInput, signInEmailInput;
 
 
 function openAuthModal() {
@@ -96,26 +97,26 @@ function initialize() {
             LoggingService.critical('[UserAccountsFeature] CRITICAL: Firebase Firestore SDK not loaded.', new Error('FirebaseFirestoreNotLoaded'), { functionName });
             return;
         }
-        firestoreDB = firebase.firestore();
+        firestoreDB = firebase.firestore(); 
         LoggingService.info('[UserAccountsFeature] Firebase Firestore instance obtained.', { functionName });
+        
+        initializeFirestoreLogging(firestoreDB); 
+
 
         authModal = document.getElementById('authModal');
-        authModalDialog = document.getElementById('authModalDialog');
-        // authFormsContainer = document.getElementById('authFormsContainer'); // Not directly used in this logic
+        // Corrected ID here based on typical modal structure in provided HTML
+        authModalDialog = document.getElementById('authModalDialog') || document.getElementById('modalDialogAuth'); // Fallback if ID varies
+        if (!authModalDialog && authModal) authModalDialog = authModal.querySelector('div[id^="modalDialog"]'); // More generic fallback
+
         settingsSignOutBtn = document.getElementById('settingsSignOutBtn');
-        // signUpForm = document.getElementById('signUpForm'); // Referenced in ui_event_handlers.js
-        // signInForm = document.getElementById('signInForm'); // Referenced in ui_event_handlers.js
         signUpEmailInput = document.getElementById('signUpEmail');
-        // signUpPasswordInput = document.getElementById('signUpPassword'); // Only used in handleSignUp
         signInEmailInput = document.getElementById('signInEmail');
-        // signInPasswordInput = document.getElementById('signInPassword'); // Only used in handleSignIn
 
         firebaseAuth.onAuthStateChanged(async user => {
             const authStateFunctionName = 'onAuthStateChanged_callback';
             if (user) {
                 LoggingService.info(`[UserAccountsFeature] User signed in: ${user.email}`, { functionName: authStateFunctionName, userEmail: user.email, userId: user.uid });
                 closeAuthModal();
-                // MODIFIED: Start streaming user data instead of one-time load
                 if (AppStore.startStreamingUserData) {
                     LoggingService.info(`[UserAccountsFeature] Attempting to START streaming data for user: ${user.uid}`, { functionName: authStateFunctionName });
                     AppStore.startStreamingUserData(user.uid);
@@ -124,7 +125,6 @@ function initialize() {
                 }
             } else {
                 LoggingService.info('[UserAccountsFeature] User signed out or no user.', { functionName: authStateFunctionName });
-                // MODIFIED: Stop streaming user data
                 if (AppStore.stopStreamingUserData) {
                     LoggingService.info(`[UserAccountsFeature] User signed out. Stopping data stream.`, { functionName: authStateFunctionName });
                     AppStore.stopStreamingUserData();
@@ -132,10 +132,9 @@ function initialize() {
                      LoggingService.warn('[UserAccountsFeature] AppStore.stopStreamingUserData not available.', { functionName: authStateFunctionName });
                 }
 
-                // Clear local store and reload defaults after stopping stream
                 if (AppStore.clearLocalStoreAndReloadDefaults) {
                      LoggingService.info(`[UserAccountsFeature] Clearing local store and reloading defaults.`, { functionName: authStateFunctionName });
-                    await AppStore.clearLocalStoreAndReloadDefaults(); // Ensure it completes if async
+                    await AppStore.clearLocalStoreAndReloadDefaults(); 
                 } else {
                     LoggingService.warn('[UserAccountsFeature] AppStore.clearLocalStoreAndReloadDefaults not available.', { functionName: authStateFunctionName });
                 }
@@ -146,7 +145,7 @@ function initialize() {
                     closeAuthModal();
                 }
             }
-            updateUIVisibility(); // Update UI based on new auth state
+            updateUIVisibility(); 
         });
         LoggingService.info('[UserAccountsFeature] Auth state change listener set up.', { functionName });
 
@@ -163,38 +162,40 @@ function updateUIVisibility() {
         LoggingService.warn("[UserAccountsFeature] Dependencies missing for UI visibility update.", { functionName });
         return;
     }
-    const isActuallyEnabled = isFeatureEnabled('userAccounts');
+    const isUserAccountsActuallyEnabled = isFeatureEnabled('userAccounts');
     const currentUser = firebaseAuth.currentUser;
 
-    LoggingService.debug(`[UserAccountsFeature] Updating UI visibility. Feature: ${isActuallyEnabled}, User: ${currentUser ? currentUser.email : 'None'}.`, { functionName });
+    LoggingService.debug(`[UserAccountsFeature] Updating UI visibility. UserAccounts Feature: ${isUserAccountsActuallyEnabled}, User: ${currentUser ? currentUser.email : 'None'}.`, { functionName });
 
     if (authModal) {
-        if (!isActuallyEnabled && !authModal.classList.contains('hidden')) { // If feature disabled, ensure modal is hidden
+        if (!isUserAccountsActuallyEnabled && !authModal.classList.contains('hidden')) {
             closeAuthModal();
         }
-        // If feature enabled AND no user, onAuthStateChanged will call openAuthModal
     }
     
     if (settingsSignOutBtn) {
-        settingsSignOutBtn.classList.toggle('hidden', !(isActuallyEnabled && currentUser));
+        settingsSignOutBtn.classList.toggle('hidden', !(isUserAccountsActuallyEnabled && currentUser));
     }
     
     document.querySelectorAll('.user-accounts-feature-element').forEach(el => {
-        if (el.id === 'authModal' && !isActuallyEnabled) {
+        if (el.id === 'authModal' && !isUserAccountsActuallyEnabled) { // Keep authModal logic specific
             el.classList.add('hidden');
-        } else if (el.id !== 'authModal') { // For other elements, just toggle based on feature flag
-            el.classList.toggle('hidden', !isActuallyEnabled);
+        } else if (el.id !== 'authModal') { 
+            el.classList.toggle('hidden', !isUserAccountsActuallyEnabled);
         }
     });
-    // Note: The authModal visibility is primarily controlled by openAuthModal/closeAuthModal
-    // which are called from onAuthStateChanged based on user status and feature flag.
+    
+    const settingsManageProfileBtn = document.getElementById('settingsManageProfileBtn');
+    if (settingsManageProfileBtn) {
+        settingsManageProfileBtn.classList.toggle('hidden', !currentUser); // Only show if a user is logged in, regardless of userAccounts feature flag for this specific button
+    }
 
-    LoggingService.info(`[UserAccountsFeature] UI Visibility updated. Feature: ${isActuallyEnabled}, User: ${currentUser ? currentUser.email : 'None'}`, { functionName });
+    LoggingService.info(`[UserAccountsFeature] UI Visibility updated. UserAccounts Feature: ${isUserAccountsActuallyEnabled}, User: ${currentUser ? currentUser.email : 'None'}`, { functionName });
 }
 
 async function handleSignUp(email, password) {
     const functionName = 'handleSignUp';
-    const signUpPasswordInputEl = document.getElementById('signUpPassword'); // Get it locally as it's not needed globally
+    const signUpPasswordInputEl = document.getElementById('signUpPassword'); 
 
     if (!firebaseAuth) {
         LoggingService.error("[UserAccountsFeature] Firebase Auth not initialized for sign up.", new Error("FirebaseAuthMissing"), { functionName });
@@ -205,6 +206,18 @@ async function handleSignUp(email, password) {
     try {
         const userCredential = await firebaseAuth.createUserWithEmailAndPassword(email, password);
         LoggingService.info(`[UserAccountsFeature] User signed up successfully: ${userCredential.user.email}`, { functionName, userEmail: userCredential.user.email });
+        
+        const defaultProfile = {
+            displayName: userCredential.user.email.split('@')[0] || 'New User', // Default display name
+            role: 'user' 
+        };
+        if (AppStore && typeof AppStore.setUserProfile === 'function') {
+            await AppStore.setUserProfile(defaultProfile, 'UserAccountsFeature.handleSignUp_defaultProfile');
+            LoggingService.info(`[UserAccountsFeature] Default profile with role set for new user ${userCredential.user.uid}`, { functionName, userId: userCredential.user.uid, profile: defaultProfile });
+        } else {
+            LoggingService.error('[UserAccountsFeature] AppStore.setUserProfile not available. Cannot set default profile for new user.', new Error("AppStoreFunctionMissing"), { functionName, userId: userCredential.user.uid });
+        }
+
         EventBus.publish('displayUserMessage', { text: 'Account created successfully! You are now signed in.', type: 'success' });
         if(signUpEmailInput) signUpEmailInput.value = '';
         if(signUpPasswordInputEl) signUpPasswordInputEl.value = '';
@@ -216,7 +229,7 @@ async function handleSignUp(email, password) {
 
 async function handleSignIn(email, password) {
     const functionName = 'handleSignIn';
-    const signInPasswordInputEl = document.getElementById('signInPassword'); // Get it locally
+    const signInPasswordInputEl = document.getElementById('signInPassword'); 
 
      if (!firebaseAuth) {
         LoggingService.error("[UserAccountsFeature] Firebase Auth not initialized for sign in.", new Error("FirebaseAuthMissing"), { functionName });
@@ -245,17 +258,14 @@ async function handleSignOut() {
     }
     LoggingService.info('[UserAccountsFeature] Attempting sign out.', { functionName });
     try {
-        await firebaseAuth.signOut(); // This will trigger onAuthStateChanged
+        await firebaseAuth.signOut(); 
         LoggingService.info('[UserAccountsFeature] User signed out successfully (via firebaseAuth.signOut).', { functionName });
         EventBus.publish('displayUserMessage', { text: 'Signed out successfully.', type: 'success' });
         
         const settingsModalEl = document.getElementById('settingsModal');
-        // Attempt to get closeSettingsModal from where it might be defined (window.ModalInteractions or global)
-        const closeSettingsModalFn = (typeof window !== 'undefined' && window.ModalInteractions?.closeSettingsModal) || 
-                                     (typeof closeSettingsModal === 'function' ? closeSettingsModal : null);
-
-        if (settingsModalEl && !settingsModalEl.classList.contains('hidden') && closeSettingsModalFn) {
-            closeSettingsModalFn();
+        // Ensure ModalInteractions is available if trying to close modal this way
+        if (settingsModalEl && !settingsModalEl.classList.contains('hidden') && window.AppFeatures && window.AppFeatures.ModalInteractions && window.AppFeatures.ModalInteractions.closeSettingsModal) {
+            window.AppFeatures.ModalInteractions.closeSettingsModal();
         }
     } catch (error) {
         LoggingService.error('[UserAccountsFeature] Error signing out:', error, { functionName });
@@ -263,11 +273,38 @@ async function handleSignOut() {
     }
 }
 
+async function handleSaveProfile(profileData) {
+    const functionName = 'handleSaveProfile (UserAccountsFeature)';
+    LoggingService.info('[UserAccountsFeature] Attempting to save profile.', { functionName, profileData });
+
+    if (!firebaseAuth || !firebaseAuth.currentUser) {
+        LoggingService.error('[UserAccountsFeature] User not signed in. Cannot save profile.', new Error("UserNotSignedIn"),{ functionName });
+        EventBus.publish('displayUserMessage', { text: 'You must be signed in to save your profile.', type: 'error' });
+        return;
+    }
+
+    if (!AppStore || typeof AppStore.setUserProfile !== 'function') {
+        LoggingService.error('[UserAccountsFeature] AppStore.setUserProfile is not available.', new Error("AppStoreFunctionMissing"), { functionName });
+        EventBus.publish('displayUserMessage', { text: 'Error saving profile: System component missing.', type: 'error' });
+        return;
+    }
+
+    try {
+        await AppStore.setUserProfile(profileData, 'UserAccountsFeature.handleSaveProfile'); 
+        LoggingService.info(`[UserAccountsFeature] Profile saved successfully for user ${firebaseAuth.currentUser.uid}.`, { functionName });
+        EventBus.publish('displayUserMessage', { text: 'Profile saved successfully!', type: 'success' });
+        closeProfileModal(); 
+    } catch (error) {
+        LoggingService.error('[UserAccountsFeature] Error saving profile:', error, { functionName });
+        EventBus.publish('displayUserMessage', { text: `Error saving profile: ${error.message}`, type: 'error' });
+    }
+}
+
 export function getFirestoreInstance() {
     if (!firestoreDB) {
-        LoggingService.warn('[UserAccountsFeature] Firestore instance requested before proper initialization or if init failed.', { functionName: 'getFirestoreInstance' });
-        if (typeof firebase !== 'undefined' && typeof firebase.firestore === 'function') {
-            LoggingService.info('[UserAccountsFeature] Attempting to get Firestore instance on-demand in getFirestoreInstance.', { functionName: 'getFirestoreInstance' });
+        LoggingService.warn('[UserAccountsFeature] Firestore instance requested before proper initialization or if init failed in UserAccounts.', { functionName: 'getFirestoreInstance' });
+        if (typeof firebase !== 'undefined' && typeof firebase.firestore === 'function' && firebase.apps.length > 0) {
+             LoggingService.info('[UserAccountsFeature] Attempting to get Firestore instance on-demand in getFirestoreInstance.', { functionName: 'getFirestoreInstance' });
             return firebase.firestore(); 
         }
         return null;
@@ -283,7 +320,9 @@ export const UserAccountsFeature = {
     handleSignOut,
     openAuthModal,
     closeAuthModal,
-    getFirestoreInstance
+    getFirestoreInstance,
+    handleSaveProfile
 };
 
-LoggingService.debug("feature_user_accounts.js loaded as ES6 module.", { module: 'feature_user_accounts' });
+// REMOVED: LoggingService.debug("feature_user_accounts.js loaded as ES6 module.", { module: 'feature_user_accounts' });
+// console.log("feature_user_accounts.js module parsed and UserAccountsFeature object is now defined."); // Optional

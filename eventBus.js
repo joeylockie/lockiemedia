@@ -1,10 +1,30 @@
 // eventBus.js
 // A simple event bus (publish/subscribe) system for decoupling modules.
 
-// NEW: Import LoggingService
 import LoggingService from './loggingService.js';
 
 const events = {}; // Store events and their listeners
+
+// Helper to safely log, checking if LoggingService is available
+function safeLog(level, message, context, error = null) {
+    if (LoggingService && typeof LoggingService[level] === 'function') {
+        if (error) {
+            LoggingService[level](message, error, context);
+        } else {
+            LoggingService[level](message, context);
+        }
+    } else {
+        // Fallback to console if LoggingService is not ready
+        const levelName = level.toUpperCase();
+        const ts = new Date().toISOString();
+        if (console[level]) {
+            console[level](`[${ts}] [EventBusSAFE:${levelName}] ${message}`, context || '', error || '');
+        } else {
+            console.log(`[${ts}] [EventBusSAFE:${levelName}] ${message}`, context || '', error || '');
+        }
+    }
+}
+
 
 /**
  * Subscribes a callback function to a specific event.
@@ -13,25 +33,22 @@ const events = {}; // Store events and their listeners
  */
 function subscribe(eventName, callback) {
     const functionName = 'subscribe (EventBus)';
-    if (typeof eventName !== 'string' || typeof callback !== 'function') { //
-        // MODIFIED: Use LoggingService
-        LoggingService.error('[EventBus] Invalid arguments for subscribe. Event name must be a string and callback must be a function.',
-            new TypeError("Invalid arguments for subscribe"),
-            { functionName, eventName, callbackType: typeof callback }
+    if (typeof eventName !== 'string' || typeof callback !== 'function') {
+        safeLog('error', '[EventBus] Invalid arguments for subscribe. Event name must be a string and callback must be a function.',
+            { functionName, eventName, callbackType: typeof callback },
+            new TypeError("Invalid arguments for subscribe")
         );
-        return; //
+        return;
     }
-    if (!events[eventName]) { //
-        events[eventName] = []; //
+    if (!events[eventName]) {
+        events[eventName] = [];
     }
-    if (events[eventName].includes(callback)) { //
-        // MODIFIED: Use LoggingService
-        LoggingService.warn(`[EventBus] Callback already subscribed to event: ${eventName}`, { functionName, eventName, callbackName: callback.name || 'anonymous' });
-        return; //
+    if (events[eventName].includes(callback)) {
+        safeLog('warn', `[EventBus] Callback already subscribed to event: ${eventName}`, { functionName, eventName, callbackName: callback.name || 'anonymous' });
+        return;
     }
-    events[eventName].push(callback); //
-    // MODIFIED: Use LoggingService (debug level for potentially frequent operations)
-    LoggingService.debug(`[EventBus] Subscribed to event: ${eventName}`, { functionName, eventName, callbackName: callback.name || 'anonymous' });
+    events[eventName].push(callback);
+    safeLog('debug', `[EventBus] Subscribed to event: ${eventName}`, { functionName, eventName, callbackName: callback.name || 'anonymous' });
 }
 
 /**
@@ -41,30 +58,27 @@ function subscribe(eventName, callback) {
  */
 function unsubscribe(eventName, callback) {
     const functionName = 'unsubscribe (EventBus)';
-    if (typeof eventName !== 'string' || typeof callback !== 'function') { //
-        // MODIFIED: Use LoggingService
-        LoggingService.error('[EventBus] Invalid arguments for unsubscribe.',
-            new TypeError("Invalid arguments for unsubscribe"),
-            { functionName, eventName, callbackType: typeof callback }
+    if (typeof eventName !== 'string' || typeof callback !== 'function') {
+        safeLog('error', '[EventBus] Invalid arguments for unsubscribe.',
+            { functionName, eventName, callbackType: typeof callback },
+            new TypeError("Invalid arguments for unsubscribe")
         );
-        return; //
+        return;
     }
-    if (events[eventName]) { //
+    if (events[eventName]) {
         const initialLength = events[eventName].length;
-        events[eventName] = events[eventName].filter(cb => cb !== callback); //
+        events[eventName] = events[eventName].filter(cb => cb !== callback);
         if (events[eventName].length < initialLength) {
-            // MODIFIED: Use LoggingService (debug level)
-            LoggingService.debug(`[EventBus] Unsubscribed from event: ${eventName}`, { functionName, eventName, callbackName: callback.name || 'anonymous' });
+            safeLog('debug', `[EventBus] Unsubscribed from event: ${eventName}`, { functionName, eventName, callbackName: callback.name || 'anonymous' });
         } else {
-            LoggingService.warn(`[EventBus] Callback not found for event to unsubscribe: ${eventName}`, { functionName, eventName, callbackName: callback.name || 'anonymous' });
+            safeLog('warn', `[EventBus] Callback not found for event to unsubscribe: ${eventName}`, { functionName, eventName, callbackName: callback.name || 'anonymous' });
         }
-        if (events[eventName].length === 0) { //
-            delete events[eventName]; // Clean up if no listeners left //
-            LoggingService.debug(`[EventBus] Event '${eventName}' removed as no listeners left.`, { functionName, eventName });
+        if (events[eventName].length === 0) {
+            delete events[eventName];
+            safeLog('debug', `[EventBus] Event '${eventName}' removed as no listeners left.`, { functionName, eventName });
         }
     } else {
-        // MODIFIED: Use LoggingService
-        LoggingService.warn(`[EventBus] No event found to unsubscribe from: ${eventName}`, { functionName, eventName });
+        safeLog('warn', `[EventBus] No event found to unsubscribe from: ${eventName}`, { functionName, eventName });
     }
 }
 
@@ -75,48 +89,38 @@ function unsubscribe(eventName, callback) {
  */
 function publish(eventName, data) {
     const functionName = 'publish (EventBus)';
-    if (typeof eventName !== 'string') { //
-        // MODIFIED: Use LoggingService
-        LoggingService.error('[EventBus] Invalid eventName for publish. Must be a string.',
-            new TypeError("Invalid eventName for publish"),
-            { functionName, eventName }
+    if (typeof eventName !== 'string') {
+        safeLog('error', '[EventBus] Invalid eventName for publish. Must be a string.',
+            { functionName, eventName },
+            new TypeError("Invalid eventName for publish")
         );
-        return; //
+        return;
     }
-    if (events[eventName]) { //
-        // MODIFIED: Use LoggingService (debug level for potentially frequent operations)
-        // For event data, consider if it's too large or contains sensitive info for general logging.
-        // Here, we'll log a summary or type of data if possible, or just acknowledge data presence.
-        const dataSummary = data === undefined ? 'No data' : (typeof data === 'object' ? `Object (keys: ${Object.keys(data || {}).join(', ') || 'empty'})` : `Type: ${typeof data}`);
-        LoggingService.debug(`[EventBus] Publishing event: ${eventName}`, { functionName, eventName, dataSummary, listenerCount: events[eventName].length });
+    if (events[eventName]) {
+        const dataSummary = data === undefined ? 'No data' : (typeof data === 'object' && data !== null ? `Object (keys: ${Object.keys(data || {}).join(', ') || 'empty'})` : `Type: ${typeof data}`);
+        safeLog('debug', `[EventBus] Publishing event: ${eventName}`, { functionName, eventName, dataSummary, listenerCount: events[eventName].length });
 
-        const listeners = [...events[eventName]]; // Create a copy of the listeners array
-        listeners.forEach(callback => { //
+        const listeners = [...events[eventName]];
+        listeners.forEach(callback => {
             try {
-                callback(data); //
+                callback(data);
             } catch (error) {
-                // MODIFIED: Use LoggingService
-                LoggingService.error(`[EventBus] Error in callback for event ${eventName}:`, error, {
+                safeLog('error', `[EventBus] Error in callback for event ${eventName}:`, {
                     functionName,
                     eventName,
                     callbackName: callback.name || 'anonymous'
-                });
+                }, error);
             }
         });
     } else {
-        // MODIFIED: Log if publishing to an event with no listeners (debug level)
-        LoggingService.debug(`[EventBus] Publishing event: ${eventName} (No listeners currently subscribed)`, { functionName, eventName });
+        safeLog('debug', `[EventBus] Publishing event: ${eventName} (No listeners currently subscribed)`, { functionName, eventName });
     }
 }
 
-// Export the public methods as an object
-const EventBus = { //
-    subscribe, //
-    unsubscribe, //
-    publish //
+const EventBus = {
+    subscribe,
+    unsubscribe,
+    publish
 };
 
 export default EventBus;
-
-// MODIFIED: Use LoggingService
-LoggingService.debug("eventBus.js loaded as ES6 module.", { module: 'eventBus' });

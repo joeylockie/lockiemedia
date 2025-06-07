@@ -155,5 +155,5 @@ export function deleteTaskById(taskId) {
     return false; //
 }
 
-// MODIFIED: Use LoggingService
-LoggingService.debug("taskService.js loaded as ES6 module.", { module: 'taskService' });
+// REMOVED: LoggingService.debug("taskService.js loaded as ES6 module.", { module: 'taskService' });
+// console.log("taskService.js module parsed and functions defined."); // Optional

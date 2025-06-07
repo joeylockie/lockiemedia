@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LockieMedia - Admin Panel (Redesigned)</title> <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif; 
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden; 
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937; /* slate-800 */
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background-color: #4b5563; /* slate-600 */
+            border-radius: 10px;
+            border: 2px solid #1f2937; /* slate-800 */
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: #6b7280; /* slate-500 */
+        }
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .admin-table th, .admin-table td {
+            border: 1px solid #374151; /* slate-700 */
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-size: 0.875rem;
+        }
+        .admin-table th {
+            background-color: #1f2937; /* slate-800 */
+            font-weight: 600;
+            color: #d1d5db; /* slate-300 */
+        }
+        .admin-table tbody tr:nth-child(odd) {
+            background-color: #374151; /* slate-700 */
+        }
+         .admin-table tbody tr:nth-child(even) {
+            background-color: #4b5563; /* slate-600 */
+        }
+        .admin-table tbody tr:hover {
+            background-color: #525f76; 
+        }
+        .admin-table td {
+            color: #e5e7eb; /* slate-200 */
+        }
+        #adminMessageBox {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050; 
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .admin-message {
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.5rem;
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            opacity: 0;
+            transform: translateX(100%);
+            transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+        }
+        .admin-message.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .admin-message.error { background-color: #ef4444; }
+        .admin-message.success { background-color: #22c55e; }
+        .admin-message.info { background-color: #3b82f6; }
+
+        .admin-btn { /* Base class for admin buttons if needed, or apply directly */
+            font-weight: 600; /* semibold */
+            padding-top: 0.5rem; padding-bottom: 0.5rem; /* py-2 */
+            padding-left: 1rem; padding-right: 1rem; /* px-4 */
+            border-radius: 0.5rem; /* rounded-lg */
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); /* shadow-md */
+            transition-property: all;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 300ms;
+        }
+        .admin-btn:hover {
+             box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); /* hover:shadow-lg */
+             transform: translateY(-0.125rem); /* hover:-translate-y-0.5 */
+        }
+
+        .admin-btn-primary { 
+            background-color: #0ea5e9; /* bg-sky-500 */
+            color: white;
+        }
+        .admin-btn-primary:hover { background-color: #0284c7; /* hover:bg-sky-600 */ }
+        
+        .admin-btn-danger { 
+            background-color: #ef4444; /* bg-red-500 */
+            color: white;
+        }
+        .admin-btn-danger:hover { background-color: #dc2626; /* hover:bg-red-600 */ }
+
+        .admin-btn-warning { 
+             background-color: #f59e0b; /* bg-amber-500 */
+             color: white;
+        }
+        .admin-btn-warning:hover { background-color: #d97706; /* hover:bg-amber-600 */ }
+
+        .admin-sidebar {
+            width: 260px; 
+            transition: width 0.3s ease-in-out;
+        }
+        .admin-sidebar-link.active { 
+            background-color: #0ea5e9; /* bg-sky-500 */
+            color: white;
+            font-weight: 600; /* semibold */
+        }
+        .admin-sidebar-link i { 
+            margin-right: 0.75rem; /* mr-3 */
+            width: 1.25rem; /* w-5 */
+            text-align: center;
+        }
+        .admin-content-section {
+            display: none; 
+        }
+        .admin-content-section.active {
+            display: block; 
+        }
+        /* Specific styles for stat cards to ensure icon placement */
+        .stat-card-content {
+            display: flex;
+            flex-direction: column;
+        }
+        .stat-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start; /* Align icon to top */
+            margin-bottom: 0.25rem; /* mb-1 */
+        }
+        .stat-card-title {
+            font-size: 1.125rem; /* text-lg */
+            font-weight: 500; /* medium */
+        }
+        .stat-card-icon {
+            font-size: 1.5rem; /* text-2xl */
+            opacity: 0.5;
+        }
+        .stat-card-value {
+            font-size: 2.25rem; /* text-4xl */
+            font-weight: 700; /* bold */
+            color: #f1f5f9; /* slate-100 */
+        }
+        .stat-card-footer {
+            font-size: 0.75rem; /* text-xs */
+            color: #94a3b8; /* slate-400 */
+            margin-top: 0.25rem; /* mt-1 */
+        }
+    </style>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+</head>
+<body class="bg-gradient-to-br from-slate-900 to-slate-700 min-h-screen text-slate-300 selection:bg-sky-400 selection:text-white">
+
+    <div id="adminMessageBox"></div>
+
+    <div id="adminAuthModal" class="fixed inset-0 bg-slate-900 bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-[200]">
+        <div class="bg-slate-800 p-8 rounded-xl shadow-2xl w-full max-w-sm border border-slate-700">
+            <h2 class="text-3xl font-bold text-center mb-8 text-sky-400">Admin Panel Login</h2>
+            <form id="adminLoginForm">
+                <div class="mb-6">
+                    <label for="adminEmail" class="block text-sm font-medium text-slate-300 mb-1">Email</label>
+                    <input type="email" id="adminEmail" required class="mt-1 block w-full px-4 py-3 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 sm:text-sm placeholder-slate-400">
+                </div>
+                <div class="mb-8">
+                    <label for="adminPassword" class="block text-sm font-medium text-slate-300 mb-1">Password</label>
+                    <input type="password" id="adminPassword" required class="mt-1 block w-full px-4 py-3 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 sm:text-sm placeholder-slate-400">
+                </div>
+                <button type="submit" class="w-full admin-btn admin-btn-primary text-base">
+                    Sign In
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div id="adminContent" class="hidden"> <header class="bg-slate-800 shadow-lg sticky top-0 z-[100] border-b border-slate-700">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-20">
+                <div class="flex items-center">
+                    <img src="https://placehold.co/40x40/0ea5e9/ffffff?text=LM&font=inter" alt="LockieMedia Logo" class="h-10 w-10 mr-3 rounded-md">
+                    <h1 class="text-2xl sm:text-3xl font-bold text-sky-400">LockieMedia Admin</h1>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="relative">
+                        <input type="search" id="adminSearch" placeholder="Search admin panel..." class="px-4 py-2 pr-10 w-48 sm:w-64 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 sm:text-sm placeholder-slate-400">
+                        <i class="fas fa-search absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                    </div>
+                    <span id="adminUserDisplay" class="text-sm text-slate-400 hidden sm:block"></span>
+                    <button id="adminSignOutButton" class="admin-btn admin-btn-danger text-sm">
+                        <i class="fas fa-sign-out-alt md:mr-2"></i><span class="hidden md:inline">Sign Out</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="flex min-h-[calc(100vh-80px)]"> 
+            <aside class="admin-sidebar bg-slate-800 p-6 border-r border-slate-700 shadow-lg flex flex-col">
+                <nav class="space-y-2 flex-grow">
+                    <a href="#" data-section="overview" class="flex items-center px-4 py-3 text-slate-300 hover:bg-slate-700 hover:text-sky-400 rounded-lg transition-colors duration-200 admin-sidebar-link active">
+                        <i class="fas fa-tachometer-alt"></i><span>Overview</span>
+                    </a>
+                    <a href="#" data-section="featureFlags" class="flex items-center px-4 py-3 text-slate-300 hover:bg-slate-700 hover:text-sky-400 rounded-lg transition-colors duration-200 admin-sidebar-link">
+                        <i class="fas fa-flag"></i><span>Feature Flags</span>
+                    </a>
+                    <a href="#" data-section="errorLogs" class="flex items-center px-4 py-3 text-slate-300 hover:bg-slate-700 hover:text-sky-400 rounded-lg transition-colors duration-200 admin-sidebar-link">
+                        <i class="fas fa-exclamation-triangle"></i><span>Error Logs</span>
+                    </a>
+                    <a href="#" data-section="userManagement" class="flex items-center px-4 py-3 text-slate-300 hover:bg-slate-700 hover:text-sky-400 rounded-lg transition-colors duration-200 admin-sidebar-link">
+                        <i class="fas fa-users-cog"></i><span>User Management</span>
+                    </a>
+                    <a href="#" data-section="abTesting" class="flex items-center px-4 py-3 text-slate-300 hover:bg-slate-700 hover:text-sky-400 rounded-lg transition-colors duration-200 admin-sidebar-link">
+                        <i class="fas fa-vials"></i><span>A/B Testing</span>
+                    </a>
+                    <a href="#" data-section="settings" class="flex items-center px-4 py-3 text-slate-300 hover:bg-slate-700 hover:text-sky-400 rounded-lg transition-colors duration-200 admin-sidebar-link">
+                        <i class="fas fa-cogs"></i><span>Settings</span>
+                    </a>
+                </nav>
+                <div class="mt-auto pt-6 border-t border-slate-700">
+                     <a href="#" data-section="profile" class="flex items-center px-4 py-3 text-slate-300 hover:bg-slate-700 hover:text-sky-400 rounded-lg transition-colors duration-200 admin-sidebar-link">
+                        <i class="fas fa-user-circle"></i><span>Admin Profile</span>
+                    </a>
+                </div>
+            </aside>
+
+            <main class="flex-grow p-4 sm:p-6 lg:p-8 overflow-y-auto">
+                <div id="mainContentHeader" class="mb-6">
+                     <h2 id="currentSectionTitle" class="text-3xl font-semibold text-slate-100">Overview</h2>
+                </div>
+
+                <section id="overviewSection" class="admin-content-section active">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+                        <div class="bg-slate-800 p-6 rounded-xl shadow-xl border border-slate-700 hover:border-sky-500 transition-all stat-card-content">
+                            <div class="stat-card-header"><h3 class="stat-card-title text-sky-400">Total Users</h3><i class="fas fa-users stat-card-icon text-sky-500"></i></div>
+                            <p id="totalUsersStat" class="stat-card-value">Loading...</p><p class="stat-card-footer">All registered users</p>
+                        </div>
+                        <div class="bg-slate-800 p-6 rounded-xl shadow-xl border border-slate-700 hover:border-red-500 transition-all stat-card-content">
+                             <div class="stat-card-header"><h3 class="stat-card-title text-red-400">Logged Errors (24h)</h3><i class="fas fa-bug stat-card-icon text-red-500"></i></div>
+                            <p id="errorsTodayStat" class="stat-card-value">Loading...</p><p class="stat-card-footer">Critical & Error levels</p>
+                        </div>
+                        <div class="bg-slate-800 p-6 rounded-xl shadow-xl border border-slate-700 hover:border-green-500 transition-all stat-card-content">
+                            <div class="stat-card-header"><h3 class="stat-card-title text-green-400">Active Features</h3><i class="fas fa-toggle-on stat-card-icon text-green-500"></i></div>
+                            <p id="activeFeaturesStat" class="stat-card-value">Loading...</p><p class="stat-card-footer">Globally enabled</p>
+                        </div>
+                        <div class="bg-slate-800 p-6 rounded-xl shadow-xl border border-slate-700 hover:border-purple-500 transition-all stat-card-content">
+                            <div class="stat-card-header"><h3 class="stat-card-title text-purple-400">DAU</h3><i class="fas fa-chart-line stat-card-icon text-purple-500"></i></div>
+                            <p id="dauStat" class="stat-card-value">N/A</p><p class="stat-card-footer">Daily Active Users</p>
+                        </div>
+                         <div class="bg-slate-800 p-6 rounded-xl shadow-xl border border-slate-700 hover:border-indigo-500 transition-all stat-card-content">
+                            <div class="stat-card-header"><h3 class="stat-card-title text-indigo-400">New Sign-ups (Month)</h3><i class="fas fa-user-plus stat-card-icon text-indigo-500"></i></div>
+                            <p id="newSignupsStat" class="stat-card-value">N/A</p><p class="stat-card-footer">Current month</p>
+                        </div>
+                        <div class="bg-slate-800 p-6 rounded-xl shadow-xl border border-slate-700 hover:border-teal-500 transition-all stat-card-content">
+                            <div class="stat-card-header"><h3 class="stat-card-title text-teal-400">Avg. Load Time</h3><i class="fas fa-tachometer-alt-fast stat-card-icon text-teal-500"></i></div>
+                            <p id="avgLoadTimeStat" class="stat-card-value">N/A</p><p class="stat-card-footer">Main application</p>
+                        </div>
+                         <div class="bg-slate-800 p-6 rounded-xl shadow-xl border border-slate-700 hover:border-pink-500 transition-all stat-card-content">
+                            <div class="stat-card-header"><h3 class="stat-card-title text-pink-400">Total Items Created</h3><i class="fas fa-pencil-alt stat-card-icon text-pink-500"></i></div>
+                            <p id="totalItemsStat" class="stat-card-value">N/A</p><p class="stat-card-footer">Tasks, projects, etc.</p>
+                        </div>
+                        <div class="bg-slate-800 p-6 rounded-xl shadow-xl border border-slate-700 hover:border-yellow-500 transition-all stat-card-content">
+                            <div class="stat-card-header"><h3 class="stat-card-title text-yellow-400">API Errors (1hr)</h3><i class="fas fa-network-wired stat-card-icon text-yellow-500"></i></div>
+                            <p id="apiErrorRateStat" class="stat-card-value">N/A</p><p class="stat-card-footer">Errors in the last hour</p>
+                        </div>
+                    </div>
+                    <div class="bg-slate-800 p-6 rounded-xl shadow-xl border border-slate-700 mt-8">
+                        <h3 class="text-xl font-semibold text-slate-100 mb-4">Real-time Database Activity</h3>
+                        <div class="bg-slate-700 p-4 rounded-lg min-h-[200px] flex items-center justify-center">
+                            <img src="https://placehold.co/600x200/374151/9ca3af?text=Real-time+Reads/Writes+Chart&font=inter" 
+                                 alt="Placeholder for Real-time Database Activity Chart"
+                                 class="w-full h-auto max-w-full rounded-md opacity-75"
+                                 onerror="this.onerror=null; this.src='https://placehold.co/600x200/374151/9ca3af?text=Chart+Error&font=inter';">
+                        </div>
+                        <p class="text-xs text-slate-400 mt-2 text-center">This would be a dynamic chart showing live database operations.</p>
+                    </div>
+                </section>
+
+                <section id="featureFlagsSection" class="admin-content-section bg-slate-800 p-6 rounded-xl shadow-xl border border-slate-700">
+                    <div id="featureFlagsList" class="overflow-x-auto max-h-[70vh]">
+                        <p class="text-slate-400">Loading feature flags...</p>
+                    </div>
+                </section>
+
+                <section id="errorLogsSection" class="admin-content-section bg-slate-800 p-6 rounded-xl shadow-xl border border-slate-700">
+                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+                        <h3 class="text-xl font-semibold text-slate-100 mb-2 sm:mb-0">Application Error Logs</h3>
+                        <div class="flex gap-3">
+                            <button id="sendTestErrorButton" class="admin-btn admin-btn-warning text-sm">
+                                <i class="fas fa-bug mr-2"></i> Send Test Error
+                            </button>
+                            <button id="refreshErrorLogsButton" class="admin-btn admin-btn-primary text-sm">
+                                <i class="fas fa-sync-alt mr-2"></i> Refresh Logs
+                            </button>
+                        </div>
+                    </div>
+                    <div id="errorLogsList" class="overflow-x-auto max-h-[70vh]">
+                        <p class="text-slate-400">Loading error logs...</p>
+                    </div>
+                </section>
+
+                <section id="userManagementSection" class="admin-content-section bg-slate-800 p-6 rounded-xl shadow-xl border border-slate-700">
+                    <div id="userList" class="overflow-x-auto max-h-[70vh]">
+                        <p class="text-slate-400">User listing and management tools will appear here.</p>
+                    </div>
+                </section>
+
+                <section id="abTestingSection" class="admin-content-section bg-slate-800 p-6 rounded-xl shadow-xl border border-slate-700">
+                    <p class="text-slate-400">A/B testing configuration and results display will appear here.</p>
+                </section>
+
+                <section id="settingsSection" class="admin-content-section bg-slate-800 p-6 rounded-xl shadow-xl border border-slate-700">
+                    <p class="text-slate-400">Admin panel settings (e.g., notification preferences for admin, theme customization for admin panel) will go here.</p>
+                </section>
+
+                <section id="profileSection" class="admin-content-section bg-slate-800 p-6 rounded-xl shadow-xl border border-slate-700">
+                    <p class="text-slate-400">Admin user profile details and preferences will be displayed/managed here.</p>
+                </section>
+            </main>
+        </div>
+        <footer class="text-center text-slate-500 py-8 border-t border-slate-700">
+            <p>&copy; 2025 LockieMedia. Admin Panel</p> </footer>
+    </div>
+
+    <script src="loggingService.js" type="module"></script>
+    <script src="eventBus.js" type="module"></script>
+    <script src="featureFlagService.js" type="module"></script>
+    <script src="adminDataService.js" type="module"></script>
+    <script src="adminUI.js" type="module"></script>
+    <script src="admin_main.js" type="module"></script> 
+    
+    <script type="module">
+        // This script is for the new layout's interactivity.
+        // Your existing admin_main.js will handle the core logic, data fetching, auth, etc.
+        const adminAuthModal = document.getElementById('adminAuthModal');
+        const adminAppContainer = document.getElementById('adminContent'); // Matched ID with existing admin.html
+        const adminLoginForm = document.getElementById('adminLoginForm');
+        const adminSignOutButton = document.getElementById('adminSignOutButton');
+        const sidebarLinks = document.querySelectorAll('.admin-sidebar-link');
+        const contentSections = document.querySelectorAll('.admin-content-section');
+        const currentSectionTitleEl = document.getElementById('currentSectionTitle');
+
+        // This showAdminMessage is a simplified version for the mockup.
+        // Your adminUI.js showAdminMessage will be used by admin_main.js for actual messages.
+        function showMockMessage(message, type = 'info', duration = 3000) {
+            const adminMessageBox = document.getElementById('adminMessageBox');
+            if (!adminMessageBox) return;
+            const messageEl = document.createElement('div');
+            messageEl.className = `admin-message ${type}`;
+            messageEl.textContent = message;
+            adminMessageBox.appendChild(messageEl);
+            requestAnimationFrame(() => { messageEl.classList.add('show'); });
+            setTimeout(() => {
+                messageEl.classList.remove('show');
+                setTimeout(() => { messageEl.remove(); }, 300);
+            }, duration);
+        }
+
+        function setActiveSection(sectionId, sectionTitle) {
+            sidebarLinks.forEach(link => {
+                link.classList.toggle('active', link.dataset.section === sectionId);
+            });
+            contentSections.forEach(section => {
+                section.classList.toggle('active', section.id === `${sectionId}Section`);
+            });
+            if (currentSectionTitleEl) {
+                currentSectionTitleEl.textContent = sectionTitle;
+            }
+            localStorage.setItem('adminActiveSection', sectionId);
+            localStorage.setItem('adminActiveSectionTitle', sectionTitle);
+        }
+        
+        sidebarLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const sectionId = link.dataset.section;
+                const sectionTitle = link.querySelector('span').textContent;
+                setActiveSection(sectionId, sectionTitle);
+            });
+        });
+
+        // Logic for login/logout visibility will be handled by admin_main.js's onAuthStateChanged
+        // This is just a placeholder for the mockup's visual flow.
+        // In the real app, admin_main.js will control visibility of adminAuthModal and adminContent.
+
+        // Restore active section on page load if user is "logged in" (for mockup persistence)
+        // This part might conflict with admin_main.js auth handling, so it's more for standalone mockup testing.
+        // In the real app, admin_main.js would call setActiveSection after successful login and role check.
+        if (!adminAuthModal.classList.contains('hidden') && adminAppContainer.classList.contains('hidden')) {
+             // If login modal is visible, do nothing here, let auth handle it
+        } else if (adminAuthModal.classList.contains('hidden') && !adminAppContainer.classList.contains('hidden')) {
+            const lastSection = localStorage.getItem('adminActiveSection') || 'overview';
+            const lastTitle = localStorage.getItem('adminActiveSectionTitle') || 'Overview';
+            setActiveSection(lastSection, lastTitle);
+        } else {
+            // Default to login modal shown if no specific state
+             adminAuthModal.classList.remove('hidden');
+             adminAppContainer.classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
