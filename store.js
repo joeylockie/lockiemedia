@@ -445,16 +445,42 @@ const AppStore = {
 
         const defaultKanbanColId = _kanbanColumns[0]?.id || 'todo';
         _tasks = storedTasks.map(task => ({
-            id: task.id || Date.now() + Math.random(), text: task.text || '', completed: task.completed || false, creationDate: task.creationDate || task.id,
-            dueDate: task.dueDate || null, time: task.time || null, priority: task.priority || 'medium', label: task.label || '', notes: task.notes || '',
-            isReminderSet: task.isReminderSet || false, reminderDate: task.reminderDate || null, reminderTime: task.reminderTime || null, reminderEmail: task.reminderEmail || null,
-            estimatedHours: task.estimatedHours || 0, estimatedMinutes: task.estimatedMinutes || 0,
-            timerStartTime: null, timerAccumulatedTime: 0, timerIsRunning: false, timerIsPaused: false, actualDurationMs: 0,
-            attachments: task.attachments || [], completedDate: task.completedDate || null, subTasks: task.subTasks || [],
-            recurrenceRule: null, recurrenceEndDate: null, nextDueDate: task.nextDueDate || task.dueDate,
-            sharedWith: task.sharedWith || [], owner: null, lastSynced: null, syncVersion: 0,
-            kanbanColumnId: task.kanbanColumnId || defaultKanbanColId, projectId: typeof task.projectId === 'number' ? task.projectId : 0,
-            dependsOn: task.dependsOn || [], blocksTasks: task.blocksTasks || []
+            // Core properties that must exist
+            id: task.id || Date.now() + Math.random(), 
+            text: task.text || '', 
+            completed: task.completed || false, 
+            creationDate: task.creationDate || task.id,
+            // Properties with defaults
+            dueDate: task.dueDate || null, 
+            time: task.time || null, 
+            priority: task.priority || 'medium', 
+            label: task.label || '', 
+            notes: task.notes || '',
+            kanbanColumnId: task.kanbanColumnId || defaultKanbanColId, 
+            projectId: typeof task.projectId === 'number' ? task.projectId : 0,
+            completedDate: task.completedDate || null, 
+            // Feature-specific properties with defaults
+            isReminderSet: task.isReminderSet || false, 
+            reminderDate: task.reminderDate || null, 
+            reminderTime: task.reminderTime || null, 
+            reminderEmail: task.reminderEmail || null, 
+            estimatedHours: task.estimatedHours || 0, 
+            estimatedMinutes: task.estimatedMinutes || 0,
+            timerStartTime: null, 
+            timerAccumulatedTime: 0, 
+            timerIsRunning: false, 
+            timerIsPaused: false, 
+            actualDurationMs: 0,
+            attachments: task.attachments || [], 
+            subTasks: task.subTasks || [], 
+            dependsOn: task.dependsOn || [], 
+            blocksTasks: task.blocksTasks || [], 
+            // NEW: Recurrence properties now include fuzziness
+            recurrenceRule: task.recurrenceRule ? {
+                ...task.recurrenceRule,
+                fuzziness: task.recurrenceRule.fuzziness || null
+            } : null,
+            recurrenceParentId: task.recurrenceParentId || null
         }));
 
         try {
@@ -496,6 +522,3 @@ const AppStore = {
 };
 
 export default AppStore;
-
-// REMOVED: LoggingService.debug("store.js loaded as ES6 module, AppStore API created.", { module: 'store' });
-// console.log("store.js module parsed and AppStore object is now defined."); // Optional simple log

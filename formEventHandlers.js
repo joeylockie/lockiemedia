@@ -8,18 +8,16 @@ import * as TaskService from './taskService.js';
 import * as LabelService from './labelService.js';
 import EventBus from './eventBus.js';
 import LoggingService from './loggingService.js';
-import { UserAccountsFeature } from './feature_user_accounts.js'; // For sign-up/sign-in
-import { TaskTimerSystemFeature } from './task_timer_system.js'; // For task estimates
+import { UserAccountsFeature } from './feature_user_accounts.js'; 
+import { TaskTimerSystemFeature } from './task_timer_system.js';
+import { parseRecurrenceFromText } from './recurrenceParsingService.js'; 
 
 // Assuming clearTempSubTasksForAddModal is made available, e.g., from a subTaskHandlers.js or ui_event_handlers.js
-// For now, we'll assume it's imported if ui_event_handlers.js exports it or it's moved.
-// If it's small and specific to add task, it could even be a local helper here, but better to keep it with other subtask logic.
-import { clearTempSubTasksForAddModal, tempSubTasksForAddModal } from './ui_event_handlers.js'; // Temporary import path
+import { clearTempSubTasksForAddModal, tempSubTasksForAddModal } from './ui_event_handlers.js'; 
 
 import {
     closeAddModal,
     closeViewEditModal
-    // closeProfileModal // This will be needed by handleProfileFormSubmit if it closes the modal
 } from './modal_interactions.js';
 
 
@@ -35,73 +33,95 @@ export function handleAddTaskFormSubmit(event) {
     const modalLabelInputAddEl = document.getElementById('modalLabelInputAdd');
     const modalNotesInputAddEl = document.getElementById('modalNotesInputAdd');
     const modalProjectSelectAddEl = document.getElementById('modalProjectSelectAdd');
-    const modalEstHoursAddEl = document.getElementById('modalEstHoursAdd');
-    const modalEstMinutesAddEl = document.getElementById('modalEstMinutesAdd');
+    const modalRecurrenceInputAddEl = document.getElementById('modalRecurrenceInputAdd');
     const modalRemindMeAddEl = document.getElementById('modalRemindMeAdd');
     const modalReminderDateAddEl = document.getElementById('modalReminderDateAdd');
     const modalReminderTimeAddEl = document.getElementById('modalReminderTimeAdd');
     const modalReminderEmailAddEl = document.getElementById('modalReminderEmailAdd');
 
-    const taskText = modalTaskInputAddEl.value.trim();
-    const dueDate = modalDueDateInputAddEl.value;
-    const time = modalTimeInputAddEl.value;
+    let taskText = modalTaskInputAddEl.value.trim();
+    let dueDate = modalDueDateInputAddEl.value;
+    let time = modalTimeInputAddEl.value;
     const priority = modalPriorityInputAddEl.value;
     const label = modalLabelInputAddEl.value.trim();
     const notes = modalNotesInputAddEl.value.trim();
     const projectId = isFeatureEnabled('projectFeature') && modalProjectSelectAddEl ? parseInt(modalProjectSelectAddEl.value) : 0;
+    
+    let recurrenceRule = null;
+    let recurrenceInputText = '';
 
-    let estHours = 0, estMinutes = 0;
-    if (isFeatureEnabled('taskTimerSystem') && TaskTimerSystemFeature?.getEstimatesFromAddModal) {
-        const estimates = TaskTimerSystemFeature.getEstimatesFromAddModal(); // This needs to be available
-        estHours = estimates.estHours;
-        estMinutes = estimates.estMinutes;
-    } else if (isFeatureEnabled('taskTimerSystem') && modalEstHoursAddEl && modalEstMinutesAddEl) { // Fallback
-        estHours = parseInt(modalEstHoursAddEl.value) || 0;
-        estMinutes = parseInt(modalEstMinutesAddEl.value) || 0;
-    }
-
-
-    let isReminderSet = false, reminderDate = null, reminderTime = null, reminderEmail = null;
-    if (isFeatureEnabled('reminderFeature') && modalRemindMeAddEl && modalRemindMeAddEl.checked) {
-        isReminderSet = true;
-        reminderDate = modalReminderDateAddEl.value;
-        reminderTime = modalReminderTimeAddEl.value;
-        reminderEmail = modalReminderEmailAddEl.value.trim();
-        if (!reminderDate || !reminderTime || !reminderEmail) {
-            LoggingService.warn('[FormEventHandlers] Reminder fields not completely filled for new task.', { functionName, reminderDate, reminderTime, reminderEmail });
-            EventBus.publish('displayUserMessage', { text: 'Please fill all reminder fields or disable the reminder.', type: 'error' });
-            return;
-        }
+    if (isFeatureEnabled('advancedRecurrence') && modalRecurrenceInputAddEl) {
+        recurrenceInputText = modalRecurrenceInputAddEl.value.trim();
     }
 
     if (taskText) {
-        let parsedResult = { parsedDate: dueDate, remainingText: taskText };
-        // Date parsing from text is typically done if dueDate is not explicitly set
-        if (!dueDate && TaskService.parseDateFromText) {
-            parsedResult = TaskService.parseDateFromText(taskText);
+        // --- Natural Language Processing ---
+        // 1. First, try to parse recurrence from the main task text.
+        const recurrenceParseResult = parseRecurrenceFromText(taskText);
+        if (recurrenceParseResult.rule) {
+            recurrenceRule = recurrenceParseResult.rule;
+            taskText = recurrenceParseResult.remainingText; // Use the text with the recurrence phrase removed.
+        }
+        
+        // 2. Then, parse the date from the (potentially modified) task text.
+        const dateParseResult = TaskService.parseDateFromText(taskText);
+        if (dateParseResult.parsedDate) {
+            // Natural language in the main text box overrides the date/time inputs.
+            dueDate = dateParseResult.parsedDate;
+            time = null; 
+            taskText = dateParseResult.remainingText;
         }
 
-        // Accessing tempSubTasksForAddModal directly from ui_event_handlers for now
+        // 3. If a recurrence rule was typed in the recurrence input, it overrides any parsed from the main text.
+        if (recurrenceInputText) {
+            const explicitRecurrenceResult = parseRecurrenceFromText(recurrenceInputText);
+            if(explicitRecurrenceResult.rule) {
+                recurrenceRule = explicitRecurrenceResult.rule;
+            }
+        }
+        
+        // --- End of NLP ---
+
+        // Get estimates if feature is enabled
+        let estHours = 0, estMinutes = 0;
+        if (isFeatureEnabled('taskTimerSystem') && TaskTimerSystemFeature?.getEstimatesFromAddModal) {
+            const estimates = TaskTimerSystemFeature.getEstimatesFromAddModal();
+            estHours = estimates.estHours;
+            estMinutes = estimates.estMinutes;
+        }
+
+        // Get reminder settings if feature is enabled
+        let isReminderSet = false, reminderDate = null, reminderTime = null, reminderEmail = null;
+        if (isFeatureEnabled('reminderFeature') && modalRemindMeAddEl && modalRemindMeAddEl.checked) {
+            isReminderSet = true;
+            reminderDate = modalReminderDateAddEl.value;
+            reminderTime = modalReminderTimeAddEl.value;
+            reminderEmail = modalReminderEmailAddEl.value.trim();
+            if (!reminderDate || !reminderTime || !reminderEmail) {
+                LoggingService.warn('[FormEventHandlers] Reminder fields not completely filled for new task.', { functionName, reminderDate, reminderTime, reminderEmail });
+                EventBus.publish('displayUserMessage', { text: 'Please fill all reminder fields or disable the reminder.', type: 'error' });
+                return;
+            }
+        }
+        
+        // Accessing tempSubTasksForAddModal directly
         const subTasksToAdd = isFeatureEnabled('subTasksFeature') ? [...tempSubTasksForAddModal] : [];
 
-
         TaskService.addTask({
-            text: parsedResult.remainingText,
-            dueDate: parsedResult.parsedDate || dueDate, // Prioritize explicit date if both exist
+            text: taskText,
+            dueDate: dueDate,
             time, priority, label, notes, projectId,
             isReminderSet, reminderDate, reminderTime, reminderEmail,
             estimatedHours: estHours, estimatedMinutes: estMinutes,
-            subTasks: subTasksToAdd
+            subTasks: subTasksToAdd,
+            recurrenceRule: recurrenceRule
         });
-        LoggingService.info(`[FormEventHandlers] Task added via form: "${parsedResult.remainingText.substring(0, 30)}..."`, { functionName, taskLength: parsedResult.remainingText.length });
+        LoggingService.info(`[FormEventHandlers] Task added via form: "${taskText.substring(0, 30)}..."`, { functionName, taskLength: taskText.length });
         EventBus.publish('displayUserMessage', { text: 'Task added successfully!', type: 'success' });
         closeAddModal();
-        clearTempSubTasksForAddModal(); // Clear after successful add
+        clearTempSubTasksForAddModal();
         if (ViewManager.getCurrentFilter() !== 'inbox') {
             ViewManager.setCurrentFilter('inbox');
-        } else {
-            // If already in inbox, tasksChanged event will refresh the view.
-            LoggingService.debug('[FormEventHandlers] Task added while in inbox. Relying on tasksChanged event for view refresh.', { functionName });
         }
     } else {
         LoggingService.warn('[FormEventHandlers] Task description was empty on add attempt.', { functionName });
@@ -123,6 +143,7 @@ export function handleEditTaskFormSubmit(event) {
     const modalLabelInputViewEditEl = document.getElementById('modalLabelInputViewEdit');
     const modalNotesInputViewEditEl = document.getElementById('modalNotesInputViewEdit');
     const modalProjectSelectViewEditEl = document.getElementById('modalProjectSelectViewEdit');
+    const modalRecurrenceInputViewEditEl = document.getElementById('modalRecurrenceInputViewEdit');
     const modalRemindMeViewEditEl = document.getElementById('modalRemindMeViewEdit');
     const modalReminderDateViewEditEl = document.getElementById('modalReminderDateViewEdit');
     const modalReminderTimeViewEditEl = document.getElementById('modalReminderTimeViewEdit');
@@ -135,6 +156,15 @@ export function handleEditTaskFormSubmit(event) {
     const label = modalLabelInputViewEditEl.value.trim();
     const notes = modalNotesInputViewEditEl.value.trim();
     const projectId = isFeatureEnabled('projectFeature') && modalProjectSelectViewEditEl ? parseInt(modalProjectSelectViewEditEl.value) : 0;
+    
+    let recurrenceRule = null;
+    if (isFeatureEnabled('advancedRecurrence') && modalRecurrenceInputViewEditEl) {
+        const recurrenceInputText = modalRecurrenceInputViewEditEl.value.trim();
+        if (recurrenceInputText) {
+            const { rule } = parseRecurrenceFromText(recurrenceInputText);
+            recurrenceRule = rule;
+        }
+    }
 
     let estHours = 0, estMinutes = 0;
     if (isFeatureEnabled('taskTimerSystem') && TaskTimerSystemFeature?.getEstimatesFromEditModal) {
@@ -158,10 +188,20 @@ export function handleEditTaskFormSubmit(event) {
 
     if (taskText && taskId) {
         TaskService.updateTask(taskId, {
-            text: taskText, dueDate, time, priority, label, notes, projectId,
-            isReminderSet, reminderDate, reminderTime, reminderEmail,
-            estimatedHours: estHours, estimatedMinutes: estMinutes
-            // Sub-tasks are managed separately via their own interactions within the edit modal
+            text: taskText, 
+            dueDate, 
+            time, 
+            priority, 
+            label, 
+            notes, 
+            projectId,
+            isReminderSet, 
+            reminderDate, 
+            reminderTime, 
+            reminderEmail,
+            estimatedHours: estHours, 
+            estimatedMinutes: estMinutes,
+            recurrenceRule: recurrenceRule
         });
         LoggingService.info(`[FormEventHandlers] Task ID ${taskId} updated successfully.`, { functionName, taskId });
         EventBus.publish('displayUserMessage', { text: 'Task updated successfully!', type: 'success' });
@@ -172,7 +212,7 @@ export function handleEditTaskFormSubmit(event) {
     }
 }
 
-export async function handleProfileFormSubmit(event) { // Added async here as UserAccountsFeature.handleSaveProfile might be async
+export async function handleProfileFormSubmit(event) { 
     const functionName = 'handleProfileFormSubmit';
     event.preventDefault();
     LoggingService.info('[FormEventHandlers] Attempting to save profile.', { functionName });
@@ -193,12 +233,8 @@ export async function handleProfileFormSubmit(event) { // Added async here as Us
     if (UserAccountsFeature && UserAccountsFeature.handleSaveProfile) {
         try {
             await UserAccountsFeature.handleSaveProfile(profileData);
-            // Assuming handleSaveProfile in UserAccountsFeature calls AppStore.setUserProfile
-            // and then modal_interactions.closeProfileModal is called from there or via event.
-            // If not, you might need to call closeProfileModal here.
         } catch (err) {
             LoggingService.error('[FormEventHandlers] Error during profile save process (delegated to UserAccountsFeature).', err, {functionName});
-            // UserAccountsFeature should publish its own error message to the user.
         }
     } else {
         LoggingService.error('[FormEventHandlers] UserAccountsFeature.handleSaveProfile not available.', new Error("DependencyMissing"), { functionName });
@@ -207,23 +243,16 @@ export async function handleProfileFormSubmit(event) { // Added async here as Us
 }
 
 
-export async function handleAddNewLabelFormSubmit(event) { // Added async here
+export async function handleAddNewLabelFormSubmit(event) { 
     const functionName = 'handleAddNewLabelFormSubmit';
     event.preventDefault();
     const newLabelInputEl = document.getElementById('newLabelInput');
     const labelName = newLabelInputEl.value.trim();
     LoggingService.info(`[FormEventHandlers] Attempting to add new label: "${labelName}".`, { functionName, labelName });
 
-    if (LabelService.addConceptualLabel(labelName)) { // addConceptualLabel handles its own user messages
+    if (LabelService.addConceptualLabel(labelName)) {
         newLabelInputEl.value = '';
-        // Repopulating manage labels list is handled by EventBus subscription to 'labelsChanged'
-        // or directly by modal_interactions if modal is open.
-        // For this specific form, if the modal is open, its populate function should be called.
-        // We can ensure this by having modal_interactions.populateManageLabelsList
-        // called after a successful add, if the modal is open.
-        // Or, LabelService could publish a generic "labelsUpdated" event that ManageLabelsModal listens to.
-        // The original code calls populateManageLabelsList directly. Let's assume that's still desired here.
-        const { populateManageLabelsList } = await import('./modal_interactions.js'); // Dynamic import for this specific case
+        const { populateManageLabelsList } = await import('./modal_interactions.js');
         const manageLabelsModalEl = document.getElementById('manageLabelsModal');
         if (manageLabelsModalEl && !manageLabelsModalEl.classList.contains('hidden')) {
              populateManageLabelsList();
@@ -232,7 +261,6 @@ export async function handleAddNewLabelFormSubmit(event) { // Added async here
 }
 
 // --- Auth Form Handlers ---
-// These were originally anonymous functions inside setupEventListeners
 export function handleUserSignUpFormSubmit(event) {
     const functionName = "handleUserSignUpFormSubmit";
     event.preventDefault();
