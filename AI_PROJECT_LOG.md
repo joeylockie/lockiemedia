@@ -1,6 +1,6 @@
 # AI Project Curation Log: LockieMedia Personal and Business Management Service
 
-**Last Updated:** 2025-06-03 23:36 (EDT) ## 
+**Last Updated:** 2025-06-07 14:40 (EDT) ## 
 
 0. Instructions for AI (Gemini)
 
@@ -78,49 +78,35 @@
     * Fixed issue where the UI version display (e.g., in the footer) did not match the version specified in `version.json`.
     * Addressed issue where smart view filter buttons initially appeared as text-only.
     * Fixed a `SyntaxError` in `modalEventHandlers.js` related to `getAllFeatureFlags`.
-* **Date: 2025-06-03 (Current Session - Prior to this update)**
-    * **Enhanced Logging System & Admin Panel Error Testing:**
-        * Updated `loggingService.js` for more comprehensive Firestore log payloads (detailed context, user agent, URL) and robust console logging fallbacks. Added more careful context serialization.
-        * Modified `admin_main.js` to correctly initialize `LoggingService` with Firestore for the admin panel context, to properly initialize log levels based on feature flags, and to add a `handleSendTestError` function.
-        * Added a "Send Test Error" button to `admin.html`, which triggers the `handleSendTestError` function in `admin_main.js` to send sample ERROR and CRITICAL logs to Firestore.
-        * Corrected Firestore security rules for the `app_errors` collection to allow admins to read logs based on the correct path to their role (`users/{uid}/appData/userSpecificData -> profile.role`).
-        * Confirmed that the "Send Test Error" button successfully logs errors to Firestore and they are displayed in the Admin Panel.
-* **Date: 2025-06-03 (This Session's Rebranding Start)**
+* **Date: 2025-06-03 (Rebranding Start)**
     * Updated `AI_PROJECT_LOG.md` to reflect the project's rebranding from a "Todo App" to the "LockieMedia Personal and Business Management Service". Project scope and goals have been broadened.
+* **Date: 2025-06-07 (Current Session)**
+    * **Added Admin Panel Link to Main App**:
+        * Modified `todo.html` to include a new "Admin Panel" link within the settings modal. This link is styled like other buttons and is hidden by default. It has the ID `settingsAdminPanelBtn` and a class of `admin-only-feature-element`.
+        * Updated the `applyActiveFeatures` function in `ui_event_handlers.js` to show/hide any element with the `.admin-only-feature-element` class based on whether the current user's profile in the `AppStore` has the role of "admin". This successfully makes the link visible only to administrators.
 
 ## 5. Current Focus / Next Steps (Specific to Current Major Task):
 
-* **Current Sub-Task:** Rebrand the project within documentation and in-app text to "LockieMedia Personal and Business Management Service".
-    * **File in progress:** `AI_PROJECT_LOG.md` (This file).
-* **Immediate Next File/Action:**
-    1.  **Continue Rebranding:** Update `README.md` next to reflect the name change and broader scope.
-    2.  Then, update in-app text, starting with `todo.html` (e.g., page titles, main headings).
-    3.  Subsequently, update `admin.html` titles and headings.
-    4.  Review JavaScript files for any user-facing strings that need updating (e.g., in `modal_interactions.js` or feature files like `feature_about_us.js`).
-* **After Rebranding:**
-    * **Discuss Next Development Phase:**
-        * **Further Admin Panel Enhancements:**
-            * Implement User Management display (listing users).
-            * Develop Overview Statistics display.
-            * Refine error log display (e.g., better detail view).
-        * **Main Service Feature Enablement & Expansion:**
-            * Start enabling existing foundational features (e.g., `projectFeature`, `subTasksFeature`, `kanbanBoardFeature`) in `features.json`, test their functionality, and refine their implementation.
-            * Begin planning and implementing new modules relevant to a "Personal and Business Management Service" (e.g., basic CRM, notes/document management, finance tracking placeholders).
-            * Update the `README.md` to accurately reflect the status of these features as they are enabled and tested.
-        * **Address any other pending issues or minor bugs.**
+* **Current Sub-Task:** The implementation of the admin-only link is complete.
+* **Immediate Next Action:** Discuss the next development phase with the user. The next logical steps could be:
+    * **Further Admin Panel Enhancements:**
+        * Implement User Management display (listing users).
+        * Develop Overview Statistics display.
+        * Refine error log display (e.g., better detail view).
+    * **Main Service Feature Enablement & Expansion:**
+        * Start enabling existing foundational features (e.g., `projectFeature`, `subTasksFeature`, `kanbanBoardFeature`) in `features.json`, test their functionality, and refine their implementation.
+        * Begin planning and implementing new modules relevant to a "Personal and Business Management Service" (e.g., basic CRM, notes/document management, finance tracking placeholders).
+        * Update the `README.md` to accurately reflect the status of these features as they are enabled and tested.
+    * **Rebranding Continuation:**
+        * Continue rebranding the UI from a "Todo app" to the "LockieMedia Service" by updating text in `todo.html`, `admin.html`, `README.md`, and other user-facing strings.
+    * **Address any other pending issues or minor bugs.**
 * **Specific questions for AI (if any):**
     * None at this moment.
 * **Blockers (if any):**
-    * Implementing Admin Panel User Management (beyond basic display) will require careful planning regarding data access and potential changes to Firestore security rules for write operations by admins on user data (if intended).
+    * None at this moment.
 
 ## 6. Known Issues / Bugs (Related to current work or recently discovered):
 
-* **Resolved (during current or immediately preceding session):**
-    * Firestore permission error (`Missing or insufficient permissions`) preventing Admin Panel from reading `app_errors` collection. (Fixed by correcting security rule path to user's role).
-    * Desktop Notification test button not working.
-    * UI version display mismatching `version.json`.
-    * Smart view filter buttons having incorrect initial styling.
-    * `SyntaxError` in `modalEventHandlers.js` related to `getAllFeatureFlags`.
 * **Minor Warning (Understood/Expected):** `[ProjectsFeature] Cannot populate project filter list. Dependencies missing.` - This occurs because the `projectFeature` is currently disabled in `features.json`.
 * **Minor Warning (Understood/Expected):** `[ModalEventHandlers] Element #openFeatureFlagsModalBtn not found.` - This button ID is not present in the `todo.html` markup.
 
@@ -144,6 +130,7 @@
 
 ## 8. Important Notes / Decisions Made:
 
+* **Admin-Only UI Elements:** A new class, `admin-only-feature-element`, has been established to control the visibility of UI components that should only be seen by administrators.
 * **Project Rebranding:** The project is now known as the "LockieMedia Personal and Business Management Service" to reflect a broader scope beyond a simple todo list.
 * Admin role is defined in Firestore at `users/{uid}/appData/userSpecificData` within a `profile` map, as `profile: { role: "admin" }`.
 * Feature flags are intended to be read-only in the current iteration of the admin panel (manual changes to Firestore `app_config/feature_flags` or `features.json` still needed for modification by admin, unless `setFeatureFlag` in `featureFlagService.js` is enhanced for admin writes to Firestore, which it now does).

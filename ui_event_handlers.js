@@ -98,6 +98,17 @@ export function applyActiveFeatures() {
     }
     document.querySelectorAll('.bulk-actions-feature-element').forEach(el => el.classList.toggle('hidden', !isFeatureEnabled('bulkActionsFeature')));
 
+    // NEW: Logic for admin-only elements
+    if (AppStore && typeof AppStore.getUserProfile === 'function') {
+        const userProfile = AppStore.getUserProfile();
+        const isAdmin = userProfile && userProfile.role === 'admin';
+        document.querySelectorAll('.admin-only-feature-element').forEach(el => {
+            el.classList.toggle('hidden', !isAdmin);
+        });
+        LoggingService.debug(`[UIEventHandlers] Admin-only elements visibility set. IsAdmin: ${isAdmin}`, { functionName, isAdmin });
+    }
+    // END NEW
+
     EventBus.publish('requestViewRefresh'); // Triggers UI refresh which includes task list, headings etc.
 
     // If feature flags modal is open, re-populate it (handled by modalEventHandlers.js if it's open)

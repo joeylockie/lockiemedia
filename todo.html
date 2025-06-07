@@ -76,6 +76,9 @@
                 </button>
             </div>
             <div id="settingsContent" class="space-y-3">
+                <a id="settingsAdminPanelBtn" href="admin.html" target="_blank" class="settings-modal-button bg-red-50 hover:bg-red-100 text-red-700 dark:bg-red-900/50 dark:hover:bg-red-800/70 dark:text-red-300 admin-only-feature-element hidden">
+                    <i class="fas fa-user-shield"></i> Admin Panel
+                </a>
                 <button id="settingsManageProfileBtn" type="button" class="settings-modal-button bg-green-50 hover:bg-green-100 text-green-700 dark:bg-green-900/50 dark:hover:bg-green-800/70 dark:text-green-300">
                     <i class="fas fa-user-edit"></i> Manage Profile
                 </button>
@@ -326,6 +329,8 @@
     
     <script src="ui_rendering.js" type="module"></script>
     <script src="ui_event_handlers.js" type="module"></script>
+    <script src="formEventHandlers.js" type="module"></script> 
+    <script src="modalEventHandlers.js" type="module"></script> 
 
     <script src="main.js" type="module"></script>
 </body>
