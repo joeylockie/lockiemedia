@@ -23,6 +23,7 @@ import { ProjectsFeature } from './feature_projects.js';
 import { TaskTimerSystemFeature } from './task_timer_system.js';
 import { DataVersioningFeature } from './feature_data_versioning.js';
 import { DesktopNotificationsFeature } from './feature_desktop_notifications.js';
+import { AdvancedRecurrenceFeature } from './feature_advanced_recurrence.js';
 
 
 export function openAddModal() {
@@ -260,6 +261,7 @@ export function openViewTaskDetailsModal(taskId) {
     const viewSubTaskProgressEl = document.getElementById('viewSubTaskProgress');
     const noSubTasksMessageViewDetailsEl = document.getElementById('noSubTasksMessageViewDetails');
     const viewTaskDependenciesSectionEl = document.getElementById('viewTaskDependenciesSection');
+    const viewTaskRecurrenceEl = document.getElementById('viewTaskRecurrence');
 
 
     if (!AppStore || typeof AppStore.getTasks !== 'function' || !ModalStateService) { 
@@ -278,6 +280,22 @@ export function openViewTaskDetailsModal(taskId) {
     if(viewTaskDueDateEl) viewTaskDueDateEl.textContent = task.dueDate ? formatDate(task.dueDate) : 'Not set';
     if(viewTaskTimeEl) viewTaskTimeEl.textContent = task.time ? formatTime(task.time) : 'Not set';
     
+    // MODIFICATION START: Populate Recurrence Info
+    const recurrenceElementContainer = document.querySelector('.advanced-recurrence-element');
+    if (isFeatureEnabled('advancedRecurrence') && recurrenceElementContainer) {
+        recurrenceElementContainer.classList.remove('hidden');
+        if (viewTaskRecurrenceEl) {
+            if (task.recurrenceRule) {
+                viewTaskRecurrenceEl.textContent = AdvancedRecurrenceFeature.ruleToString(task.recurrenceRule);
+            } else {
+                viewTaskRecurrenceEl.textContent = 'Does not repeat';
+            }
+        }
+    } else if (recurrenceElementContainer) {
+        recurrenceElementContainer.classList.add('hidden');
+    }
+    // MODIFICATION END
+
     if (isFeatureEnabled('taskTimerSystem') && viewTaskEstDurationEl) {
         viewTaskEstDurationEl.textContent = formatDuration(task.estimatedHours, task.estimatedMinutes);
         if(taskTimerSectionEl) taskTimerSectionEl.classList.remove('hidden');

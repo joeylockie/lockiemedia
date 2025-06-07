@@ -20,19 +20,28 @@ function createNextRecurringTask(completedTask) {
         LoggingService.debug(`[${functionName}] Task has no recurrence rule.`, { taskId: completedTask.id });
         return;
     }
-    if (!window.rrule) {
+    
+    const RRule = window.rrule?.RRule;
+
+    if (!RRule) {
         LoggingService.error(`[${functionName}] rrule.js library is not available. Cannot process recurrence.`, new Error("RRuleMissing"));
         return;
     }
 
-    const { RRule } = window.rrule;
     const rule = completedTask.recurrenceRule;
 
-    // 1. Convert our simplified rule object to rrule.js options
+    const effectiveDate = completedTask.dueDate || getTodayDateString();
+    const dtstart = new Date(effectiveDate + 'T00:00:00Z');
+
+    if (isNaN(dtstart.getTime())) {
+        LoggingService.error(`[${functionName}] Could not create a valid start date for recurrence calculation.`, new Error('Invalid Date for RRule'), { taskId: completedTask.id, effectiveDate });
+        return;
+    }
+
     const rruleOptions = {
         freq: RRule[rule.frequency.toUpperCase()],
         interval: rule.interval || 1,
-        dtstart: new Date(completedTask.dueDate + 'T00:00:00Z') // Use UTC to avoid timezone issues
+        dtstart: dtstart
     };
 
     if (rule.daysOfWeek && rule.daysOfWeek.length > 0) {
@@ -44,42 +53,38 @@ function createNextRecurringTask(completedTask) {
     }
 
     if (rule.endDate) {
-        rruleOptions.until = new Date(rule.endDate + 'T23:59:59Z'); // End of the day UTC
+        rruleOptions.until = new Date(rule.endDate + 'T23:59:59Z');
     }
+    
+    LoggingService.debug(`[${functionName}] Generated rrule options for task ID ${completedTask.id}`, { rruleOptions });
+
 
     const rrule = new RRule(rruleOptions);
     
-    // 2. Calculate the next occurrence AFTER the current task's due date
-    const nextDate = rrule.after(new Date(completedTask.dueDate + 'T00:00:00Z'), false);
+    const nextDate = rrule.after(dtstart, false);
 
-    // 3. If no next date, the recurrence is finished
     if (!nextDate) {
         LoggingService.info(`[${functionName}] Recurrence series finished for task.`, { taskId: completedTask.id, rule: completedTask.recurrenceRule });
         return;
     }
 
-    // 4. Create the new task as a clone of the completed one
     let newTaskData = {
         ...completedTask,
-        dueDate: getDateString(nextDate), // Format as YYYY-MM-DD
+        dueDate: getDateString(nextDate),
         completed: false,
         completedDate: null,
-        // Keep the chain of recurrence linked to the original parent task
         recurrenceParentId: completedTask.recurrenceParentId || completedTask.id,
-        // Reset any instance-specific data
         timerStartTime: null,
         timerAccumulatedTime: 0,
         timerIsRunning: false,
         timerIsPaused: false,
         actualDurationMs: 0
     };
-    delete newTaskData.id; // Remove ID so addTask assigns a new one
+    delete newTaskData.id;
 
-    // 4a. Apply fuzziness using the dedicated service if the rule exists
     if (rule.fuzziness) {
         newTaskData = applyFuzziness(newTaskData, rule);
     }
-
 
     LoggingService.info(`[${functionName}] Creating next recurring task.`, {
         parentTaskId: completedTask.id,
@@ -87,7 +92,6 @@ function createNextRecurringTask(completedTask) {
         newTime: newTaskData.time
     });
 
-    // 5. Add the new task to the store
     addTask(newTaskData);
 }
 
@@ -134,7 +138,51 @@ export function addTask(taskData) {
     let currentTasks = AppStore.getTasks(); 
     const currentKanbanColumns = AppStore.getKanbanColumns(); 
     const defaultKanbanColumn = currentKanbanColumns[0]?.id || 'todo'; 
-    const newTask = { id: Date.now(), creationDate: Date.now(), completed: false, kanbanColumnId: defaultKanbanColumn, ...taskData, dueDate: taskData.dueDate || null, time: taskData.time || null, priority: taskData.priority || 'medium', label: taskData.label || '', notes: taskData.notes || '', projectId: typeof taskData.projectId === 'number' ? taskData.projectId : 0, isReminderSet: taskData.isReminderSet || false, reminderDate: taskData.reminderDate || null, reminderTime: taskData.reminderTime || null, reminderEmail: taskData.reminderEmail || null, estimatedHours: taskData.estimatedHours || 0, estimatedMinutes: taskData.estimatedMinutes || 0, timerStartTime: null, timerAccumulatedTime: 0, timerIsRunning: false, timerIsPaused: false, actualDurationMs: 0, attachments: taskData.attachments || [], completedDate: null, subTasks: taskData.subTasks || [], dependsOn: taskData.dependsOn || [], blocksTasks: taskData.blocksTasks || [], recurrenceRule: taskData.recurrenceRule || null, recurrenceParentId: taskData.recurrenceParentId || null }; 
+    const newTask = { 
+        id: Date.now(), 
+        creationDate: Date.now(), 
+        completed: false, 
+        kanbanColumnId: defaultKanbanColumn, 
+        ...taskData, 
+        dueDate: taskData.dueDate || null, 
+        time: taskData.time || null, 
+        priority: taskData.priority || 'medium', 
+        label: taskData.label || '', 
+        notes: taskData.notes || '', 
+        projectId: typeof taskData.projectId === 'number' ? taskData.projectId : 0, 
+        isReminderSet: taskData.isReminderSet || false, 
+        reminderDate: taskData.reminderDate || null, 
+        reminderTime: taskData.reminderTime || null, 
+        reminderEmail: taskData.reminderEmail || null, 
+        estimatedHours: taskData.estimatedHours || 0, 
+        estimatedMinutes: taskData.estimatedMinutes || 0, 
+        timerStartTime: null, 
+        timerAccumulatedTime: 0, 
+        timerIsRunning: false, 
+        timerIsPaused: false, 
+        actualDurationMs: 0, 
+        attachments: taskData.attachments || [], 
+        completedDate: null, 
+        subTasks: taskData.subTasks || [], 
+        dependsOn: taskData.dependsOn || [], 
+        blocksTasks: taskData.blocksTasks || [], 
+        // Set recurrenceRule to null initially
+        recurrenceRule: null, 
+        recurrenceParentId: taskData.recurrenceParentId || null 
+    }; 
+
+    // FIX: Explicitly define the recurrenceRule object to ensure all fields exist for Firestore
+    if (taskData.recurrenceRule) {
+        newTask.recurrenceRule = {
+            frequency: taskData.recurrenceRule.frequency || null,
+            interval: taskData.recurrenceRule.interval || null,
+            daysOfWeek: taskData.recurrenceRule.daysOfWeek || null,
+            byMonthDay: taskData.recurrenceRule.byMonthDay || null,
+            endDate: taskData.recurrenceRule.endDate || null,
+            fuzziness: taskData.recurrenceRule.fuzziness || null,
+        };
+    }
+
     currentTasks.unshift(newTask); 
     AppStore.setTasks(currentTasks); 
     LoggingService.info("[TaskService] Task added.", { taskId: newTask.id, taskText: newTask.text, functionName: 'addTask' });
@@ -188,8 +236,16 @@ export function toggleTaskComplete(taskId) {
     currentTasks[taskIndex].completed = !currentTasks[taskIndex].completed; 
     currentTasks[taskIndex].completedDate = currentTasks[taskIndex].completed ? Date.now() : null; 
 
-    // Handle recurrence
     const completedTask = currentTasks[taskIndex];
+
+    LoggingService.debug(`[TaskService] Checking task for recurrence.`, { 
+        functionName: 'toggleTaskComplete', 
+        taskId: taskId, 
+        isCompleted: completedTask.completed, 
+        hasRecurrenceRule: !!completedTask.recurrenceRule,
+        recurrenceRule: completedTask.recurrenceRule
+    });
+
     if (isFeatureEnabled('advancedRecurrence') && completedTask.completed && completedTask.recurrenceRule) {
         createNextRecurringTask(completedTask);
     }
