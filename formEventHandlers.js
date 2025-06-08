@@ -157,14 +157,34 @@ export function handleEditTaskFormSubmit(event) {
     const notes = modalNotesInputViewEditEl.value.trim();
     const projectId = isFeatureEnabled('projectFeature') && modalProjectSelectViewEditEl ? parseInt(modalProjectSelectViewEditEl.value) : 0;
     
-    let recurrenceRule = null;
-    if (isFeatureEnabled('advancedRecurrence') && modalRecurrenceInputViewEditEl) {
+    // *** FIX STARTS HERE ***
+    // Get the existing task to compare its recurrence rule
+    const existingTask = AppStore.getTasks().find(t => t.id === taskId);
+    let taskUpdatePayload = {
+        text: taskText, 
+        dueDate, 
+        time, 
+        priority, 
+        label, 
+        notes, 
+        projectId,
+    };
+    
+    // Only update the recurrence rule if the feature is enabled.
+    // This prevents accidental erasure of the rule if the feature is turned off.
+    if (isFeatureEnabled('advancedRecurrence') && modalRecurrenceInputViewEditEl && existingTask) {
         const recurrenceInputText = modalRecurrenceInputViewEditEl.value.trim();
-        if (recurrenceInputText) {
+        // If the input is empty, it means the user wants to remove recurrence.
+        if (recurrenceInputText === '') {
+            taskUpdatePayload.recurrenceRule = null;
+        } else {
+            // Otherwise, parse the new rule from the input.
             const { rule } = parseRecurrenceFromText(recurrenceInputText);
-            recurrenceRule = rule;
+            taskUpdatePayload.recurrenceRule = rule;
         }
     }
+    // *** FIX ENDS HERE ***
+
 
     let estHours = 0, estMinutes = 0;
     if (isFeatureEnabled('taskTimerSystem') && TaskTimerSystemFeature?.getEstimatesFromEditModal) {
@@ -172,6 +192,9 @@ export function handleEditTaskFormSubmit(event) {
         estHours = estimates.estHours;
         estMinutes = estimates.estMinutes;
     }
+    taskUpdatePayload.estimatedHours = estHours;
+    taskUpdatePayload.estimatedMinutes = estMinutes;
+
 
     let isReminderSet = false, reminderDate = null, reminderTime = null, reminderEmail = null;
     if (isFeatureEnabled('reminderFeature') && modalRemindMeViewEditEl && modalRemindMeViewEditEl.checked) {
@@ -185,24 +208,14 @@ export function handleEditTaskFormSubmit(event) {
             return;
         }
     }
+    taskUpdatePayload.isReminderSet = isReminderSet;
+    taskUpdatePayload.reminderDate = reminderDate;
+    taskUpdatePayload.reminderTime = reminderTime;
+    taskUpdatePayload.reminderEmail = reminderEmail;
+
 
     if (taskText && taskId) {
-        TaskService.updateTask(taskId, {
-            text: taskText, 
-            dueDate, 
-            time, 
-            priority, 
-            label, 
-            notes, 
-            projectId,
-            isReminderSet, 
-            reminderDate, 
-            reminderTime, 
-            reminderEmail,
-            estimatedHours: estHours, 
-            estimatedMinutes: estMinutes,
-            recurrenceRule: recurrenceRule
-        });
+        TaskService.updateTask(taskId, taskUpdatePayload);
         LoggingService.info(`[FormEventHandlers] Task ID ${taskId} updated successfully.`, { functionName, taskId });
         EventBus.publish('displayUserMessage', { text: 'Task updated successfully!', type: 'success' });
         closeViewEditModal();
