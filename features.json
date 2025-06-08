@@ -25,6 +25,7 @@
   "dataVersioningFeature": false,
   "desktopNotificationsFeature": true,
   "appUpdateNotificationFeature": true,
+  "shoppingListFeature": true,
   "debugMode": true,
   "userRoleFeature": true
 }

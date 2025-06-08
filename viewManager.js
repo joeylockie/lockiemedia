@@ -107,10 +107,17 @@ function getFilteredTasksForBulkAction() {
     let filteredTasks = []; //
     const today = new Date(); //
     today.setHours(0, 0, 0, 0); //
+    const shoppingLabels = ['shopping', 'buy', 'store'];
 
     // Apply filters (similar to renderTaskListView logic)
     if (_currentFilter === 'inbox') { //
         filteredTasks = currentTasks.filter(task => !task.completed); //
+    } else if (_currentFilter === 'shopping_list') {
+        filteredTasks = currentTasks.filter(task =>
+            !task.completed &&
+            task.label &&
+            shoppingLabels.includes(task.label.toLowerCase())
+        );
     } else if (_currentFilter === 'today') { //
         filteredTasks = currentTasks.filter(task => { //
             if (!task.dueDate || task.completed) return false; //

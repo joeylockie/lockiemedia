@@ -773,6 +773,7 @@ export function updateYourTasksHeading() {
         else if (currentFilter === 'today') title = "Today's Tasks";
         else if (currentFilter === 'upcoming') title = "Upcoming Tasks";
         else if (currentFilter === 'completed') title = "Completed Tasks";
+        else if (currentFilter === 'shopping_list') title = "Shopping List";
         else if (currentFilter.startsWith('project_')) {
             if (isFeatureEnabled('projectFeature') && AppStore) {
                 const projectId = parseInt(currentFilter.split('_')[1]);
@@ -912,4 +913,4 @@ export function initializeUiRenderingSubscriptions() {
     LoggingService.debug("[UI Rendering] Event subscriptions initialized.", {module: 'ui_rendering'});
 }
 
-LoggingService.debug("ui_rendering.js loaded, using imported services and functions.", { module: 'ui_rendering' }); // Changed console.log
+LoggingService.debug("ui_rendering.js loaded, using imported services and functions.", { module: 'ui_rendering' });

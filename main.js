@@ -37,6 +37,7 @@ import { ContactUsFeature } from './feature_contact_us.js';
 import { SocialMediaLinksFeature } from './feature_social_media_links.js';
 import { AboutUsFeature } from './feature_about_us.js';
 import { DataVersioningFeature } from './feature_data_versioning.js';
+import { ShoppingListFeature } from './feature_shopping_list.js';
 import LoggingService, { LOG_LEVELS } from './loggingService.js';
 import * as firebaseService from './firebaseService.js';
 import NotificationService from './notificationService.js';
@@ -197,6 +198,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.AppFeatures.SocialMediaLinksFeature = SocialMediaLinksFeature;
     window.AppFeatures.AboutUsFeature = AboutUsFeature;
     window.AppFeatures.DataVersioningFeature = DataVersioningFeature;
+    window.AppFeatures.ShoppingListFeature = ShoppingListFeature;
     window.AppFeatures.DesktopNotificationsFeature = DesktopNotificationsFeature;
 
     if (window.AppFeatures.UserAccountsFeature && typeof window.AppFeatures.UserAccountsFeature.initialize === 'function') {

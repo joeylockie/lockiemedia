@@ -61,8 +61,16 @@ export function renderTaskListView() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    const shoppingLabels = ['shopping', 'buy', 'store'];
+
     if (currentFilterVal === 'inbox') {
         filteredTasks = currentTasks.filter(task => !task.completed);
+    } else if (currentFilterVal === 'shopping_list') {
+        filteredTasks = currentTasks.filter(task =>
+            !task.completed &&
+            task.label &&
+            shoppingLabels.includes(task.label.toLowerCase())
+        );
     } else if (currentFilterVal === 'today') {
         filteredTasks = currentTasks.filter(task => {
             if (!task.dueDate || task.completed) return false;

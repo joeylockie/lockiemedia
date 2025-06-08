@@ -1,5 +1,5 @@
 AI Project Curation Log: LockieMedia Personal and Business Management Service
-Last Updated: 2025-06-08 17:25 (EDT) ##
+Last Updated: 2025-06-08 18:47 (EDT) ##
 
 Instructions for AI (Gemini)
 Purpose of this Document: This document is your primary source of truth for the LockieMedia Personal and Business Management Service project. It provides context, tracks progress, outlines current tasks, and lists future goals. Please refer to it to understand:
@@ -39,8 +39,8 @@ Admin Panel Core: Separate HTML page (admin.html) using the same Firebase backen
 Overall Goal: Develop a robust, feature-complete Personal and Business Management Service with a functional Admin Panel for application monitoring and management insights.
 2. Current Major Task/Feature Being Worked On:
 Name: Main Service - Feature Implementation
-Goal for this Task: Begin implementing and enabling core service features that were previously placeholders, starting with the advancedRecurrence feature.
-Status: In Progress (advancedRecurrence feature is complete).
+Goal for this Task: Begin implementing and enabling core service features that were previously placeholders.
+Status: In Progress
 3. Work Completed (Overall Project - High Level):
 LockieMedia Service (Main Application):
 Core task management functionalities implemented as a foundational module.
@@ -48,43 +48,44 @@ Feature flag system (featureFlagService.js, features.json) established.
 Modular architecture with services for logging, events, view management, tasks, projects, labels, etc.
 Firebase integration for user authentication and data persistence (tasks, projects, preferences, profile with roles) via firebaseService.js and store.js.
 Client-side error logging to console and Firestore via loggingService.js.
-Basic UI rendering and event handling structures in place.
 Critical bug fixes related to feature flag interpretation, UI rendering timing (version display, smart button styling), and module exports implemented.
 Performance logging implemented to capture and send app load times to Firestore.
+Advanced Recurrence Feature: Fully implemented with custom intervals, specific day selection for weeks, and end dates.
+Shopping List Feature: Fully implemented as a new Smart View.
 Admin Panel:
 Initial setup and core features, including enhanced logging and testing capabilities.
 Key metric widgets are now functional, including Avg. Load Time and API Errors (1hr).
-Advanced Recurrence Feature:
-Phase 1 (MVP) is complete. Basic daily, weekly, monthly, and yearly recurrence is functional.
-Phase 2 (Advanced Options) is complete. The feature now supports custom intervals (e.g., every 2 weeks) and selecting specific days for weekly recurrence.
-Phase 3 (End Conditions) is complete. The feature now supports setting an end date for a recurring series.
 4. Work Completed (Specific to Current Major Task):
 Date: 2025-06-02
 Created admin.html and foundational Admin Panel JavaScript files.
 Enhanced loggingService.js to send ERROR and CRITICAL logs to Firestore.
 Implemented functional Admin login and display of Feature Flags and Error Logs.
-Date: 2025-06-03 (Previous Session)
+Date: 2025-06-03
 Resolved multiple bugs related to UI rendering and feature flag interpretation in the main service.
 Updated AI_PROJECT_LOG.md to reflect the project's rebranding.
-Date: 2025-06-07 (Previous Session)
+Date: 2025-06-07
 Implemented "Avg. Load Time" and "API Errors (1hr)" widgets in the Admin Panel.
+Date: 2025-06-08 (Previous Session)
+Implemented the Advanced Recurrence feature, including custom intervals, specific day selection for weekly recurrence, and an end date condition.
 Date: 2025-06-08 (Current Session)
-Implemented Phase 1 of Advanced Recurrence: Enabled the feature flag, added a basic "Repeats" dropdown to the modals, and implemented the core logic for simple daily, weekly, monthly, and yearly recurrences.
-Implemented Phase 2 of Advanced Recurrence: Enhanced the modals with UI for setting custom intervals and specific days for weekly recurrence. Added the corresponding logic to feature_advanced_recurrence.js, formEventHandlers.js, modal_interactions.js, main.js, and taskService.js to handle the dynamic UI and more complex date calculations.
-Implemented Phase 3 of Advanced Recurrence: Added an "Until" date input to the recurrence UI in todo.html. Updated formEventHandlers.js to capture the end date. Updated modal_interactions.js to manage the input's state. Finally, updated taskService.js to check the endDate and stop renewing the task after the specified date has passed.
+Implemented the new "Shopping List" feature. This included:
+Adding a `shoppingListFeature` flag.
+Creating a new Smart View button in the sidebar of `todo.html`.
+Updating `renderTaskListView.js` and `viewManager.js` with the filtering logic for tasks labeled "shopping", "buy", or "store".
+Updating `ui_rendering.js` to show the correct heading for the new view.
+Creating and integrating the new `feature_shopping_list.js` module into the application's lifecycle in `main.js`.
 5. Current Focus / Next Steps (Specific to Current Major Task):
-Current Sub-Task: The advancedRecurrence feature is now functionally complete through Phase 3.
+Current Sub-Task: The "Shopping List" feature is now functionally complete.
 Immediate Next Action: Discuss the next development focus with the user. Possible next steps include:
-Testing & Refinement: Thoroughly test the new recurrence feature with various edge cases (e.g., leap years, short months, different weekly combinations).
-Enable Another Feature: Begin implementing another one of the planned features from the features.json file, such as:
-projectFeature
-subTasksFeature
-kanbanBoardFeature
-taskTimerSystem
-UI/UX Polish:
-Consider the UX for editing a single instance vs. the entire series (for a future iteration).
+Testing & Refinement: Thoroughly test the new `shoppingListFeature` and the `advancedRecurrence` feature with various edge cases.
+Enable Another Feature: Begin implementing another one of the planned features from the `features.json` file, such as:
+`projectFeature`
+`subTasksFeature`
+`kanbanBoardFeature`
+`taskTimerSystem`
+UI/UX Polish.
 Specific questions for AI (if any):
-What would you like to work on next?
+None.
 Blockers (if any):
 None.
 6. Known Issues / Bugs (Related to current work or recently discovered):
