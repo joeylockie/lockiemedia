@@ -1,5 +1,5 @@
 AI Project Curation Log: LockieMedia Personal and Business Management Service
-Last Updated: 2025-06-08 16:48 (EDT) ##
+Last Updated: 2025-06-08 17:12 (EDT) ##
 
 Instructions for AI (Gemini)
 Purpose of this Document: This document is your primary source of truth for the LockieMedia Personal and Business Management Service project. It provides context, tracks progress, outlines current tasks, and lists future goals. Please refer to it to understand:
@@ -40,7 +40,7 @@ Overall Goal: Develop a robust, feature-complete Personal and Business Managemen
 2. Current Major Task/Feature Being Worked On:
 Name: Main Service - Feature Implementation
 Goal for this Task: Begin implementing and enabling core service features that were previously placeholders, starting with the advancedRecurrence feature.
-Status: In Progress (Phase 1 of advancedRecurrence is complete).
+Status: In Progress (Phase 1 & 2 of advancedRecurrence are complete).
 3. Work Completed (Overall Project - High Level):
 LockieMedia Service (Main Application):
 Core task management functionalities implemented as a foundational module.
@@ -55,47 +55,44 @@ Admin Panel:
 Initial setup and core features, including enhanced logging and testing capabilities.
 Key metric widgets are now functional, including Avg. Load Time and API Errors (1hr).
 Advanced Recurrence Feature:
-Phase 1 (MVP) is complete. Basic daily, weekly, monthly, and yearly recurrence is now functional.
+Phase 1 (MVP) is complete. Basic daily, weekly, monthly, and yearly recurrence is functional.
+Phase 2 (Advanced Options) is complete. The feature now supports custom intervals (e.g., every 2 weeks) and selecting specific days for weekly recurrence.
 4. Work Completed (Specific to Current Major Task):
 Date: 2025-06-02
-Created admin.html with a basic layout, sections, and an admin login modal.
-Enhanced loggingService.js (in the main app) to send ERROR and CRITICAL level logs to a new Firestore collection: app_errors. User context (UID, email) and client-side info (URL, userAgent) are included in these logs.
-Modified featureFlagService.js to prioritize loading flags from Firestore (app_config/feature_flags), with fallbacks to features.json and localStorage. Added a check to ensure an authenticated user exists before attempting Firestore read for flags.
-Updated main.js (Todo app) to correctly initialize LoggingService (log level based on debugMode flag) and to ensure proper initialization order with featureFlagService.js.
-Created initial Admin Panel JavaScript files: admin_main.js, adminUI.js, adminDataService.js.
-Systematically resolved numerous "Cannot access 'LoggingService' before initialization" errors across various modules.
-Fixed a TypeError: docSnap.exists is not a function in admin_main.js.
-Admin login to admin.html functional.
-Admin dashboard displays read-only Feature Flags and Error Logs from Firestore.
+Created admin.html and foundational Admin Panel JavaScript files.
+Enhanced loggingService.js to send ERROR and CRITICAL logs to Firestore.
+Modified featureFlagService.js to prioritize loading flags from Firestore.
+Implemented functional Admin login and display of Feature Flags and Error Logs.
 Date: 2025-06-03 (Previous Session)
-Resolved issue where the "Send Test Notification" button in the DesktopNotificationsFeature was not working.
-Fixed issue where the UI version display (e.g., in the footer) did not match the version specified in version.json.
-Addressed issue where smart view filter buttons initially appeared as text-only.
-Fixed a SyntaxError in modalEventHandlers.js related to getAllFeatureFlags.
+Resolved multiple bugs related to UI rendering and feature flag interpretation in the main service.
 Date: 2025-06-03 (Rebranding Start)
-Updated AI_PROJECT_LOG.md to reflect the project's rebranding from a "Todo App" to the "LockieMedia Personal and Business Management Service". Project scope and goals have been broadened.
+Updated AI_PROJECT_LOG.md to reflect the project's rebranding from a "Todo App" to the "LockieMedia Personal and Business Management Service".
 Date: 2025-06-07 (Previous Session)
-Implemented "Avg. Load Time" Widget: Created performanceService.js, modified main.js to send metrics to performance_metrics collection, and updated admin panel to display the average.
-Implemented "API Error Rate" Widget (Re-scoped): Re-scoped to "API Errors (1hr)", updated adminDataService.js to fetch recent error counts, and updated the admin UI.
+Implemented "Avg. Load Time" and "API Errors (1hr)" widgets in the Admin Panel.
 Date: 2025-06-08 (Current Session)
 Implemented Phase 1 of Advanced Recurrence:
-Enabled the "advancedRecurrence": true flag in features.json.
-Added a "Repeats" dropdown menu to the Add and Edit task modals in todo.html.
-Updated taskService.js to handle the new recurrence property on task objects.
-Implemented the core logic in taskService.js's toggleTaskComplete function to automatically "renew" a task with a future due date upon completion, based on daily, weekly, monthly, or yearly rules.
-Updated formEventHandlers.js to read the selected recurrence value from the modal forms.
-Updated modal_interactions.js to correctly populate and reset the recurrence dropdown when modals are opened.
+Enabled the feature flag.
+Added a basic "Repeats" dropdown to the Add/Edit task modals.
+Implemented the core logic in taskService.js to handle simple daily, weekly, monthly, and yearly recurrences by renewing the task upon completion.
+Implemented Phase 2 of Advanced Recurrence:
+Enhanced the Add/Edit modals in todo.html with new UI elements for setting a recurrence interval (e.g., "Every 2 weeks") and for selecting specific days for weekly recurrence.
+Created feature_advanced_recurrence.js to manage the dynamic UI logic, showing/hiding the new options based on the user's selection.
+Updated main.js to initialize this new feature module.
+Updated formEventHandlers.js to read the new interval and day-of-week values from the form.
+Updated modal_interactions.js to correctly populate and reset these advanced controls when opening the modals.
+Significantly enhanced the date calculation logic in taskService.js to correctly determine the next due date based on custom intervals and specific days of the week.
 5. Current Focus / Next Steps (Specific to Current Major Task):
-Current Sub-Task: Phase 1 of the advancedRecurrence feature is complete.
-Immediate Next Action: Begin Phase 2 of Advanced Recurrence.
-Goal: Enhance the feature to support more complex scheduling.
+Current Sub-Task: Phase 2 of the advancedRecurrence feature is complete.
+Immediate Next Action: Begin Phase 3 of Advanced Recurrence.
+Goal: Allow users to set an end condition for a recurring task.
 UI Changes:
-In todo.html, when "Weekly" is selected in the recurrence dropdown, dynamically show a set of checkboxes for the days of the week (M, T, W, T, F, S, S).
-In todo.html, add an "Every" [number] input field next to the frequency dropdown (e.g., "Every [ 2 ] weeks").
+In todo.html, add controls for "Ends":
+A radio button or dropdown for "Never" (default).
+An option for "On date," which reveals a date input field.
+(Optional) An option for "After," which reveals a number input for [X] occurrences.
 Logic Changes:
-In taskService.js, update the nextDueDate calculation logic within toggleTaskComplete to handle these new parameters (interval and daysOfWeek). This will require more complex date manipulation.
-Data Structure Changes:
-The recurrence object in a task will now store these additional properties (e.g., { frequency: 'weekly', interval: 2, daysOfWeek: ['mo', 'fr'] }).
+In taskService.js, when a recurring task is completed, before generating the next occurrence, check if an end condition has been met.
+If the new calculated due date is after the specified endDate, or if the occurrence count has been reached, the task should be permanently completed instead of renewing.
 Specific questions for AI (if any):
 None at this moment.
 Blockers (if any):
@@ -105,7 +102,6 @@ Potential Setup Step: The queries for performance metrics and error counts in th
 Minor Warning (Understood/Expected): [ProjectsFeature] Cannot populate project filter list. Dependencies missing. - This occurs because the projectFeature is currently disabled in features.json.
 Minor Warning (Understood/Expected): [ModalEventHandlers] Element #openFeatureFlagsModalBtn not found. - This button ID is not present in the todo.html markup.
 7. Future/Pending Work (Overall Project - High Level):
-Advanced Recurrence - Phase 3: Implement end conditions (ending on a specific date or after a number of occurrences).
 Admin Panel:
 Flesh out User Management (view details, potentially disable users - requires careful rule changes).
 Implement all Overview Stats.
