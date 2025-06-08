@@ -53,6 +53,28 @@ let showCriticalErrorImported = (message, errorId) => {
 
 let updateNotificationElement = null;
 
+/**
+ * Dynamically loads a script and returns a promise that resolves when it's loaded.
+ * @param {string} src - The URL of the script to load.
+ * @returns {Promise<void>}
+ */
+function loadScript(src) {
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = () => {
+            LoggingService.info(`[Main] External script loaded successfully: ${src}`);
+            resolve();
+        };
+        script.onerror = () => {
+            LoggingService.critical(`[Main] CRITICAL: Failed to load external script: ${src}`, new Error(`ScriptLoadError: ${src}`), { functionName: 'loadScript' });
+            reject(new Error(`Failed to load script: ${src}`));
+        };
+        document.body.appendChild(script);
+    });
+}
+
+
 function showUpdateNotificationBar(data) {
     const functionName = 'showUpdateNotificationBar (main.js)';
     const newVersionString = data.newVersion;
@@ -144,7 +166,7 @@ window.onunhandledrejection = function(event) {
     event.preventDefault();
 };
 
-document.addEventListener('DOMContentLoaded', async () => {
+async function initializeApp() {
     LoggingService.info("[Main] DOMContentLoaded event fired. Starting application initialization...");
 
     if (uiRendering && uiRendering.showCriticalError) {
@@ -156,7 +178,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (uiRendering && uiRendering.initializeDOMElements) {
         uiRendering.initializeDOMElements();
-        LoggingService.info("[Main] DOM elements initialized."); // Note: Removed "initial version rendered" to avoid confusion
+        LoggingService.info("[Main] DOM elements initialized.");
     } else {
         const initError = new Error("initializeDOMElements not found in ui_rendering.js");
         LoggingService.critical("[Main] CRITICAL: Error initializing ui_rendering.js or its DOM elements!", initError, { step: "uiRenderingInit" });
@@ -224,21 +246,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // **** MODIFIED SECTION FOR VERSION RENDERING ****
     try {
-        await loadAppVersion(); // Wait for version to be loaded
+        await loadAppVersion();
         LoggingService.info(`[Main] Application Version: ${getAppVersionString()} successfully loaded and available.`);
-        // NOW that version is loaded, explicitly call renderAppVersion from uiRendering
         if (uiRendering && uiRendering.renderAppVersion) {
             LoggingService.debug("[Main] Explicitly calling renderAppVersion after loadAppVersion completion.");
-            uiRendering.renderAppVersion(); // This will use the now-loaded version string
+            uiRendering.renderAppVersion();
         } else {
             LoggingService.warn("[Main] uiRendering.renderAppVersion not available for explicit call after version load.");
         }
     } catch (e) {
         LoggingService.error("[Main] Error loading application version. Default will be used if displayed elsewhere before this.", e);
     }
-    // **** END OF MODIFIED SECTION ****
 
     if (AppStore && typeof AppStore.initializeStore === 'function') {
         try {
@@ -257,13 +276,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (isFeatureEnabledFromService('appUpdateNotificationFeature')) {
         if (typeof startUpdateChecker === 'function') {
-            LoggingService.info("[Main] Starting application update checker.", { functionName: "DOMContentLoaded" });
+            LoggingService.info("[Main] Starting application update checker.", { functionName: "initializeApp" });
             startUpdateChecker();
         } else {
             LoggingService.error('[Main] startUpdateChecker function from versionService is not available.', new Error("FunctionMissing"), { service: "versionService" });
         }
     } else {
-        LoggingService.info("[Main] Application update checker is disabled by feature flag 'appUpdateNotificationFeature'.", { functionName: "DOMContentLoaded" });
+        LoggingService.info("[Main] Application update checker is disabled by feature flag 'appUpdateNotificationFeature'.", { functionName: "initializeApp" });
     }
 
     if (EventBus && typeof EventBus.subscribe === 'function') {
@@ -274,15 +293,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 LoggingService.debug("[Main] 'newVersionAvailable' event received, but feature 'appUpdateNotificationFeature' is disabled. Notification suppressed.", { functionName: "newVersionAvailable_Subscription" });
             }
         });
-        // The 'appVersionLoaded' subscription is now primarily in ui_rendering.js
-        // Keeping it there ensures ui_rendering itself handles its update based on the event.
-        LoggingService.info("[Main] Subscribed to 'newVersionAvailable' event.", { functionName: "DOMContentLoaded" });
+        LoggingService.info("[Main] Subscribed to 'newVersionAvailable' event.", { functionName: "initializeApp" });
     } else {
         LoggingService.warn('[Main] EventBus not available for newVersionAvailable subscription.');
     }
 
     if (uiRendering && uiRendering.initializeUiRenderingSubscriptions) {
-        uiRendering.initializeUiRenderingSubscriptions(); // This will set up the appVersionLoaded subscription among others
+        uiRendering.initializeUiRenderingSubscriptions();
         LoggingService.info("[Main] UI Rendering event subscriptions initialized.");
     } else {
         LoggingService.error('[Main] uiRendering.initializeUiRenderingSubscriptions function is not available.');
@@ -363,7 +380,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     LoggingService.info("---------------------------------------------------------");
     
     logPerformanceMetrics();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Dynamically load the rrule script first
+    loadScript('https://cdn.jsdelivr.net/npm/rrule@2.8.1/dist/es5/rrule.min.js')
+        .then(() => {
+            // Once rrule is loaded, initialize the main application
+            initializeApp();
+        })
+        .catch(error => {
+            // Handle script loading failure
+            console.error(error);
+            showCriticalErrorImported("CRITICAL: Could not load core 'rrule.js' library. Recurrence feature will not work.", "RRULE_LOAD_FAIL");
+            // You might still want to initialize the app without the recurrence feature
+            // by calling initializeApp() here, or you might want to stop completely.
+            // For now, we will still try to init the rest of the app.
+            initializeApp(); 
+        });
 });
+
 
 if (typeof window.isFeatureEnabled === 'undefined') window.isFeatureEnabled = isFeatureEnabledFromService;
 if (typeof window.getAllFeatureFlags === 'undefined') window.getAllFeatureFlags = getAllFeatureFlags;

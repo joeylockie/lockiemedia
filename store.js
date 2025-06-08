@@ -99,7 +99,7 @@ function _sanitizeTasksArray(tasksArray) {
                 interval: task.recurrenceRule.interval || null,
                 daysOfWeek: task.recurrenceRule.daysOfWeek || null,
                 byMonthDay: task.recurrenceRule.byMonthDay || null,
-                endDate: task.recurrenceRule.endDate || null,
+                endDate: task.recurrenceRule.endDate || null, // FIX: Corrected variable name from taskData to task
                 fuzziness: task.recurrenceRule.fuzziness || null,
             };
         }

@@ -16,19 +16,34 @@ import { applyFuzziness } from './fuzzyLogicService.js'; // Import from the new 
  */
 function createNextRecurringTask(completedTask) {
     const functionName = 'createNextRecurringTask';
+    LoggingService.debug(`[${functionName}] Entered function for task ID: ${completedTask.id}. Checking prerequisites.`);
+
+
     if (!completedTask.recurrenceRule) {
-        LoggingService.debug(`[${functionName}] Task has no recurrence rule.`, { taskId: completedTask.id });
+        LoggingService.warn(`[${functionName}] Task has no recurrence rule object. Exiting.`, { taskId: completedTask.id });
         return;
     }
     
     const RRule = window.rrule?.RRule;
 
+    // Detailed checks for the rrule library
+    if (!window.rrule) {
+        LoggingService.error(`[${functionName}] rrule.js library not found on the window object. Cannot process recurrence.`, new Error("RRuleLibMissing"));
+        return;
+    }
     if (!RRule) {
-        LoggingService.error(`[${functionName}] rrule.js library is not available. Cannot process recurrence.`, new Error("RRuleMissing"));
+        LoggingService.error(`[${functionName}] window.rrule.RRule constructor is not available. Cannot process recurrence.`, new Error("RRulePropertyMissing"));
         return;
     }
 
     const rule = completedTask.recurrenceRule;
+    LoggingService.debug(`[${functionName}] Recurrence rule to process:`, { rule: JSON.parse(JSON.stringify(rule)) });
+
+    // A valid frequency is required to create a rule.
+    if (!rule.frequency) {
+        LoggingService.warn(`[${functionName}] Recurrence rule for task ID ${completedTask.id} is missing a 'frequency' property. Cannot process.`, { rule });
+        return;
+    }
 
     const effectiveDate = completedTask.dueDate || getTodayDateString();
     const dtstart = new Date(effectiveDate + 'T00:00:00Z');
@@ -238,12 +253,10 @@ export function toggleTaskComplete(taskId) {
 
     const completedTask = currentTasks[taskIndex];
 
-    LoggingService.debug(`[TaskService] Checking task for recurrence.`, { 
+    // More detailed logging before the check
+    LoggingService.debug(`[TaskService] Task completion toggled. About to check for recurrence.`, { 
         functionName: 'toggleTaskComplete', 
-        taskId: taskId, 
-        isCompleted: completedTask.completed, 
-        hasRecurrenceRule: !!completedTask.recurrenceRule,
-        recurrenceRule: completedTask.recurrenceRule
+        task: JSON.parse(JSON.stringify(completedTask)) // Log a full snapshot of the task
     });
 
     if (isFeatureEnabled('advancedRecurrence') && completedTask.completed && completedTask.recurrenceRule) {
