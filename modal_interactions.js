@@ -137,6 +137,7 @@ export function openViewEditModal(taskId) {
     const modalSubTasksListViewEditEl = document.getElementById('modalSubTasksListViewEdit'); 
     const modalSubTaskInputViewEditEl = document.getElementById('modalSubTaskInputViewEdit'); 
     const taskDependenciesSectionViewEditEl = document.getElementById('taskDependenciesSectionViewEdit'); 
+    const modalRecurrenceInputViewEditEl = document.getElementById('modalRecurrenceInputViewEdit'); // Get recurrence input
 
 
     if (!AppStore || typeof AppStore.getTasks !== 'function' || !ModalStateService) { 
@@ -156,6 +157,17 @@ export function openViewEditModal(taskId) {
     if (modalTaskInputViewEditEl) modalTaskInputViewEditEl.value = task.text; 
     if (modalDueDateInputViewEditEl) modalDueDateInputViewEditEl.value = task.dueDate || ''; 
     if (modalTimeInputViewEditEl) modalTimeInputViewEditEl.value = task.time || ''; 
+
+    // *** FIX STARTS HERE ***
+    // Populate the recurrence input field based on the existing task rule
+    if (isFeatureEnabled('advancedRecurrence') && modalRecurrenceInputViewEditEl) {
+        if (task.recurrenceRule && AdvancedRecurrenceFeature?.ruleToString) {
+            modalRecurrenceInputViewEditEl.value = AdvancedRecurrenceFeature.ruleToString(task.recurrenceRule);
+        } else {
+            modalRecurrenceInputViewEditEl.value = '';
+        }
+    }
+    // *** FIX ENDS HERE ***
 
     if (isFeatureEnabled('taskTimerSystem')) { 
         if (modalEstHoursViewEditEl) modalEstHoursViewEditEl.value = task.estimatedHours || ''; 
