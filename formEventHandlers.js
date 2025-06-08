@@ -55,6 +55,7 @@ export function handleAddTaskFormSubmit(event) {
     if (isFeatureEnabled('advancedRecurrence') && modalRecurrenceAddEl && modalRecurrenceAddEl.value !== 'none') {
         const recurrenceIntervalAddEl = document.getElementById('recurrenceIntervalAdd');
         const weeklyRecurrenceOptionsAddEl = document.getElementById('weeklyRecurrenceOptionsAdd');
+        const recurrenceEndDateAddEl = document.getElementById('recurrenceEndDateAdd');
         
         recurrence = { 
             frequency: modalRecurrenceAddEl.value,
@@ -68,6 +69,10 @@ export function handleAddTaskFormSubmit(event) {
                 EventBus.publish('displayUserMessage', { text: 'Please select at least one day for weekly recurrence.', type: 'error' });
                 return;
             }
+        }
+
+        if (recurrenceEndDateAddEl && recurrenceEndDateAddEl.value) {
+            recurrence.endDate = recurrenceEndDateAddEl.value;
         }
     }
 
@@ -160,6 +165,7 @@ export function handleEditTaskFormSubmit(event) {
         if (modalRecurrenceViewEditEl.value !== 'none') {
             const recurrenceIntervalViewEditEl = document.getElementById('recurrenceIntervalViewEdit');
             const weeklyRecurrenceOptionsViewEditEl = document.getElementById('weeklyRecurrenceOptionsViewEdit');
+            const recurrenceEndDateViewEditEl = document.getElementById('recurrenceEndDateViewEdit');
             
             recurrence = {
                 frequency: modalRecurrenceViewEditEl.value,
@@ -173,6 +179,10 @@ export function handleEditTaskFormSubmit(event) {
                     EventBus.publish('displayUserMessage', { text: 'Please select at least one day for weekly recurrence.', type: 'error' });
                     return;
                 }
+            }
+
+            if (recurrenceEndDateViewEditEl && recurrenceEndDateViewEditEl.value) {
+                recurrence.endDate = recurrenceEndDateViewEditEl.value;
             }
         }
     }

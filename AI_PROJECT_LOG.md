@@ -1,5 +1,5 @@
 AI Project Curation Log: LockieMedia Personal and Business Management Service
-Last Updated: 2025-06-08 17:12 (EDT) ##
+Last Updated: 2025-06-08 17:25 (EDT) ##
 
 Instructions for AI (Gemini)
 Purpose of this Document: This document is your primary source of truth for the LockieMedia Personal and Business Management Service project. It provides context, tracks progress, outlines current tasks, and lists future goals. Please refer to it to understand:
@@ -40,7 +40,7 @@ Overall Goal: Develop a robust, feature-complete Personal and Business Managemen
 2. Current Major Task/Feature Being Worked On:
 Name: Main Service - Feature Implementation
 Goal for this Task: Begin implementing and enabling core service features that were previously placeholders, starting with the advancedRecurrence feature.
-Status: In Progress (Phase 1 & 2 of advancedRecurrence are complete).
+Status: In Progress (advancedRecurrence feature is complete).
 3. Work Completed (Overall Project - High Level):
 LockieMedia Service (Main Application):
 Core task management functionalities implemented as a foundational module.
@@ -57,46 +57,37 @@ Key metric widgets are now functional, including Avg. Load Time and API Errors (
 Advanced Recurrence Feature:
 Phase 1 (MVP) is complete. Basic daily, weekly, monthly, and yearly recurrence is functional.
 Phase 2 (Advanced Options) is complete. The feature now supports custom intervals (e.g., every 2 weeks) and selecting specific days for weekly recurrence.
+Phase 3 (End Conditions) is complete. The feature now supports setting an end date for a recurring series.
 4. Work Completed (Specific to Current Major Task):
 Date: 2025-06-02
 Created admin.html and foundational Admin Panel JavaScript files.
 Enhanced loggingService.js to send ERROR and CRITICAL logs to Firestore.
-Modified featureFlagService.js to prioritize loading flags from Firestore.
 Implemented functional Admin login and display of Feature Flags and Error Logs.
 Date: 2025-06-03 (Previous Session)
 Resolved multiple bugs related to UI rendering and feature flag interpretation in the main service.
-Date: 2025-06-03 (Rebranding Start)
-Updated AI_PROJECT_LOG.md to reflect the project's rebranding from a "Todo App" to the "LockieMedia Personal and Business Management Service".
+Updated AI_PROJECT_LOG.md to reflect the project's rebranding.
 Date: 2025-06-07 (Previous Session)
 Implemented "Avg. Load Time" and "API Errors (1hr)" widgets in the Admin Panel.
 Date: 2025-06-08 (Current Session)
-Implemented Phase 1 of Advanced Recurrence:
-Enabled the feature flag.
-Added a basic "Repeats" dropdown to the Add/Edit task modals.
-Implemented the core logic in taskService.js to handle simple daily, weekly, monthly, and yearly recurrences by renewing the task upon completion.
-Implemented Phase 2 of Advanced Recurrence:
-Enhanced the Add/Edit modals in todo.html with new UI elements for setting a recurrence interval (e.g., "Every 2 weeks") and for selecting specific days for weekly recurrence.
-Created feature_advanced_recurrence.js to manage the dynamic UI logic, showing/hiding the new options based on the user's selection.
-Updated main.js to initialize this new feature module.
-Updated formEventHandlers.js to read the new interval and day-of-week values from the form.
-Updated modal_interactions.js to correctly populate and reset these advanced controls when opening the modals.
-Significantly enhanced the date calculation logic in taskService.js to correctly determine the next due date based on custom intervals and specific days of the week.
+Implemented Phase 1 of Advanced Recurrence: Enabled the feature flag, added a basic "Repeats" dropdown to the modals, and implemented the core logic for simple daily, weekly, monthly, and yearly recurrences.
+Implemented Phase 2 of Advanced Recurrence: Enhanced the modals with UI for setting custom intervals and specific days for weekly recurrence. Added the corresponding logic to feature_advanced_recurrence.js, formEventHandlers.js, modal_interactions.js, main.js, and taskService.js to handle the dynamic UI and more complex date calculations.
+Implemented Phase 3 of Advanced Recurrence: Added an "Until" date input to the recurrence UI in todo.html. Updated formEventHandlers.js to capture the end date. Updated modal_interactions.js to manage the input's state. Finally, updated taskService.js to check the endDate and stop renewing the task after the specified date has passed.
 5. Current Focus / Next Steps (Specific to Current Major Task):
-Current Sub-Task: Phase 2 of the advancedRecurrence feature is complete.
-Immediate Next Action: Begin Phase 3 of Advanced Recurrence.
-Goal: Allow users to set an end condition for a recurring task.
-UI Changes:
-In todo.html, add controls for "Ends":
-A radio button or dropdown for "Never" (default).
-An option for "On date," which reveals a date input field.
-(Optional) An option for "After," which reveals a number input for [X] occurrences.
-Logic Changes:
-In taskService.js, when a recurring task is completed, before generating the next occurrence, check if an end condition has been met.
-If the new calculated due date is after the specified endDate, or if the occurrence count has been reached, the task should be permanently completed instead of renewing.
+Current Sub-Task: The advancedRecurrence feature is now functionally complete through Phase 3.
+Immediate Next Action: Discuss the next development focus with the user. Possible next steps include:
+Testing & Refinement: Thoroughly test the new recurrence feature with various edge cases (e.g., leap years, short months, different weekly combinations).
+Enable Another Feature: Begin implementing another one of the planned features from the features.json file, such as:
+projectFeature
+subTasksFeature
+kanbanBoardFeature
+taskTimerSystem
+UI/UX Polish:
+Add a "recurring" icon to tasks in the main list view (renderTaskListView.js) to make them easily identifiable.
+Consider the UX for editing a single instance vs. the entire series (for a future iteration).
 Specific questions for AI (if any):
-None at this moment.
+What would you like to work on next?
 Blockers (if any):
-None at this moment.
+None.
 6. Known Issues / Bugs (Related to current work or recently discovered):
 Potential Setup Step: The queries for performance metrics and error counts in the admin panel rely on a composite index in Firestore. The first time the admin panel is loaded, an error message may appear in the browser console with a link to create the necessary index in the Firebase Console. This is expected behavior.
 Minor Warning (Understood/Expected): [ProjectsFeature] Cannot populate project filter list. Dependencies missing. - This occurs because the projectFeature is currently disabled in features.json.
@@ -108,7 +99,7 @@ Implement all Overview Stats.
 Implement A/B Testing stats display section.
 Improve the "Details" view for individual error logs beyond a simple alert().
 LockieMedia Service (Main Application):
-Complete and refine other foundational features like Calendar View, Pomodoro Timer, Sub-tasks, Task Dependencies, Reminders, File Attachments, etc. (as per features.json and README). This involves changing their flags to true in features.json and testing/refining their implementation.
+Complete and refine other foundational features like Calendar View, Pomodoro Timer, Sub-tasks, Task Dependencies, Reminders, File Attachments, etc. (as per features.json and README).
 Expand Scope: Plan and implement new modules appropriate for a Personal and Business Management Service. This could include areas like:
 Basic CRM (contact management).
 Enhanced Notes/Document Management.
@@ -117,7 +108,7 @@ Goal Setting and Tracking.
 Habit Tracking.
 Address any UI/UX improvements.
 8. Important Notes / Decisions Made:
-Recurrence Logic: Decided to use the "template" model for recurring tasks. When a recurring task is completed, it is not archived but instead has its due date advanced and its completed status reset to false. This keeps the task list clean and avoids database bloat.
+Recurrence Logic: Decided to use the "template" model for recurring tasks. When a recurring task is completed, it is not archived but instead has its due date advanced and its completed status reset to false, unless an endDate is set and has been surpassed.
 "API Error Rate" Re-scoped: The widget was changed to "API Errors (1hr)" to show a raw count of recent errors. This was more feasible than calculating a true "rate," which would require logging every successful API call.
 Performance Metrics: A new performance_metrics collection has been introduced in Firestore to store application load time data.
 Admin-Only UI Elements: A new class, admin-only-feature-element, has been established to control the visibility of UI components that should only be seen by administrators.

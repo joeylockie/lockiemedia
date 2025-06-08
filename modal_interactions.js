@@ -50,6 +50,7 @@ export function openAddModal() {
     const taskDependenciesSectionAddEl = document.getElementById('taskDependenciesSectionAdd'); 
     const modalRecurrenceAddEl = document.getElementById('modalRecurrenceAdd');
     const recurrenceOptionsAddEl = document.getElementById('recurrenceOptionsAdd');
+    const recurrenceEndDateAddEl = document.getElementById('recurrenceEndDateAdd');
 
 
     if (!addTaskModalEl || !modalDialogAddEl || !modalTaskInputAddEl || !modalTodoFormAddEl || !modalPriorityInputAddEl) { 
@@ -62,7 +63,7 @@ export function openAddModal() {
     modalTodoFormAddEl.reset(); 
     modalPriorityInputAddEl.value = 'medium'; 
     if (modalRecurrenceAddEl) modalRecurrenceAddEl.value = 'none';
-    if (recurrenceOptionsAddEl) recurrenceOptionsAddEl.classList.add('hidden'); // Ensure advanced options are hidden initially
+    if (recurrenceOptionsAddEl) recurrenceOptionsAddEl.classList.add('hidden');
 
     if (existingLabelsDatalistEl) populateDatalist(existingLabelsDatalistEl); 
 
@@ -83,6 +84,7 @@ export function openAddModal() {
     const todayStr = getTodayDateString(); 
     if (modalDueDateInputAddEl) modalDueDateInputAddEl.min = todayStr; 
     if (modalReminderDateAddEl) modalReminderDateAddEl.min = todayStr; 
+    if (recurrenceEndDateAddEl) recurrenceEndDateAddEl.min = todayStr;
 
     clearTempSubTasksForAddModal(); 
 
@@ -142,6 +144,7 @@ export function openViewEditModal(taskId) {
     const modalSubTaskInputViewEditEl = document.getElementById('modalSubTaskInputViewEdit'); 
     const taskDependenciesSectionViewEditEl = document.getElementById('taskDependenciesSectionViewEdit'); 
     const modalRecurrenceViewEditEl = document.getElementById('modalRecurrenceViewEdit');
+    const recurrenceEndDateViewEditEl = document.getElementById('recurrenceEndDateViewEdit');
 
 
     if (!AppStore || typeof AppStore.getTasks !== 'function' || !ModalStateService) { 
@@ -177,12 +180,12 @@ export function openViewEditModal(taskId) {
     }
     
     if (isFeatureEnabled('advancedRecurrence') && modalRecurrenceViewEditEl) {
-        modalRecurrenceViewEditEl.value = task.recurrence?.frequency || 'none';
-        
         const recurrenceOptionsViewEditEl = document.getElementById('recurrenceOptionsViewEdit');
         const recurrenceIntervalViewEditEl = document.getElementById('recurrenceIntervalViewEdit');
         const weeklyRecurrenceOptionsViewEditEl = document.getElementById('weeklyRecurrenceOptionsViewEdit');
 
+        modalRecurrenceViewEditEl.value = task.recurrence?.frequency || 'none';
+        
         if (recurrenceIntervalViewEditEl) {
             recurrenceIntervalViewEditEl.value = task.recurrence?.interval || 1;
         }
@@ -192,8 +195,11 @@ export function openViewEditModal(taskId) {
                 cb.checked = task.recurrence?.daysOfWeek?.includes(cb.value) || false;
             });
         }
+        if (recurrenceEndDateViewEditEl) {
+            recurrenceEndDateViewEditEl.value = task.recurrence?.endDate || '';
+            recurrenceEndDateViewEditEl.min = task.dueDate || getTodayDateString();
+        }
 
-        // Trigger the UI update to show/hide the correct options
         if (AdvancedRecurrenceFeature && AdvancedRecurrenceFeature.updateRecurrenceUI) {
             AdvancedRecurrenceFeature.updateRecurrenceUI(
                 modalRecurrenceViewEditEl,

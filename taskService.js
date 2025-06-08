@@ -108,12 +108,12 @@ export function toggleTaskComplete(taskId) {
     }
 
     const isNowCompleted = !taskToToggle.completed;
-    currentTasks[taskIndex].completed = isNowCompleted;
+    let isRecurringAndRenewed = false;
 
     if (isNowCompleted && isFeatureEnabled('advancedRecurrence') && taskToToggle.recurrence && taskToToggle.recurrence.frequency && taskToToggle.recurrence.frequency !== 'none') {
         const recurrence = taskToToggle.recurrence;
         const interval = recurrence.interval || 1;
-        const currentDueDate = new Date(taskToToggle.dueDate + 'T00:00:00Z'); // Use UTC to avoid timezone issues
+        const currentDueDate = new Date(taskToToggle.dueDate + 'T00:00:00Z');
         let nextDueDate = new Date(currentDueDate);
 
         switch (recurrence.frequency) {
@@ -123,15 +123,13 @@ export function toggleTaskComplete(taskId) {
             case 'weekly':
                 if (recurrence.daysOfWeek && recurrence.daysOfWeek.length > 0) {
                     const dayMap = { 'su': 0, 'mo': 1, 'tu': 2, 'we': 3, 'th': 4, 'fr': 5, 'sa': 6 };
-                    const allowedDays = recurrence.daysOfWeek.map(d => dayMap[d]).sort();
+                    const allowedDays = recurrence.daysOfWeek.map(d => dayMap[d]).sort((a,b) => a - b);
                     let currentDay = nextDueDate.getUTCDay();
                     
-                    // Start checking from the day *after* the current due date
                     for (let i = 1; i <= 7; i++) {
                         let nextDayIndex = (currentDay + i) % 7;
                         if (allowedDays.includes(nextDayIndex)) {
                             nextDueDate.setUTCDate(nextDueDate.getUTCDate() + i);
-                            // If we crossed into the next week, add the interval weeks
                             if (interval > 1 && nextDayIndex <= currentDay) {
                                 nextDueDate.setUTCDate(nextDueDate.getUTCDate() + (interval - 1) * 7);
                             }
@@ -139,7 +137,6 @@ export function toggleTaskComplete(taskId) {
                         }
                     }
                 } else {
-                    // Fallback if no days are selected: just advance by interval weeks
                     nextDueDate.setUTCDate(nextDueDate.getUTCDate() + 7 * interval);
                 }
                 break;
@@ -151,12 +148,31 @@ export function toggleTaskComplete(taskId) {
                 break;
         }
 
-        currentTasks[taskIndex].dueDate = getDateString(nextDueDate);
-        currentTasks[taskIndex].completed = false;
-        currentTasks[taskIndex].completedDate = null;
-        LoggingService.info(`[TaskService] Recurring task ${taskId} completed and reset for next due date: ${currentTasks[taskIndex].dueDate}.`, { functionName: 'toggleTaskComplete', taskId });
+        if (recurrence.endDate) {
+            const stopDate = new Date(recurrence.endDate + 'T23:59:59Z');
+            if (nextDueDate > stopDate) {
+                LoggingService.info(`[TaskService] Recurring task ${taskId} reached its end date. It will now be permanently completed.`);
+                // Let isRecurringAndRenewed remain false, so it falls through to standard completion logic
+            } else {
+                currentTasks[taskIndex].dueDate = getDateString(nextDueDate);
+                currentTasks[taskIndex].completed = false;
+                currentTasks[taskIndex].completedDate = null;
+                isRecurringAndRenewed = true;
+            }
+        } else {
+            currentTasks[taskIndex].dueDate = getDateString(nextDueDate);
+            currentTasks[taskIndex].completed = false;
+            currentTasks[taskIndex].completedDate = null;
+            isRecurringAndRenewed = true;
+        }
 
-    } else {
+        if(isRecurringAndRenewed) {
+             LoggingService.info(`[TaskService] Recurring task ${taskId} completed and reset for next due date: ${currentTasks[taskIndex].dueDate}.`, { functionName: 'toggleTaskComplete', taskId });
+        }
+    }
+
+    if (!isRecurringAndRenewed) {
+        currentTasks[taskIndex].completed = isNowCompleted;
         currentTasks[taskIndex].completedDate = isNowCompleted ? Date.now() : null;
 
         if (isFeatureEnabled('kanbanBoardFeature')) {
