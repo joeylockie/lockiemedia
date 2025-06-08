@@ -47,6 +47,7 @@ export function openAddModal() {
     const modalSubTasksListAddEl = document.getElementById('modalSubTasksListAdd'); 
     const modalSubTaskInputAddEl = document.getElementById('modalSubTaskInputAdd'); 
     const taskDependenciesSectionAddEl = document.getElementById('taskDependenciesSectionAdd'); 
+    const modalRecurrenceAddEl = document.getElementById('modalRecurrenceAdd');
 
 
     if (!addTaskModalEl || !modalDialogAddEl || !modalTaskInputAddEl || !modalTodoFormAddEl || !modalPriorityInputAddEl) { 
@@ -58,6 +59,7 @@ export function openAddModal() {
     modalTaskInputAddEl.focus(); 
     modalTodoFormAddEl.reset(); 
     modalPriorityInputAddEl.value = 'medium'; 
+    if (modalRecurrenceAddEl) modalRecurrenceAddEl.value = 'none';
 
     if (existingLabelsDatalistEl) populateDatalist(existingLabelsDatalistEl); 
 
@@ -136,6 +138,7 @@ export function openViewEditModal(taskId) {
     const modalSubTasksListViewEditEl = document.getElementById('modalSubTasksListViewEdit'); 
     const modalSubTaskInputViewEditEl = document.getElementById('modalSubTaskInputViewEdit'); 
     const taskDependenciesSectionViewEditEl = document.getElementById('taskDependenciesSectionViewEdit'); 
+    const modalRecurrenceViewEditEl = document.getElementById('modalRecurrenceViewEdit');
 
 
     if (!AppStore || typeof AppStore.getTasks !== 'function' || !ModalStateService) { 
@@ -168,6 +171,10 @@ export function openViewEditModal(taskId) {
     if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectDropdowns) { 
         ProjectsFeature.populateProjectDropdowns(); 
         if (modalProjectSelectViewEditEl) modalProjectSelectViewEditEl.value = task.projectId || "0"; 
+    }
+    
+    if (isFeatureEnabled('advancedRecurrence') && modalRecurrenceViewEditEl) {
+        modalRecurrenceViewEditEl.value = task.recurrence?.frequency || 'none';
     }
 
     if (modalNotesInputViewEditEl) modalNotesInputViewEditEl.value = task.notes || ''; 

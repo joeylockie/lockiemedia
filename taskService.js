@@ -49,7 +49,7 @@ export function addTask(taskData) {
     let currentTasks = AppStore.getTasks(); //
     const currentKanbanColumns = AppStore.getKanbanColumns(); //
     const defaultKanbanColumn = currentKanbanColumns[0]?.id || 'todo'; //
-    const newTask = { id: Date.now(), creationDate: Date.now(), completed: false, kanbanColumnId: defaultKanbanColumn, ...taskData, dueDate: taskData.dueDate || null, time: taskData.time || null, priority: taskData.priority || 'medium', label: taskData.label || '', notes: taskData.notes || '', projectId: typeof taskData.projectId === 'number' ? taskData.projectId : 0, isReminderSet: taskData.isReminderSet || false, reminderDate: taskData.reminderDate || null, reminderTime: taskData.reminderTime || null, reminderEmail: taskData.reminderEmail || null, estimatedHours: taskData.estimatedHours || 0, estimatedMinutes: taskData.estimatedMinutes || 0, timerStartTime: null, timerAccumulatedTime: 0, timerIsRunning: false, timerIsPaused: false, actualDurationMs: 0, attachments: taskData.attachments || [], completedDate: null, subTasks: taskData.subTasks || [], dependsOn: taskData.dependsOn || [], blocksTasks: taskData.blocksTasks || [] }; //
+    const newTask = { id: Date.now(), creationDate: Date.now(), completed: false, kanbanColumnId: defaultKanbanColumn, ...taskData, dueDate: taskData.dueDate || null, time: taskData.time || null, priority: taskData.priority || 'medium', label: taskData.label || '', notes: taskData.notes || '', projectId: typeof taskData.projectId === 'number' ? taskData.projectId : 0, isReminderSet: taskData.isReminderSet || false, reminderDate: taskData.reminderDate || null, reminderTime: taskData.reminderTime || null, reminderEmail: taskData.reminderEmail || null, estimatedHours: taskData.estimatedHours || 0, estimatedMinutes: taskData.estimatedMinutes || 0, timerStartTime: null, timerAccumulatedTime: 0, timerIsRunning: false, timerIsPaused: false, actualDurationMs: 0, attachments: taskData.attachments || [], completedDate: null, subTasks: taskData.subTasks || [], dependsOn: taskData.dependsOn || [], blocksTasks: taskData.blocksTasks || [], recurrence: taskData.recurrence || null }; //
     currentTasks.unshift(newTask); //
     AppStore.setTasks(currentTasks); //
     // MODIFIED: Use LoggingService
@@ -78,7 +78,6 @@ export function updateTask(taskId, taskUpdateData) {
 }
 
 export function toggleTaskComplete(taskId) {
-    // MODIFIED: Use LoggingService for error checks
     if (!AppStore || typeof isFeatureEnabled !== 'function') {
         const errorContext = { functionName: 'toggleTaskComplete', taskId };
         if (!AppStore) LoggingService.error("[TaskService] AppStore not available.", new Error("AppStoreMissing"), errorContext);
@@ -86,42 +85,82 @@ export function toggleTaskComplete(taskId) {
         return null;
     }
 
-    let currentTasks = AppStore.getTasks(); //
-    const taskIndex = currentTasks.findIndex(t => t.id === taskId); //
+    let currentTasks = AppStore.getTasks();
+    const taskIndex = currentTasks.findIndex(t => t.id === taskId);
     if (taskIndex === -1) {
-        // MODIFIED: Use LoggingService
         LoggingService.error(`[TaskService] Task with ID ${taskId} not found for toggle complete.`, new Error("TaskNotFound"), { functionName: 'toggleTaskComplete', taskId });
         return null;
     }
-    const taskToToggle = currentTasks[taskIndex]; //
-    if (isFeatureEnabled('taskDependenciesFeature') && !taskToToggle.completed) {  //
-        if (taskToToggle.dependsOn && taskToToggle.dependsOn.length > 0) { //
-            const incompleteDependencies = taskToToggle.dependsOn.some(depId => { //
-                const dependentTask = currentTasks.find(t => t.id === depId); //
-                return dependentTask && !dependentTask.completed; //
+
+    const taskToToggle = currentTasks[taskIndex];
+    
+    // Check for blocking dependencies BEFORE allowing completion
+    if (isFeatureEnabled('taskDependenciesFeature') && !taskToToggle.completed) {
+        if (taskToToggle.dependsOn && taskToToggle.dependsOn.length > 0) {
+            const incompleteDependencies = taskToToggle.dependsOn.some(depId => {
+                const dependentTask = currentTasks.find(t => t.id === depId);
+                return dependentTask && !dependentTask.completed;
             });
             if (incompleteDependencies) {
-                // MODIFIED: Use LoggingService
                 LoggingService.warn(`[TaskService] Cannot complete task ${taskId}. It has incomplete dependencies.`, { functionName: 'toggleTaskComplete', taskId, dependencies: taskToToggle.dependsOn });
-                return { ...taskToToggle, _blocked: true }; //
+                return { ...taskToToggle, _blocked: true };
             }
         }
     }
-    currentTasks[taskIndex].completed = !currentTasks[taskIndex].completed; //
-    currentTasks[taskIndex].completedDate = currentTasks[taskIndex].completed ? Date.now() : null; //
-    if (isFeatureEnabled('kanbanBoardFeature')) {  //
-        const currentKanbanColumns = AppStore.getKanbanColumns(); //
-        if (currentTasks[taskIndex].completed) { const doneColumn = currentKanbanColumns.find(col => col.id === 'done'); if (doneColumn) currentTasks[taskIndex].kanbanColumnId = doneColumn.id; //
-        } else if (currentTasks[taskIndex].kanbanColumnId === 'done') { const defaultColumn = currentKanbanColumns[0]?.id || 'todo'; currentTasks[taskIndex].kanbanColumnId = defaultColumn; } //
+
+    // Toggle completion status
+    const isNowCompleted = !taskToToggle.completed;
+    currentTasks[taskIndex].completed = isNowCompleted;
+
+    // Handle recurrence if the task is being marked as complete
+    if (isNowCompleted && isFeatureEnabled('advancedRecurrence') && taskToToggle.recurrence && taskToToggle.recurrence.frequency && taskToToggle.recurrence.frequency !== 'none') {
+        const currentDueDate = new Date(taskToToggle.dueDate + 'T00:00:00Z');
+        let nextDueDate = new Date(currentDueDate);
+
+        switch (taskToToggle.recurrence.frequency) {
+            case 'daily':
+                nextDueDate.setUTCDate(nextDueDate.getUTCDate() + 1);
+                break;
+            case 'weekly':
+                nextDueDate.setUTCDate(nextDueDate.getUTCDate() + 7);
+                break;
+            case 'monthly':
+                nextDueDate.setUTCMonth(nextDueDate.getUTCMonth() + 1);
+                break;
+            case 'yearly':
+                nextDueDate.setUTCFullYear(nextDueDate.getUTCFullYear() + 1);
+                break;
+        }
+
+        currentTasks[taskIndex].dueDate = getDateString(nextDueDate);
+        currentTasks[taskIndex].completed = false; // Reset for the next cycle
+        currentTasks[taskIndex].completedDate = null;
+        LoggingService.info(`[TaskService] Recurring task ${taskId} completed and reset for next due date: ${currentTasks[taskIndex].dueDate}.`, { functionName: 'toggleTaskComplete', taskId });
+
+    } else {
+        // Standard completion logic for non-recurring tasks or when un-completing a task
+        currentTasks[taskIndex].completedDate = isNowCompleted ? Date.now() : null;
+
+        if (isFeatureEnabled('kanbanBoardFeature')) {
+            const currentKanbanColumns = AppStore.getKanbanColumns();
+            if (isNowCompleted) {
+                const doneColumn = currentKanbanColumns.find(col => col.id === 'done');
+                if (doneColumn) currentTasks[taskIndex].kanbanColumnId = doneColumn.id;
+            } else if (currentTasks[taskIndex].kanbanColumnId === 'done') {
+                const defaultColumn = currentKanbanColumns[0]?.id || 'todo';
+                currentTasks[taskIndex].kanbanColumnId = defaultColumn;
+            }
+        }
+        if (isFeatureEnabled('taskTimerSystem') && window.AppFeatures?.TaskTimerSystem?.handleTaskCompletion) {
+            window.AppFeatures.TaskTimerSystem.handleTaskCompletion(taskId, isNowCompleted);
+        }
     }
-    if (isFeatureEnabled('taskTimerSystem') && window.AppFeatures?.TaskTimerSystem?.handleTaskCompletion) { //
-        window.AppFeatures.TaskTimerSystem.handleTaskCompletion(taskId, currentTasks[taskIndex].completed); //
-    }
-    AppStore.setTasks(currentTasks); //
-    // MODIFIED: Use LoggingService
-    LoggingService.info(`[TaskService] Task ${taskId} completion toggled to: ${currentTasks[taskIndex].completed}`, { functionName: 'toggleTaskComplete', taskId, newStatus: currentTasks[taskIndex].completed });
-    return currentTasks[taskIndex]; //
+
+    AppStore.setTasks(currentTasks);
+    LoggingService.info(`[TaskService] Task ${taskId} completion toggled. New 'completed' status: ${currentTasks[taskIndex].completed}`, { functionName: 'toggleTaskComplete', taskId, newStatus: currentTasks[taskIndex].completed });
+    return currentTasks[taskIndex];
 }
+
 
 export function deleteTaskById(taskId) {
     // MODIFIED: Use LoggingService for error checks

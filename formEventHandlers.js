@@ -41,6 +41,7 @@ export function handleAddTaskFormSubmit(event) {
     const modalReminderDateAddEl = document.getElementById('modalReminderDateAdd');
     const modalReminderTimeAddEl = document.getElementById('modalReminderTimeAdd');
     const modalReminderEmailAddEl = document.getElementById('modalReminderEmailAdd');
+    const modalRecurrenceAddEl = document.getElementById('modalRecurrenceAdd'); // Get recurrence dropdown
 
     const taskText = modalTaskInputAddEl.value.trim();
     const dueDate = modalDueDateInputAddEl.value;
@@ -49,6 +50,11 @@ export function handleAddTaskFormSubmit(event) {
     const label = modalLabelInputAddEl.value.trim();
     const notes = modalNotesInputAddEl.value.trim();
     const projectId = isFeatureEnabled('projectFeature') && modalProjectSelectAddEl ? parseInt(modalProjectSelectAddEl.value) : 0;
+    
+    let recurrence = null;
+    if (isFeatureEnabled('advancedRecurrence') && modalRecurrenceAddEl && modalRecurrenceAddEl.value !== 'none') {
+        recurrence = { frequency: modalRecurrenceAddEl.value };
+    }
 
     let estHours = 0, estMinutes = 0;
     if (isFeatureEnabled('taskTimerSystem') && TaskTimerSystemFeature?.getEstimatesFromAddModal) {
@@ -91,7 +97,8 @@ export function handleAddTaskFormSubmit(event) {
             time, priority, label, notes, projectId,
             isReminderSet, reminderDate, reminderTime, reminderEmail,
             estimatedHours: estHours, estimatedMinutes: estMinutes,
-            subTasks: subTasksToAdd
+            subTasks: subTasksToAdd,
+            recurrence // Add recurrence object
         });
         LoggingService.info(`[FormEventHandlers] Task added via form: "${parsedResult.remainingText.substring(0, 30)}..."`, { functionName, taskLength: parsedResult.remainingText.length });
         EventBus.publish('displayUserMessage', { text: 'Task added successfully!', type: 'success' });
@@ -127,6 +134,7 @@ export function handleEditTaskFormSubmit(event) {
     const modalReminderDateViewEditEl = document.getElementById('modalReminderDateViewEdit');
     const modalReminderTimeViewEditEl = document.getElementById('modalReminderTimeViewEdit');
     const modalReminderEmailViewEditEl = document.getElementById('modalReminderEmailViewEdit');
+    const modalRecurrenceViewEditEl = document.getElementById('modalRecurrenceViewEdit'); // Get recurrence dropdown
 
     const taskText = modalTaskInputViewEditEl.value.trim();
     const dueDate = modalDueDateInputViewEditEl.value;
@@ -135,6 +143,15 @@ export function handleEditTaskFormSubmit(event) {
     const label = modalLabelInputViewEditEl.value.trim();
     const notes = modalNotesInputViewEditEl.value.trim();
     const projectId = isFeatureEnabled('projectFeature') && modalProjectSelectViewEditEl ? parseInt(modalProjectSelectViewEditEl.value) : 0;
+
+    let recurrence = null;
+    if (isFeatureEnabled('advancedRecurrence') && modalRecurrenceViewEditEl) {
+        if (modalRecurrenceViewEditEl.value !== 'none') {
+            recurrence = { frequency: modalRecurrenceViewEditEl.value };
+        } else {
+            recurrence = null; // Explicitly set to null if "Does not repeat" is chosen
+        }
+    }
 
     let estHours = 0, estMinutes = 0;
     if (isFeatureEnabled('taskTimerSystem') && TaskTimerSystemFeature?.getEstimatesFromEditModal) {
@@ -157,12 +174,14 @@ export function handleEditTaskFormSubmit(event) {
     }
 
     if (taskText && taskId) {
-        TaskService.updateTask(taskId, {
+        const taskUpdateData = {
             text: taskText, dueDate, time, priority, label, notes, projectId,
             isReminderSet, reminderDate, reminderTime, reminderEmail,
-            estimatedHours: estHours, estimatedMinutes: estMinutes
-            // Sub-tasks are managed separately via their own interactions within the edit modal
-        });
+            estimatedHours: estHours, estimatedMinutes: estMinutes,
+            recurrence // Add recurrence object to the update payload
+        };
+
+        TaskService.updateTask(taskId, taskUpdateData);
         LoggingService.info(`[FormEventHandlers] Task ID ${taskId} updated successfully.`, { functionName, taskId });
         EventBus.publish('displayUserMessage', { text: 'Task updated successfully!', type: 'success' });
         closeViewEditModal();
