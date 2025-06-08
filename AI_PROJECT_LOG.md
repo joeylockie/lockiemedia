@@ -82,7 +82,6 @@ subTasksFeature
 kanbanBoardFeature
 taskTimerSystem
 UI/UX Polish:
-Add a "recurring" icon to tasks in the main list view (renderTaskListView.js) to make them easily identifiable.
 Consider the UX for editing a single instance vs. the entire series (for a future iteration).
 Specific questions for AI (if any):
 What would you like to work on next?
