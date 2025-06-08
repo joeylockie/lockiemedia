@@ -23,6 +23,7 @@ import { ProjectsFeature } from './feature_projects.js';
 import { TaskTimerSystemFeature } from './task_timer_system.js';
 import { DataVersioningFeature } from './feature_data_versioning.js';
 import { DesktopNotificationsFeature } from './feature_desktop_notifications.js';
+import { AdvancedRecurrenceFeature } from './feature_advanced_recurrence.js';
 
 
 export function openAddModal() {
@@ -48,6 +49,7 @@ export function openAddModal() {
     const modalSubTaskInputAddEl = document.getElementById('modalSubTaskInputAdd'); 
     const taskDependenciesSectionAddEl = document.getElementById('taskDependenciesSectionAdd'); 
     const modalRecurrenceAddEl = document.getElementById('modalRecurrenceAdd');
+    const recurrenceOptionsAddEl = document.getElementById('recurrenceOptionsAdd');
 
 
     if (!addTaskModalEl || !modalDialogAddEl || !modalTaskInputAddEl || !modalTodoFormAddEl || !modalPriorityInputAddEl) { 
@@ -60,6 +62,7 @@ export function openAddModal() {
     modalTodoFormAddEl.reset(); 
     modalPriorityInputAddEl.value = 'medium'; 
     if (modalRecurrenceAddEl) modalRecurrenceAddEl.value = 'none';
+    if (recurrenceOptionsAddEl) recurrenceOptionsAddEl.classList.add('hidden'); // Ensure advanced options are hidden initially
 
     if (existingLabelsDatalistEl) populateDatalist(existingLabelsDatalistEl); 
 
@@ -175,6 +178,31 @@ export function openViewEditModal(taskId) {
     
     if (isFeatureEnabled('advancedRecurrence') && modalRecurrenceViewEditEl) {
         modalRecurrenceViewEditEl.value = task.recurrence?.frequency || 'none';
+        
+        const recurrenceOptionsViewEditEl = document.getElementById('recurrenceOptionsViewEdit');
+        const recurrenceIntervalViewEditEl = document.getElementById('recurrenceIntervalViewEdit');
+        const weeklyRecurrenceOptionsViewEditEl = document.getElementById('weeklyRecurrenceOptionsViewEdit');
+
+        if (recurrenceIntervalViewEditEl) {
+            recurrenceIntervalViewEditEl.value = task.recurrence?.interval || 1;
+        }
+        if (weeklyRecurrenceOptionsViewEditEl) {
+            const checkboxes = weeklyRecurrenceOptionsViewEditEl.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(cb => {
+                cb.checked = task.recurrence?.daysOfWeek?.includes(cb.value) || false;
+            });
+        }
+
+        // Trigger the UI update to show/hide the correct options
+        if (AdvancedRecurrenceFeature && AdvancedRecurrenceFeature.updateRecurrenceUI) {
+            AdvancedRecurrenceFeature.updateRecurrenceUI(
+                modalRecurrenceViewEditEl,
+                recurrenceOptionsViewEditEl,
+                recurrenceIntervalViewEditEl,
+                document.getElementById('recurrenceFrequencyTextViewEdit'),
+                weeklyRecurrenceOptionsViewEditEl
+            );
+        }
     }
 
     if (modalNotesInputViewEditEl) modalNotesInputViewEditEl.value = task.notes || ''; 

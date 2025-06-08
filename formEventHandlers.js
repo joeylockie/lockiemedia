@@ -41,7 +41,7 @@ export function handleAddTaskFormSubmit(event) {
     const modalReminderDateAddEl = document.getElementById('modalReminderDateAdd');
     const modalReminderTimeAddEl = document.getElementById('modalReminderTimeAdd');
     const modalReminderEmailAddEl = document.getElementById('modalReminderEmailAdd');
-    const modalRecurrenceAddEl = document.getElementById('modalRecurrenceAdd'); // Get recurrence dropdown
+    const modalRecurrenceAddEl = document.getElementById('modalRecurrenceAdd');
 
     const taskText = modalTaskInputAddEl.value.trim();
     const dueDate = modalDueDateInputAddEl.value;
@@ -53,12 +53,27 @@ export function handleAddTaskFormSubmit(event) {
     
     let recurrence = null;
     if (isFeatureEnabled('advancedRecurrence') && modalRecurrenceAddEl && modalRecurrenceAddEl.value !== 'none') {
-        recurrence = { frequency: modalRecurrenceAddEl.value };
+        const recurrenceIntervalAddEl = document.getElementById('recurrenceIntervalAdd');
+        const weeklyRecurrenceOptionsAddEl = document.getElementById('weeklyRecurrenceOptionsAdd');
+        
+        recurrence = { 
+            frequency: modalRecurrenceAddEl.value,
+            interval: parseInt(recurrenceIntervalAddEl.value) || 1
+        };
+
+        if (recurrence.frequency === 'weekly') {
+            const checkedDays = weeklyRecurrenceOptionsAddEl.querySelectorAll('input[type="checkbox"]:checked');
+            recurrence.daysOfWeek = Array.from(checkedDays).map(cb => cb.value);
+            if (recurrence.daysOfWeek.length === 0) {
+                EventBus.publish('displayUserMessage', { text: 'Please select at least one day for weekly recurrence.', type: 'error' });
+                return;
+            }
+        }
     }
 
     let estHours = 0, estMinutes = 0;
     if (isFeatureEnabled('taskTimerSystem') && TaskTimerSystemFeature?.getEstimatesFromAddModal) {
-        const estimates = TaskTimerSystemFeature.getEstimatesFromAddModal(); // This needs to be available
+        const estimates = TaskTimerSystemFeature.getEstimatesFromAddModal();
         estHours = estimates.estHours;
         estMinutes = estimates.estMinutes;
     } else if (isFeatureEnabled('taskTimerSystem') && modalEstHoursAddEl && modalEstMinutesAddEl) { // Fallback
@@ -82,32 +97,28 @@ export function handleAddTaskFormSubmit(event) {
 
     if (taskText) {
         let parsedResult = { parsedDate: dueDate, remainingText: taskText };
-        // Date parsing from text is typically done if dueDate is not explicitly set
         if (!dueDate && TaskService.parseDateFromText) {
             parsedResult = TaskService.parseDateFromText(taskText);
         }
 
-        // Accessing tempSubTasksForAddModal directly from ui_event_handlers for now
         const subTasksToAdd = isFeatureEnabled('subTasksFeature') ? [...tempSubTasksForAddModal] : [];
-
 
         TaskService.addTask({
             text: parsedResult.remainingText,
-            dueDate: parsedResult.parsedDate || dueDate, // Prioritize explicit date if both exist
+            dueDate: parsedResult.parsedDate || dueDate,
             time, priority, label, notes, projectId,
             isReminderSet, reminderDate, reminderTime, reminderEmail,
             estimatedHours: estHours, estimatedMinutes: estMinutes,
             subTasks: subTasksToAdd,
-            recurrence // Add recurrence object
+            recurrence
         });
         LoggingService.info(`[FormEventHandlers] Task added via form: "${parsedResult.remainingText.substring(0, 30)}..."`, { functionName, taskLength: parsedResult.remainingText.length });
         EventBus.publish('displayUserMessage', { text: 'Task added successfully!', type: 'success' });
         closeAddModal();
-        clearTempSubTasksForAddModal(); // Clear after successful add
+        clearTempSubTasksForAddModal();
         if (ViewManager.getCurrentFilter() !== 'inbox') {
             ViewManager.setCurrentFilter('inbox');
         } else {
-            // If already in inbox, tasksChanged event will refresh the view.
             LoggingService.debug('[FormEventHandlers] Task added while in inbox. Relying on tasksChanged event for view refresh.', { functionName });
         }
     } else {
@@ -134,7 +145,7 @@ export function handleEditTaskFormSubmit(event) {
     const modalReminderDateViewEditEl = document.getElementById('modalReminderDateViewEdit');
     const modalReminderTimeViewEditEl = document.getElementById('modalReminderTimeViewEdit');
     const modalReminderEmailViewEditEl = document.getElementById('modalReminderEmailViewEdit');
-    const modalRecurrenceViewEditEl = document.getElementById('modalRecurrenceViewEdit'); // Get recurrence dropdown
+    const modalRecurrenceViewEditEl = document.getElementById('modalRecurrenceViewEdit');
 
     const taskText = modalTaskInputViewEditEl.value.trim();
     const dueDate = modalDueDateInputViewEditEl.value;
@@ -147,9 +158,22 @@ export function handleEditTaskFormSubmit(event) {
     let recurrence = null;
     if (isFeatureEnabled('advancedRecurrence') && modalRecurrenceViewEditEl) {
         if (modalRecurrenceViewEditEl.value !== 'none') {
-            recurrence = { frequency: modalRecurrenceViewEditEl.value };
-        } else {
-            recurrence = null; // Explicitly set to null if "Does not repeat" is chosen
+            const recurrenceIntervalViewEditEl = document.getElementById('recurrenceIntervalViewEdit');
+            const weeklyRecurrenceOptionsViewEditEl = document.getElementById('weeklyRecurrenceOptionsViewEdit');
+            
+            recurrence = {
+                frequency: modalRecurrenceViewEditEl.value,
+                interval: parseInt(recurrenceIntervalViewEditEl.value) || 1
+            };
+
+            if (recurrence.frequency === 'weekly') {
+                const checkedDays = weeklyRecurrenceOptionsViewEditEl.querySelectorAll('input[type="checkbox"]:checked');
+                recurrence.daysOfWeek = Array.from(checkedDays).map(cb => cb.value);
+                if (recurrence.daysOfWeek.length === 0) {
+                    EventBus.publish('displayUserMessage', { text: 'Please select at least one day for weekly recurrence.', type: 'error' });
+                    return;
+                }
+            }
         }
     }
 
@@ -178,7 +202,7 @@ export function handleEditTaskFormSubmit(event) {
             text: taskText, dueDate, time, priority, label, notes, projectId,
             isReminderSet, reminderDate, reminderTime, reminderEmail,
             estimatedHours: estHours, estimatedMinutes: estMinutes,
-            recurrence // Add recurrence object to the update payload
+            recurrence
         };
 
         TaskService.updateTask(taskId, taskUpdateData);
@@ -191,7 +215,7 @@ export function handleEditTaskFormSubmit(event) {
     }
 }
 
-export async function handleProfileFormSubmit(event) { // Added async here as UserAccountsFeature.handleSaveProfile might be async
+export async function handleProfileFormSubmit(event) {
     const functionName = 'handleProfileFormSubmit';
     event.preventDefault();
     LoggingService.info('[FormEventHandlers] Attempting to save profile.', { functionName });
@@ -212,12 +236,8 @@ export async function handleProfileFormSubmit(event) { // Added async here as Us
     if (UserAccountsFeature && UserAccountsFeature.handleSaveProfile) {
         try {
             await UserAccountsFeature.handleSaveProfile(profileData);
-            // Assuming handleSaveProfile in UserAccountsFeature calls AppStore.setUserProfile
-            // and then modal_interactions.closeProfileModal is called from there or via event.
-            // If not, you might need to call closeProfileModal here.
         } catch (err) {
             LoggingService.error('[FormEventHandlers] Error during profile save process (delegated to UserAccountsFeature).', err, {functionName});
-            // UserAccountsFeature should publish its own error message to the user.
         }
     } else {
         LoggingService.error('[FormEventHandlers] UserAccountsFeature.handleSaveProfile not available.', new Error("DependencyMissing"), { functionName });
@@ -226,23 +246,16 @@ export async function handleProfileFormSubmit(event) { // Added async here as Us
 }
 
 
-export async function handleAddNewLabelFormSubmit(event) { // Added async here
+export async function handleAddNewLabelFormSubmit(event) {
     const functionName = 'handleAddNewLabelFormSubmit';
     event.preventDefault();
     const newLabelInputEl = document.getElementById('newLabelInput');
     const labelName = newLabelInputEl.value.trim();
     LoggingService.info(`[FormEventHandlers] Attempting to add new label: "${labelName}".`, { functionName, labelName });
 
-    if (LabelService.addConceptualLabel(labelName)) { // addConceptualLabel handles its own user messages
+    if (LabelService.addConceptualLabel(labelName)) {
         newLabelInputEl.value = '';
-        // Repopulating manage labels list is handled by EventBus subscription to 'labelsChanged'
-        // or directly by modal_interactions if modal is open.
-        // For this specific form, if the modal is open, its populate function should be called.
-        // We can ensure this by having modal_interactions.populateManageLabelsList
-        // called after a successful add, if the modal is open.
-        // Or, LabelService could publish a generic "labelsUpdated" event that ManageLabelsModal listens to.
-        // The original code calls populateManageLabelsList directly. Let's assume that's still desired here.
-        const { populateManageLabelsList } = await import('./modal_interactions.js'); // Dynamic import for this specific case
+        const { populateManageLabelsList } = await import('./modal_interactions.js');
         const manageLabelsModalEl = document.getElementById('manageLabelsModal');
         if (manageLabelsModalEl && !manageLabelsModalEl.classList.contains('hidden')) {
              populateManageLabelsList();
@@ -250,8 +263,6 @@ export async function handleAddNewLabelFormSubmit(event) { // Added async here
     }
 }
 
-// --- Auth Form Handlers ---
-// These were originally anonymous functions inside setupEventListeners
 export function handleUserSignUpFormSubmit(event) {
     const functionName = "handleUserSignUpFormSubmit";
     event.preventDefault();

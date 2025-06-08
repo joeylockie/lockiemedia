@@ -94,7 +94,6 @@ export function toggleTaskComplete(taskId) {
 
     const taskToToggle = currentTasks[taskIndex];
     
-    // Check for blocking dependencies BEFORE allowing completion
     if (isFeatureEnabled('taskDependenciesFeature') && !taskToToggle.completed) {
         if (taskToToggle.dependsOn && taskToToggle.dependsOn.length > 0) {
             const incompleteDependencies = taskToToggle.dependsOn.some(depId => {
@@ -108,37 +107,56 @@ export function toggleTaskComplete(taskId) {
         }
     }
 
-    // Toggle completion status
     const isNowCompleted = !taskToToggle.completed;
     currentTasks[taskIndex].completed = isNowCompleted;
 
-    // Handle recurrence if the task is being marked as complete
     if (isNowCompleted && isFeatureEnabled('advancedRecurrence') && taskToToggle.recurrence && taskToToggle.recurrence.frequency && taskToToggle.recurrence.frequency !== 'none') {
-        const currentDueDate = new Date(taskToToggle.dueDate + 'T00:00:00Z');
+        const recurrence = taskToToggle.recurrence;
+        const interval = recurrence.interval || 1;
+        const currentDueDate = new Date(taskToToggle.dueDate + 'T00:00:00Z'); // Use UTC to avoid timezone issues
         let nextDueDate = new Date(currentDueDate);
 
-        switch (taskToToggle.recurrence.frequency) {
+        switch (recurrence.frequency) {
             case 'daily':
-                nextDueDate.setUTCDate(nextDueDate.getUTCDate() + 1);
+                nextDueDate.setUTCDate(nextDueDate.getUTCDate() + interval);
                 break;
             case 'weekly':
-                nextDueDate.setUTCDate(nextDueDate.getUTCDate() + 7);
+                if (recurrence.daysOfWeek && recurrence.daysOfWeek.length > 0) {
+                    const dayMap = { 'su': 0, 'mo': 1, 'tu': 2, 'we': 3, 'th': 4, 'fr': 5, 'sa': 6 };
+                    const allowedDays = recurrence.daysOfWeek.map(d => dayMap[d]).sort();
+                    let currentDay = nextDueDate.getUTCDay();
+                    
+                    // Start checking from the day *after* the current due date
+                    for (let i = 1; i <= 7; i++) {
+                        let nextDayIndex = (currentDay + i) % 7;
+                        if (allowedDays.includes(nextDayIndex)) {
+                            nextDueDate.setUTCDate(nextDueDate.getUTCDate() + i);
+                            // If we crossed into the next week, add the interval weeks
+                            if (interval > 1 && nextDayIndex <= currentDay) {
+                                nextDueDate.setUTCDate(nextDueDate.getUTCDate() + (interval - 1) * 7);
+                            }
+                            break;
+                        }
+                    }
+                } else {
+                    // Fallback if no days are selected: just advance by interval weeks
+                    nextDueDate.setUTCDate(nextDueDate.getUTCDate() + 7 * interval);
+                }
                 break;
             case 'monthly':
-                nextDueDate.setUTCMonth(nextDueDate.getUTCMonth() + 1);
+                nextDueDate.setUTCMonth(nextDueDate.getUTCMonth() + interval);
                 break;
             case 'yearly':
-                nextDueDate.setUTCFullYear(nextDueDate.getUTCFullYear() + 1);
+                nextDueDate.setUTCFullYear(nextDueDate.getUTCFullYear() + interval);
                 break;
         }
 
         currentTasks[taskIndex].dueDate = getDateString(nextDueDate);
-        currentTasks[taskIndex].completed = false; // Reset for the next cycle
+        currentTasks[taskIndex].completed = false;
         currentTasks[taskIndex].completedDate = null;
         LoggingService.info(`[TaskService] Recurring task ${taskId} completed and reset for next due date: ${currentTasks[taskIndex].dueDate}.`, { functionName: 'toggleTaskComplete', taskId });
 
     } else {
-        // Standard completion logic for non-recurring tasks or when un-completing a task
         currentTasks[taskIndex].completedDate = isNowCompleted ? Date.now() : null;
 
         if (isFeatureEnabled('kanbanBoardFeature')) {
@@ -163,7 +181,6 @@ export function toggleTaskComplete(taskId) {
 
 
 export function deleteTaskById(taskId) {
-    // MODIFIED: Use LoggingService for error checks
     if (!AppStore || typeof isFeatureEnabled !== 'function') {
         const errorContext = { functionName: 'deleteTaskById', taskId };
         if (!AppStore) LoggingService.error("[TaskService] AppStore not available.", new Error("AppStoreMissing"), errorContext);
@@ -171,28 +188,23 @@ export function deleteTaskById(taskId) {
         return false;
     }
 
-    let currentTasks = AppStore.getTasks(); //
-    const initialLength = currentTasks.length; //
-    let updatedTasks = currentTasks.filter(task => task.id !== taskId); //
+    let currentTasks = AppStore.getTasks(); 
+    const initialLength = currentTasks.length; 
+    let updatedTasks = currentTasks.filter(task => task.id !== taskId); 
 
-    if (isFeatureEnabled('taskDependenciesFeature')) {  //
-        updatedTasks = updatedTasks.map(task => { //
-            const newDependsOn = task.dependsOn ? task.dependsOn.filter(id => id !== taskId) : []; //
-            const newBlocksTasks = task.blocksTasks ? task.blocksTasks.filter(id => id !== taskId) : []; //
-            return { ...task, dependsOn: newDependsOn, blocksTasks: newBlocksTasks }; //
+    if (isFeatureEnabled('taskDependenciesFeature')) {
+        updatedTasks = updatedTasks.map(task => { 
+            const newDependsOn = task.dependsOn ? task.dependsOn.filter(id => id !== taskId) : []; 
+            const newBlocksTasks = task.blocksTasks ? task.blocksTasks.filter(id => id !== taskId) : []; 
+            return { ...task, dependsOn: newDependsOn, blocksTasks: newBlocksTasks }; 
         });
     }
 
-    if (updatedTasks.length < initialLength) { //
-        AppStore.setTasks(updatedTasks); //
-        // MODIFIED: Use LoggingService
+    if (updatedTasks.length < initialLength) { 
+        AppStore.setTasks(updatedTasks); 
         LoggingService.info(`[TaskService] Task ${taskId} deleted.`, { functionName: 'deleteTaskById', taskId });
-        return true; //
+        return true; 
     }
-    // MODIFIED: Use LoggingService
     LoggingService.warn(`[TaskService] Task ${taskId} not found for deletion.`, { functionName: 'deleteTaskById', taskId });
-    return false; //
+    return false; 
 }
-
-// REMOVED: LoggingService.debug("taskService.js loaded as ES6 module.", { module: 'taskService' });
-// console.log("taskService.js module parsed and functions defined."); // Optional
