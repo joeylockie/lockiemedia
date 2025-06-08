@@ -225,6 +225,12 @@ export function renderTaskListView() {
             dDS.innerHTML = `<i class="far fa-calendar-alt mr-1"></i> ${dD}`;
             detailsContainer.appendChild(dDS);
         }
+        if (isFeatureEnabled('advancedRecurrence') && task.recurrence && task.recurrence.frequency && task.recurrence.frequency !== 'none') {
+            const recurrenceIcon = document.createElement('span');
+            recurrenceIcon.className = 'text-slate-400 dark:text-slate-500 flex items-center advanced-recurrence-element';
+            recurrenceIcon.innerHTML = `<i class="fas fa-sync-alt" title="This task repeats"></i>`;
+            detailsContainer.appendChild(recurrenceIcon);
+        }
         if (isFeatureEnabled('fileAttachments') && task.attachments && task.attachments.length > 0) {
             const aS = document.createElement('span');
             aS.className = 'text-slate-500 dark:text-slate-400 flex items-center file-attachments-element';
@@ -264,18 +270,7 @@ export function renderTaskListView() {
         editButton.setAttribute('aria-label', 'Edit task');
         editButton.title = 'Edit task';
         editButton.addEventListener('click', () => {
-            openViewTaskDetailsModal(task.id); // Original behavior was openViewEditModal, but task-item click opens details.
-                                        // For consistency, let's keep it as opening details, then user can click edit.
-                                        // If direct edit is preferred, change to openViewEditModal(task.id);
-            // If direct edit and project feature is on:
-            // openViewEditModal(task.id);
-            // if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectDropdowns) {
-            //     ProjectsFeature.populateProjectDropdowns();
-            //     const modalProjectSelectViewEdit = document.getElementById('modalProjectSelectViewEdit');
-            //     if (modalProjectSelectViewEdit) {
-            //         modalProjectSelectViewEdit.value = task.projectId || "0";
-            //     }
-            // }
+            openViewTaskDetailsModal(task.id);
         });
         actionsDiv.appendChild(editButton);
 
@@ -342,18 +337,10 @@ export function renderBulkActionControls() {
         if (datalistEl && typeof populateDatalist === 'function') populateDatalist(datalistEl); // Ensure populateDatalist is available
     }
 
-    // Update "Select All" checkbox state
     if (selectAllTasksCheckbox) {
-        const currentFilter = ViewManager.getCurrentFilter();
-        // This logic for getting currentTasksInView was simplified in original ui_rendering.js
-        // using ViewManager.getFilteredTasksForBulkAction. Let's use that if available.
         const currentTasksInView = ViewManager.getFilteredTasksForBulkAction ?
                                    ViewManager.getFilteredTasksForBulkAction() :
-                                   AppStore.getTasks().filter(task => { // Fallback logic
-                                        if (currentFilter === 'inbox') return !task.completed;
-                                        // ... (other filter conditions from original)
-                                        return false; // Simplified fallback
-                                   });
+                                   [];
 
         const allInViewSelected = currentTasksInView.length > 0 && currentTasksInView.every(task => selectedIds.includes(task.id));
         selectAllTasksCheckbox.checked = allInViewSelected;
