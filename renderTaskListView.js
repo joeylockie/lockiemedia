@@ -64,7 +64,10 @@ export function renderTaskListView() {
     const shoppingLabels = ['shopping', 'buy', 'store'];
 
     if (currentFilterVal === 'inbox') {
-        filteredTasks = currentTasks.filter(task => !task.completed);
+        filteredTasks = currentTasks.filter(task => 
+            !task.completed && 
+            (!task.label || !shoppingLabels.includes(task.label.toLowerCase()))
+        );
     } else if (currentFilterVal === 'shopping_list') {
         filteredTasks = currentTasks.filter(task =>
             !task.completed &&

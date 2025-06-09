@@ -111,7 +111,10 @@ function getFilteredTasksForBulkAction() {
 
     // Apply filters (similar to renderTaskListView logic)
     if (_currentFilter === 'inbox') { //
-        filteredTasks = currentTasks.filter(task => !task.completed); //
+        filteredTasks = currentTasks.filter(task => 
+            !task.completed &&
+            (!task.label || !shoppingLabels.includes(task.label.toLowerCase()))
+        );
     } else if (_currentFilter === 'shopping_list') {
         filteredTasks = currentTasks.filter(task =>
             !task.completed &&
