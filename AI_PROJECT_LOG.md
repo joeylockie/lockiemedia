@@ -1,13 +1,18 @@
 AI Project Curation Log: LockieMedia Personal and Business Management Service
-Last Updated: 2025-06-08 18:47 (EDT) ##
+Last Updated: 2025-06-14 08:29 (EDT) ##
 
 Instructions for AI (Gemini)
 Purpose of this Document: This document is your primary source of truth for the LockieMedia Personal and Business Management Service project. It provides context, tracks progress, outlines current tasks, and lists future goals. Please refer to it to understand:
-* The overall project scope.
-* What has already been completed.
-* What the user (Joey) is currently working on with your assistance.
-* The specific sub-tasks and files involved in the current session.
-* Any known issues or important decisions made.
+
+The overall project scope.
+
+What has already been completed.
+
+What the user (Joey) is currently working on with your assistance.
+
+The specific sub-tasks and files involved in the current session.
+
+Any known issues or important decisions made.
 
 How to Use & Update This Document: * Prioritize this Document: When the user provides this document or refers to it at the start of a session, consider its content as the most up-to-date information, potentially overriding previous chat history if there are discrepancies regarding project state.
 
@@ -30,18 +35,21 @@ If a major feature part of Section 2 is completed, update its status and summari
 Maintain Format: Preserve the existing Markdown structure and formatting.
 Provide Complete Output: Present the entire, fully updated Markdown content back to the user so they can replace the content of their AI_PROJECT_LOG.md file.
 Avoid Redundancy: Use the "Work Completed" sections (3 and 4) from the previous log version to avoid re-suggesting solutions or code for tasks already finished before the current session began.
-1. Project Overview & Goals:
+
+Project Overview & Goals:
 Application: "LockieMedia Personal and Business Management Service" and an accompanying "Admin Panel".
 Vision: To become an all-in-one personal and business management service.
 Technology: Client-side HTML, CSS (Tailwind), JavaScript (ES6 Modules), Firebase (Auth & Firestore - Compat SDK v8 style) for backend.
 Core Service Features (Initial Focus): Task management (CRUD, due dates, priority, labels, notes), project organization, time management tools, feature flag system, modular services. Data stored in Firebase for authenticated users, with local fallbacks.
 Admin Panel Core: Separate HTML page (admin.html) using the same Firebase backend. Provides insights and monitoring for the Service. Includes admin authentication, display of error logs from Firestore, and read-only view of feature flags.
 Overall Goal: Develop a robust, feature-complete Personal and Business Management Service with a functional Admin Panel for application monitoring and management insights.
-2. Current Major Task/Feature Being Worked On:
-Name: Main Service - Feature Implementation
-Goal for this Task: Begin implementing and enabling core service features that were previously placeholders.
+
+Current Major Task/Feature Being Worked On:
+Name: Main Service - New Feature Scaffolding
+Goal for this Task: Create placeholder pages for upcoming features to expand the application's scope.
 Status: In Progress
-3. Work Completed (Overall Project - High Level):
+
+Work Completed (Overall Project - High Level):
 LockieMedia Service (Main Application):
 Core task management functionalities implemented as a foundational module.
 Feature flag system (featureFlagService.js, features.json) established.
@@ -55,7 +63,8 @@ Shopping List Feature: Fully implemented as a new Smart View.
 Admin Panel:
 Initial setup and core features, including enhanced logging and testing capabilities.
 Key metric widgets are now functional, including Avg. Load Time and API Errors (1hr).
-4. Work Completed (Specific to Current Major Task):
+
+Work Completed (Specific to Current Major Task):
 Date: 2025-06-02
 Created admin.html and foundational Admin Panel JavaScript files.
 Enhanced loggingService.js to send ERROR and CRITICAL logs to Firestore.
@@ -65,34 +74,33 @@ Resolved multiple bugs related to UI rendering and feature flag interpretation i
 Updated AI_PROJECT_LOG.md to reflect the project's rebranding.
 Date: 2025-06-07
 Implemented "Avg. Load Time" and "API Errors (1hr)" widgets in the Admin Panel.
-Date: 2025-06-08 (Previous Session)
-Implemented the Advanced Recurrence feature, including custom intervals, specific day selection for weekly recurrence, and an end date condition.
-Date: 2025-06-08 (Current Session)
-Implemented the new "Shopping List" feature. This included:
-Adding a `shoppingListFeature` flag.
-Creating a new Smart View button in the sidebar of `todo.html`.
-Updating `renderTaskListView.js` and `viewManager.js` with the filtering logic for tasks labeled "shopping", "buy", or "store".
-Updating `ui_rendering.js` to show the correct heading for the new view.
-Creating and integrating the new `feature_shopping_list.js` module into the application's lifecycle in `main.js`.
-5. Current Focus / Next Steps (Specific to Current Major Task):
-Current Sub-Task: The "Shopping List" feature is now functionally complete.
-Immediate Next Action: Discuss the next development focus with the user. Possible next steps include:
-Testing & Refinement: Thoroughly test the new `shoppingListFeature` and the `advancedRecurrence` feature with various edge cases.
-Enable Another Feature: Begin implementing another one of the planned features from the `features.json` file, such as:
-`projectFeature`
-`subTasksFeature`
-`kanbanBoardFeature`
-`taskTimerSystem`
-UI/UX Polish.
+Date: 2025-06-08
+Implemented the Advanced Recurrence feature and the new "Shopping List" feature.
+Date: 2025-06-14 (Current Session)
+Scaffolded placeholder pages for new features to expand the application's scope.
+Created habits.html with a visual layout inspired by the provided reference image.
+Created notes.html with a three-column layout for notebooks, note lists, and a note editor.
+Created time-tracker.html styled similarly to the main to-do application.
+Updated index.html to include links to the new notes.html, habits.html, and time-tracker.html pages.
+
+Current Focus / Next Steps (Specific to Current Major Task):
+Current Sub-Task: The placeholder pages for Notes, Habit Tracking, and Time Tracking are complete.
+Immediate Next Action: Begin the backend and logical integration for one of the new features. A good starting point would be the Notes Feature. This would involve:
+Creating noteService.js and feature_notes.js modules.
+Updating store.js to manage a _notes array and a _notebooks array.
+Integrating the new view/logic into main.js.
+Creating new feature flags for these features in features.json.
 Specific questions for AI (if any):
 None.
 Blockers (if any):
 None.
-6. Known Issues / Bugs (Related to current work or recently discovered):
+
+Known Issues / Bugs (Related to current work or recently discovered):
 Potential Setup Step: The queries for performance metrics and error counts in the admin panel rely on a composite index in Firestore. The first time the admin panel is loaded, an error message may appear in the browser console with a link to create the necessary index in the Firebase Console. This is expected behavior.
 Minor Warning (Understood/Expected): [ProjectsFeature] Cannot populate project filter list. Dependencies missing. - This occurs because the projectFeature is currently disabled in features.json.
 Minor Warning (Understood/Expected): [ModalEventHandlers] Element #openFeatureFlagsModalBtn not found. - This button ID is not present in the todo.html markup.
-7. Future/Pending Work (Overall Project - High Level):
+
+Future/Pending Work (Overall Project - High Level):
 Admin Panel:
 Flesh out User Management (view details, potentially disable users - requires careful rule changes).
 Implement all Overview Stats.
@@ -107,7 +115,8 @@ Simple Finance Tracking (income/expense logging).
 Goal Setting and Tracking.
 Habit Tracking.
 Address any UI/UX improvements.
-8. Important Notes / Decisions Made:
+
+Important Notes / Decisions Made:
 Recurrence Logic: Decided to use the "template" model for recurring tasks. When a recurring task is completed, it is not archived but instead has its due date advanced and its completed status reset to false, unless an endDate is set and has been surpassed.
 "API Error Rate" Re-scoped: The widget was changed to "API Errors (1hr)" to show a raw count of recent errors. This was more feasible than calculating a true "rate," which would require logging every successful API call.
 Performance Metrics: A new performance_metrics collection has been introduced in Firestore to store application load time data.
@@ -120,4 +129,4 @@ The project uses the Firebase JavaScript SDK (Compat version - v8 style syntax).
 The Admin Panel is a separate HTML page (admin.html) but shares Firebase configuration and some services (logging, feature flags) with the main Service.
 loggingService.js has been enhanced to send more detailed logs to Firestore for ERROR and CRITICAL levels.
 A "Send Test Error" button was added to admin.html and corresponding logic to admin_main.js to test the error logging pipeline.
-Corrected Firestore security rule for app_errors to allow admins to read based on the correct path: get(/databases/$(database)/documents/users/$(request.auth.uid)/appData/userSpecificData).data.profile.role == 'admin'.
+Corrected Firestore security rule for app_errors to allow admins to read based on the correct path: get(/databases/(database)/documents/users/(request.auth.uid)/appData/userSpecificData).data.profile.role == 'admin'.
