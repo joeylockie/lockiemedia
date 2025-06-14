@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Tracker - LockieMedia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a1a2e;
+            color: #e0e0e0;
+        }
+        /* Style for the active item in the list */
+        .tracked-item.active {
+            background-color: #374151; /* slate-700 */
+            border-color: #0ea5e9; /* sky-500 */
+        }
+        /* Circular progress styling */
+        .progress-circle {
+            transform: rotate(-90deg);
+        }
+        .progress-circle-bg {
+            stroke: #4b5563; /* gray-600 */
+        }
+        .progress-circle-fg {
+            stroke: #60a5fa; /* blue-400 */
+            transition: stroke-dashoffset 0.3s;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 to-slate-700 min-h-screen">
+
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <aside class="w-72 bg-slate-800 p-6 flex-shrink-0 border-r border-slate-700 flex flex-col">
+            <div class="flex items-center justify-between mb-8">
+                <h1 class="text-2xl font-bold text-sky-400">Time Tracker</h1>
+                 <a href="index.html" class="text-slate-400 hover:text-white" title="Back to Home">
+                    <i class="fas fa-home"></i>
+                </a>
+            </div>
+            <nav class="flex-grow">
+                <h2 class="text-xs font-semibold uppercase text-slate-400 tracking-wider mb-3">Views</h2>
+                <ul class="space-y-2">
+                    <li>
+                        <a href="#" class="flex items-center px-4 py-2.5 rounded-lg bg-sky-500 text-white font-semibold">
+                            <i class="fas fa-clock w-5 mr-3"></i>
+                            <span>Today</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center px-4 py-2.5 rounded-lg text-slate-300 hover:bg-slate-700">
+                            <i class="fas fa-calendar-week w-5 mr-3"></i>
+                            <span>This Week</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center px-4 py-2.5 rounded-lg text-slate-300 hover:bg-slate-700">
+                            <i class="fas fa-chart-pie w-5 mr-3"></i>
+                            <span>Reports</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            <div class="mt-auto">
+                 <button class="w-full flex items-center justify-center px-4 py-3 rounded-lg transition-colors duration-200 bg-sky-500 hover:bg-sky-600 text-white font-semibold shadow-lg">
+                    <i class="fas fa-plus mr-2"></i>
+                    <span>Create Task</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 bg-slate-900/70 p-8 overflow-y-auto">
+            <header class="mb-8">
+                <h2 class="text-2xl font-bold text-white mb-2">Goal Overview - Jun 16, Wed</h2>
+                <div class="flex gap-4 overflow-x-auto pb-4">
+                    <!-- Goal Item 1 -->
+                    <div class="text-center p-2">
+                        <svg class="w-16 h-16" viewBox="0 0 36 36">
+                            <path class="progress-circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3"></path>
+                            <path class="progress-circle-fg" stroke-dasharray="63, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3"></path>
+                            <text x="18" y="22" class="text-xs fill-current text-white text-center" text-anchor="middle">63%</text>
+                        </svg>
+                        <p class="text-xs mt-1">Working</p>
+                    </div>
+                    <!-- Goal Item 2 -->
+                    <div class="text-center p-2">
+                         <svg class="w-16 h-16" viewBox="0 0 36 36">
+                            <path class="progress-circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3"></path>
+                            <path class="progress-circle-fg" stroke-dasharray="125, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3"></path>
+                             <text x="18" y="22" class="text-xs fill-current text-white text-center" text-anchor="middle">125%</text>
+                        </svg>
+                        <p class="text-xs mt-1">Studying</p>
+                    </div>
+                    <!-- Add more goal items as needed -->
+                </div>
+            </header>
+            
+            <div class="bg-slate-800 p-4 rounded-lg mb-6 flex justify-between items-center">
+                <span class="font-medium text-lg text-white">Currently tracking: Working</span>
+                <div class="flex items-center gap-4">
+                    <span class="text-2xl font-mono font-bold text-sky-400">02:57</span>
+                    <button class="text-slate-400 hover:text-white"><i class="fas fa-pause"></i></button>
+                    <button class="text-slate-400 hover:text-white"><i class="fas fa-stop"></i></button>
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <!-- Tracked Item Example (Active) -->
+                <div class="tracked-item flex items-center p-4 rounded-lg bg-slate-800 border-l-4 border-transparent active">
+                    <i class="fas fa-briefcase text-xl text-sky-400 w-8 text-center mr-4"></i>
+                    <div class="flex-grow">
+                        <p class="font-semibold text-white">Working</p>
+                        <p class="text-xs text-slate-400">12:55 PM -</p>
+                    </div>
+                    <span class="font-mono text-lg text-white">04:26</span>
+                </div>
+                <!-- Tracked Item Example -->
+                <div class="tracked-item flex items-center p-4 rounded-lg bg-slate-800 border-l-4 border-transparent">
+                    <i class="fas fa-gamepad text-xl text-purple-400 w-8 text-center mr-4"></i>
+                    <div class="flex-grow">
+                        <p class="font-semibold text-white">Gaming</p>
+                        <p class="text-xs text-slate-400">8:28 AM - 9:43 AM</p>
+                    </div>
+                    <span class="font-mono text-lg text-white">01:15</span>
+                </div>
+                 <!-- Tracked Item Example -->
+                <div class="tracked-item flex items-center p-4 rounded-lg bg-slate-800 border-l-4 border-transparent">
+                    <i class="fas fa-car text-xl text-yellow-400 w-8 text-center mr-4"></i>
+                    <div class="flex-grow">
+                        <p class="font-semibold text-white">Commuting</p>
+                        <p class="text-xs text-slate-400">9:47 AM - 11:04 AM</p>
+                    </div>
+                    <span class="font-mono text-lg text-white">01:17</span>
+                </div>
+            </div>
+        </main>
+    </div>
+
+</body>
+</html>

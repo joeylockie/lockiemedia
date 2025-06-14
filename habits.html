@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Habit Tracker - LockieMedia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* A dark gray-blue */
+            color: #e5e7eb;
+        }
+        .habit-grid {
+            display: grid;
+            grid-template-columns: repeat(52, 1fr); /* 52 weeks in a year */
+            gap: 2px;
+        }
+        .habit-day {
+            width: 10px;
+            height: 10px;
+            background-color: #374151; /* Darker square for empty day */
+            border-radius: 2px;
+        }
+        .habit-day.completed-level-1 { background-color: #059669; } /* Emerald-600 */
+        .habit-day.completed-level-2 { background-color: #34d399; } /* Emerald-400 */
+        .habit-day.completed-level-3 { background-color: #6ee7b7; } /* Emerald-300 */
+
+        /* Inspired by your image */
+        .habit-card {
+            background-color: #1f2937; /* Even darker card background */
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            border: 1px solid #374151;
+        }
+        .header-title {
+            font-family: 'Roboto Mono', monospace;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 min-h-screen p-4 sm:p-6 lg:p-8">
+    <div class="max-w-4xl mx-auto">
+        <header class="flex justify-between items-center mb-8">
+             <div>
+                <h1 class="text-3xl font-bold text-white">Habit Tracker</h1>
+                <p class="text-lg text-gray-400 header-title">2025 In-Review</p>
+            </div>
+            <div class="flex items-center gap-4">
+                 <a href="index.html" class="text-gray-400 hover:text-white transition-colors">
+                    <i class="fas fa-home fa-lg"></i>
+                </a>
+                <button class="text-white bg-indigo-500 hover:bg-indigo-600 font-semibold py-2 px-4 rounded-lg transition-colors">
+                    <i class="fas fa-plus mr-2"></i>New Habit
+                </button>
+            </div>
+        </header>
+
+        <main class="space-y-6">
+            <!-- Habit Card Example 1 -->
+            <div class="habit-card">
+                <div class="flex justify-between items-center mb-3">
+                    <div>
+                        <h2 class="text-xl font-semibold text-white">
+                            <i class="fas fa-tint text-blue-400 mr-2"></i>
+                            Drink Water
+                        </h2>
+                        <p class="text-sm text-gray-400">Target: 8 cups per day</p>
+                    </div>
+                    <span class="text-lg font-bold text-gray-300">72%</span>
+                </div>
+                <div class="habit-grid">
+                    <!-- JS will populate these 364 squares -->
+                </div>
+            </div>
+
+            <!-- Habit Card Example 2 -->
+            <div class="habit-card">
+                <div class="flex justify-between items-center mb-3">
+                    <div>
+                        <h2 class="text-xl font-semibold text-white">
+                             <i class="fas fa-sun text-yellow-400 mr-2"></i>
+                            Wake Up Early
+                        </h2>
+                        <p class="text-sm text-gray-400">Target: Everyday</p>
+                    </div>
+                    <span class="text-lg font-bold text-gray-300">70%</span>
+                </div>
+                <div class="habit-grid">
+                    <!-- JS will populate these 364 squares -->
+                </div>
+            </div>
+            
+            <!-- Habit Card Example 3 -->
+            <div class="habit-card">
+                <div class="flex justify-between items-center mb-3">
+                    <div>
+                        <h2 class="text-xl font-semibold text-white">
+                            <i class="fas fa-book-open text-pink-400 mr-2"></i>
+                           Read
+                        </h2>
+                        <p class="text-sm text-gray-400">Target: 200 pages per week</p>
+                    </div>
+                    <span class="text-lg font-bold text-gray-300">68%</span>
+                </div>
+                <div class="habit-grid">
+                    <!-- JS will populate these 364 squares -->
+                </div>
+            </div>
+
+            <!-- Habit Card Example 4 -->
+            <div class="habit-card">
+                <div class="flex justify-between items-center mb-3">
+                    <div>
+                        <h2 class="text-xl font-semibold text-white">
+                            <i class="fas fa-shoe-prints text-green-400 mr-2"></i>
+                           Steps
+                        </h2>
+                        <p class="text-sm text-gray-400">Target: 10,000 steps per day</p>
+                    </div>
+                    <span class="text-lg font-bold text-gray-300">67%</span>
+                </div>
+                <div class="habit-grid">
+                    <!-- JS will populate these 364 squares -->
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        // Placeholder script to populate the grid squares
+        document.querySelectorAll('.habit-grid').forEach(grid => {
+            for (let i = 0; i < 364; i++) { // 52 * 7 = 364
+                const day = document.createElement('div');
+                day.className = 'habit-day';
+                // Randomly add some color for visual effect
+                const rand = Math.random();
+                if (rand > 0.3) { // 70% chance of being a "completed" day for demo
+                    if (rand > 0.8) {
+                        day.classList.add('completed-level-3');
+                    } else if (rand > 0.5) {
+                         day.classList.add('completed-level-2');
+                    } else {
+                         day.classList.add('completed-level-1');
+                    }
+                }
+                grid.appendChild(day);
+            }
+        });
+    </script>
+</body>
+</html>
