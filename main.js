@@ -44,6 +44,7 @@ import NotificationService from './notificationService.js';
 import { DesktopNotificationsFeature } from './feature_desktop_notifications.js';
 import * as uiRendering from './ui_rendering.js';
 import { logPerformanceMetrics } from './performanceService.js';
+import { NotesFeature } from './feature_notes.js';
 
 
 let showCriticalErrorImported = (message, errorId) => {
@@ -200,6 +201,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.AppFeatures.DataVersioningFeature = DataVersioningFeature;
     window.AppFeatures.ShoppingListFeature = ShoppingListFeature;
     window.AppFeatures.DesktopNotificationsFeature = DesktopNotificationsFeature;
+    window.AppFeatures.NotesFeature = NotesFeature;
 
     if (window.AppFeatures.UserAccountsFeature && typeof window.AppFeatures.UserAccountsFeature.initialize === 'function') {
         try {
@@ -304,6 +306,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
                 if (featureKey === "TaskTimerSystemFeature") flagName = "taskTimerSystem";
                 if (featureKey === "SubTasksFeature") flagName = "subTasksFeature";
+                if (featureKey === "NotesFeature") flagName = "notesFeature";
                 if (isFeatureEnabledFromService(flagName)) {
                      try {
                         LoggingService.debug(`[Main] Initializing ${featureKey} (flag: ${flagName})...`);
@@ -330,11 +333,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const savedSidebarState = localStorage.getItem('sidebarState');
-    if (uiRendering && uiRendering.setSidebarMinimized) {
-        uiRendering.setSidebarMinimized(savedSidebarState === 'minimized');
-        LoggingService.info(`[Main] Sidebar state restored to: ${savedSidebarState || 'expanded (default)'}.`);
+    // Check if the sidebar exists before trying to set its state
+    if (document.getElementById('taskSidebar')) {
+        if (uiRendering && uiRendering.setSidebarMinimized) {
+            uiRendering.setSidebarMinimized(savedSidebarState === 'minimized');
+            LoggingService.info(`[Main] Sidebar state restored to: ${savedSidebarState || 'expanded (default)'}.`);
+        } else {
+            LoggingService.error('[Main] uiRendering.setSidebarMinimized function is not available for sidebar state.');
+        }
     } else {
-        LoggingService.error('[Main] uiRendering.setSidebarMinimized function is not available for sidebar state.');
+        LoggingService.debug('[Main] No sidebar found on this page. Skipping sidebar state restoration.');
     }
 
     if (isFeatureEnabledFromService('projectFeature') && window.AppFeatures?.ProjectsFeature) {

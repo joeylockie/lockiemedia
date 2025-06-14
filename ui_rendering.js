@@ -448,6 +448,15 @@ export function hideTooltip() {
 
 // --- Task Rendering ---
 export function refreshTaskView() {
+    // --- Page-Specific Guard ---
+    // This entire function is for rendering the main task view area.
+    // If the core task list element doesn't exist, we're not on the right page.
+    if (!document.getElementById('taskList')) {
+        LoggingService.debug('[UI Rendering] Not on the main task page. Skipping refreshTaskView.', {module: 'ui_rendering'});
+        return;
+    }
+    // --- End Page-Specific Guard ---
+
     if (!mainContentArea || !ViewManager || !isFeatureEnabled) { LoggingService.error("[RefreshTaskView] Core dependencies not found.", null, {module: 'ui_rendering'}); return; }
     const currentView = ViewManager.getCurrentTaskViewMode();
     updateViewToggleButtonsState();

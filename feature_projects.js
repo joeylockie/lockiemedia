@@ -22,6 +22,15 @@ let modalProjectSelectAdd, modalProjectSelectViewEdit;
 
 function initializeProjectFeature() {
     const functionName = 'initializeProjectFeature';
+    
+    // --- Page-Specific Guard ---
+    // This feature's DOM elements are only on the main todo.html page.
+    if (!document.getElementById('taskSidebar')) {
+        LoggingService.debug('[ProjectsFeature] Not on the main task page. Skipping initialization.', { functionName });
+        return;
+    }
+    // --- End Page-Specific Guard ---
+
     LoggingService.info('[ProjectsFeature] Initializing...', { functionName });
 
     manageProjectsModal = document.getElementById('manageProjectsModal'); 

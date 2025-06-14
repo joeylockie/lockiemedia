@@ -42,6 +42,15 @@ function _updateRecurrenceUI(frequencySelectEl, optionsContainerEl, intervalInpu
  */
 function initialize() {
     const functionName = "initialize (AdvancedRecurrenceFeature)";
+    
+    // --- Page-Specific Guard ---
+    // The elements this feature initializes are only on the main todo page.
+    if (!document.getElementById('addTaskModal')) {
+        LoggingService.debug('[AdvancedRecurrenceFeature] Add/Edit Task modals not found. Skipping initialization.', { functionName });
+        return;
+    }
+    // --- End Page-Specific Guard ---
+
     LoggingService.info('[AdvancedRecurrenceFeature] Initializing event listeners for UI.', { functionName });
 
     // --- Get elements for Add Modal ---

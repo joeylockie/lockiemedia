@@ -26,6 +26,7 @@
   "desktopNotificationsFeature": true,
   "appUpdateNotificationFeature": true,
   "shoppingListFeature": true,
+  "notesFeature": true,
   "debugMode": true,
   "userRoleFeature": true
 }
