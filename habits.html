@@ -17,7 +17,7 @@
         }
         .habit-grid {
             display: grid;
-            grid-template-columns: repeat(52, 1fr); /* 52 weeks in a year */
+            grid-template-columns: repeat(53, 1fr); /* Adjusted for potential partial week at end */
             gap: 2px;
         }
         .habit-day {
@@ -60,97 +60,13 @@
         </header>
 
         <main class="space-y-6">
-            <!-- Habit Card Example 1 -->
-            <div class="habit-card">
-                <div class="flex justify-between items-center mb-3">
-                    <div>
-                        <h2 class="text-xl font-semibold text-white">
-                            <i class="fas fa-tint text-blue-400 mr-2"></i>
-                            Drink Water
-                        </h2>
-                        <p class="text-sm text-gray-400">Target: 8 cups per day</p>
-                    </div>
-                    <span class="text-lg font-bold text-gray-300">72%</span>
-                </div>
-                <div class="habit-grid">
-                    <!-- JS will populate these 364 squares -->
-                </div>
-            </div>
-
-            <!-- Habit Card Example 2 -->
-            <div class="habit-card">
-                <div class="flex justify-between items-center mb-3">
-                    <div>
-                        <h2 class="text-xl font-semibold text-white">
-                             <i class="fas fa-sun text-yellow-400 mr-2"></i>
-                            Wake Up Early
-                        </h2>
-                        <p class="text-sm text-gray-400">Target: Everyday</p>
-                    </div>
-                    <span class="text-lg font-bold text-gray-300">70%</span>
-                </div>
-                <div class="habit-grid">
-                    <!-- JS will populate these 364 squares -->
-                </div>
-            </div>
-            
-            <!-- Habit Card Example 3 -->
-            <div class="habit-card">
-                <div class="flex justify-between items-center mb-3">
-                    <div>
-                        <h2 class="text-xl font-semibold text-white">
-                            <i class="fas fa-book-open text-pink-400 mr-2"></i>
-                           Read
-                        </h2>
-                        <p class="text-sm text-gray-400">Target: 200 pages per week</p>
-                    </div>
-                    <span class="text-lg font-bold text-gray-300">68%</span>
-                </div>
-                <div class="habit-grid">
-                    <!-- JS will populate these 364 squares -->
-                </div>
-            </div>
-
-            <!-- Habit Card Example 4 -->
-            <div class="habit-card">
-                <div class="flex justify-between items-center mb-3">
-                    <div>
-                        <h2 class="text-xl font-semibold text-white">
-                            <i class="fas fa-shoe-prints text-green-400 mr-2"></i>
-                           Steps
-                        </h2>
-                        <p class="text-sm text-gray-400">Target: 10,000 steps per day</p>
-                    </div>
-                    <span class="text-lg font-bold text-gray-300">67%</span>
-                </div>
-                <div class="habit-grid">
-                    <!-- JS will populate these 364 squares -->
-                </div>
-            </div>
-
-        </main>
+            </main>
     </div>
 
-    <script>
-        // Placeholder script to populate the grid squares
-        document.querySelectorAll('.habit-grid').forEach(grid => {
-            for (let i = 0; i < 364; i++) { // 52 * 7 = 364
-                const day = document.createElement('div');
-                day.className = 'habit-day';
-                // Randomly add some color for visual effect
-                const rand = Math.random();
-                if (rand > 0.3) { // 70% chance of being a "completed" day for demo
-                    if (rand > 0.8) {
-                        day.classList.add('completed-level-3');
-                    } else if (rand > 0.5) {
-                         day.classList.add('completed-level-2');
-                    } else {
-                         day.classList.add('completed-level-1');
-                    }
-                }
-                grid.appendChild(day);
-            }
-        });
-    </script>
+    <script src="loggingService.js" type="module"></script>
+    <script src="habitTrackerService.js" type="module"></script>
+    <script src="feature_habit_tracker.js" type="module"></script>
+    <script src="habit_tracker_main.js" type="module"></script>
+    
 </body>
 </html>
