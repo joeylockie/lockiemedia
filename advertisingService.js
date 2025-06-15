@@ -5,24 +5,67 @@ import LoggingService from './loggingService.js';
 
 const AD_TRIGGER_KEY = 'lockiemedia_ad_trigger_v1';
 
+// 1. Create 3 placeholder ads with unique IDs and different colors.
+const placeholderAds = [
+    {
+        id: 'promo_save25',
+        type: 'popup',
+        title: 'Special Offer!',
+        content: 'Get 25% off your next purchase. Use code: SAVE25',
+        imageUrl: 'https://placehold.co/300x150/0ea5e9/ffffff?text=Awesome+Product&font=inter',
+        color: 'sky'
+    },
+    {
+        id: 'event_webinar',
+        type: 'popup',
+        title: 'Live Webinar Next Week',
+        content: 'Join our free webinar on productivity hacks and boost your efficiency.',
+        imageUrl: 'https://placehold.co/300x150/16a34a/ffffff?text=Live+Webinar&font=inter',
+        color: 'green'
+    },
+    {
+        id: 'alert_maintenance',
+        type: 'popup',
+        title: 'Scheduled Maintenance',
+        content: 'Our services will be briefly unavailable this Sunday for scheduled maintenance.',
+        imageUrl: 'https://placehold.co/300x150/f97316/ffffff?text=System+Update&font=inter',
+        color: 'orange'
+    }
+];
+
 /**
- * Sets an ad to be displayed on the public-facing pages.
- * @param {object} adData - An object containing the ad details.
- * Example: { id: 'test01', type: 'popup', content: '...'}
+ * Gets the list of available placeholder ads.
+ * @returns {Array<object>} A copy of the ads array.
  */
-function triggerAd(adData) {
+function getAds() {
+    return [...placeholderAds];
+}
+
+/**
+ * Sets an ad to be displayed by its ID.
+ * @param {string} adId - The unique ID of the ad to trigger.
+ */
+function triggerAd(adId) {
     const functionName = 'triggerAd (AdvertisingService)';
-    if (!adData) {
-        LoggingService.warn('[AdvertisingService] No ad data provided to trigger.', { functionName });
+    if (!adId) {
+        LoggingService.warn('[AdvertisingService] No ad ID provided to trigger.', { functionName });
         return;
     }
+
+    const adToTrigger = placeholderAds.find(ad => ad.id === adId);
+
+    if (!adToTrigger) {
+        LoggingService.error(`[AdvertisingService] Ad with ID "${adId}" not found.`, new Error('AdNotFound'), { functionName, adId });
+        return;
+    }
+
     try {
         const adPayload = {
-            ...adData,
+            ...adToTrigger,
             timestamp: Date.now()
         };
         localStorage.setItem(AD_TRIGGER_KEY, JSON.stringify(adPayload));
-        LoggingService.info('[AdvertisingService] Ad trigger has been set in localStorage.', { functionName, adData });
+        LoggingService.info('[AdvertisingService] Ad trigger has been set in localStorage.', { functionName, adData: adPayload });
     } catch (error) {
         LoggingService.error('[AdvertisingService] Error setting ad trigger in localStorage.', error, { functionName });
     }
@@ -62,6 +105,7 @@ function clearAdTrigger() {
 }
 
 const AdvertisingService = {
+    getAds,
     triggerAd,
     getAdToShow,
     clearAdTrigger

@@ -55,6 +55,14 @@
             color: white;
         }
         .admin-btn-primary:hover { background-color: #0284c7; }
+        .ad-card {
+            background-color: #374151;
+            border-left-width: 4px;
+            transition: border-color 0.2s ease-in-out;
+        }
+        .ad-card:hover {
+            border-color: #67e8f9; /* A light cyan color for hover */
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-slate-900 to-slate-700 min-h-screen text-slate-300">
@@ -62,7 +70,6 @@
     <div id="adminMessageBox"></div>
 
     <div class="flex min-h-screen">
-        <!-- Sidebar -->
         <aside class="w-64 bg-slate-800 p-6 border-r border-slate-700 shadow-lg flex flex-col">
             <div class="flex items-center mb-8">
                 <img src="https://placehold.co/40x40/0ea5e9/ffffff?text=LM&font=inter" alt="LockieMedia Logo" class="h-10 w-10 mr-3 rounded-md">
@@ -78,26 +85,36 @@
             </nav>
         </aside>
 
-        <!-- Main Content -->
         <main class="flex-grow p-8">
             <h2 class="text-3xl font-semibold text-slate-100 mb-6">Advertising Management</h2>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2 bg-slate-800 p-6 rounded-xl shadow-xl border border-slate-700">
+                    <h3 class="text-xl font-semibold text-slate-100 mb-4">Available Ads</h3>
+                    <div id="adListContainer" class="space-y-4">
+                        </div>
+                </div>
 
-            <div class="bg-slate-800 p-6 rounded-xl shadow-xl border border-slate-700">
-                <h3 class="text-xl font-semibold text-slate-100 mb-4">Test Ad Campaign</h3>
-                <p class="text-slate-400 mb-4">
-                    This is a basic control to test the advertising system. Clicking the button below will trigger a sample ad popup on the main landing page (`index.html`) for any user currently on that page.
-                </p>
-                <button id="triggerTestAdBtn" class="admin-btn admin-btn-primary">
-                    <i class="fas fa-bullhorn mr-2"></i> Trigger Test Ad Popup
-                </button>
+                <div class="lg:col-span-1 bg-slate-800 p-6 rounded-xl shadow-xl border border-slate-700">
+                    <h3 class="text-xl font-semibold text-slate-100 mb-4">Trigger Ad</h3>
+                    <p class="text-slate-400 mb-4 text-sm">
+                        Enter the ID of an ad from the list to trigger it on the dashboard page for all users.
+                    </p>
+                    <div id="adTriggerContainer" class="space-y-3">
+                        <div>
+                            <label for="adIdInput" class="block text-sm font-medium text-slate-400 mb-1">Ad ID</label>
+                            <input type="text" id="adIdInput" placeholder="e.g., promo_save25" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500">
+                        </div>
+                        <button id="triggerAdByIdBtn" class="w-full admin-btn admin-btn-primary">
+                            <i class="fas fa-bullhorn mr-2"></i> Trigger Ad By ID
+                        </button>
+                    </div>
+                </div>
             </div>
-
-            <!-- Future sections for creating and managing real ad campaigns will go here -->
 
         </main>
     </div>
 
-    <!-- Script imports will be added later -->
     <script src="loggingService.js" type="module"></script>
     <script src="advertisingService.js" type="module"></script>
     <script src="advertising_admin_main.js" type="module"></script>
