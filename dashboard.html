@@ -15,6 +15,8 @@
             background-color: #1a1a2e;
             font-family: 'Inter', sans-serif;
             color: #e0e0e0;
+            /* Prevents flashing of content before auth check completes */
+            visibility: hidden;
         }
         .app-card {
             background-color: #1f2937;
@@ -97,6 +99,9 @@
         protectPage().then(user => {
             console.log(`Welcome to the dashboard, ${user.email}`);
             
+            // Make the body visible now that the user is authenticated
+            document.body.style.visibility = 'visible';
+
             const signOutBtn = document.getElementById('signOutBtn');
             if (signOutBtn) {
                 signOutBtn.addEventListener('click', () => {

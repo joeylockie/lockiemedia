@@ -11,9 +11,10 @@ import LoggingService from './loggingService.js';
  */
 function protectPage() {
     return new Promise((resolve, reject) => {
-        // Hide the body to prevent content flashing before auth check completes
+        // Hide the body to prevent content flashing before auth check completes.
+        // Using 'visibility' instead of 'display' prevents layout shifts.
         if (document.body) {
-            document.body.style.display = 'none';
+            document.body.style.visibility = 'hidden';
         }
 
         const functionName = 'protectPage (authGuard)';
@@ -33,10 +34,7 @@ function protectPage() {
             if (user) {
                 // User is signed in.
                 LoggingService.info(`[AuthGuard] Access granted for user: ${user.email}`, { functionName, userId: user.uid });
-                // Show the body now that access is confirmed
-                if (document.body) {
-                    document.body.style.display = 'block';
-                }
+                // The calling page is now responsible for making the body visible.
                 resolve(user);
             } else {
                 // No user is signed in. Redirect to the login page.

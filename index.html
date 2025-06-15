@@ -124,17 +124,12 @@
         // Listen for auth state changes to handle UI
         firebase.auth().onAuthStateChanged(user => {
             if (user) {
-                // User is signed in, show redirect message and redirect them
-                loginContainer.classList.add('hidden');
-                redirectContainer.classList.remove('hidden');
-                setTimeout(() => {
-                    // --- MODIFIED: Redirect to dashboard.html ---
-                    window.location.href = 'dashboard.html'; 
-                }, 1500); // Wait 1.5 seconds before redirecting
+                // User is signed in, so we redirect immediately.
+                window.location.href = 'dashboard.html';
             } else {
-                // No user, ensure login form is visible
-                loginContainer.classList.remove('hidden');
-                redirectContainer.classList.add('hidden');
+                // No user, ensure login form is visible and hide the redirect message container if it was ever shown.
+                if(loginContainer) loginContainer.classList.remove('hidden');
+                if(redirectContainer) redirectContainer.classList.add('hidden');
             }
         });
         

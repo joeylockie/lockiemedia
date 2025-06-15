@@ -21,6 +21,10 @@ document.addEventListener('DOMContentLoaded', async () => { // <-- MODIFIED: Mad
         await protectPage();
         // --- MODIFIED END ---
 
+        // ** THIS IS THE FIX **
+        // After the user is confirmed to be authenticated, make the page visible.
+        document.body.style.visibility = 'visible';
+
         LoggingService.info('[HabitTrackerMain] Auth Guard passed. Initializing Habit Tracker page...', { functionName });
 
         // Initialize the feature module, which will handle the rest.

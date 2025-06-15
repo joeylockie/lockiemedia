@@ -203,6 +203,11 @@ async function initialize() { // <-- MODIFIED: Made async
     try {
         // <-- ADDED: Protect the page before doing anything else -->
         await protectPage();
+
+        // ** THIS IS THE FIX **
+        // After the user is confirmed to be authenticated, make the page visible.
+        document.body.style.visibility = 'visible';
+        
         LoggingService.info('[NotesFeature] Auth Guard passed. Initializing...', { functionName });
 
         notebooksListEl = document.getElementById('notebooksList');

@@ -174,6 +174,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         await protectPage();
 
+        // ** THIS IS THE FIX **
+        // After the user is confirmed to be authenticated, make the page visible.
+        document.body.style.visibility = 'visible';
+
         LoggingService.info("[Main] DOMContentLoaded event fired. Auth confirmed. Starting application initialization...");
     // --- MODIFIED CODE BLOCK END ---
 
