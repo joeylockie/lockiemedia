@@ -29,13 +29,16 @@ const colorMap = {
     red: 'text-red-400',
     pink: 'text-pink-400',
     indigo: 'text-indigo-400',
-    blue: 'text-blue-400', // Added for default
+    blue: 'text-blue-400',
 };
 
 // --- Rendering Functions ---
 
 function renderTrackedItems(logEntries) {
-    if (!trackedItemsContainer) return;
+    if (!trackedItemsContainer) {
+        LoggingService.error("[TimeTrackerFeature] Tracked items container not found! Cannot render list.", null, { functionName: 'renderTrackedItems' });
+        return;
+    }
 
     const activities = TimeTrackerService.getActivities();
     trackedItemsContainer.innerHTML = ''; 
@@ -85,9 +88,7 @@ function renderTrackedItems(logEntries) {
 
 function updateCurrentlyTrackingUI() {
     if (!currentTrackingSection) return;
-
     const activeTimer = TimeTrackerService.getActiveTimer();
-
     if (!activeTimer) {
         currentTrackingSection.classList.add('hidden');
         if (_updateInterval) {
@@ -96,37 +97,29 @@ function updateCurrentlyTrackingUI() {
         }
         return;
     }
-
     currentTrackingSection.classList.remove('hidden');
     const activity = TimeTrackerService.getActivities().find(a => a.id === activeTimer.activityId);
-
     if (currentTrackingName) {
         currentTrackingName.textContent = `Currently tracking: ${activity ? activity.name : '...'}`;
     }
-
     const updateTime = () => {
         if (currentTrackingTime) {
             const elapsedMs = new Date().getTime() - activeTimer.startTime.getTime();
             currentTrackingTime.textContent = formatMillisecondsToHMS(elapsedMs);
         }
     };
-
     if (_updateInterval) clearInterval(_updateInterval);
     _updateInterval = setInterval(updateTime, 1000);
     updateTime(); 
 }
 
-
 function renderActivityButtons(activities) {
     if (!activityButtonsContainer) return;
-
     activityButtonsContainer.innerHTML = ''; 
-    
     if (!activities || activities.length === 0) {
         activityButtonsContainer.innerHTML = `<p class="text-slate-400 italic text-sm p-4">No activities created. Click "Manage Activities" to add some.</p>`;
         return;
     }
-
     activities.forEach(activity => {
         const card = document.createElement('div');
         card.className = 'text-center p-2 cursor-pointer';
@@ -150,20 +143,16 @@ function renderActivityButtons(activities) {
 function renderManageActivitiesList(activities) {
     if (!existingActivitiesList) return;
     existingActivitiesList.innerHTML = '';
-
     if (!activities || activities.length === 0) {
         existingActivitiesList.innerHTML = `<p class="text-slate-400 text-sm italic text-center p-2">No activities yet.</p>`;
         return;
     }
-
     activities.forEach(activity => {
         const li = document.createElement('li');
         li.className = 'flex items-center justify-between p-2 bg-slate-700 rounded-md';
-        
         const nameSpan = document.createElement('span');
         nameSpan.className = 'text-slate-200';
         nameSpan.innerHTML = `<i class="${activity.icon || 'fas fa-stopwatch'} ${colorMap[activity.color] || 'text-slate-400'} w-5 mr-2"></i> ${activity.name}`;
-        
         const deleteBtn = document.createElement('button');
         deleteBtn.innerHTML = `<i class="fas fa-trash-alt text-red-500 hover:text-red-400"></i>`;
         deleteBtn.title = `Delete "${activity.name}"`;
@@ -176,7 +165,6 @@ function renderManageActivitiesList(activities) {
                 }
             }
         };
-
         li.appendChild(nameSpan);
         li.appendChild(deleteBtn);
         existingActivitiesList.appendChild(li);
@@ -205,18 +193,15 @@ function closeManageActivitiesModal() {
 async function handleAddActivityFormSubmit(event) {
     event.preventDefault();
     const functionName = 'handleAddActivityFormSubmit';
-    
     const activityData = {
         name: activityNameInput.value.trim(),
         icon: activityIconInput.value.trim() || 'fas fa-stopwatch',
         color: activityColorInput.value
     };
-
     if (!activityData.name) {
         LoggingService.warn('[TimeTrackerFeature] Activity name is required.', { functionName });
         return;
     }
-
     try {
         await TimeTrackerService.addActivity(activityData);
         addActivityForm.reset();
@@ -229,24 +214,22 @@ async function handleAddActivityFormSubmit(event) {
 
 function initialize() {
     const functionName = 'initialize (TimeTrackerFeature)';
-
     if (!document.querySelector('body.bg-gradient-to-br')) { 
         LoggingService.debug('[TimeTrackerFeature] Not on time-tracker page. Skipping initialization.', { functionName });
         return;
     }
     LoggingService.info('[TimeTrackerFeature] Initializing...', { functionName });
-
     TimeTrackerService.initialize();
 
-    // Get DOM elements
-    trackedItemsContainer = document.querySelector('.space-y-2');
+    // CORRECTED: Use the unique ID selector now
+    trackedItemsContainer = document.getElementById('trackedItemsContainer');
+    
+    // The rest of the element selections
     activityButtonsContainer = document.querySelector('.flex.gap-4.overflow-x-auto');
     currentTrackingSection = document.querySelector('.bg-slate-800.p-4.rounded-lg');
     currentTrackingName = currentTrackingSection ? currentTrackingSection.querySelector('span.font-medium') : null;
     currentTrackingTime = currentTrackingSection ? currentTrackingSection.querySelector('span.text-2xl') : null;
     startStopBtn = currentTrackingSection ? currentTrackingSection.querySelector('button.text-slate-400:nth-of-type(2)') : null;
-    
-    // Get Modal DOM elements
     manageActivitiesModal = document.getElementById('manageActivitiesModal');
     manageActivitiesDialog = document.getElementById('manageActivitiesDialog');
     closeManageActivitiesModalBtn = document.getElementById('closeManageActivitiesModalBtn');
@@ -257,13 +240,12 @@ function initialize() {
     existingActivitiesList = document.getElementById('existingActivitiesList');
     manageActivitiesBtn = document.getElementById('manageActivitiesBtn');
 
-    // Attach Modal Event Listeners
     if (manageActivitiesBtn) manageActivitiesBtn.addEventListener('click', openManageActivitiesModal);
     if (closeManageActivitiesModalBtn) closeManageActivitiesModalBtn.addEventListener('click', closeManageActivitiesModal);
     if (addActivityForm) addActivityForm.addEventListener('submit', handleAddActivityFormSubmit);
     
     if (startStopBtn) {
-        startStopBtn.innerHTML = '<i class="fas fa-stop"></i>'; // Ensure it's a stop icon
+        startStopBtn.innerHTML = '<i class="fas fa-stop"></i>';
         startStopBtn.onclick = async () => {
             await TimeTrackerService.stopTracking();
             updateCurrentlyTrackingUI();
@@ -272,7 +254,6 @@ function initialize() {
     
     TimeTrackerService.streamActivities((activities) => {
         renderActivityButtons(activities);
-        // If the modal is open, refresh its list too
         if (manageActivitiesModal && !manageActivitiesModal.classList.contains('hidden')) {
             renderManageActivitiesList(activities);
         }
@@ -285,7 +266,6 @@ function initialize() {
     });
     
     updateCurrentlyTrackingUI();
-    
     LoggingService.info('[TimeTrackerFeature] Initialized and data streams started.', { functionName });
 }
 

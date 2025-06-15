@@ -15,15 +15,12 @@
             font-family: 'Inter', sans-serif;
             background-color: #1a1a2e;
             color: #e0e0e0;
-            /* Prevents flashing of content before auth check completes */
             visibility: hidden;
         }
-        /* Style for the active item in the list */
         .tracked-item.active {
-            background-color: #374151; /* slate-700 */
-            border-color: #0ea5e9; /* sky-500 */
+            background-color: #374151;
+            border-color: #0ea5e9;
         }
-        /* Styles for the new modal */
         #manageActivitiesModal {
             transition: opacity 0.3s ease-in-out;
         }
@@ -36,35 +33,35 @@
 
     <div class="flex h-screen">
         <aside class="w-72 bg-slate-800 p-6 flex-shrink-0 border-r border-slate-700 flex flex-col">
-    <div class="flex items-center justify-between mb-8">
-        <h1 class="text-2xl font-bold text-sky-400">Time Tracker</h1>
-         <a href="dashboard.html" class="text-slate-400 hover:text-white" title="Back to Dashboard">
-            <i class="fas fa-home"></i>
-        </a>
-    </div>
-    <nav class="flex-grow">
-        <ul class="space-y-2">
-            <li>
-                <a href="time-tracker.html" class="flex items-center px-4 py-2.5 rounded-lg bg-sky-500 text-white font-semibold">
-                    <i class="fas fa-clock w-5 mr-3"></i>
-                    <span>Today</span>
+            <div class="flex items-center justify-between mb-8">
+                <h1 class="text-2xl font-bold text-sky-400">Time Tracker</h1>
+                 <a href="dashboard.html" class="text-slate-400 hover:text-white" title="Back to Dashboard">
+                    <i class="fas fa-home"></i>
                 </a>
-            </li>
-            <li>
-                <a href="time-history.html" class="flex items-center px-4 py-2.5 rounded-lg text-slate-300 hover:bg-slate-700">
-                    <i class="fas fa-calendar-week w-5 mr-3"></i>
-                    <span>History & Reports</span>
-                </a>
-            </li>
-        </ul>
-    </nav>
-    <div class="mt-auto">
-         <button id="manageActivitiesBtn" class="w-full flex items-center justify-center px-4 py-3 rounded-lg transition-colors duration-200 bg-slate-700 hover:bg-slate-600 text-white font-semibold">
-            <i class="fas fa-cog mr-2"></i>
-            <span>Manage Activities</span>
-        </button>
-    </div>
-</aside>
+            </div>
+            <nav class="flex-grow">
+                <ul class="space-y-2">
+                    <li>
+                        <a href="time-tracker.html" class="flex items-center px-4 py-2.5 rounded-lg bg-sky-500 text-white font-semibold">
+                            <i class="fas fa-clock w-5 mr-3"></i>
+                            <span>Today</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="time-history.html" class="flex items-center px-4 py-2.5 rounded-lg text-slate-300 hover:bg-slate-700">
+                            <i class="fas fa-calendar-week w-5 mr-3"></i>
+                            <span>History & Reports</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            <div class="mt-auto">
+                 <button id="manageActivitiesBtn" class="w-full flex items-center justify-center px-4 py-3 rounded-lg transition-colors duration-200 bg-slate-700 hover:bg-slate-600 text-white font-semibold">
+                    <i class="fas fa-cog mr-2"></i>
+                    <span>Manage Activities</span>
+                </button>
+            </div>
+        </aside>
 
         <main class="flex-1 bg-slate-900/70 p-8 overflow-y-auto">
             <header class="mb-8">
@@ -82,7 +79,7 @@
                 </div>
             </div>
 
-            <div class="space-y-2">
+            <div id="trackedItemsContainer" class="space-y-2">
             </div>
         </main>
     </div>
@@ -93,7 +90,6 @@
                 <h3 class="text-2xl font-semibold text-slate-100">Manage Activities</h3>
                 <button id="closeManageActivitiesModalBtn" class="text-slate-400 hover:text-white">&times;</button>
             </div>
-
             <form id="addActivityForm" class="mb-6 pb-6 border-b border-slate-700">
                 <h4 class="text-lg font-medium text-sky-400 mb-3">Add New Activity</h4>
                 <div class="space-y-3">
@@ -121,18 +117,14 @@
                 </div>
                 <button type="submit" class="w-full mt-4 px-4 py-2 bg-sky-500 text-white rounded-md hover:bg-sky-600 font-semibold transition-colors">Add Activity</button>
             </form>
-
             <div>
                 <h4 class="text-lg font-medium text-slate-100 mb-3">Existing Activities</h4>
                 <div id="existingActivitiesList" class="space-y-2 max-h-60 overflow-y-auto">
-                    </div>
+                </div>
             </div>
         </div>
     </div>
-
-
     <script>
-        // Set the date in the header dynamically
         const headerEl = document.getElementById('timeTrackerHeader');
         if(headerEl) {
             const today = new Date();
@@ -140,14 +132,12 @@
             headerEl.textContent = `Today - ${today.toLocaleDateString('en-US', options)}`;
         }
     </script>
-    
     <script src="loggingService.js" type="module"></script>
     <script src="feature_user_accounts.js" type="module"></script>
     <script src="authGuard.js" type="module"></script>
     <script src="utils.js" type="module"></script>
     <script src="timeTrackerService.js" type="module"></script>
     <script src="feature_time_tracker.js" type="module"></script>
-
     <script src="time_tracker_main.js" type="module"></script>
 </body>
 </html>
