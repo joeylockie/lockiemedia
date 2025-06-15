@@ -1,6 +1,7 @@
 // feature_notes.js
 // Manages the UI and logic for the Notes feature.
 
+import protectPage from './authGuard.js'; // <-- ADDED: Import the auth guard
 import { isFeatureEnabled } from './featureFlagService.js';
 import LoggingService from './loggingService.js';
 import * as NoteService from './noteService.js';
@@ -190,44 +191,51 @@ function handleDeleteNote() {
     }
 }
 
-function initialize() {
+async function initialize() { // <-- MODIFIED: Made async
     const functionName = 'initialize (NotesFeature)';
-    LoggingService.info('[NotesFeature] Initializing...', { functionName });
-
+    
     // Only run if we are on the notes.html page
-    if (!document.querySelector('body#notesPage')) { // Assuming we add id="notesPage" to the body of notes.html
+    if (!document.querySelector('body#notesPage')) {
          LoggingService.debug('[NotesFeature] Not on notes page. Skipping initialization.', { functionName });
         return;
     }
-
-    notebooksListEl = document.getElementById('notebooksList');
-    notesListEl = document.getElementById('notesList');
-    noteEditorEl = document.getElementById('noteEditor');
-    newNoteBtn = document.getElementById('newNoteBtn');
-    newNotebookBtn = document.getElementById('newNotebookBtn');
-    noteTitleInput = document.getElementById('noteTitleInput');
-    noteContentTextarea = document.getElementById('noteContentTextarea');
-    currentNotebookTitleEl = document.getElementById('currentNotebookTitle');
-    notesCountEl = document.getElementById('notesCount');
-    deleteNoteBtn = document.getElementById('deleteNoteBtn');
-
-    if (newNoteBtn) newNoteBtn.addEventListener('click', handleNewNote);
-    if (newNotebookBtn) newNotebookBtn.addEventListener('click', handleNewNotebook);
-    if (noteTitleInput) noteTitleInput.addEventListener('blur', handleNoteUpdate);
-    if (noteContentTextarea) noteContentTextarea.addEventListener('blur', handleNoteUpdate);
-    if (deleteNoteBtn) deleteNoteBtn.addEventListener('click', handleDeleteNote);
-
-    // Initial render
-    renderAll();
     
-    LoggingService.info('[NotesFeature] Initialized.', { functionName });
+    try {
+        // <-- ADDED: Protect the page before doing anything else -->
+        await protectPage();
+        LoggingService.info('[NotesFeature] Auth Guard passed. Initializing...', { functionName });
+
+        notebooksListEl = document.getElementById('notebooksList');
+        notesListEl = document.getElementById('notesList');
+        noteEditorEl = document.getElementById('noteEditor');
+        newNoteBtn = document.getElementById('newNoteBtn');
+        newNotebookBtn = document.getElementById('newNotebookBtn');
+        noteTitleInput = document.getElementById('noteTitleInput');
+        noteContentTextarea = document.getElementById('noteContentTextarea');
+        currentNotebookTitleEl = document.getElementById('currentNotebookTitle');
+        notesCountEl = document.getElementById('notesCount');
+        deleteNoteBtn = document.getElementById('deleteNoteBtn');
+
+        if (newNoteBtn) newNoteBtn.addEventListener('click', handleNewNote);
+        if (newNotebookBtn) newNotebookBtn.addEventListener('click', handleNewNotebook);
+        if (noteTitleInput) noteTitleInput.addEventListener('blur', handleNoteUpdate);
+        if (noteContentTextarea) noteContentTextarea.addEventListener('blur', handleNoteUpdate);
+        if (deleteNoteBtn) deleteNoteBtn.addEventListener('click', handleDeleteNote);
+
+        // Initial render
+        renderAll();
+        
+        LoggingService.info('[NotesFeature] Initialized.', { functionName });
+    } catch (error) {
+        LoggingService.critical('[NotesFeature] Auth Guard failed or error during initialization.', error, { functionName });
+        // The guard will redirect, but this catch is for safety.
+    }
 }
 
 function updateUIVisibility() {
-    // This could be used to show/hide the "Notes" link in the main app's sidebar/navigation
-    // For now, we assume if the user is on notes.html, the feature is enabled.
-    const isActuallyEnabled = isFeatureEnabled('notesFeature'); // Assuming we add this flag
-    // Example: document.getElementById('notes-link-in-main-app').classList.toggle('hidden', !isActuallyEnabled);
+    const isActuallyEnabled = isFeatureEnabled('notesFeature');
+    // This function can be expanded if there are global UI elements related to Notes
+    // on other pages that need to be shown or hidden.
 }
 
 export const NotesFeature = {

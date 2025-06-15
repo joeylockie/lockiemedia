@@ -185,7 +185,8 @@ function handleAdminSignOut() {
     firebaseAuth.signOut()
         .then(() => {
             LoggingService.info('[AdminMain] Admin signed out successfully through button click.', { functionName });
-            // AuthStateChanged will handle UI update
+            // Redirect to the index page upon successful sign-out.
+            window.location.href = 'index.html';
         })
         .catch((error) => {
             LoggingService.error('[AdminMain] Error during admin sign-out.', error, { functionName, errorCode: error.code, errorMessage: error.message });

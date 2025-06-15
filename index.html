@@ -3,114 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lockie Media - Platform</title>
-    <!-- Tailwind CSS for modern styling -->
+    <title>Lockie Media - Welcome</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+     <script>
+        // Set theme on initial load to prevent flash
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
     <style>
         /* Custom styles to match the to-do app's theme */
         body {
-            background-color: #1a1a2e; /* Deep blue background from your style.css */
+            background-color: #1a1a2e;
             font-family: 'Inter', sans-serif;
-            color: #e0e0e0; /* Light text for readability on dark background */
+            color: #e0e0e0;
         }
-        .app-card {
-            /* A card style for each application link */
-            background-color: #1f2937; /* A slightly lighter, dark-gray-blue */
-            border-radius: 0.75rem; /* Rounded corners */
-            padding: 2rem;
-            text-align: left;
-            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-            border: 1px solid #374151;
-        }
-        .app-card:hover {
-            /* Hover effect to provide feedback to the user */
-            transform: translateY(-5px); /* Lift the card slightly */
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1); /* Add a subtle shadow */
-            cursor: pointer;
-        }
-        .app-card h2 {
-            /* Styling for the card title */
-            color: #ffffff;
-            font-weight: 600;
-        }
-        .app-card p {
-            /* Styling for the card description */
-            color: #9ca3af; /* A muted gray for the description text */
-        }
-
         /* Styles for the Ad Popup */
         #adPopup {
             transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
         }
     </style>
 </head>
-<body class="relative min-h-screen flex items-center justify-center p-4">
+<body class="relative min-h-screen flex flex-col items-center justify-center p-4 dark">
 
-    <!-- Sign In Button -->
-    <div class="absolute top-4 right-6 md:top-6 md:right-8">
-        <a href="todo.html" class="text-white bg-indigo-500 hover:bg-indigo-600 font-semibold py-2 px-5 rounded-lg transition-colors duration-200">
-            Sign In
-        </a>
-    </div>
+    <div id="messageBox" class="message-box"></div>
 
-    <!-- Main Content -->
-    <div class="container mx-auto p-4 text-center">
-        <!-- Main header for the landing page -->
-        <h1 class="text-4xl md:text-5xl font-bold text-white mb-12">
-            Welcome to the Lockie Media Platform
-        </h1>
-
-        <!-- Grid layout for the application links -->
-        <div class="max-w-2xl mx-auto space-y-6">
-
-            <!-- Link to the To-Do List Application -->
-            <a href="todo.html" class="block app-card">
-                <h2 class="text-2xl mb-2">To-Do List & Task Manager</h2>
-                <p>Your personal and business management hub to organize tasks, set priorities, and stay productive.</p>
-            </a>
-
-            <!-- Link to Notes -->
-            <a href="notes.html" class="block app-card">
-                <h2 class="text-2xl mb-2">Notes</h2>
-                <p>Capture ideas, meeting minutes, and organize your thoughts in structured notebooks.</p>
-            </a>
-            
-            <!-- Link to Habit Tracker -->
-            <a href="habits.html" class="block app-card">
-                <h2 class="text-2xl mb-2">Habit Tracker</h2>
-                <p>Build good habits and track your progress throughout the year with a visual grid.</p>
-            </a>
-
-            <!-- Link to Time Tracker -->
-            <a href="time-tracker.html" class="block app-card">
-                <h2 class="text-2xl mb-2">Time Tracker</h2>
-                <p>Monitor where your time goes, analyze your productivity, and stay on top of your goals.</p>
-            </a>
-
-            <!-- Link to the Admin Panel -->
-            <a href="admin.html" class="block app-card">
-                <h2 class="text-2xl mb-2">Admin Panel</h2>
-                <p>Manage application settings, features, and user data from a centralized control panel.</p>
-            </a>
-
-            <!-- Link to the Advertising Admin Panel -->
-            <a href="advertising_admin.html" class="block app-card">
-                <h2 class="text-2xl mb-2">Advertising Admin</h2>
-                <p>Manage and create advertising campaigns for the platform.</p>
-            </a>
-
-            <!-- Placeholder for a future application -->
-            <div class="block app-card opacity-50 cursor-not-allowed">
-                <h2 class="text-2xl mb-2">[Future App Placeholder]</h2>
-                <p>A new service is on the way. Check back soon for exciting updates!</p>
+    <div id="authContainer" class="w-full">
+        <div id="login-form-container" class="w-full">
+            <h1 class="text-4xl md:text-5xl font-bold text-white mb-8 text-center">
+                Lockie Media Platform
+            </h1>
+            <div id="authModalDialog" class="relative mx-auto p-5 sm:p-8 border w-full max-w-md shadow-2xl rounded-2xl bg-slate-800 border-slate-700">
+                <div id="authFormsContainer">
+                    <form id="signInForm" class="space-y-4">
+                        <h3 class="text-xl font-semibold text-slate-100 text-center">Sign In</h3>
+                        <div>
+                            <label for="signInEmail" class="block text-sm font-medium text-slate-300">Email</label>
+                            <input type="email" id="signInEmail" required class="mt-1 w-full p-3 border-2 bg-slate-700 text-slate-200 placeholder-slate-400 border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none">
+                        </div>
+                        <div>
+                            <label for="signInPassword" class="block text-sm font-medium text-slate-300">Password</label>
+                            <input type="password" id="signInPassword" required class="mt-1 w-full p-3 border-2 bg-slate-700 text-slate-200 placeholder-slate-400 border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none">
+                        </div>
+                        <button type="submit" class="w-full px-4 py-3 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors font-semibold text-base">Sign In</button>
+                    </form>
+                    <hr class="border-slate-600 my-6">
+                    <form id="signUpForm" class="space-y-4">
+                        <h3 class="text-xl font-semibold text-slate-100 text-center">Create Account</h3>
+                        <div>
+                            <label for="signUpEmail" class="block text-sm font-medium text-slate-300">Email</label>
+                            <input type="email" id="signUpEmail" required class="mt-1 w-full p-3 border-2 bg-slate-700 text-slate-200 placeholder-slate-400 border-slate-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none">
+                        </div>
+                        <div>
+                            <label for="signUpPassword" class="block text-sm font-medium text-slate-300">Password</label>
+                            <input type="password" id="signUpPassword" required class="mt-1 w-full p-3 border-2 bg-slate-700 text-slate-200 placeholder-slate-400 border-slate-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none">
+                        </div>
+                        <button type="submit" class="w-full px-4 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-semibold text-base">Sign Up</button>
+                    </form>
+                </div>
             </div>
-
+        </div>
+        
+        <div id="redirecting-container" class="hidden text-center">
+            <h1 class="text-4xl md:text-5xl font-bold text-white mb-8">
+                Welcome Back!
+            </h1>
+            <p class="text-slate-300 text-lg">You are already signed in.</p>
+            <p class="text-slate-400 mt-2">Redirecting you to the dashboard...</p>
+            <a href="dashboard.html" class="mt-8 inline-block text-white bg-indigo-500 hover:bg-indigo-600 font-semibold py-3 px-6 rounded-lg transition-colors duration-200">
+                Go to Dashboard Now
+            </a>
         </div>
     </div>
 
-    <!-- Ad Popup Container -->
+
     <div id="adPopup" class="fixed bottom-5 right-5 w-80 bg-white dark:bg-slate-800 rounded-lg shadow-2xl border dark:border-slate-700 p-4 transform translate-y-full opacity-0 hidden">
         <div class="flex justify-between items-start">
             <h3 id="adPopupTitle" class="text-lg font-bold text-slate-800 dark:text-white mb-2">Special Offer!</h3>
@@ -125,15 +98,53 @@
     </div>
 
 
-    <!-- Footer -->
     <footer class="absolute bottom-4 w-full text-center text-gray-500 text-sm">
         <p>LockieMedia © 2025</p>
     </footer>
 
-    <!-- Scripts -->
     <script src="loggingService.js" type="module"></script>
+    <script src="eventBus.js" type="module"></script>
+    <script src="store.js" type="module"></script>
+    <script src="feature_user_accounts.js" type="module"></script>
+    <script src="formEventHandlers.js" type="module"></script>
+
     <script src="advertisingService.js" type="module"></script>
     <script src="ad_display.js" type="module"></script>
 
+    <script type="module">
+        import { UserAccountsFeature } from './feature_user_accounts.js';
+        import { handleUserSignInFormSubmit, handleUserSignUpFormSubmit } from './formEventHandlers.js';
+
+        const loginContainer = document.getElementById('login-form-container');
+        const redirectContainer = document.getElementById('redirecting-container');
+
+        // Initialize UserAccountsFeature which sets up Firebase and the onAuthStateChanged listener
+        UserAccountsFeature.initialize();
+        
+        // Listen for auth state changes to handle UI
+        firebase.auth().onAuthStateChanged(user => {
+            if (user) {
+                // User is signed in, show redirect message and redirect them
+                loginContainer.classList.add('hidden');
+                redirectContainer.classList.remove('hidden');
+                setTimeout(() => {
+                    // --- MODIFIED: Redirect to dashboard.html ---
+                    window.location.href = 'dashboard.html'; 
+                }, 1500); // Wait 1.5 seconds before redirecting
+            } else {
+                // No user, ensure login form is visible
+                loginContainer.classList.remove('hidden');
+                redirectContainer.classList.add('hidden');
+            }
+        });
+        
+        // Attach form handlers
+        const signInForm = document.getElementById('signInForm');
+        const signUpForm = document.getElementById('signUpForm');
+
+        if(signInForm) signInForm.addEventListener('submit', handleUserSignInFormSubmit);
+        if(signUpForm) signUpForm.addEventListener('submit', handleUserSignUpFormSubmit);
+
+    </script>
 </body>
 </html>

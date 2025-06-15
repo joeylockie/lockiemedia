@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Lockie Media Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+    <style>
+        body {
+            background-color: #1a1a2e;
+            font-family: 'Inter', sans-serif;
+            color: #e0e0e0;
+        }
+        .app-card {
+            background-color: #1f2937;
+            border-radius: 0.75rem;
+            padding: 2rem;
+            text-align: left;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            border: 1px solid #374151;
+        }
+        .app-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+        }
+        .app-card h2 {
+            color: #ffffff;
+            font-weight: 600;
+        }
+        .app-card p {
+            color: #9ca3af;
+        }
+    </style>
+</head>
+<body class="relative min-h-screen flex items-center justify-center p-4">
+
+    <div class="absolute top-4 right-6 md:top-6 md:right-8">
+        <button id="signOutBtn" class="text-white bg-red-500 hover:bg-red-600 font-semibold py-2 px-5 rounded-lg transition-colors duration-200">
+            Sign Out
+        </button>
+    </div>
+
+    <div class="container mx-auto p-4 text-center">
+        <h1 class="text-4xl md:text-5xl font-bold text-white mb-12">
+            Lockie Media Platform
+        </h1>
+
+        <div class="max-w-2xl mx-auto space-y-6">
+            <a href="todo.html" class="block app-card">
+                <h2 class="text-2xl mb-2">To-Do List & Task Manager</h2>
+                <p>Your personal and business management hub to organize tasks, set priorities, and stay productive.</p>
+            </a>
+            <a href="notes.html" class="block app-card">
+                <h2 class="text-2xl mb-2">Notes</h2>
+                <p>Capture ideas, meeting minutes, and organize your thoughts in structured notebooks.</p>
+            </a>
+            <a href="habits.html" class="block app-card">
+                <h2 class="text-2xl mb-2">Habit Tracker</h2>
+                <p>Build good habits and track your progress throughout the year with a visual grid.</p>
+            </a>
+            <a href="time-tracker.html" class="block app-card">
+                <h2 class="text-2xl mb-2">Time Tracker</h2>
+                <p>Monitor where your time goes, analyze your productivity, and stay on top of your goals.</p>
+            </a>
+            <a href="admin.html" class="block app-card">
+                <h2 class="text-2xl mb-2">Admin Panel</h2>
+                <p>Manage application settings, features, and user data from a centralized control panel.</p>
+            </a>
+            <a href="advertising_admin.html" class="block app-card">
+                <h2 class="text-2xl mb-2">Advertising Admin</h2>
+                <p>Manage and create advertising campaigns for the platform.</p>
+            </a>
+        </div>
+    </div>
+
+    <footer class="absolute bottom-4 w-full text-center text-gray-500 text-sm">
+        <p>LockieMedia © 2025</p>
+    </footer>
+
+    <script src="authGuard.js" type="module"></script>
+    <script src="loggingService.js" type="module"></script>
+    <script src="feature_user_accounts.js" type="module"></script>
+    <script type="module">
+        import protectPage from './authGuard.js';
+        import { UserAccountsFeature } from './feature_user_accounts.js';
+
+        // Initialize features needed on this page
+        UserAccountsFeature.initialize();
+
+        // Protect the page, then run page-specific logic
+        protectPage().then(user => {
+            console.log(`Welcome to the dashboard, ${user.email}`);
+            
+            const signOutBtn = document.getElementById('signOutBtn');
+            if (signOutBtn) {
+                signOutBtn.addEventListener('click', () => {
+                    UserAccountsFeature.handleSignOut();
+                });
+            }
+        }).catch(error => {
+            console.error("Auth guard failed:", error);
+            // The guard will redirect, so this catch is mainly for debugging.
+        });
+    </script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 // main.js
 // Main entry point for the application.
 
+import protectPage from './authGuard.js';
 import EventBus from './eventBus.js';
 import AppStore from './store.js';
 import { loadFeatureFlags, isFeatureEnabled as isFeatureEnabledFromService, getAllFeatureFlags, setFeatureFlag as setFeatureFlagInService } from './featureFlagService.js';
@@ -147,62 +148,12 @@ window.onunhandledrejection = function(event) {
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
-    LoggingService.info("[Main] DOMContentLoaded event fired. Starting application initialization...");
-
-    if (uiRendering && uiRendering.showCriticalError) {
-        showCriticalErrorImported = uiRendering.showCriticalError;
-        LoggingService.info("[Main] showCriticalError function assigned from imported ui_rendering.");
-    } else {
-        LoggingService.warn("[Main] showCriticalError function not found in imported ui_rendering.js. Using fallback.");
-    }
-
-    if (uiRendering && uiRendering.initializeDOMElements) {
-        uiRendering.initializeDOMElements();
-        LoggingService.info("[Main] DOM elements initialized."); // Note: Removed "initial version rendered" to avoid confusion
-    } else {
-        const initError = new Error("initializeDOMElements not found in ui_rendering.js");
-        LoggingService.critical("[Main] CRITICAL: Error initializing ui_rendering.js or its DOM elements!", initError, { step: "uiRenderingInit" });
-        showCriticalErrorImported("CRITICAL: UI Initialization Failed. Please refresh. " + initError.message, "UI_INIT_FAIL");
-        return;
-    }
-
+    // --- MODIFIED CODE BLOCK START ---
+    // Initialize services that are required by the auth guard first.
     if (typeof window.AppFeatures === 'undefined') window.AppFeatures = {};
-    window.AppFeatures.LoggingService = LoggingService;
-    window.AppFeatures.EventBus = EventBus;
-    window.AppFeatures.AppStore = AppStore;
-    window.AppFeatures.ViewManager = ViewManager;
-    window.AppFeatures.ModalInteractions = ModalInteractions;
-    window.AppFeatures.TaskService = TaskService;
-    window.AppFeatures.isFeatureEnabled = isFeatureEnabledFromService;
-    window.AppFeatures.getAllFeatureFlags = getAllFeatureFlags;
-    window.AppFeatures.setFeatureFlag = setFeatureFlagInService;
-    window.AppFeatures.UserAccountsFeature = UserAccountsFeature;
-    window.AppFeatures.TestButtonFeature = TestButtonFeature;
-    window.AppFeatures.ReminderFeature = ReminderFeature;
-    window.AppFeatures.AdvancedRecurrenceFeature = AdvancedRecurrenceFeature;
-    window.AppFeatures.FileAttachmentsFeature = FileAttachmentsFeature;
-    window.AppFeatures.IntegrationsServicesFeature = IntegrationsServicesFeature;
-    window.AppFeatures.CollaborationSharingFeature = CollaborationSharingFeature;
-    window.AppFeatures.CrossDeviceSyncFeature = CrossDeviceSyncFeature;
-    window.AppFeatures.TaskDependenciesFeature = TaskDependenciesFeature;
-    window.AppFeatures.SmarterSearchFeature = SmarterSearchFeature;
-    window.AppFeatures.DataManagementFeature = DataManagementFeature;
-    window.AppFeatures.CalendarViewFeature = CalendarViewFeature;
-    window.AppFeatures.TaskTimerSystemFeature = TaskTimerSystemFeature;
-    window.AppFeatures.KanbanBoardFeature = KanbanBoardFeature;
-    window.AppFeatures.PomodoroTimerHybridFeature = PomodoroTimerHybridFeature;
-    window.AppFeatures.ProjectsFeature = ProjectsFeature;
-    window.AppFeatures.TooltipsGuideFeature = TooltipsGuideFeature;
-    window.AppFeatures.SubTasksFeature = SubTasksFeature;
-    window.AppFeatures.BackgroundFeature = BackgroundFeature;
-    window.AppFeatures.ContactUsFeature = ContactUsFeature;
-    window.AppFeatures.SocialMediaLinksFeature = SocialMediaLinksFeature;
-    window.AppFeatures.AboutUsFeature = AboutUsFeature;
-    window.AppFeatures.DataVersioningFeature = DataVersioningFeature;
-    window.AppFeatures.ShoppingListFeature = ShoppingListFeature;
-    window.AppFeatures.DesktopNotificationsFeature = DesktopNotificationsFeature;
-    window.AppFeatures.NotesFeature = NotesFeature;
+    window.AppFeatures.UserAccountsFeature = UserAccountsFeature; // Ensure it's on the global features object
 
+    // Initialize Firebase first, as the auth guard depends on it.
     if (window.AppFeatures.UserAccountsFeature && typeof window.AppFeatures.UserAccountsFeature.initialize === 'function') {
         try {
             LoggingService.info("[Main] Initializing UserAccountsFeature (includes Firebase SDK setup)...");
@@ -211,168 +162,228 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (e) {
             LoggingService.critical('[Main] CRITICAL: Error initializing UserAccountsFeature (Firebase).', e, { step: "userAccountsInit" });
             showCriticalErrorImported("Failed to initialize core user services. Please refresh.", "AUTH_INIT_FAIL");
-            return;
+            return; // Stop execution if Firebase fails to init
         }
     } else {
         LoggingService.warn('[Main] UserAccountsFeature or its initialize function is not available.');
-    }
-
-    try {
-        await loadFeatureFlags();
-        LoggingService.info("[Main] Feature flags loading process completed.");
-        LoggingService.initializeLogLevel();
-        LoggingService.info(`[Main] Log level set to: ${LoggingService.getCurrentLevelName()} after feature flag load.`);
-    } catch (e) {
-        LoggingService.critical("[Main] CRITICAL: Error loading feature flags!", e, { step: "loadFeatureFlags" });
-        showCriticalErrorImported("Failed to load application configuration. Please try again later.", "CONFIG_LOAD_FAIL");
+        // This is likely a critical failure path.
+        showCriticalErrorImported("User account system failed to load. Please refresh.", "AUTH_FEATURE_FAIL");
         return;
     }
-
-    // **** MODIFIED SECTION FOR VERSION RENDERING ****
+    
     try {
-        await loadAppVersion(); // Wait for version to be loaded
-        LoggingService.info(`[Main] Application Version: ${getAppVersionString()} successfully loaded and available.`);
-        // NOW that version is loaded, explicitly call renderAppVersion from uiRendering
-        if (uiRendering && uiRendering.renderAppVersion) {
-            LoggingService.debug("[Main] Explicitly calling renderAppVersion after loadAppVersion completion.");
-            uiRendering.renderAppVersion(); // This will use the now-loaded version string
-        } else {
-            LoggingService.warn("[Main] uiRendering.renderAppVersion not available for explicit call after version load.");
-        }
-    } catch (e) {
-        LoggingService.error("[Main] Error loading application version. Default will be used if displayed elsewhere before this.", e);
-    }
-    // **** END OF MODIFIED SECTION ****
+        await protectPage();
 
-    if (AppStore && typeof AppStore.initializeStore === 'function') {
-        try {
-            await AppStore.initializeStore();
-            LoggingService.info("[Main] AppStore initialized (localStorage).");
-        } catch (e) {
-             LoggingService.error('[Main] Error initializing AppStore.', e, { step: "appStoreInit" });
-             showCriticalErrorImported("Failed to load application data store. Please refresh.", "STORE_INIT_FAIL");
+        LoggingService.info("[Main] DOMContentLoaded event fired. Auth confirmed. Starting application initialization...");
+    // --- MODIFIED CODE BLOCK END ---
+
+        if (uiRendering && uiRendering.showCriticalError) {
+            showCriticalErrorImported = uiRendering.showCriticalError;
+            LoggingService.info("[Main] showCriticalError function assigned from imported ui_rendering.");
+        } else {
+            LoggingService.warn("[Main] showCriticalError function not found in imported ui_rendering.js. Using fallback.");
+        }
+
+        if (uiRendering && uiRendering.initializeDOMElements) {
+            uiRendering.initializeDOMElements();
+            LoggingService.info("[Main] DOM elements initialized.");
+        } else {
+            const initError = new Error("initializeDOMElements not found in ui_rendering.js");
+            LoggingService.critical("[Main] CRITICAL: Error initializing ui_rendering.js or its DOM elements!", initError, { step: "uiRenderingInit" });
+            showCriticalErrorImported("CRITICAL: UI Initialization Failed. Please refresh. " + initError.message, "UI_INIT_FAIL");
             return;
         }
-    } else {
-        LoggingService.critical('[Main] CRITICAL: AppStore or its initializeStore function is not available.', null, { step: "appStoreInitMissing" });
-        showCriticalErrorImported("Core data system unavailable. Please refresh.", "STORE_MISSING");
-        return;
-    }
 
-    if (isFeatureEnabledFromService('appUpdateNotificationFeature')) {
-        if (typeof startUpdateChecker === 'function') {
-            LoggingService.info("[Main] Starting application update checker.", { functionName: "DOMContentLoaded" });
-            startUpdateChecker();
-        } else {
-            LoggingService.error('[Main] startUpdateChecker function from versionService is not available.', new Error("FunctionMissing"), { service: "versionService" });
+        // AppFeatures object setup (excluding UserAccountsFeature which is already done)
+        window.AppFeatures.LoggingService = LoggingService;
+        window.AppFeatures.EventBus = EventBus;
+        window.AppFeatures.AppStore = AppStore;
+        window.AppFeatures.ViewManager = ViewManager;
+        window.AppFeatures.ModalInteractions = ModalInteractions;
+        window.AppFeatures.TaskService = TaskService;
+        window.AppFeatures.isFeatureEnabled = isFeatureEnabledFromService;
+        window.AppFeatures.getAllFeatureFlags = getAllFeatureFlags;
+        window.AppFeatures.setFeatureFlag = setFeatureFlagInService;
+        window.AppFeatures.TestButtonFeature = TestButtonFeature;
+        window.AppFeatures.ReminderFeature = ReminderFeature;
+        window.AppFeatures.AdvancedRecurrenceFeature = AdvancedRecurrenceFeature;
+        window.AppFeatures.FileAttachmentsFeature = FileAttachmentsFeature;
+        window.AppFeatures.IntegrationsServicesFeature = IntegrationsServicesFeature;
+        window.AppFeatures.CollaborationSharingFeature = CollaborationSharingFeature;
+        window.AppFeatures.CrossDeviceSyncFeature = CrossDeviceSyncFeature;
+        window.AppFeatures.TaskDependenciesFeature = TaskDependenciesFeature;
+        window.AppFeatures.SmarterSearchFeature = SmarterSearchFeature;
+        window.AppFeatures.DataManagementFeature = DataManagementFeature;
+        window.AppFeatures.CalendarViewFeature = CalendarViewFeature;
+        window.AppFeatures.TaskTimerSystemFeature = TaskTimerSystemFeature;
+        window.AppFeatures.KanbanBoardFeature = KanbanBoardFeature;
+        window.AppFeatures.PomodoroTimerHybridFeature = PomodoroTimerHybridFeature;
+        window.AppFeatures.ProjectsFeature = ProjectsFeature;
+        window.AppFeatures.TooltipsGuideFeature = TooltipsGuideFeature;
+        window.AppFeatures.SubTasksFeature = SubTasksFeature;
+        window.AppFeatures.BackgroundFeature = BackgroundFeature;
+        window.AppFeatures.ContactUsFeature = ContactUsFeature;
+        window.AppFeatures.SocialMediaLinksFeature = SocialMediaLinksFeature;
+        window.AppFeatures.AboutUsFeature = AboutUsFeature;
+        window.AppFeatures.DataVersioningFeature = DataVersioningFeature;
+        window.AppFeatures.ShoppingListFeature = ShoppingListFeature;
+        window.AppFeatures.DesktopNotificationsFeature = DesktopNotificationsFeature;
+        window.AppFeatures.NotesFeature = NotesFeature;
+
+        try {
+            await loadFeatureFlags();
+            LoggingService.info("[Main] Feature flags loading process completed.");
+            LoggingService.initializeLogLevel();
+            LoggingService.info(`[Main] Log level set to: ${LoggingService.getCurrentLevelName()} after feature flag load.`);
+        } catch (e) {
+            LoggingService.critical("[Main] CRITICAL: Error loading feature flags!", e, { step: "loadFeatureFlags" });
+            showCriticalErrorImported("Failed to load application configuration. Please try again later.", "CONFIG_LOAD_FAIL");
+            return;
         }
-    } else {
-        LoggingService.info("[Main] Application update checker is disabled by feature flag 'appUpdateNotificationFeature'.", { functionName: "DOMContentLoaded" });
-    }
 
-    if (EventBus && typeof EventBus.subscribe === 'function') {
-        EventBus.subscribe('newVersionAvailable', (data) => {
-            if (isFeatureEnabledFromService('appUpdateNotificationFeature') && data && data.newVersion) {
-                showUpdateNotificationBar(data);
-            } else if (!isFeatureEnabledFromService('appUpdateNotificationFeature')) {
-                LoggingService.debug("[Main] 'newVersionAvailable' event received, but feature 'appUpdateNotificationFeature' is disabled. Notification suppressed.", { functionName: "newVersionAvailable_Subscription" });
+        try {
+            await loadAppVersion();
+            LoggingService.info(`[Main] Application Version: ${getAppVersionString()} successfully loaded and available.`);
+            if (uiRendering && uiRendering.renderAppVersion) {
+                LoggingService.debug("[Main] Explicitly calling renderAppVersion after loadAppVersion completion.");
+                uiRendering.renderAppVersion();
+            } else {
+                LoggingService.warn("[Main] uiRendering.renderAppVersion not available for explicit call after version load.");
             }
-        });
-        // The 'appVersionLoaded' subscription is now primarily in ui_rendering.js
-        // Keeping it there ensures ui_rendering itself handles its update based on the event.
-        LoggingService.info("[Main] Subscribed to 'newVersionAvailable' event.", { functionName: "DOMContentLoaded" });
-    } else {
-        LoggingService.warn('[Main] EventBus not available for newVersionAvailable subscription.');
-    }
+        } catch (e) {
+            LoggingService.error("[Main] Error loading application version. Default will be used if displayed elsewhere before this.", e);
+        }
 
-    if (uiRendering && uiRendering.initializeUiRenderingSubscriptions) {
-        uiRendering.initializeUiRenderingSubscriptions(); // This will set up the appVersionLoaded subscription among others
-        LoggingService.info("[Main] UI Rendering event subscriptions initialized.");
-    } else {
-        LoggingService.error('[Main] uiRendering.initializeUiRenderingSubscriptions function is not available.');
-    }
+        if (AppStore && typeof AppStore.initializeStore === 'function') {
+            try {
+                await AppStore.initializeStore();
+                LoggingService.info("[Main] AppStore initialized (localStorage).");
+            } catch (e) {
+                 LoggingService.error('[Main] Error initializing AppStore.', e, { step: "appStoreInit" });
+                 showCriticalErrorImported("Failed to load application data store. Please refresh.", "STORE_INIT_FAIL");
+                return;
+            }
+        } else {
+            LoggingService.critical('[Main] CRITICAL: AppStore or its initializeStore function is not available.', null, { step: "appStoreInitMissing" });
+            showCriticalErrorImported("Core data system unavailable. Please refresh.", "STORE_MISSING");
+            return;
+        }
 
-    if (typeof isFeatureEnabledFromService === 'function' && typeof window.AppFeatures !== 'undefined') {
-        LoggingService.info("[Main] Initializing other feature modules based on flags...");
-        for (const featureKey in window.AppFeatures) {
-            const nonFeatureKeys = ['LoggingService', 'EventBus', 'AppStore', 'ViewManager', 'ModalInteractions', 'TaskService', 'isFeatureEnabled', 'getAllFeatureFlags', 'setFeatureFlag', 'UserAccountsFeature'];
-            if (nonFeatureKeys.includes(featureKey)) continue;
-            if (window.AppFeatures.hasOwnProperty(featureKey) &&
-                window.AppFeatures[featureKey] &&
-                typeof window.AppFeatures[featureKey].initialize === 'function') {
-                let flagName = featureKey.charAt(0).toLowerCase() + featureKey.slice(1);
-                if (flagName.endsWith('Feature')) {
-                    flagName = flagName.slice(0, -'Feature'.length);
+        if (isFeatureEnabledFromService('appUpdateNotificationFeature')) {
+            if (typeof startUpdateChecker === 'function') {
+                LoggingService.info("[Main] Starting application update checker.", { functionName: "DOMContentLoaded" });
+                startUpdateChecker();
+            } else {
+                LoggingService.error('[Main] startUpdateChecker function from versionService is not available.', new Error("FunctionMissing"), { service: "versionService" });
+            }
+        } else {
+            LoggingService.info("[Main] Application update checker is disabled by feature flag 'appUpdateNotificationFeature'.", { functionName: "DOMContentLoaded" });
+        }
+
+        if (EventBus && typeof EventBus.subscribe === 'function') {
+            EventBus.subscribe('newVersionAvailable', (data) => {
+                if (isFeatureEnabledFromService('appUpdateNotificationFeature') && data && data.newVersion) {
+                    showUpdateNotificationBar(data);
+                } else if (!isFeatureEnabledFromService('appUpdateNotificationFeature')) {
+                    LoggingService.debug("[Main] 'newVersionAvailable' event received, but feature 'appUpdateNotificationFeature' is disabled. Notification suppressed.", { functionName: "newVersionAvailable_Subscription" });
                 }
-                if (featureKey === "TaskTimerSystemFeature") flagName = "taskTimerSystem";
-                if (featureKey === "SubTasksFeature") flagName = "subTasksFeature";
-                if (featureKey === "NotesFeature") flagName = "notesFeature";
-                if (isFeatureEnabledFromService(flagName)) {
-                     try {
-                        LoggingService.debug(`[Main] Initializing ${featureKey} (flag: ${flagName})...`);
-                        window.AppFeatures[featureKey].initialize();
-                    } catch (e) {
-                        LoggingService.error(`[Main] Error initializing feature ${featureKey}:`, e);
+            });
+            LoggingService.info("[Main] Subscribed to 'newVersionAvailable' event.", { functionName: "DOMContentLoaded" });
+        } else {
+            LoggingService.warn('[Main] EventBus not available for newVersionAvailable subscription.');
+        }
+
+        if (uiRendering && uiRendering.initializeUiRenderingSubscriptions) {
+            uiRendering.initializeUiRenderingSubscriptions();
+            LoggingService.info("[Main] UI Rendering event subscriptions initialized.");
+        } else {
+            LoggingService.error('[Main] uiRendering.initializeUiRenderingSubscriptions function is not available.');
+        }
+
+        if (typeof isFeatureEnabledFromService === 'function' && typeof window.AppFeatures !== 'undefined') {
+            LoggingService.info("[Main] Initializing other feature modules based on flags...");
+            for (const featureKey in window.AppFeatures) {
+                const nonFeatureKeys = ['LoggingService', 'EventBus', 'AppStore', 'ViewManager', 'ModalInteractions', 'TaskService', 'isFeatureEnabled', 'getAllFeatureFlags', 'setFeatureFlag', 'UserAccountsFeature'];
+                if (nonFeatureKeys.includes(featureKey)) continue;
+                if (window.AppFeatures.hasOwnProperty(featureKey) &&
+                    window.AppFeatures[featureKey] &&
+                    typeof window.AppFeatures[featureKey].initialize === 'function') {
+                    let flagName = featureKey.charAt(0).toLowerCase() + featureKey.slice(1);
+                    if (flagName.endsWith('Feature')) {
+                        flagName = flagName.slice(0, -'Feature'.length);
                     }
-                } else {
-                     LoggingService.info(`[Main] Skipping initialization of ${featureKey} as its flag ('${flagName}') is disabled.`);
+                    if (featureKey === "TaskTimerSystemFeature") flagName = "taskTimerSystem";
+                    if (featureKey === "SubTasksFeature") flagName = "subTasksFeature";
+                    if (featureKey === "NotesFeature") flagName = "notesFeature";
+                    if (isFeatureEnabledFromService(flagName)) {
+                         try {
+                            LoggingService.debug(`[Main] Initializing ${featureKey} (flag: ${flagName})...`);
+                            window.AppFeatures[featureKey].initialize();
+                        } catch (e) {
+                            LoggingService.error(`[Main] Error initializing feature ${featureKey}:`, e);
+                        }
+                    } else {
+                         LoggingService.info(`[Main] Skipping initialization of ${featureKey} as its flag ('${flagName}') is disabled.`);
+                    }
                 }
             }
+            LoggingService.info("[Main] Other feature modules initialization process completed.");
         }
-        LoggingService.info("[Main] Other feature modules initialization process completed.");
-    }
 
-    applyActiveFeatures();
-    LoggingService.info("[Main] Active features applied to UI (initial pass after all inits).");
+        applyActiveFeatures();
+        LoggingService.info("[Main] Active features applied to UI (initial pass after all inits).");
 
-    if (ViewManager && typeof setFilter === 'function') {
-        setFilter(ViewManager.getCurrentFilter());
-        LoggingService.info("[Main] Initial filter styles applied.");
-    } else {
-        LoggingService.error('[Main] ViewManager or setFilter function is not available for initial filter styles.');
-    }
-
-    const savedSidebarState = localStorage.getItem('sidebarState');
-    // Check if the sidebar exists before trying to set its state
-    if (document.getElementById('taskSidebar')) {
-        if (uiRendering && uiRendering.setSidebarMinimized) {
-            uiRendering.setSidebarMinimized(savedSidebarState === 'minimized');
-            LoggingService.info(`[Main] Sidebar state restored to: ${savedSidebarState || 'expanded (default)'}.`);
+        if (ViewManager && typeof setFilter === 'function') {
+            setFilter(ViewManager.getCurrentFilter());
+            LoggingService.info("[Main] Initial filter styles applied.");
         } else {
-            LoggingService.error('[Main] uiRendering.setSidebarMinimized function is not available for sidebar state.');
+            LoggingService.error('[Main] ViewManager or setFilter function is not available for initial filter styles.');
         }
-    } else {
-        LoggingService.debug('[Main] No sidebar found on this page. Skipping sidebar state restoration.');
+
+        const savedSidebarState = localStorage.getItem('sidebarState');
+        if (document.getElementById('taskSidebar')) {
+            if (uiRendering && uiRendering.setSidebarMinimized) {
+                uiRendering.setSidebarMinimized(savedSidebarState === 'minimized');
+                LoggingService.info(`[Main] Sidebar state restored to: ${savedSidebarState || 'expanded (default)'}.`);
+            } else {
+                LoggingService.error('[Main] uiRendering.setSidebarMinimized function is not available for sidebar state.');
+            }
+        } else {
+            LoggingService.debug('[Main] No sidebar found on this page. Skipping sidebar state restoration.');
+        }
+
+        if (isFeatureEnabledFromService('projectFeature') && window.AppFeatures?.ProjectsFeature) {
+            if(window.AppFeatures.ProjectsFeature.populateProjectFilterList) window.AppFeatures.ProjectsFeature.populateProjectFilterList();
+            if(window.AppFeatures.ProjectsFeature.populateProjectDropdowns) window.AppFeatures.ProjectsFeature.populateProjectDropdowns();
+            LoggingService.debug("[Main] Project UI elements populated.");
+        }
+
+        if (uiRendering && uiRendering.updateSortButtonStates) {
+            uiRendering.updateSortButtonStates();
+            LoggingService.debug("[Main] Initial sort button states updated.");
+        } else {
+            LoggingService.error('[Main] uiRendering.updateSortButtonStates function is not available.');
+        }
+
+        setupEventListeners();
+        LoggingService.info("[Main] Global event listeners set up.");
+
+        if (uiRendering && uiRendering.styleSmartViewButtons) {
+            LoggingService.debug("[Main] Explicitly calling styleSmartViewButtons after initial setup.");
+            uiRendering.styleSmartViewButtons();
+        } else {
+            LoggingService.warn("[Main] uiRendering.styleSmartViewButtons not available for explicit call.");
+        }
+
+        LoggingService.info("---------------------------------------------------------");
+        LoggingService.info("         Todo App Initialization Complete &#x2705;");
+        LoggingService.info("---------------------------------------------------------");
+        
+        logPerformanceMetrics();
+    } catch (error) {
+        LoggingService.critical('[Main] A critical error occurred during the authentication check.', error, { step: 'authGuardExecution' });
+        showCriticalErrorImported('A critical authentication error occurred. Please try again.', 'AUTH_GUARD_FAIL');
     }
-
-    if (isFeatureEnabledFromService('projectFeature') && window.AppFeatures?.ProjectsFeature) {
-        if(window.AppFeatures.ProjectsFeature.populateProjectFilterList) window.AppFeatures.ProjectsFeature.populateProjectFilterList();
-        if(window.AppFeatures.ProjectsFeature.populateProjectDropdowns) window.AppFeatures.ProjectsFeature.populateProjectDropdowns();
-        LoggingService.debug("[Main] Project UI elements populated.");
-    }
-
-    if (uiRendering && uiRendering.updateSortButtonStates) {
-        uiRendering.updateSortButtonStates();
-        LoggingService.debug("[Main] Initial sort button states updated.");
-    } else {
-        LoggingService.error('[Main] uiRendering.updateSortButtonStates function is not available.');
-    }
-
-    setupEventListeners();
-    LoggingService.info("[Main] Global event listeners set up.");
-
-    if (uiRendering && uiRendering.styleSmartViewButtons) {
-        LoggingService.debug("[Main] Explicitly calling styleSmartViewButtons after initial setup.");
-        uiRendering.styleSmartViewButtons();
-    } else {
-        LoggingService.warn("[Main] uiRendering.styleSmartViewButtons not available for explicit call.");
-    }
-
-    LoggingService.info("---------------------------------------------------------");
-    LoggingService.info("         Todo App Initialization Complete &#x2705;");
-    LoggingService.info("---------------------------------------------------------");
-    
-    logPerformanceMetrics();
 });
 
 if (typeof window.isFeatureEnabled === 'undefined') window.isFeatureEnabled = isFeatureEnabledFromService;
