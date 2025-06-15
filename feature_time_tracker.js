@@ -11,7 +11,14 @@ let _updateInterval = null;
 // --- DOM Element References ---
 let trackedItemsContainer;
 let currentTrackingSection, currentTrackingName, currentTrackingTime;
-let startStopBtn, pauseBtn; // Assuming pause is for future use
+let startStopBtn, pauseBtn; 
+let activityButtonsContainer;
+
+// --- Modal DOM Element References ---
+let manageActivitiesModal, manageActivitiesDialog, closeManageActivitiesModalBtn;
+let addActivityForm, activityNameInput, activityIconInput, activityColorInput;
+let existingActivitiesList, manageActivitiesBtn;
+
 
 // --- Color and Icon Mappings ---
 const colorMap = {
@@ -22,17 +29,16 @@ const colorMap = {
     red: 'text-red-400',
     pink: 'text-pink-400',
     indigo: 'text-indigo-400',
+    blue: 'text-blue-400', // Added for default
 };
 
 // --- Rendering Functions ---
 
-function renderTrackedItems() {
+function renderTrackedItems(logEntries) {
     if (!trackedItemsContainer) return;
 
-    const logEntries = TimeTrackerService.getLogEntries('today');
     const activities = TimeTrackerService.getActivities();
-
-    trackedItemsContainer.innerHTML = ''; // Clear existing items
+    trackedItemsContainer.innerHTML = ''; 
 
     if (logEntries.length === 0) {
         trackedItemsContainer.innerHTML = '<p class="text-slate-400 italic">No time tracked yet today.</p>';
@@ -41,13 +47,13 @@ function renderTrackedItems() {
 
     logEntries.forEach(log => {
         const activity = activities.find(a => a.id === log.activityId);
-        if (!activity) return; // Skip logs with no matching activity
+        if (!activity) return; 
 
         const itemDiv = document.createElement('div');
         itemDiv.className = 'tracked-item flex items-center p-4 rounded-lg bg-slate-800 border-l-4 border-transparent';
 
         const icon = document.createElement('i');
-        icon.className = `${activity.icon} text-xl ${colorMap[activity.color] || 'text-slate-400'} w-8 text-center mr-4`;
+        icon.className = `${activity.icon || 'fas fa-stopwatch'} text-xl ${colorMap[activity.color] || 'text-slate-400'} w-8 text-center mr-4`;
 
         const infoDiv = document.createElement('div');
         infoDiv.className = 'flex-grow';
@@ -58,8 +64,8 @@ function renderTrackedItems() {
 
         const timeP = document.createElement('p');
         timeP.className = 'text-xs text-slate-400';
-        const startTime = new Date(log.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const endTime = new Date(log.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const startTime = log.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const endTime = log.endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         timeP.textContent = `${startTime} - ${endTime}`;
 
         infoDiv.appendChild(nameP);
@@ -67,7 +73,7 @@ function renderTrackedItems() {
 
         const durationSpan = document.createElement('span');
         durationSpan.className = 'font-mono text-lg text-white';
-        durationSpan.textContent = formatMillisecondsToHMS(log.durationMs).substring(0, 5); // Show HH:MM
+        durationSpan.textContent = formatMillisecondsToHMS(log.durationMs);
 
         itemDiv.appendChild(icon);
         itemDiv.appendChild(infoDiv);
@@ -100,25 +106,26 @@ function updateCurrentlyTrackingUI() {
 
     const updateTime = () => {
         if (currentTrackingTime) {
-            const elapsedMs = new Date().getTime() - new Date(activeTimer.startTime).getTime();
+            const elapsedMs = new Date().getTime() - activeTimer.startTime.getTime();
             currentTrackingTime.textContent = formatMillisecondsToHMS(elapsedMs);
         }
     };
 
     if (_updateInterval) clearInterval(_updateInterval);
     _updateInterval = setInterval(updateTime, 1000);
-    updateTime(); // Initial call
+    updateTime(); 
 }
 
 
-function renderActivityButtons() {
-    // This function will render the clickable activity "cards" that start the timers.
-    // For now, the placeholder HTML has static cards. We'll make them dynamic.
-    const goalsContainer = document.querySelector('.flex.gap-4.overflow-x-auto');
-    if (!goalsContainer) return;
+function renderActivityButtons(activities) {
+    if (!activityButtonsContainer) return;
 
-    goalsContainer.innerHTML = ''; // Clear static items
-    const activities = TimeTrackerService.getActivities();
+    activityButtonsContainer.innerHTML = ''; 
+    
+    if (!activities || activities.length === 0) {
+        activityButtonsContainer.innerHTML = `<p class="text-slate-400 italic text-sm p-4">No activities created. Click "Manage Activities" to add some.</p>`;
+        return;
+    }
 
     activities.forEach(activity => {
         const card = document.createElement('div');
@@ -126,71 +133,163 @@ function renderActivityButtons() {
         card.title = `Start tracking ${activity.name}`;
         card.innerHTML = `
             <div class="w-16 h-16 flex items-center justify-center">
-                 <i class="${activity.icon} ${colorMap[activity.color] || 'text-slate-400'} text-3xl"></i>
+                 <i class="${activity.icon || 'fas fa-stopwatch'} ${colorMap[activity.color] || 'text-slate-400'} text-3xl"></i>
             </div>
             <p class="text-xs mt-1">${activity.name}</p>
         `;
         card.onclick = () => {
             TimeTrackerService.startTracking(activity.id);
             updateCurrentlyTrackingUI();
-            // Re-rendering the log can wait until it's stopped
         };
-        goalsContainer.appendChild(card);
+        activityButtonsContainer.appendChild(card);
     });
 }
 
+// --- Modal Management Functions ---
 
-function renderAll() {
-    renderActivityButtons();
-    renderTrackedItems();
-    updateCurrentlyTrackingUI();
+function renderManageActivitiesList(activities) {
+    if (!existingActivitiesList) return;
+    existingActivitiesList.innerHTML = '';
+
+    if (!activities || activities.length === 0) {
+        existingActivitiesList.innerHTML = `<p class="text-slate-400 text-sm italic text-center p-2">No activities yet.</p>`;
+        return;
+    }
+
+    activities.forEach(activity => {
+        const li = document.createElement('li');
+        li.className = 'flex items-center justify-between p-2 bg-slate-700 rounded-md';
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'text-slate-200';
+        nameSpan.innerHTML = `<i class="${activity.icon || 'fas fa-stopwatch'} ${colorMap[activity.color] || 'text-slate-400'} w-5 mr-2"></i> ${activity.name}`;
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.innerHTML = `<i class="fas fa-trash-alt text-red-500 hover:text-red-400"></i>`;
+        deleteBtn.title = `Delete "${activity.name}"`;
+        deleteBtn.onclick = async () => {
+            if (confirm(`Are you sure you want to delete the activity "${activity.name}"? This cannot be undone.`)) {
+                try {
+                    await TimeTrackerService.deleteActivity(activity.id);
+                } catch (error) {
+                    LoggingService.error('Failed to delete activity via button.', error, { functionName: 'deleteBtn.onclick' });
+                }
+            }
+        };
+
+        li.appendChild(nameSpan);
+        li.appendChild(deleteBtn);
+        existingActivitiesList.appendChild(li);
+    });
 }
+
+function openManageActivitiesModal() {
+    if (!manageActivitiesModal || !manageActivitiesDialog) return;
+    renderManageActivitiesList(TimeTrackerService.getActivities());
+    manageActivitiesModal.classList.remove('hidden');
+    requestAnimationFrame(() => {
+        manageActivitiesModal.classList.remove('opacity-0');
+        manageActivitiesDialog.classList.remove('scale-95', 'opacity-0');
+    });
+}
+
+function closeManageActivitiesModal() {
+    if (!manageActivitiesModal || !manageActivitiesDialog) return;
+    manageActivitiesModal.classList.add('opacity-0');
+    manageActivitiesDialog.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => {
+        manageActivitiesModal.classList.add('hidden');
+    }, 300);
+}
+
+async function handleAddActivityFormSubmit(event) {
+    event.preventDefault();
+    const functionName = 'handleAddActivityFormSubmit';
+    
+    const activityData = {
+        name: activityNameInput.value.trim(),
+        icon: activityIconInput.value.trim() || 'fas fa-stopwatch',
+        color: activityColorInput.value
+    };
+
+    if (!activityData.name) {
+        LoggingService.warn('[TimeTrackerFeature] Activity name is required.', { functionName });
+        return;
+    }
+
+    try {
+        await TimeTrackerService.addActivity(activityData);
+        addActivityForm.reset();
+        activityNameInput.focus();
+    } catch (error) {
+        LoggingService.error('Failed to add activity via form.', error, { functionName });
+    }
+}
+
 
 function initialize() {
     const functionName = 'initialize (TimeTrackerFeature)';
 
-    if (!document.querySelector('body.bg-gradient-to-br')) { // Simple check for time-tracker.html
+    if (!document.querySelector('body.bg-gradient-to-br')) { 
         LoggingService.debug('[TimeTrackerFeature] Not on time-tracker page. Skipping initialization.', { functionName });
         return;
     }
     LoggingService.info('[TimeTrackerFeature] Initializing...', { functionName });
 
-    // Initialize the service first
     TimeTrackerService.initialize();
 
     // Get DOM elements
     trackedItemsContainer = document.querySelector('.space-y-2');
+    activityButtonsContainer = document.querySelector('.flex.gap-4.overflow-x-auto');
     currentTrackingSection = document.querySelector('.bg-slate-800.p-4.rounded-lg');
     currentTrackingName = currentTrackingSection ? currentTrackingSection.querySelector('span.font-medium') : null;
     currentTrackingTime = currentTrackingSection ? currentTrackingSection.querySelector('span.text-2xl') : null;
-    
-    // Buttons in the "currently tracking" bar
-    pauseBtn = currentTrackingSection ? currentTrackingSection.querySelector('button.text-slate-400:nth-of-type(1)') : null;
     startStopBtn = currentTrackingSection ? currentTrackingSection.querySelector('button.text-slate-400:nth-of-type(2)') : null;
+    
+    // Get Modal DOM elements
+    manageActivitiesModal = document.getElementById('manageActivitiesModal');
+    manageActivitiesDialog = document.getElementById('manageActivitiesDialog');
+    closeManageActivitiesModalBtn = document.getElementById('closeManageActivitiesModalBtn');
+    addActivityForm = document.getElementById('addActivityForm');
+    activityNameInput = document.getElementById('activityNameInput');
+    activityIconInput = document.getElementById('activityIconInput');
+    activityColorInput = document.getElementById('activityColorInput');
+    existingActivitiesList = document.getElementById('existingActivitiesList');
+    manageActivitiesBtn = document.getElementById('manageActivitiesBtn');
 
-
+    // Attach Modal Event Listeners
+    if (manageActivitiesBtn) manageActivitiesBtn.addEventListener('click', openManageActivitiesModal);
+    if (closeManageActivitiesModalBtn) closeManageActivitiesModalBtn.addEventListener('click', closeManageActivitiesModal);
+    if (addActivityForm) addActivityForm.addEventListener('submit', handleAddActivityFormSubmit);
+    
     if (startStopBtn) {
-        startStopBtn.innerHTML = '<i class="fas fa-stop"></i>'; // Change to stop icon
-        startStopBtn.onclick = () => {
-            TimeTrackerService.stopTracking();
+        startStopBtn.innerHTML = '<i class="fas fa-stop"></i>'; // Ensure it's a stop icon
+        startStopBtn.onclick = async () => {
+            await TimeTrackerService.stopTracking();
             updateCurrentlyTrackingUI();
-            renderTrackedItems(); // Re-render log to show the new entry
         };
     }
+    
+    TimeTrackerService.streamActivities((activities) => {
+        renderActivityButtons(activities);
+        // If the modal is open, refresh its list too
+        if (manageActivitiesModal && !manageActivitiesModal.classList.contains('hidden')) {
+            renderManageActivitiesList(activities);
+        }
+    });
 
-    if (pauseBtn) {
-        // Pause functionality can be added later
-        pauseBtn.classList.add('hidden');
-    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); 
+    TimeTrackerService.streamLogEntries(today, (logEntries) => {
+        renderTrackedItems(logEntries);
+    });
     
-    // Initial render
-    renderAll();
+    updateCurrentlyTrackingUI();
     
-    LoggingService.info('[TimeTrackerFeature] Initialized.', { functionName });
+    LoggingService.info('[TimeTrackerFeature] Initialized and data streams started.', { functionName });
 }
 
-// Although not part of a feature flag system yet, we maintain the structure
 export const TimeTrackerFeature = {
     initialize,
-    updateUIVisibility: () => {} // Placeholder
+    updateUIVisibility: () => {} 
 };

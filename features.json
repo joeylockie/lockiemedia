@@ -1,7 +1,7 @@
 {
   "testButtonFeature": false,
   "reminderFeature": true,
-  "taskTimerSystem": false,
+  "taskTimerSystem": true,
   "advancedRecurrence": true,
   "fileAttachments": false,
   "integrationsServices": false,
