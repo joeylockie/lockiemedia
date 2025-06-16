@@ -10,6 +10,14 @@ const AD_CONTENT_ID = 'adPopupContent';
 const AD_IMAGE_ID = 'adPopupImage';
 const AD_CLOSE_BTN_ID = 'adPopupCloseBtn';
 
+function getUserId() {
+    // This function will now only be called after Firebase is initialized.
+    if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
+        return firebase.auth().currentUser.uid;
+    }
+    return 'anonymous';
+}
+
 function showAdPopup(adData) {
     const functionName = 'showAdPopup (AdDisplay)';
     const popup = document.getElementById(AD_POPUP_ID);
@@ -23,7 +31,12 @@ function showAdPopup(adData) {
         return;
     }
 
-    // Populate the popup with ad data
+    AdvertisingService.logAdEvent({
+        adId: adData.id,
+        eventType: 'view',
+        viewedByUserId: getUserId()
+    });
+
     titleEl.textContent = adData.title || 'Advertisement';
     contentEl.textContent = adData.content || '';
     if (adData.imageUrl) {
@@ -33,60 +46,68 @@ function showAdPopup(adData) {
         imageEl.style.display = 'none';
     }
 
-    // Show the popup
+    if (adData.adUrl && adData.adUrl !== '#') {
+        popup.style.cursor = 'pointer';
+        popup.onclick = (e) => {
+            if (e.target.closest(`#${AD_CLOSE_BTN_ID}`)) return;
+            AdvertisingService.logAdEvent({
+                adId: adData.id,
+                eventType: 'click',
+                viewedByUserId: getUserId()
+            });
+            window.open(adData.adUrl, '_blank');
+        };
+    } else {
+        popup.style.cursor = 'default';
+        popup.onclick = null;
+    }
+
     popup.classList.remove('hidden');
     requestAnimationFrame(() => {
         popup.classList.remove('translate-y-full', 'opacity-0');
     });
-    LoggingService.info('[AdDisplay] Ad popup displayed.', { functionName, adId: adData.id });
 
-    // Attach listener to the close button
-    closeBtn.onclick = () => {
+    closeBtn.onclick = (e) => {
+        e.stopPropagation();
         hideAdPopup();
     };
 
-    // Clear the trigger so it doesn't show again
     AdvertisingService.clearAdTrigger();
 }
 
 function hideAdPopup() {
-    const functionName = 'hideAdPopup (AdDisplay)';
     const popup = document.getElementById(AD_POPUP_ID);
     if (!popup) return;
-
     popup.classList.add('opacity-0');
     setTimeout(() => {
         popup.classList.add('hidden');
-        popup.classList.add('translate-y-full'); // Reset for next time
-    }, 300); // Match transition duration
-    LoggingService.info('[AdDisplay] Ad popup hidden.', { functionName });
+        popup.classList.add('translate-y-full');
+    }, 300);
 }
 
-
 function checkForAd() {
-    const functionName = 'checkForAd (AdDisplay)';
-    LoggingService.debug('[AdDisplay] Checking for ad trigger.', { functionName });
     const adData = AdvertisingService.getAdToShow();
     if (adData) {
         showAdPopup(adData);
     }
 }
 
-// --- Event Listeners ---
-
-// 1. Check for ad when the page loads
-document.addEventListener('DOMContentLoaded', () => {
-    const functionName = 'DOMContentLoaded (AdDisplay)';
-    LoggingService.info('[AdDisplay] Initializing ad display check.', { functionName });
+/**
+ * Initializes the ad display logic and sets up listeners.
+ * This should only be called after Firebase has been initialized.
+ */
+export function initialize() {
+    const functionName = 'initialize (AdDisplay)';
+    LoggingService.info('[AdDisplay] Initializing ad display check and listeners.', { functionName });
+    
+    // Check for an ad immediately on initialization
     checkForAd();
-});
 
-// 2. Listen for storage changes from other tabs (e.g., the admin panel)
-// This allows the ad to appear instantly without a page refresh.
-window.addEventListener('storage', (event) => {
-    const functionName = 'storageEventListener (AdDisplay)';
-    if (event.key === 'lockiemedia_ad_trigger_v1') { // Use the actual key from the service
-        LoggingService.info('[AdDisplay] Storage event detected for ad trigger.', { functionName });
-        checkForAd();
-    }
-});
+    // Listen for storage changes from other tabs
+    window.addEventListener('storage', (event) => {
+        if (event.key === 'lockiemedia_ad_trigger_v1') {
+            LoggingService.info('[AdDisplay] Storage event detected for ad trigger.', { functionName: 'storageListener' });
+            checkForAd();
+        }
+    });
+}

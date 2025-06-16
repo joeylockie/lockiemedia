@@ -7,6 +7,7 @@
     <link rel="icon" href="favicon.ico" type="image/x-icon">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { 
             font-family: 'Inter', sans-serif; 
@@ -43,25 +44,37 @@
             font-weight: 600;
             padding: 0.5rem 1rem;
             border-radius: 0.5rem;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
-            transition: all 0.3s ease-in-out;
+            box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
+            transition: all 0.2s ease-in-out;
         }
         .admin-btn:hover {
-             box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
-             transform: translateY(-0.125rem);
+             transform: translateY(-1px);
+             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
         }
-        .admin-btn-primary { 
-            background-color: #0ea5e9;
-            color: white;
+        .admin-btn-primary { background-color: #3b82f6; color: white; }
+        .admin-btn-primary:hover { background-color: #2563eb; }
+        .admin-btn-secondary { background-color: #64748b; color: white; }
+        .admin-btn-secondary:hover { background-color: #475569; }
+        .admin-btn-danger { background-color: #ef4444; color: white; }
+        .admin-btn-danger:hover { background-color: #dc2626; }
+        
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
         }
-        .admin-btn-primary:hover { background-color: #0284c7; }
-        .ad-card {
+        .admin-table th, .admin-table td {
+            border-bottom: 1px solid #374151;
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-size: 0.875rem;
+        }
+        .admin-table th {
+            background-color: #1f2937;
+            font-weight: 600;
+            color: #d1d5db;
+        }
+        .admin-table tbody tr:hover {
             background-color: #374151;
-            border-left-width: 4px;
-            transition: border-color 0.2s ease-in-out;
-        }
-        .ad-card:hover {
-            border-color: #67e8f9; /* A light cyan color for hover */
         }
     </style>
 </head>
@@ -79,7 +92,7 @@
                 <a href="admin.html" class="flex items-center px-4 py-3 text-slate-300 hover:bg-slate-700 hover:text-sky-400 rounded-lg transition-colors duration-200">
                     <i class="fas fa-arrow-left w-5 mr-3"></i><span>Back to Main Admin</span>
                 </a>
-                 <a href="index.html" class="flex items-center px-4 py-3 text-slate-300 hover:bg-slate-700 hover:text-sky-400 rounded-lg transition-colors duration-200">
+                 <a href="dashboard.html" class="flex items-center px-4 py-3 text-slate-300 hover:bg-slate-700 hover:text-sky-400 rounded-lg transition-colors duration-200">
                     <i class="fas fa-home w-5 mr-3"></i><span>Platform Home</span>
                 </a>
             </nav>
@@ -88,32 +101,76 @@
         <main class="flex-grow p-8">
             <h2 class="text-3xl font-semibold text-slate-100 mb-6">Advertising Management</h2>
             
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div class="lg:col-span-2 bg-slate-800 p-6 rounded-xl shadow-xl border border-slate-700">
-                    <h3 class="text-xl font-semibold text-slate-100 mb-4">Available Ads</h3>
-                    <div id="adListContainer" class="space-y-4">
-                        </div>
+            <section id="adAnalyticsDashboard" class="mb-8">
+                <h3 class="text-xl font-semibold text-slate-100 mb-4">Analytics Overview</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="bg-slate-800 p-4 rounded-lg shadow-md"><h4 class="text-sm font-medium text-slate-400">Total Ads</h4><p id="statsTotalAds" class="text-2xl font-bold text-white">0</p></div>
+                    <div class="bg-slate-800 p-4 rounded-lg shadow-md"><h4 class="text-sm font-medium text-slate-400">Total Views</h4><p id="statsTotalViews" class="text-2xl font-bold text-white">0</p></div>
+                    <div class="bg-slate-800 p-4 rounded-lg shadow-md"><h4 class="text-sm font-medium text-slate-400">Total Clicks</h4><p id="statsTotalClicks" class="text-2xl font-bold text-white">0</p></div>
+                    <div class="bg-slate-800 p-4 rounded-lg shadow-md"><h4 class="text-sm font-medium text-slate-400">Overall CTR</h4><p id="statsOverallCtr" class="text-2xl font-bold text-white">0.00%</p></div>
                 </div>
-
-                <div class="lg:col-span-1 bg-slate-800 p-6 rounded-xl shadow-xl border border-slate-700">
-                    <h3 class="text-xl font-semibold text-slate-100 mb-4">Trigger Ad</h3>
-                    <p class="text-slate-400 mb-4 text-sm">
-                        Enter the ID of an ad from the list to trigger it on the dashboard page for all users.
-                    </p>
-                    <div id="adTriggerContainer" class="space-y-3">
+            </section>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-1 bg-slate-800 p-6 rounded-xl shadow-xl border border-slate-700 h-fit">
+                    <h3 id="adFormTitle" class="text-xl font-semibold text-slate-100 mb-4">Create New Ad</h3>
+                    <form id="adManagementForm" class="space-y-4">
+                        <input type="hidden" id="adFormId">
                         <div>
                             <label for="adIdInput" class="block text-sm font-medium text-slate-400 mb-1">Ad ID</label>
-                            <input type="text" id="adIdInput" placeholder="e.g., promo_save25" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500">
+                            <input type="text" id="adIdInput" placeholder="e.g., promo_save25" required class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500">
                         </div>
-                        <button id="triggerAdByIdBtn" class="w-full admin-btn admin-btn-primary">
-                            <i class="fas fa-bullhorn mr-2"></i> Trigger Ad By ID
-                        </button>
+                        <div>
+                            <label for="adTitleInput" class="block text-sm font-medium text-slate-400 mb-1">Title</label>
+                            <input type="text" id="adTitleInput" placeholder="Special Offer!" required class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500">
+                        </div>
+                        <div>
+                            <label for="adContentInput" class="block text-sm font-medium text-slate-400 mb-1">Content</label>
+                            <textarea id="adContentInput" placeholder="Get 25% off..." rows="3" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"></textarea>
+                        </div>
+                        <div>
+                            <label for="adImageUrlInput" class="block text-sm font-medium text-slate-400 mb-1">Image URL</label>
+                            <input type="url" id="adImageUrlInput" placeholder="https://..." class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500">
+                        </div>
+                         <div>
+                            <label for="adUrlInput" class="block text-sm font-medium text-slate-400 mb-1">Click-Through URL</label>
+                            <input type="url" id="adUrlInput" placeholder="https://..." class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="adStartDateInput" class="block text-sm font-medium text-slate-400 mb-1">Start Date (Optional)</label>
+                                <input type="date" id="adStartDateInput" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500" style="color-scheme: dark;">
+                            </div>
+                            <div>
+                                <label for="adEndDateInput" class="block text-sm font-medium text-slate-400 mb-1">End Date (Optional)</label>
+                                <input type="date" id="adEndDateInput" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500" style="color-scheme: dark;">
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 pt-2">
+                             <button type="submit" id="adFormSubmitBtn" class="w-full admin-btn admin-btn-primary">Save Ad</button>
+                             <button type="button" id="adFormCancelBtn" class="w-full admin-btn admin-btn-secondary hidden">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="lg:col-span-2 bg-slate-800 p-6 rounded-xl shadow-xl border border-slate-700">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold text-slate-100">Ad Campaigns</h3>
+                        <button id="refreshAdListBtn" class="admin-btn admin-btn-primary text-sm"><i class="fas fa-sync-alt mr-2"></i>Refresh</button>
+                    </div>
+                    <div id="adListContainer" class="overflow-x-auto">
+                         <p class="text-slate-400">Loading ad list...</p>
                     </div>
                 </div>
             </div>
-
         </main>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script defer src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
 
     <script src="loggingService.js" type="module"></script>
     <script src="advertisingService.js" type="module"></script>

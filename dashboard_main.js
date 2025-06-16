@@ -8,10 +8,12 @@ import HabitTrackerService from './habitTrackerService.js';
 import TimeTrackerService from './timeTrackerService.js';
 import { UserAccountsFeature } from './feature_user_accounts.js';
 import { formatDate, formatMillisecondsToHMS } from './utils.js';
+// --- NEW: Import the ad display initializer ---
+import { initialize as initializeAdDisplay } from './ad_display.js';
 
 // --- DOM Element References ---
 let greetingHeader, myDayContent, habitContent, timeTrackerContent, upcomingContent, notesContent, quickLinksContent;
-let timeTrackerInterval = null; // To hold the interval for the live timer
+let timeTrackerInterval = null; 
 
 // --- Helper Functions to Get Data ---
 
@@ -133,7 +135,7 @@ function renderNotesWidget() {
         const li = document.createElement('li');
         li.className = 'text-sm text-slate-300 hover:text-sky-400 transition-colors cursor-pointer';
         li.textContent = note.title;
-        li.onclick = () => window.location.href = 'notes.html'; // Simple navigation
+        li.onclick = () => window.location.href = 'notes.html'; 
         list.appendChild(li);
     });
     notesContent.appendChild(list);
@@ -160,7 +162,7 @@ function renderHabitWidget() {
 
 function renderTimeTrackerWidget() {
     if (!timeTrackerContent) return;
-    if (timeTrackerInterval) clearInterval(timeTrackerInterval); // Clear previous interval
+    if (timeTrackerInterval) clearInterval(timeTrackerInterval);
 
     const activeTimer = TimeTrackerService.getActiveTimer();
 
@@ -199,11 +201,10 @@ function renderQuickLinksWidget() {
         { href: 'calendar.html', icon: 'fa-calendar-alt', title: 'Calendar', color: 'text-teal-400' },
         { href: 'budget.html', icon: 'fa-wallet', title: 'Budget Planner', color: 'text-lime-400' },
         { href: 'admin.html', icon: 'fa-user-shield', title: 'Admin Panel', color: 'text-slate-400' },
-        // ADDED a new object for the advertising admin page
         { href: 'advertising_admin.html', icon: 'fa-bullhorn', title: 'Ad Admin', color: 'text-orange-400' }
     ];
 
-    quickLinksContent.innerHTML = ''; // Clear content
+    quickLinksContent.innerHTML = '';
 
     links.forEach(link => {
         const linkEl = document.createElement('a');
@@ -220,7 +221,6 @@ function renderQuickLinksWidget() {
 }
 
 
-// --- Helper for Creating UI Elements ---
 function createTaskRow(task) {
     const taskRow = document.createElement('div');
     taskRow.className = 'flex items-center p-2 rounded-md hover:bg-slate-700 transition-colors';
@@ -230,7 +230,6 @@ function createTaskRow(task) {
     checkbox.className = 'form-checkbox h-5 w-5 text-sky-500 rounded border-slate-500 focus:ring-sky-400 mr-3 cursor-pointer flex-shrink-0';
     checkbox.onchange = () => {
         TaskService.toggleTaskComplete(task.id);
-        // The event bus will trigger a re-render
     };
 
     const taskText = document.createElement('span');
@@ -253,7 +252,7 @@ function createHabitRow(habit, isCompleted) {
     checkbox.onchange = () => {
         const todayString = new Date().toISOString().split('T')[0];
         HabitTrackerService.toggleCompletion(habit.id, todayString);
-        renderHabitWidget(); // Re-render this specific widget
+        renderHabitWidget();
     };
 
     const habitText = document.createElement('span');
@@ -269,8 +268,6 @@ function createHabitRow(habit, isCompleted) {
 }
 
 
-// --- Main Initialization Logic ---
-
 function renderAllWidgets() {
     renderGreeting();
     renderMyDayWidget();
@@ -278,12 +275,11 @@ function renderAllWidgets() {
     renderNotesWidget();
     renderHabitWidget();
     renderTimeTrackerWidget();
-    renderQuickLinksWidget(); // Add this to the main render function
+    renderQuickLinksWidget();
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        // ADDED: Initialize Firebase before protecting the page
         if (UserAccountsFeature && UserAccountsFeature.initialize) {
             UserAccountsFeature.initialize();
         } else {
@@ -292,41 +288,36 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         await protectPage();
         
-        // --- Initialize Services that load data ---
-        // These are local storage based, so they are fast.
-        await AppStore.initializeStore(); // Initialize the main store first
-        NoteService.getNotes(); // Ensure notes are loaded
+        await AppStore.initializeStore(); 
+        NoteService.getNotes(); 
         HabitTrackerService.initialize();
         TimeTrackerService.initialize();
 
-        // --- Get DOM elements ---
         greetingHeader = document.getElementById('greetingHeader');
         myDayContent = document.getElementById('myDayContent');
         habitContent = document.getElementById('habitContent');
         timeTrackerContent = document.getElementById('timeTrackerContent');
         upcomingContent = document.getElementById('upcomingContent');
         notesContent = document.getElementById('notesContent');
-        quickLinksContent = document.getElementById('quickLinksContent'); // Get the new element
+        quickLinksContent = document.getElementById('quickLinksContent');
 
-        // Make the body visible now that we are authenticated and ready
         document.body.style.visibility = 'visible';
         
-        // Initial Render
+        // --- FIX: Initialize the ad display logic AFTER everything else is ready ---
+        initializeAdDisplay();
+
         renderAllWidgets();
 
-        // Setup event listeners
         const signOutBtn = document.getElementById('signOutBtn');
         if (signOutBtn) {
             signOutBtn.addEventListener('click', () => UserAccountsFeature.handleSignOut());
         }
 
-        // Subscribe to data changes to keep dashboard live
         EventBus.subscribe('tasksChanged', () => {
             renderMyDayWidget();
             renderUpcomingWidget();
         });
-        // A simple subscription to re-render the time tracker when ANY time log entry changes
-        EventBus.subscribe('timeLogChanged', renderTimeTrackerWidget); // You would need to publish this event from the service
+        EventBus.subscribe('timeLogChanged', renderTimeTrackerWidget); 
         EventBus.subscribe('storeDataUpdatedFromFirebase', renderAllWidgets);
         EventBus.subscribe('userProfileChanged', renderGreeting);
 
