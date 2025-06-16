@@ -4,13 +4,13 @@ import EventBus from './eventBus.js';
 import AppStore from './store.js';
 import * as TaskService from './taskService.js';
 import * as NoteService from './noteService.js';
-import * as HabitTrackerService from './habitTrackerService.js';
-import * as TimeTrackerService from './timeTrackerService.js';
+import HabitTrackerService from './habitTrackerService.js';
+import TimeTrackerService from './timeTrackerService.js';
 import { UserAccountsFeature } from './feature_user_accounts.js';
 import { formatDate, formatMillisecondsToHMS } from './utils.js';
 
 // --- DOM Element References ---
-let greetingHeader, myDayContent, habitContent, timeTrackerContent, upcomingContent, notesContent;
+let greetingHeader, myDayContent, habitContent, timeTrackerContent, upcomingContent, notesContent, quickLinksContent;
 let timeTrackerInterval = null; // To hold the interval for the live timer
 
 // --- Helper Functions to Get Data ---
@@ -187,6 +187,39 @@ function renderTimeTrackerWidget() {
     }
 }
 
+function renderQuickLinksWidget() {
+    if (!quickLinksContent) return;
+
+    const links = [
+        { href: 'todo.html', icon: 'fa-check-double', title: 'Task Manager', color: 'text-sky-400' },
+        { href: 'notes.html', icon: 'fa-sticky-note', title: 'Notes', color: 'text-amber-400' },
+        { href: 'habits.html', icon: 'fa-calendar-check', title: 'Habit Tracker', color: 'text-green-400' },
+        { href: 'time-tracker.html', icon: 'fa-clock', title: 'Time Tracker', color: 'text-indigo-400' },
+        { href: 'pomodoro.html', icon: 'fa-stopwatch-20', title: 'Pomodoro', color: 'text-red-400' },
+        { href: 'calendar.html', icon: 'fa-calendar-alt', title: 'Calendar', color: 'text-teal-400' },
+        { href: 'budget.html', icon: 'fa-wallet', title: 'Budget Planner', color: 'text-lime-400' },
+        { href: 'admin.html', icon: 'fa-user-shield', title: 'Admin Panel', color: 'text-slate-400' },
+        // ADDED a new object for the advertising admin page
+        { href: 'advertising_admin.html', icon: 'fa-bullhorn', title: 'Ad Admin', color: 'text-orange-400' }
+    ];
+
+    quickLinksContent.innerHTML = ''; // Clear content
+
+    links.forEach(link => {
+        const linkEl = document.createElement('a');
+        linkEl.href = link.href;
+        linkEl.className = 'block p-4 rounded-lg bg-slate-700/50 hover:bg-slate-700 hover:ring-2 hover:ring-purple-500 transition-all duration-200';
+        linkEl.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas ${link.icon} w-6 mr-3 ${link.color}" style="font-size: 1.25rem;"></i>
+                <h3 class="font-semibold text-slate-100">${link.title}</h3>
+            </div>
+        `;
+        quickLinksContent.appendChild(linkEl);
+    });
+}
+
+
 // --- Helper for Creating UI Elements ---
 function createTaskRow(task) {
     const taskRow = document.createElement('div');
@@ -245,6 +278,7 @@ function renderAllWidgets() {
     renderNotesWidget();
     renderHabitWidget();
     renderTimeTrackerWidget();
+    renderQuickLinksWidget(); // Add this to the main render function
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -272,6 +306,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         timeTrackerContent = document.getElementById('timeTrackerContent');
         upcomingContent = document.getElementById('upcomingContent');
         notesContent = document.getElementById('notesContent');
+        quickLinksContent = document.getElementById('quickLinksContent'); // Get the new element
 
         // Make the body visible now that we are authenticated and ready
         document.body.style.visibility = 'visible';

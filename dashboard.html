@@ -15,7 +15,8 @@
             background-color: #1a1a2e;
             font-family: 'Inter', sans-serif;
             color: #e0e0e0;
-            visibility: hidden; /* Prevents content flashing before auth check completes */
+            /* Prevents flashing of content before auth check completes */
+            visibility: hidden;
         }
         .widget-card {
             background-color: #1f2937;
@@ -117,6 +118,15 @@
                 </div>
             </div>
 
+            <div id="quickLinksWidget" class="widget-card md:col-span-2 lg:col-span-4">
+                <div class="widget-header">
+                    <h2 class="widget-title"><i class="fas fa-rocket mr-2 text-purple-400"></i>Platform Apps</h2>
+                </div>
+                <div id="quickLinksContent" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 pt-2">
+                    <p class="text-slate-400 col-span-full">Loading links...</p>
+                </div>
+            </div>
+
         </main>
     </div>
 
@@ -133,7 +143,7 @@
         </p>
     </div>
 
-    <footer class="absolute bottom-4 w-full text-center text-gray-500 text-sm">
+    <footer class="text-center text-gray-500 py-6">
         <p>LockieMedia © 2025</p>
     </footer>
 
