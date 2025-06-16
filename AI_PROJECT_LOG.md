@@ -1,8 +1,8 @@
-AI Project Curation Log: LockieMedia Personal and Business Management Service
-Last Updated: 2025-06-14 19:56 (EDT) ##
+AI Project Curation Log: Lockie Media Platform
+Last Updated: 2025-06-16 19:39 (EDT) ##
 
 Instructions for AI (Gemini)
-Purpose of this Document: This document is your primary source of truth for the LockieMedia Personal and Business Management Service project. It provides context, tracks progress, outlines current tasks, and lists future goals. Please refer to it to understand:
+Purpose of this Document: This document is your primary source of truth for the Lockie Media Platform project. It provides context, tracks progress, outlines current tasks, and lists future goals. Please refer to it to understand:
 
 The overall project scope.
 
@@ -37,17 +37,17 @@ Provide Complete Output: Present the entire, fully updated Markdown content back
 Avoid Redundancy: Use the "Work Completed" sections (3 and 4) from the previous log version to avoid re-suggesting solutions or code for tasks already finished before the current session began.
 
 1. Project Overview & Goals:
-Application: "LockieMedia Personal and Business Management Service" and an accompanying "Admin Panel".
+Platform: "Lockie Media Platform", which includes user-facing "apps" and administrative "services".
 
-Vision: To become an all-in-one personal and business management service.
+Vision: To become an all-in-one platform for personal and business management, comprised of modular apps and services.
 
 Technology: Client-side HTML, CSS (Tailwind), JavaScript (ES6 Modules), Firebase (Auth & Firestore - Compat SDK v8 style) for backend.
 
-Core Service Features (Initial Focus): Task management (CRUD, due dates, priority, labels, notes), project organization, time management tools, feature flag system, modular services. Data stored in Firebase for authenticated users, with local fallbacks.
+Core Platform Apps (Initial Focus): Task Manager, Notes, Habit Tracker, Time Tracker, Pomodoro, Calendar, and Budget Planner. The core architecture supports these apps with a feature flag system and modular services. Data is stored in Firebase for authenticated users, with local fallbacks.
 
-Admin Panel Core: Separate HTML page (admin.html) using the same Firebase backend. Provides insights and monitoring for the Service. Includes admin authentication, display of error logs from Firestore, and read-only view of feature flags.
+Core Platform Services: The Admin Panel (admin.html), Ad Admin (advertising_admin.html), and Automation services provide insights, monitoring, and administrative capabilities for the platform's apps.
 
-Overall Goal: Develop a robust, feature-complete Personal and Business Management Service with a functional Admin Panel for application monitoring and management insights.
+Overall Goal: Develop a robust, feature-complete management platform with a suite of integrated apps and administrative services for monitoring and management.
 
 2. Current Major Task/Feature Being Worked On:
 Name: Internal Advertising System - Phase 1
@@ -57,7 +57,7 @@ Goal for this Task: Create a basic, internal advertising system that can be trig
 Status: Completed
 
 3. Work Completed (Overall Project - High Level):
-LockieMedia Service (Main Application):
+Lockie Media Platform (Apps):
 
 Core task management functionalities implemented as a foundational module.
 
@@ -79,13 +79,13 @@ Shopping List Feature: Fully implemented as a new Smart View.
 
 Functional, client-side implementations for Notes, Habit Tracker, and Time Tracker using localStorage.
 
-Admin Panel:
+Admin Panel (Service):
 
 Initial setup and core features, including enhanced logging and testing capabilities.
 
 Key metric widgets are now functional, including Avg. Load Time and API Errors (1hr).
 
-Advertising System:
+Advertising System (Service):
 
 A new, basic internal advertising system has been implemented using localStorage.
 
@@ -151,7 +151,7 @@ None.
 Potential Setup Step: The queries for performance metrics and error counts in the admin panel rely on a composite index in Firestore. The first time the admin panel is loaded, an error message may appear in the browser console with a link to create the necessary index in the Firebase Console. This is expected behavior.
 
 7. Future/Pending Work (Overall Project - High Level):
-Admin Panel:
+Admin Panel (Service):
 
 Flesh out User Management (view details, potentially disable users - requires careful rule changes).
 
@@ -159,15 +159,15 @@ Implement all Overview Stats.
 
 Implement A/B Testing stats display section.
 
-LockieMedia Service (Main Application):
+Lockie Media Platform (Apps):
 
 Complete and refine other foundational features like Calendar View, Pomodoro Timer, Sub-tasks, Task Dependencies, Reminders, File Attachments, etc.
 
 Integrate the new features (Notes, Habits, Time Tracker) with Firebase for cloud persistence for authenticated users.
 
-Expand Scope: Plan and implement new modules appropriate for a Personal and Business Management Service.
+Expand Scope: Plan and implement new apps and services appropriate for a management platform.
 
-Advertising System:
+Advertising System (Service):
 
 Integrate the system with Firestore to manage and serve ads to authenticated users.
 
@@ -182,7 +182,7 @@ Performance Metrics: A new performance_metrics collection has been introduced in
 
 Admin-only UI Elements: A new class, admin-only-feature-element, has been established.
 
-Project Rebranding: The project is now known as the "LockieMedia Personal and Business Management Service".
+Project Rebranding: The project is now known as the "Lockie Media Platform". The user-facing components (Task Manager, Notes, etc.) are referred to as "apps", while administrative components (Admin Panel, Ad Admin) are "services".
 
 Admin role is defined in Firestore at users/{uid}/appData/userSpecificData.
 
