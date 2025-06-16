@@ -83,8 +83,9 @@ function streamLogEntries(startDate, onUpdate) {
             return {
                 id: doc.id,
                 ...data,
-                startTime: data.startTime.toDate(),
-                endTime: data.endTime.toDate()
+                // Ensure startTime and endTime are converted to Date objects
+                startTime: data.startTime?.toDate ? data.startTime.toDate() : new Date(data.startTime),
+                endTime: data.endTime?.toDate ? data.endTime.toDate() : new Date(data.endTime)
             };
         });
          LoggingService.info(`[TimeTrackerService] Log entry stream updated. Found ${_logEntries.length} entries.`, { functionName, count: _logEntries.length });
@@ -205,11 +206,11 @@ async function stopTracking() {
         activityId: _activeTimer.activityId,
         startTime: _activeTimer.startTime, 
         endTime: new Date(),
+        notes: '' // Add notes field
     };
     newLogEntry.durationMs = newLogEntry.endTime.getTime() - newLogEntry.startTime.getTime();
 
     try {
-        // CORRECTED PATH: Access the sub-collection within the user's document.
         await db.collection('users').doc(userId).collection(TIME_LOG_ENTRIES_COLLECTION).add(newLogEntry);
         LoggingService.info(`[TimeTrackerService] Stopped tracking. Logged entry to Firestore.`, { functionName, newLogEntry });
     } catch (error) {
@@ -218,6 +219,95 @@ async function stopTracking() {
         _activeTimer = null; 
     }
 }
+
+/**
+ * Adds a manual time log entry to Firestore.
+ * @param {object} logData - Object containing { activityId, startTime, endTime, notes }
+ * @returns {Promise<void>}
+ */
+async function addLogEntry(logData) {
+    const functionName = 'addLogEntry';
+    const userId = _getCurrentUserId();
+    if (!userId) throw new Error('User not logged in');
+
+    const db = getFirestoreInstance();
+    const newLog = {
+        userId,
+        activityId: logData.activityId,
+        startTime: new Date(logData.startTime),
+        endTime: new Date(logData.endTime),
+        notes: logData.notes || '',
+        durationMs: new Date(logData.endTime).getTime() - new Date(logData.startTime).getTime(),
+        manuallyAdded: true
+    };
+
+    try {
+        await db.collection('users').doc(userId).collection(TIME_LOG_ENTRIES_COLLECTION).add(newLog);
+        LoggingService.info('[TimeTrackerService] Manually added new time log.', { functionName, newLog });
+    } catch (error) {
+        LoggingService.error('[TimeTrackerService] Error manually adding time log.', error, { functionName });
+        throw error;
+    }
+}
+
+/**
+ * Updates an existing time log entry in Firestore.
+ * @param {string} logId The ID of the log entry to update.
+ * @param {object} updatedData The data to update, e.g., { startTime, endTime, notes, activityId }.
+ * @returns {Promise<void>}
+ */
+async function updateLogEntry(logId, updatedData) {
+    const functionName = 'updateLogEntry';
+    const userId = _getCurrentUserId();
+    if (!userId) throw new Error('User not logged in');
+    if (!logId) throw new Error('Log ID is required for update');
+
+    const db = getFirestoreInstance();
+    const logRef = db.collection('users').doc(userId).collection(TIME_LOG_ENTRIES_COLLECTION).doc(logId);
+
+    // Recalculate duration if start/end times are changed
+    if (updatedData.startTime || updatedData.endTime) {
+        const doc = await logRef.get();
+        const existingData = doc.data();
+        const newStartTime = updatedData.startTime ? new Date(updatedData.startTime) : existingData.startTime.toDate();
+        const newEndTime = updatedData.endTime ? new Date(updatedData.endTime) : existingData.endTime.toDate();
+        updatedData.durationMs = newEndTime.getTime() - newStartTime.getTime();
+
+        // Convert dates back to Firestore Timestamps if they are date objects
+        if (updatedData.startTime) updatedData.startTime = firebase.firestore.Timestamp.fromDate(newStartTime);
+        if (updatedData.endTime) updatedData.endTime = firebase.firestore.Timestamp.fromDate(newEndTime);
+    }
+    
+    try {
+        await logRef.update(updatedData);
+        LoggingService.info(`[TimeTrackerService] Updated time log entry: ${logId}`, { functionName, logId, updatedData });
+    } catch (error) {
+        LoggingService.error(`[TimeTrackerService] Error updating time log entry: ${logId}`, error, { functionName });
+        throw error;
+    }
+}
+
+/**
+ * Deletes a time log entry from Firestore.
+ * @param {string} logId The ID of the log entry to delete.
+ * @returns {Promise<void>}
+ */
+async function deleteLogEntry(logId) {
+    const functionName = 'deleteLogEntry';
+    const userId = _getCurrentUserId();
+    if (!userId) throw new Error('User not logged in');
+    if (!logId) throw new Error('Log ID is required for deletion');
+
+    const db = getFirestoreInstance();
+    try {
+        await db.collection('users').doc(userId).collection(TIME_LOG_ENTRIES_COLLECTION).doc(logId).delete();
+        LoggingService.info(`[TimeTrackerService] Deleted time log entry: ${logId}`, { functionName, logId });
+    } catch (error) {
+        LoggingService.error(`[TimeTrackerService] Error deleting time log entry: ${logId}`, error, { functionName });
+        throw error;
+    }
+}
+
 
 // --- Unchanged Functions ---
 function getActivities() { return [..._activities]; }
@@ -259,7 +349,10 @@ const TimeTrackerService = {
     getLogEntries, 
     getActiveTimer,
     startTracking,
-    stopTracking
+    stopTracking,
+    addLogEntry,
+    updateLogEntry,
+    deleteLogEntry
 };
 
 export default TimeTrackerService;

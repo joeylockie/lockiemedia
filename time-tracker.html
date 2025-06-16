@@ -21,11 +21,18 @@
             background-color: #374151;
             border-color: #0ea5e9;
         }
-        #manageActivitiesModal {
+        #manageActivitiesModal, #timeEntryModal {
             transition: opacity 0.3s ease-in-out;
         }
-        #manageActivitiesDialog {
+        #manageActivitiesDialog, #timeEntryDialog {
             transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+        }
+        .tracked-item-actions {
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+        }
+        .tracked-item:hover .tracked-item-actions {
+            opacity: 1;
         }
     </style>
 </head>
@@ -64,11 +71,19 @@
         </aside>
 
         <main class="flex-1 bg-slate-900/70 p-8 overflow-y-auto">
-            <header class="mb-8">
-                <h2 id="timeTrackerHeader" class="text-2xl font-bold text-white mb-2">Activities</h2>
-                <div class="flex gap-4 overflow-x-auto pb-4">
+            <header class="mb-8 flex justify-between items-center">
+                <div>
+                    <h2 id="timeTrackerHeader" class="text-2xl font-bold text-white mb-2">Activities</h2>
+                    <p class="text-sm text-slate-400">Select an activity to start tracking or add a manual entry.</p>
                 </div>
+                <button id="addManualEntryBtn" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center">
+                    <i class="fas fa-plus mr-2"></i>
+                    <span>Add Entry</span>
+                </button>
             </header>
+            
+            <div class="flex gap-4 overflow-x-auto pb-4">
+            </div>
             
             <div class="bg-slate-800 p-4 rounded-lg mb-6 flex-wrap justify-between items-center hidden">
                 <span class="font-medium text-lg text-white">Currently tracking: ...</span>
@@ -79,6 +94,7 @@
                 </div>
             </div>
 
+            <h3 class="text-xl font-semibold text-slate-200 mt-8 mb-4">Today's Log</h3>
             <div id="trackedItemsContainer" class="space-y-2">
             </div>
         </main>
@@ -124,6 +140,50 @@
             </div>
         </div>
     </div>
+
+    <div id="timeEntryModal" class="fixed inset-0 bg-slate-900 bg-opacity-75 flex items-center justify-center z-50 hidden opacity-0">
+        <div id="timeEntryDialog" class="bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-lg border border-slate-700 transform scale-95 opacity-0">
+            <div class="flex justify-between items-center mb-6">
+                <h3 id="timeEntryModalTitle" class="text-2xl font-semibold text-slate-100">Add Time Entry</h3>
+                <button id="closeTimeEntryModalBtn" class="text-slate-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            <form id="timeEntryForm">
+                <input type="hidden" id="timeEntryLogId">
+                <div class="space-y-4">
+                    <div>
+                        <label for="timeEntryActivitySelect" class="block text-sm font-medium text-slate-300">Activity</label>
+                        <select id="timeEntryActivitySelect" required class="mt-1 w-full p-2.5 bg-slate-700 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none"></select>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="timeEntryDate" class="block text-sm font-medium text-slate-300">Date</label>
+                            <input type="date" id="timeEntryDate" required class="mt-1 w-full p-2 bg-slate-700 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none dark:[color-scheme:dark]">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                             <div>
+                                <label for="timeEntryStartTime" class="block text-sm font-medium text-slate-300">Start Time</label>
+                                <input type="time" id="timeEntryStartTime" required class="mt-1 w-full p-2 bg-slate-700 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none dark:[color-scheme:dark]">
+                            </div>
+                            <div>
+                                <label for="timeEntryEndTime" class="block text-sm font-medium text-slate-300">End Time</label>
+                                <input type="time" id="timeEntryEndTime" required class="mt-1 w-full p-2 bg-slate-700 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none dark:[color-scheme:dark]">
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="timeEntryNotes" class="block text-sm font-medium text-slate-300">Notes (optional)</label>
+                        <textarea id="timeEntryNotes" rows="3" class="mt-1 w-full p-2 bg-slate-700 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none" placeholder="What did you work on?"></textarea>
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-end gap-3">
+                    <button type="button" id="cancelTimeEntryBtn" class="px-5 py-2.5 bg-slate-600 text-slate-200 rounded-lg hover:bg-slate-500 transition-colors font-medium">Cancel</button>
+                    <button type="submit" id="saveTimeEntryBtn" class="px-5 py-2.5 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors font-semibold">Save Entry</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
     <script>
         const headerEl = document.getElementById('timeTrackerHeader');
         if(headerEl) {

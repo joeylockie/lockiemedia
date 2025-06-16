@@ -13,11 +13,16 @@ let trackedItemsContainer;
 let currentTrackingSection, currentTrackingName, currentTrackingTime;
 let startStopBtn, pauseBtn; 
 let activityButtonsContainer;
+let addManualEntryBtn;
 
 // --- Modal DOM Element References ---
 let manageActivitiesModal, manageActivitiesDialog, closeManageActivitiesModalBtn;
 let addActivityForm, activityNameInput, activityIconInput, activityColorInput;
 let existingActivitiesList, manageActivitiesBtn;
+
+// --- NEW: Time Entry Modal DOM Element References ---
+let timeEntryModal, timeEntryDialog, timeEntryModalTitle, closeTimeEntryModalBtn, cancelTimeEntryBtn;
+let timeEntryForm, timeEntryLogId, timeEntryActivitySelect, timeEntryDate, timeEntryStartTime, timeEntryEndTime, timeEntryNotes, saveTimeEntryBtn;
 
 
 // --- Color and Icon Mappings ---
@@ -71,8 +76,40 @@ function renderTrackedItems(logEntries) {
         const endTime = log.endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         timeP.textContent = `${startTime} - ${endTime}`;
 
+        const notesP = document.createElement('p');
+        notesP.className = 'text-sm text-slate-300 mt-1 italic';
+        notesP.textContent = log.notes || ''; // Display notes
+        if (!log.notes) notesP.classList.add('hidden'); // Hide if no notes
+
         infoDiv.appendChild(nameP);
         infoDiv.appendChild(timeP);
+        infoDiv.appendChild(notesP);
+
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'tracked-item-actions flex items-center gap-2 ml-4';
+
+        const editBtn = document.createElement('button');
+        editBtn.innerHTML = '<i class="fas fa-pencil-alt"></i>';
+        editBtn.className = 'text-slate-400 hover:text-sky-400 transition-colors';
+        editBtn.title = 'Edit Entry';
+        editBtn.onclick = () => openTimeEntryModal(log.id);
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+        deleteBtn.className = 'text-slate-400 hover:text-red-500 transition-colors';
+        deleteBtn.title = 'Delete Entry';
+        deleteBtn.onclick = async () => {
+            if (confirm('Are you sure you want to delete this time entry?')) {
+                try {
+                    await TimeTrackerService.deleteLogEntry(log.id);
+                } catch (error) {
+                    LoggingService.error('Failed to delete time entry.', error, { logId: log.id });
+                }
+            }
+        };
+
+        actionsDiv.appendChild(editBtn);
+        actionsDiv.appendChild(deleteBtn);
 
         const durationSpan = document.createElement('span');
         durationSpan.className = 'font-mono text-lg text-white';
@@ -81,6 +118,7 @@ function renderTrackedItems(logEntries) {
         itemDiv.appendChild(icon);
         itemDiv.appendChild(infoDiv);
         itemDiv.appendChild(durationSpan);
+        itemDiv.appendChild(actionsDiv);
 
         trackedItemsContainer.appendChild(itemDiv);
     });
@@ -211,20 +249,99 @@ async function handleAddActivityFormSubmit(event) {
     }
 }
 
+// --- NEW: Time Entry Modal Functions ---
+
+function openTimeEntryModal(logId = null) {
+    timeEntryForm.reset();
+    const activities = TimeTrackerService.getActivities();
+    timeEntryActivitySelect.innerHTML = '';
+    activities.forEach(act => {
+        const option = document.createElement('option');
+        option.value = act.id;
+        option.textContent = act.name;
+        timeEntryActivitySelect.appendChild(option);
+    });
+
+    if (logId) {
+        // Editing existing entry
+        timeEntryModalTitle.textContent = 'Edit Time Entry';
+        const logEntry = TimeTrackerService.getLogEntries().find(log => log.id === logId);
+        if (logEntry) {
+            timeEntryLogId.value = logEntry.id;
+            timeEntryActivitySelect.value = logEntry.activityId;
+            const entryDate = new Date(logEntry.startTime);
+            timeEntryDate.value = entryDate.toISOString().split('T')[0];
+            timeEntryStartTime.value = entryDate.toTimeString().substring(0, 5);
+            timeEntryEndTime.value = new Date(logEntry.endTime).toTimeString().substring(0, 5);
+            timeEntryNotes.value = logEntry.notes || '';
+        }
+    } else {
+        // Adding new entry
+        timeEntryModalTitle.textContent = 'Add Manual Entry';
+        timeEntryLogId.value = '';
+        const now = new Date();
+        timeEntryDate.value = now.toISOString().split('T')[0];
+    }
+
+    timeEntryModal.classList.remove('hidden');
+    requestAnimationFrame(() => {
+        timeEntryModal.classList.remove('opacity-0');
+        timeEntryDialog.classList.remove('scale-95', 'opacity-0');
+    });
+}
+
+function closeTimeEntryModal() {
+    timeEntryModal.classList.add('opacity-0');
+    timeEntryDialog.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => {
+        timeEntryModal.classList.add('hidden');
+    }, 300);
+}
+
+async function handleTimeEntryFormSubmit(event) {
+    event.preventDefault();
+    const logId = timeEntryLogId.value;
+    const startTime = new Date(`${timeEntryDate.value}T${timeEntryStartTime.value}`);
+    const endTime = new Date(`${timeEntryDate.value}T${timeEntryEndTime.value}`);
+
+    if (endTime <= startTime) {
+        alert('End time must be after start time.');
+        return;
+    }
+
+    const logData = {
+        activityId: timeEntryActivitySelect.value,
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+        notes: timeEntryNotes.value.trim()
+    };
+
+    try {
+        if (logId) {
+            // Update existing log
+            await TimeTrackerService.updateLogEntry(logId, logData);
+        } else {
+            // Add new log
+            await TimeTrackerService.addLogEntry(logData);
+        }
+        closeTimeEntryModal();
+    } catch (error) {
+        LoggingService.error('Failed to save time entry.', error);
+        alert('Error saving time entry. Please check the console.');
+    }
+}
+
 
 function initialize() {
     const functionName = 'initialize (TimeTrackerFeature)';
-    if (!document.querySelector('body.bg-gradient-to-br')) { 
+    if (!document.getElementById('timeTrackerHeader')) {
         LoggingService.debug('[TimeTrackerFeature] Not on time-tracker page. Skipping initialization.', { functionName });
         return;
     }
     LoggingService.info('[TimeTrackerFeature] Initializing...', { functionName });
     TimeTrackerService.initialize();
 
-    // CORRECTED: Use the unique ID selector now
     trackedItemsContainer = document.getElementById('trackedItemsContainer');
-    
-    // The rest of the element selections
     activityButtonsContainer = document.querySelector('.flex.gap-4.overflow-x-auto');
     currentTrackingSection = document.querySelector('.bg-slate-800.p-4.rounded-lg');
     currentTrackingName = currentTrackingSection ? currentTrackingSection.querySelector('span.font-medium') : null;
@@ -239,10 +356,31 @@ function initialize() {
     activityColorInput = document.getElementById('activityColorInput');
     existingActivitiesList = document.getElementById('existingActivitiesList');
     manageActivitiesBtn = document.getElementById('manageActivitiesBtn');
+    addManualEntryBtn = document.getElementById('addManualEntryBtn');
 
+    // Time Entry Modal elements
+    timeEntryModal = document.getElementById('timeEntryModal');
+    timeEntryDialog = document.getElementById('timeEntryDialog');
+    timeEntryModalTitle = document.getElementById('timeEntryModalTitle');
+    closeTimeEntryModalBtn = document.getElementById('closeTimeEntryModalBtn');
+    cancelTimeEntryBtn = document.getElementById('cancelTimeEntryBtn');
+    timeEntryForm = document.getElementById('timeEntryForm');
+    timeEntryLogId = document.getElementById('timeEntryLogId');
+    timeEntryActivitySelect = document.getElementById('timeEntryActivitySelect');
+    timeEntryDate = document.getElementById('timeEntryDate');
+    timeEntryStartTime = document.getElementById('timeEntryStartTime');
+    timeEntryEndTime = document.getElementById('timeEntryEndTime');
+    timeEntryNotes = document.getElementById('timeEntryNotes');
+    saveTimeEntryBtn = document.getElementById('saveTimeEntryBtn');
+
+    // Attach listeners
     if (manageActivitiesBtn) manageActivitiesBtn.addEventListener('click', openManageActivitiesModal);
     if (closeManageActivitiesModalBtn) closeManageActivitiesModalBtn.addEventListener('click', closeManageActivitiesModal);
     if (addActivityForm) addActivityForm.addEventListener('submit', handleAddActivityFormSubmit);
+    if (addManualEntryBtn) addManualEntryBtn.addEventListener('click', () => openTimeEntryModal());
+    if (timeEntryForm) timeEntryForm.addEventListener('submit', handleTimeEntryFormSubmit);
+    if (closeTimeEntryModalBtn) closeTimeEntryModalBtn.addEventListener('click', closeTimeEntryModal);
+    if (cancelTimeEntryBtn) cancelTimeEntryBtn.addEventListener('click', closeTimeEntryModal);
     
     if (startStopBtn) {
         startStopBtn.innerHTML = '<i class="fas fa-stop"></i>';
