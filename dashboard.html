@@ -15,28 +15,37 @@
             background-color: #1a1a2e;
             font-family: 'Inter', sans-serif;
             color: #e0e0e0;
-            /* Prevents flashing of content before auth check completes */
-            visibility: hidden;
+            visibility: hidden; /* Prevents content flashing before auth check completes */
         }
-        .app-card {
+        .widget-card {
             background-color: #1f2937;
             border-radius: 0.75rem;
-            padding: 2rem;
-            text-align: left;
-            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            padding: 1.5rem;
             border: 1px solid #374151;
+            display: flex;
+            flex-direction: column;
         }
-        .app-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
-            cursor: pointer;
+        .widget-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid #374151;
         }
-        .app-card h2 {
-            color: #ffffff;
+        .widget-title {
+            font-size: 1.125rem;
             font-weight: 600;
+            color: #e5e7eb;
         }
-        .app-card p {
-            color: #9ca3af;
+        .widget-view-all {
+            font-size: 0.875rem;
+            color: #38bdf8; /* sky-400 */
+            text-decoration: none;
+            transition: color 0.2s ease-in-out;
+        }
+        .widget-view-all:hover {
+            color: #7dd3fc; /* sky-300 */
         }
         /* Styles for the Ad Popup */
         #adPopup {
@@ -44,61 +53,71 @@
         }
     </style>
 </head>
-<body class="relative min-h-screen flex items-center justify-center p-4">
+<body class="bg-gradient-to-br from-slate-900 to-slate-700 min-h-screen p-4 sm:p-6 lg:p-8">
 
-    <div class="absolute top-4 right-6 md:top-6 md:right-8">
-        <button id="signOutBtn" class="text-white bg-red-500 hover:bg-red-600 font-semibold py-2 px-5 rounded-lg transition-colors duration-200">
-            Sign Out
-        </button>
-    </div>
+    <div class="w-full max-w-7xl mx-auto">
+        <header class="flex flex-col sm:flex-row justify-between sm:items-center mb-8">
+            <div>
+                <h1 id="greetingHeader" class="text-3xl md:text-4xl font-bold text-white">Welcome!</h1>
+                <p class="text-slate-400 mt-1">Here’s a look at your platform overview.</p>
+            </div>
+            <button id="signOutBtn" class="mt-4 sm:mt-0 text-white bg-red-500 hover:bg-red-600 font-semibold py-2 px-5 rounded-lg transition-colors duration-200 self-start sm:self-center">
+                Sign Out
+            </button>
+        </header>
 
-    <div class="container mx-auto p-4 text-center">
-        <h1 class="text-4xl md:text-5xl font-bold text-white mb-12">
-            Lockie Media Platform
-        </h1>
+        <main class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 
-        <div class="max-w-2xl mx-auto space-y-6">
-            <a href="todo.html" class="block app-card">
-                <h2 class="text-2xl mb-2">To-Do List & Task Manager</h2>
-                <p>Your personal and business management hub to organize tasks, set priorities, and stay productive.</p>
-            </a>
-            <a href="notes.html" class="block app-card">
-                <h2 class="text-2xl mb-2">Notes</h2>
-                <p>Capture ideas, meeting minutes, and organize your thoughts in structured notebooks.</p>
-            </a>
-            <a href="habits.html" class="block app-card">
-                <h2 class="text-2xl mb-2">Habit Tracker</h2>
-                <p>Build good habits and track your progress throughout the year with a visual grid.</p>
-            </a>
-            <a href="time-tracker.html" class="block app-card">
-                <h2 class="text-2xl mb-2">Time Tracker</h2>
-                <p>Monitor where your time goes, analyze your productivity, and stay on top of your goals.</p>
-            </a>
-            <a href="pomodoro.html" class="block app-card">
-                <h2 class="text-2xl mb-2">Pomodoro Timer</h2>
-                <p>Boost your focus and productivity with timed work sessions.</p>
-            </a>
-            <a href="calendar.html" class="block app-card">
-                <h2 class="text-2xl mb-2">Calendar</h2>
-                <p>View your tasks, events, and deadlines in a calendar view.</p>
-            </a>
-            <a href="budget.html" class="block app-card">
-                <h2 class="text-2xl mb-2">Budget Planner</h2>
-                <p>Track your income, expenses, and manage your financial goals.</p>
-            </a>
-            <a href="automation.html" class="block app-card">
-                <h2 class="text-2xl mb-2">Automation Workflows</h2>
-                <p>Create automated rules and workflows to streamline your tasks.</p>
-            </a>
-            <a href="admin.html" class="block app-card">
-                <h2 class="text-2xl mb-2">Admin Panel</h2>
-                <p>Manage application settings, features, and user data from a centralized control panel.</p>
-            </a>
-            <a href="advertising_admin.html" class="block app-card">
-                <h2 class="text-2xl mb-2">Advertising Admin</h2>
-                <p>Manage and create advertising campaigns for the platform.</p>
-            </a>
-        </div>
+            <div id="myDayWidget" class="widget-card md:col-span-2 lg:col-span-2">
+                <div class="widget-header">
+                    <h2 class="widget-title"><i class="fas fa-sun mr-2 text-yellow-400"></i>Today's Focus</h2>
+                    <a href="todo.html" class="widget-view-all">View All Tasks &rarr;</a>
+                </div>
+                <div id="myDayContent" class="space-y-3">
+                    <p class="text-slate-400">Loading today's tasks...</p>
+                </div>
+            </div>
+
+            <div id="habitWidget" class="widget-card">
+                <div class="widget-header">
+                    <h2 class="widget-title"><i class="fas fa-check-circle mr-2 text-green-400"></i>Daily Habits</h2>
+                    <a href="habits.html" class="widget-view-all">Details &rarr;</a>
+                </div>
+                <div id="habitContent" class="space-y-2">
+                    <p class="text-slate-400">Loading habits...</p>
+                </div>
+            </div>
+
+            <div id="timeTrackerWidget" class="widget-card">
+                <div class="widget-header">
+                    <h2 class="widget-title"><i class="fas fa-clock mr-2 text-sky-400"></i>Time Tracker</h2>
+                    <a href="time-tracker.html" class="widget-view-all">Details &rarr;</a>
+                </div>
+                <div id="timeTrackerContent">
+                    <p class="text-slate-400">Loading time tracking status...</p>
+                </div>
+            </div>
+
+            <div id="upcomingWidget" class="widget-card md:col-span-2 lg:col-span-3">
+                <div class="widget-header">
+                    <h2 class="widget-title"><i class="fas fa-calendar-alt mr-2 text-indigo-400"></i>Upcoming Deadlines (Next 7 Days)</h2>
+                </div>
+                <div id="upcomingContent">
+                    <p class="text-slate-400">Loading upcoming tasks...</p>
+                </div>
+            </div>
+            
+            <div id="notesWidget" class="widget-card lg:col-span-1">
+                <div class="widget-header">
+                    <h2 class="widget-title"><i class="fas fa-sticky-note mr-2 text-amber-400"></i>Recent Notes</h2>
+                     <a href="notes.html" class="widget-view-all">All Notes &rarr;</a>
+                </div>
+                <div id="notesContent">
+                    <p class="text-slate-400">Loading recent notes...</p>
+                </div>
+            </div>
+
+        </main>
     </div>
 
     <div id="adPopup" class="fixed bottom-5 right-5 w-80 bg-white dark:bg-slate-800 rounded-lg shadow-2xl border dark:border-slate-700 p-4 transform translate-y-full opacity-0 hidden">
@@ -120,33 +139,19 @@
 
     <script src="authGuard.js" type="module"></script>
     <script src="loggingService.js" type="module"></script>
+    <script src="eventBus.js" type="module"></script>
+    <script src="store.js" type="module"></script>
     <script src="feature_user_accounts.js" type="module"></script>
+    <script src="taskService.js" type="module"></script>
+    <script src="habitTrackerService.js" type="module"></script>
+    <script src="timeTrackerService.js" type="module"></script>
+    <script src="noteService.js" type="module"></script>
+    <script src="utils.js" type="module"></script>
+    
     <script src="advertisingService.js" type="module"></script>
     <script src="ad_display.js" type="module"></script>
-    <script type="module">
-        import protectPage from './authGuard.js';
-        import { UserAccountsFeature } from './feature_user_accounts.js';
 
-        // Initialize features needed on this page
-        UserAccountsFeature.initialize();
+    <script src="dashboard_main.js" type="module"></script>
 
-        // Protect the page, then run page-specific logic
-        protectPage().then(user => {
-            console.log(`Welcome to the dashboard, ${user.email}`);
-            
-            // Make the body visible now that the user is authenticated
-            document.body.style.visibility = 'visible';
-
-            const signOutBtn = document.getElementById('signOutBtn');
-            if (signOutBtn) {
-                signOutBtn.addEventListener('click', () => {
-                    UserAccountsFeature.handleSignOut();
-                });
-            }
-        }).catch(error => {
-            console.error("Auth guard failed:", error);
-            // The guard will redirect, so this catch is mainly for debugging.
-        });
-    </script>
 </body>
 </html>

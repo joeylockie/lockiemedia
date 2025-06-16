@@ -98,6 +98,20 @@ function streamLogEntries(startDate, onUpdate) {
 }
 
 /**
+ * Calculates the total tracked milliseconds for today.
+ * @returns {number} Total milliseconds tracked today.
+ */
+function getTodaysTotalTrackedMs() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return _logEntries
+        .filter(entry => new Date(entry.startTime) >= today)
+        .reduce((total, entry) => total + entry.durationMs, 0);
+}
+
+
+/**
  * Fetches log entries for a specific date range for reporting.
  * @param {Date} startDate The start date of the range.
  * @param {Date} endDate The end date of the range.
@@ -341,7 +355,8 @@ const TimeTrackerService = {
     initialize,
     streamActivities,
     streamLogEntries,
-    fetchLogEntriesForDateRange, 
+    fetchLogEntriesForDateRange,
+    getTodaysTotalTrackedMs,
     stopAllStreams,
     addActivity,
     deleteActivity,
