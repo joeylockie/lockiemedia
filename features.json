@@ -1,8 +1,8 @@
 {
   "testButtonFeature": false,
-  "reminderFeature": false,
-  "taskTimerSystem": false,
-  "advancedRecurrence": false,
+  "reminderFeature": true,
+  "taskTimerSystem": true,
+  "advancedRecurrence": true,
   "fileAttachments": false,
   "integrationsServices": false,
   "userAccounts": true,
@@ -25,6 +25,8 @@
   "dataVersioningFeature": false,
   "desktopNotificationsFeature": true,
   "appUpdateNotificationFeature": true,
+  "shoppingListFeature": true,
+  "notesFeature": true,
   "debugMode": true,
   "userRoleFeature": true
 }

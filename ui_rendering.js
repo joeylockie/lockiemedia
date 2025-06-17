@@ -448,6 +448,15 @@ export function hideTooltip() {
 
 // --- Task Rendering ---
 export function refreshTaskView() {
+    // --- Page-Specific Guard ---
+    // This entire function is for rendering the main task view area.
+    // If the core task list element doesn't exist, we're not on the right page.
+    if (!document.getElementById('taskList')) {
+        LoggingService.debug('[UI Rendering] Not on the main task page. Skipping refreshTaskView.', {module: 'ui_rendering'});
+        return;
+    }
+    // --- End Page-Specific Guard ---
+
     if (!mainContentArea || !ViewManager || !isFeatureEnabled) { LoggingService.error("[RefreshTaskView] Core dependencies not found.", null, {module: 'ui_rendering'}); return; }
     const currentView = ViewManager.getCurrentTaskViewMode();
     updateViewToggleButtonsState();
@@ -773,6 +782,7 @@ export function updateYourTasksHeading() {
         else if (currentFilter === 'today') title = "Today's Tasks";
         else if (currentFilter === 'upcoming') title = "Upcoming Tasks";
         else if (currentFilter === 'completed') title = "Completed Tasks";
+        else if (currentFilter === 'shopping_list') title = "Shopping List";
         else if (currentFilter.startsWith('project_')) {
             if (isFeatureEnabled('projectFeature') && AppStore) {
                 const projectId = parseInt(currentFilter.split('_')[1]);
@@ -912,4 +922,4 @@ export function initializeUiRenderingSubscriptions() {
     LoggingService.debug("[UI Rendering] Event subscriptions initialized.", {module: 'ui_rendering'});
 }
 
-LoggingService.debug("ui_rendering.js loaded, using imported services and functions.", { module: 'ui_rendering' }); // Changed console.log
+LoggingService.debug("ui_rendering.js loaded, using imported services and functions.", { module: 'ui_rendering' });

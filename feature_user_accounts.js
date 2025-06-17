@@ -267,6 +267,10 @@ async function handleSignOut() {
         if (settingsModalEl && !settingsModalEl.classList.contains('hidden') && window.AppFeatures && window.AppFeatures.ModalInteractions && window.AppFeatures.ModalInteractions.closeSettingsModal) {
             window.AppFeatures.ModalInteractions.closeSettingsModal();
         }
+
+        // Redirect to the index page upon successful sign-out.
+        window.location.href = 'index.html';
+
     } catch (error) {
         LoggingService.error('[UserAccountsFeature] Error signing out:', error, { functionName });
         EventBus.publish('displayUserMessage', { text: `Error signing out: ${error.message}`, type: 'error' });

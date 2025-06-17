@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notes - LockieMedia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a1a2e;
+            color: #e0e0e0;
+            overflow: hidden; /* Prevent body scroll with flex columns */
+        }
+        .notebook-item.active {
+            background-color: #0ea5e9; /* sky-500 */
+            color: white;
+        }
+        .note-item.active {
+            background-color: #374151; /* slate-700 */
+            border-color: #0ea5e9; /* sky-500 */
+        }
+        /* Make the note editor textarea look seamless */
+        #noteContentTextarea {
+            background: transparent;
+            border: none;
+            resize: none;
+            color: inherit;
+        }
+        #noteContentTextarea:focus {
+            outline: none;
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body id="notesPage" class="bg-gradient-to-br from-slate-900 to-slate-700 min-h-screen">
+
+    <div class="flex h-screen text-slate-200">
+        <aside class="w-64 bg-slate-800 p-6 flex-shrink-0 border-r border-slate-700 flex flex-col">
+            <div class="flex items-center justify-between mb-8">
+                <h1 class="text-2xl font-bold text-sky-400">My Notes</h1>
+                <a href="index.html" class="text-slate-400 hover:text-white" title="Back to Home">
+                    <i class="fas fa-home"></i>
+                </a>
+            </div>
+            <nav class="flex-grow overflow-y-auto">
+                <h2 class="text-xs font-semibold uppercase text-slate-400 tracking-wider mb-3">Notebooks</h2>
+                <ul id="notebooksList" class="space-y-2">
+                    </ul>
+            </nav>
+            <div class="mt-auto pt-4 space-y-2 flex-shrink-0">
+                 <button id="newNotebookBtn" class="w-full flex items-center justify-center px-4 py-2.5 rounded-lg transition-colors duration-200 bg-slate-700 hover:bg-slate-600 text-white font-semibold">
+                    <i class="fas fa-plus-square mr-2"></i>
+                    <span>New Notebook</span>
+                </button>
+                 <button id="newNoteBtn" class="w-full flex items-center justify-center px-4 py-2.5 rounded-lg transition-colors duration-200 bg-sky-500 hover:bg-sky-600 text-white font-semibold">
+                    <i class="fas fa-plus mr-2"></i>
+                    <span>New Note</span>
+                </button>
+            </div>
+        </aside>
+
+        <div class="w-80 bg-slate-900/50 p-6 flex-shrink-0 border-r border-slate-700 flex flex-col">
+            <div class="flex items-center justify-between mb-6 flex-shrink-0">
+                 <h2 id="currentNotebookTitle" class="text-xl font-semibold text-slate-100">All Notes</h2>
+                 <span id="notesCount" class="text-sm text-slate-400">0 notes</span>
+            </div>
+            <div id="notesList" class="space-y-3 overflow-y-auto">
+                </div>
+        </div>
+
+        <main id="noteEditor" class="flex-1 bg-slate-900 p-8 flex flex-col overflow-y-hidden hidden">
+            <div class="max-w-3xl mx-auto h-full flex flex-col w-full">
+                <div class="flex justify-between items-center mb-6 flex-shrink-0">
+                    <div id="noteMeta" class="text-sm text-slate-400">
+                        </div>
+                    <div>
+                        <button class="text-slate-400 hover:text-white px-3 py-2 rounded-md" title="Share (coming soon)">
+                            <i class="fas fa-share-alt"></i>
+                        </button>
+                        <button id="deleteNoteBtn" class="text-slate-400 hover:text-red-500 px-3 py-2 rounded-md" title="Delete Note">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <input id="noteTitleInput" type="text" value="Select a note" class="w-full bg-transparent text-4xl font-bold text-white focus:outline-none mb-6 flex-shrink-0">
+
+                <div class="flex-grow w-full">
+                    <textarea id="noteContentTextarea" class="w-full h-full text-slate-300 text-lg leading-relaxed focus:outline-none bg-transparent border-none resize-none"></textarea>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="authGuard.js" type="module"></script>
+    <script src="utils.js" type="module"></script>
+    <script src="eventBus.js" type="module"></script>
+    <script src="store.js" type="module"></script>
+    <script src="featureFlagService.js" type="module"></script>
+    <script src="versionService.js" type="module"></script>
+    <script src="modalStateService.js" type="module"></script>
+    <script src="tooltipService.js" type="module"></script>
+    <script src="taskService.js" type="module"></script>
+    <script src="projectService.js" type="module"></script>
+    <script src="labelService.js" type="module"></script>
+    <script src="viewManager.js" type="module"></script>
+    <script src="bulkActionService.js" type="module"></script>
+    <script src="notificationService.js" type="module"></script>
+    
+    <script src="noteService.js" type="module"></script>
+
+    <script src="app_logic.js" type="module"></script>
+    <script src="modal_interactions.js" type="module"></script>
+
+    <script src="feature_test_button.js" type="module"></script>
+    <script src="feature_reminder.js" type="module"></script>
+    <script src="feature_advanced_recurrence.js" type="module"></script>
+    <script src="feature_file_attachments.js" type="module"></script>
+    <script src="feature_integrations_services.js" type="module"></script>
+    <script src="feature_user_accounts.js" type="module"></script>
+    <script src="feature_collaboration_sharing.js" type="module"></script>
+    <script src="feature_cross_device_sync.js" type="module"></script>
+    <script src="feature_task_dependencies.js" type="module"></script>
+    <script src="feature_smarter_search.js" type="module"></script>
+    <script src="feature_shopping_list.js" type="module"></script>
+    <script src="task_timer_system.js" type="module"></script>
+    <script src="feature_kanban_board.js" type="module"></script>
+    <script src="feature_projects.js" type="module"></script>
+    <script src="feature_data_management.js" type="module"></script>
+    <script src="feature_calendar_view.js" type="module"></script>
+    <script src="pomodoro_timer.js" type="module"></script>
+    <script src="feature_contact_us.js" type="module"></script>
+    <script src="feature_social_media_links.js" type="module"></script>
+    <script src="feature_about_us.js" type="module"></script>
+    <script src="feature_data_versioning.js" type="module"></script>
+    <script src="feature_desktop_notifications.js" type="module"></script>
+    <script src="feature_notes.js" type="module"></script> 
+    
+    <script src="ui_rendering.js" type="module"></script>
+    <script src="ui_event_handlers.js" type="module"></script>
+    <script src="formEventHandlers.js" type="module"></script>
+    <script src="modalEventHandlers.js" type="module"></script>
+
+    <script src="performanceService.js" type="module"></script>
+    <script src="main.js" type="module"></script>
+</body>
+</html>

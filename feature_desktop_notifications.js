@@ -200,6 +200,15 @@ function _manageDueTaskChecker() {
 
 function initialize() {
     const functionName = 'initialize (DesktopNotificationsFeature)';
+    
+    // --- Page-Specific Guard ---
+    // The elements this feature initializes are only on the main todo page.
+    if (!document.getElementById('settingsModal')) {
+        LoggingService.debug('[DesktopNotificationsFeature] Settings modal not found. Skipping initialization.', { functionName });
+        return;
+    }
+    // --- End Page-Specific Guard ---
+
     LoggingService.info('[DesktopNotificationsFeature] Initializing...', { functionName });
 
     _loadSettings();

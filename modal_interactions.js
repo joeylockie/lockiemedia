@@ -23,6 +23,7 @@ import { ProjectsFeature } from './feature_projects.js';
 import { TaskTimerSystemFeature } from './task_timer_system.js';
 import { DataVersioningFeature } from './feature_data_versioning.js';
 import { DesktopNotificationsFeature } from './feature_desktop_notifications.js';
+import { AdvancedRecurrenceFeature } from './feature_advanced_recurrence.js';
 
 
 export function openAddModal() {
@@ -47,6 +48,9 @@ export function openAddModal() {
     const modalSubTasksListAddEl = document.getElementById('modalSubTasksListAdd'); 
     const modalSubTaskInputAddEl = document.getElementById('modalSubTaskInputAdd'); 
     const taskDependenciesSectionAddEl = document.getElementById('taskDependenciesSectionAdd'); 
+    const modalRecurrenceAddEl = document.getElementById('modalRecurrenceAdd');
+    const recurrenceOptionsAddEl = document.getElementById('recurrenceOptionsAdd');
+    const recurrenceEndDateAddEl = document.getElementById('recurrenceEndDateAdd');
 
 
     if (!addTaskModalEl || !modalDialogAddEl || !modalTaskInputAddEl || !modalTodoFormAddEl || !modalPriorityInputAddEl) { 
@@ -58,6 +62,8 @@ export function openAddModal() {
     modalTaskInputAddEl.focus(); 
     modalTodoFormAddEl.reset(); 
     modalPriorityInputAddEl.value = 'medium'; 
+    if (modalRecurrenceAddEl) modalRecurrenceAddEl.value = 'none';
+    if (recurrenceOptionsAddEl) recurrenceOptionsAddEl.classList.add('hidden');
 
     if (existingLabelsDatalistEl) populateDatalist(existingLabelsDatalistEl); 
 
@@ -78,6 +84,7 @@ export function openAddModal() {
     const todayStr = getTodayDateString(); 
     if (modalDueDateInputAddEl) modalDueDateInputAddEl.min = todayStr; 
     if (modalReminderDateAddEl) modalReminderDateAddEl.min = todayStr; 
+    if (recurrenceEndDateAddEl) recurrenceEndDateAddEl.min = todayStr;
 
     clearTempSubTasksForAddModal(); 
 
@@ -136,6 +143,8 @@ export function openViewEditModal(taskId) {
     const modalSubTasksListViewEditEl = document.getElementById('modalSubTasksListViewEdit'); 
     const modalSubTaskInputViewEditEl = document.getElementById('modalSubTaskInputViewEdit'); 
     const taskDependenciesSectionViewEditEl = document.getElementById('taskDependenciesSectionViewEdit'); 
+    const modalRecurrenceViewEditEl = document.getElementById('modalRecurrenceViewEdit');
+    const recurrenceEndDateViewEditEl = document.getElementById('recurrenceEndDateViewEdit');
 
 
     if (!AppStore || typeof AppStore.getTasks !== 'function' || !ModalStateService) { 
@@ -168,6 +177,38 @@ export function openViewEditModal(taskId) {
     if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectDropdowns) { 
         ProjectsFeature.populateProjectDropdowns(); 
         if (modalProjectSelectViewEditEl) modalProjectSelectViewEditEl.value = task.projectId || "0"; 
+    }
+    
+    if (isFeatureEnabled('advancedRecurrence') && modalRecurrenceViewEditEl) {
+        const recurrenceOptionsViewEditEl = document.getElementById('recurrenceOptionsViewEdit');
+        const recurrenceIntervalViewEditEl = document.getElementById('recurrenceIntervalViewEdit');
+        const weeklyRecurrenceOptionsViewEditEl = document.getElementById('weeklyRecurrenceOptionsViewEdit');
+
+        modalRecurrenceViewEditEl.value = task.recurrence?.frequency || 'none';
+        
+        if (recurrenceIntervalViewEditEl) {
+            recurrenceIntervalViewEditEl.value = task.recurrence?.interval || 1;
+        }
+        if (weeklyRecurrenceOptionsViewEditEl) {
+            const checkboxes = weeklyRecurrenceOptionsViewEditEl.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(cb => {
+                cb.checked = task.recurrence?.daysOfWeek?.includes(cb.value) || false;
+            });
+        }
+        if (recurrenceEndDateViewEditEl) {
+            recurrenceEndDateViewEditEl.value = task.recurrence?.endDate || '';
+            recurrenceEndDateViewEditEl.min = task.dueDate || getTodayDateString();
+        }
+
+        if (AdvancedRecurrenceFeature && AdvancedRecurrenceFeature.updateRecurrenceUI) {
+            AdvancedRecurrenceFeature.updateRecurrenceUI(
+                modalRecurrenceViewEditEl,
+                recurrenceOptionsViewEditEl,
+                recurrenceIntervalViewEditEl,
+                document.getElementById('recurrenceFrequencyTextViewEdit'),
+                weeklyRecurrenceOptionsViewEditEl
+            );
+        }
     }
 
     if (modalNotesInputViewEditEl) modalNotesInputViewEditEl.value = task.notes || ''; 

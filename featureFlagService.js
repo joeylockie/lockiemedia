@@ -35,6 +35,8 @@ let _featureFlags = {
     dataVersioningFeature: false,
     desktopNotificationsFeature: false,
     appUpdateNotificationFeature: false,
+    shoppingListFeature: false,
+    notesFeature: false,
     debugMode: false,
     userRoleFeature: false
 };

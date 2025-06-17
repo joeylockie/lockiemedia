@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>History & Reports - LockieMedia Time Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a1a2e;
+            color: #e0e0e0;
+            visibility: hidden; /* Prevents content flash before auth check */
+        }
+        .stat-card {
+            background-color: #1f2937;
+            border-left-width: 4px;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 to-slate-700 min-h-screen">
+
+    <div class="flex h-screen">
+        <aside class="w-72 bg-slate-800 p-6 flex-shrink-0 border-r border-slate-700 flex flex-col">
+            <div class="flex items-center justify-between mb-8">
+                <h1 class="text-2xl font-bold text-sky-400">Time Tracker</h1>
+                <a href="dashboard.html" class="text-slate-400 hover:text-white" title="Back to Dashboard">
+                    <i class="fas fa-home"></i>
+                </a>
+            </div>
+            <nav class="flex-grow">
+                <h2 class="text-xs font-semibold uppercase text-slate-400 tracking-wider mb-3">Views</h2>
+                <ul class="space-y-2">
+                    <li>
+                        <a href="time-tracker.html" class="flex items-center px-4 py-2.5 rounded-lg text-slate-300 hover:bg-slate-700">
+                            <i class="fas fa-clock w-5 mr-3"></i>
+                            <span>Today</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="time-history.html" class="flex items-center px-4 py-2.5 rounded-lg bg-sky-500 text-white font-semibold">
+                            <i class="fas fa-calendar-week w-5 mr-3"></i>
+                            <span>History & Reports</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            <div class="mt-auto">
+                 <button id="manageActivitiesBtn" class="w-full flex items-center justify-center px-4 py-3 rounded-lg transition-colors duration-200 bg-slate-700 hover:bg-slate-600 text-white font-semibold">
+                    <i class="fas fa-cog mr-2"></i>
+                    <span>Manage Activities</span>
+                </button>
+            </div>
+        </aside>
+
+        <main class="flex-1 bg-slate-900/70 p-8 overflow-y-auto">
+            <header class="flex flex-col md:flex-row justify-between md:items-center mb-8 gap-4">
+                <div>
+                    <h2 class="text-3xl font-bold text-white">History & Reports</h2>
+                    <p id="dateRangeText" class="text-slate-400">Showing data for This Week</p>
+                </div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <select id="dateRangeSelector" class="p-2 bg-slate-700 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none">
+                        <option value="this_week">This Week</option>
+                        <option value="last_7_days">Last 7 Days</option>
+                        <option value="this_month">This Month</option>
+                        <option value="last_30_days">Last 30 Days</option>
+                        <option value="custom">Custom Range</option>
+                    </select>
+                    <div id="customDateInputs" class="hidden items-center gap-2">
+                        <input type="date" id="startDateInput" class="p-2 bg-slate-700 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none dark:[color-scheme:dark]">
+                        <span class="text-slate-400">to</span>
+                        <input type="date" id="endDateInput" class="p-2 bg-slate-700 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none dark:[color-scheme:dark]">
+                    </div>
+                </div>
+            </header>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="stat-card p-5 rounded-lg border-sky-500"><h3 class="font-semibold text-slate-300">Total Time Tracked</h3><p id="totalTimeStat" class="text-3xl font-bold mt-1">00:00:00</p></div>
+                <div class="stat-card p-5 rounded-lg border-green-500"><h3 class="font-semibold text-slate-300">Most Tracked Activity</h3><p id="mostTrackedStat" class="text-xl font-bold mt-1">-</p></div>
+                <div class="stat-card p-5 rounded-lg border-purple-500"><h3 class="font-semibold text-slate-300">Total Entries</h3><p id="totalEntriesStat" class="text-3xl font-bold mt-1">0</p></div>
+                <div class="stat-card p-5 rounded-lg border-yellow-500"><h3 class="font-semibold text-slate-300">Average Daily Time</h3><p id="avgDailyTimeStat" class="text-3xl font-bold mt-1">00:00:00</p></div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                <div class="lg:col-span-3 bg-slate-800 p-6 rounded-xl shadow-xl border border-slate-700">
+                    <h3 class="text-xl font-semibold text-slate-100 mb-4">Detailed Log</h3>
+                    <div id="detailedLogContainer" class="space-y-4 max-h-[60vh] overflow-y-auto">
+                        <p class="text-slate-400 italic">Select a date range to view logs.</p>
+                    </div>
+                </div>
+                <div class="lg:col-span-2 space-y-8">
+                    <div class="bg-slate-800 p-6 rounded-xl shadow-xl border border-slate-700">
+                        <h3 class="text-xl font-semibold text-slate-100 mb-4">Activity Breakdown</h3>
+                        <canvas id="activityPieChart"></canvas>
+                    </div>
+                    <div class="bg-slate-800 p-6 rounded-xl shadow-xl border border-slate-700">
+                        <h3 class="text-xl font-semibold text-slate-100 mb-4">Daily Totals</h3>
+                        <canvas id="dailyBarChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+    
+    <script src="loggingService.js" type="module"></script>
+    <script src="feature_user_accounts.js" type="module"></script>
+    <script src="authGuard.js" type="module"></script>
+    <script src="utils.js" type="module"></script>
+    <script src="timeTrackerService.js" type="module"></script>
+    <script src="feature_time_history.js" type="module"></script>
+
+    <script src="time_history_main.js" type="module"></script>
+
+</body>
+</html>

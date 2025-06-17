@@ -28,9 +28,9 @@ import {
     // but some might be needed by other handlers if they directly manipulate modals.
     // For now, keeping them if any remaining handler needs them.
     openAddModal, // For '+' key shortcut
-    closeViewTaskDetailsModal, // For deleteTask
-    closeViewEditModal, // For deleteTask
-    closeSettingsModal // For clearCompletedTasks
+    closeViewTaskDetailsModal, // for deleteTask
+    closeViewEditModal, // for deleteTask
+    closeSettingsModal // for clearCompletedTasks
 } from './modal_interactions.js';
 
 // Import form event handlers (still needed for attaching to forms)
@@ -283,6 +283,16 @@ function handleAddTempSubTaskForAddModal() {
 export function setupEventListeners() {
     const functionName = 'setupEventListeners';
     LoggingService.info('[UIEventHandlers] Setting up event listeners.', { functionName });
+
+    // --- Page-Specific Guard ---
+    // Only set up listeners for the main task application on the correct page.
+    const mainAppContainer = document.getElementById('taskSidebar'); // A key element of todo.html
+    if (!mainAppContainer) {
+        LoggingService.debug('[UIEventHandlers] Not on the main task page. Skipping main event listener setup.', { functionName });
+        // Global listeners that should apply everywhere can still be set up here if needed.
+        return; // Exit the function to prevent errors on other pages like notes.html
+    }
+    // --- End Page-Specific Guard ---
 
     // Setup modal related event listeners
     setupModalEventListeners(); // Imported from modalEventHandlers.js
