@@ -49,7 +49,36 @@ export function addTask(taskData) {
     let currentTasks = AppStore.getTasks(); //
     const currentKanbanColumns = AppStore.getKanbanColumns(); //
     const defaultKanbanColumn = currentKanbanColumns[0]?.id || 'todo'; //
-    const newTask = { id: Date.now(), creationDate: Date.now(), completed: false, kanbanColumnId: defaultKanbanColumn, ...taskData, dueDate: taskData.dueDate || null, time: taskData.time || null, priority: taskData.priority || 'medium', label: taskData.label || '', notes: taskData.notes || '', projectId: typeof taskData.projectId === 'number' ? taskData.projectId : 0, isReminderSet: taskData.isReminderSet || false, reminderDate: taskData.reminderDate || null, reminderTime: taskData.reminderTime || null, reminderEmail: taskData.reminderEmail || null, estimatedHours: taskData.estimatedHours || 0, estimatedMinutes: taskData.estimatedMinutes || 0, timerStartTime: null, timerAccumulatedTime: 0, timerIsRunning: false, timerIsPaused: false, actualDurationMs: 0, attachments: taskData.attachments || [], completedDate: null, subTasks: taskData.subTasks || [], dependsOn: taskData.dependsOn || [], blocksTasks: taskData.blocksTasks || [], recurrence: taskData.recurrence || null }; //
+    const newTask = {
+        id: Date.now(),
+        creationDate: Date.now(),
+        completed: false,
+        kanbanColumnId: defaultKanbanColumn,
+        ...taskData,
+        dueDate: taskData.dueDate || null,
+        time: taskData.time || null,
+        priority: taskData.priority || 'medium',
+        label: taskData.label || '',
+        notes: taskData.notes || '',
+        projectId: typeof taskData.projectId === 'number' ? taskData.projectId : 0,
+        isReminderSet: taskData.isReminderSet || false,
+        reminderDate: taskData.reminderDate || null,
+        reminderTime: taskData.reminderTime || null,
+        reminderEmail: taskData.reminderEmail || null,
+        estimatedHours: taskData.estimatedHours || 0,
+        estimatedMinutes: taskData.estimatedMinutes || 0,
+        timerStartTime: null,
+        timerAccumulatedTime: 0,
+        timerIsRunning: false,
+        timerIsPaused: false,
+        actualDurationMs: 0,
+        attachments: taskData.attachments || [],
+        completedDate: null,
+        subTasks: taskData.subTasks || [],
+        dependsOn: taskData.dependsOn || [],
+        blocksTasks: taskData.blocksTasks || [],
+        recurrence: taskData.recurrence || null
+    }; //
     currentTasks.unshift(newTask); //
     AppStore.setTasks(currentTasks); //
     // MODIFIED: Use LoggingService

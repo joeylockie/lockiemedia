@@ -51,6 +51,18 @@ export async function saveUserDataToFirestore(userId, data) {
             lastUpdated: firebase.firestore.FieldValue.serverTimestamp() // Ensure firebase global is available
         };
 
+        // --- DEEP DIVE LOGGING ADDED ---
+        // This will log the exact object, allowing us to inspect it for 'undefined' or other issues.
+        LoggingService.debug('[FirebaseService] Data to be sent to Firestore:', {
+            functionName,
+            userId,
+            // The replacer function in JSON.stringify will find any undefined values and show them as a string.
+            dataObject: JSON.parse(JSON.stringify(appDataToSave, (key, value) =>
+                typeof value === 'undefined' ? '<<UNDEFINED_VALUE>>' : value
+            ))
+        });
+        // --- END OF DEEP DIVE LOGGING ---
+
         await userDocRef.collection(APP_DATA_DOC).doc(USER_SPECIFIC_DATA_DOC).set(appDataToSave);
 
         LoggingService.info(`[FirebaseService] User data saved successfully for user ${userId}.`, { functionName, userId });
@@ -201,7 +213,3 @@ export async function deleteUserDataFromFirestore(userId) {
         throw error;
     }
 }
-
-// REMOVED: LoggingService.debug("firebaseService.js loaded.", { module: 'firebaseService' });
-// This line was causing the initialization error.
-// console.log("firebaseService.js module parsed and functions defined."); // Optional: for basic load confirmation without LoggingService
