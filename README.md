@@ -114,4 +114,4 @@ As this is a client-side application leveraging Firebase for its backend:
 
 ## Running Locally
 
-Ensure you are serving the files from a local web server. Many simple HTTP servers are available. Using Python (as shown above) is one common method. Visual Studio Code's "Live Server" extension is another popular option for development.
+Ensure you are serving the files from a local web server. Many simple HTTP servers are available. Using Python (as shown above) is one common method. Visual Studio Code's "Live Server" extension is another popular option for development. test
