@@ -105,7 +105,7 @@ async function _saveAllData(source = 'unknown') {
         localStorage.setItem(PROJECTS_KEY, JSON.stringify(_projects));
         localStorage.setItem(KANBAN_COLUMNS_KEY, JSON.stringify(_kanbanColumns));
         localStorage.setItem(USER_PREFERENCES_KEY, JSON.stringify(_userPreferences));
-        localStorage.setItem(USER_PROFILE_KEY, JSON.stringify(_userProfile)); // Save profile (including role) to localStorage
+        localStorage.setItem(USER_PROFILE_KEY, JSON.stringify(_userProfile));
         LoggingService.info('[Store] All data saved to localStorage.', {
             taskCount: _tasks.length,
             projectCount: _projects.length,
@@ -163,6 +163,8 @@ const AppStore = {
     getUniqueProjects: () => [..._uniqueProjects],
     getUserPreferences: () => JSON.parse(JSON.stringify(_userPreferences)),
     getUserProfile: () => JSON.parse(JSON.stringify(_userProfile)),
+    // --- NEW FUNCTION TO CHECK DATA LOAD STATUS ---
+    isDataLoaded: () => _isDataLoadedFromFirebase,
 
     setTasks: async (newTasksArray, source = 'setTasks') => {
         _tasks = JSON.parse(JSON.stringify(newTasksArray));
@@ -196,7 +198,6 @@ const AppStore = {
         if (newProfile.hasOwnProperty('role')) {
             _userProfile.role = newProfile.role;
         }
-
         await _saveAllData(source);
         _publish('userProfileChanged', { ..._userProfile });
     },
@@ -222,22 +223,7 @@ const AppStore = {
         }
 
         if (data) {
-            LoggingService.info(`[AppStore] Data received from Firestore stream. Tasks: ${data.tasks?.length}, Projects: ${data.projects?.length}, Prefs: ${!!data.preferences}, Profile: ${!!data.profile}`, { functionName, profileDataFromFirestore: data.profile });
-
-            const incomingPreferences = data.preferences || {};
-            const incomingProfile = data.profile || { role: 'user' };
-            if (!incomingProfile.role) {
-                incomingProfile.role = 'user';
-                LoggingService.debug('[AppStore] Role missing in profile from Firestore, defaulting to "user".', {functionName, incomingProfile});
-            }
-
-            const currentDataString = JSON.stringify({ tasks: _tasks, projects: _projects, kanbanColumns: _kanbanColumns, preferences: _userPreferences, profile: _userProfile });
-            const newDataString = JSON.stringify({ tasks: data.tasks, projects: data.projects, kanbanColumns: data.kanbanColumns, preferences: incomingPreferences, profile: incomingProfile });
-
-            if (currentDataString === newDataString && _isDataLoadedFromFirebase) {
-                LoggingService.debug('[AppStore] Firestore stream update identical to current state. No changes applied.', { functionName });
-                return;
-            }
+            LoggingService.info(`[AppStore] Data received from Firestore stream. Processing update.`, { functionName });
 
             _tasks = data.tasks || [];
             const noProjectEntry = { id: 0, name: "No Project", creationDate: Date.now() - 100000 };
@@ -247,7 +233,12 @@ const AppStore = {
             _kanbanColumns = data.kanbanColumns && data.kanbanColumns.length > 0 ? data.kanbanColumns : [
                 { id: 'todo', title: 'To Do' }, { id: 'inprogress', title: 'In Progress' }, { id: 'done', title: 'Done' }
             ];
+            const incomingPreferences = data.preferences || {};
             _userPreferences = _deepMerge({ ..._userPreferences }, incomingPreferences);
+            const incomingProfile = data.profile || { role: 'user' };
+            if (!incomingProfile.role) {
+                incomingProfile.role = 'user';
+            }
             _userProfile = _deepMerge({ ..._userProfile }, incomingProfile);
 
             _isDataLoadedFromFirebase = true;
@@ -272,7 +263,7 @@ const AppStore = {
             _publish('userPreferencesChanged', { ..._userPreferences });
             _publish('userProfileChanged', { ..._userProfile });
             _publish('storeDataUpdatedFromFirebase');
-            LoggingService.info(`[AppStore] Local store updated from Firestore stream.`, { functionName });
+            LoggingService.info(`[AppStore] Local store updated and events published from Firestore stream.`, { functionName });
         } else {
             LoggingService.warn(`[AppStore] Null data received from Firestore stream, potentially document deletion. Ensuring default profile with role.`, { functionName });
              _isDataLoadedFromFirebase = true; 
@@ -406,8 +397,6 @@ const AppStore = {
     initializeStore: async () => {
         const functionName = 'initializeStore (AppStore)';
         LoggingService.info('[AppStore] Initializing store from localStorage (default behavior)...', { module: 'store', functionName });
-        // --- FIX IS HERE: LINE REMOVED ---
-        // _isDataLoadedFromFirebase = false; 
 
         const storedKanbanCols = localStorage.getItem(KANBAN_COLUMNS_KEY);
         const defaultKanbanCols = [

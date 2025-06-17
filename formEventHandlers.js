@@ -8,22 +8,19 @@ import * as TaskService from './taskService.js';
 import * as LabelService from './labelService.js';
 import EventBus from './eventBus.js';
 import LoggingService from './loggingService.js';
-import { UserAccountsFeature } from './feature_user_accounts.js'; // For sign-up/sign-in
-import { TaskTimerSystemFeature } from './task_timer_system.js'; // For task estimates
+import { UserAccountsFeature } from './feature_user_accounts.js';
+import { TaskTimerSystemFeature } from './task_timer_system.js';
+import { clearTempSubTasksForAddModal, tempSubTasksForAddModal } from './ui_event_handlers.js';
 
-// Assuming clearTempSubTasksForAddModal is made available, e.g., from a subTaskHandlers.js or ui_event_handlers.js
-// For now, we'll assume it's imported if ui_event_handlers.js exports it or it's moved.
-// If it's small and specific to add task, it could even be a local helper here, but better to keep it with other subtask logic.
-import { clearTempSubTasksForAddModal, tempSubTasksForAddModal } from './ui_event_handlers.js'; // Temporary import path
-
+// Import UI and Modal functions
 import {
     closeAddModal,
     closeViewEditModal
-    // closeProfileModal // This will be needed by handleProfileFormSubmit if it closes the modal
 } from './modal_interactions.js';
+import { refreshTaskView } from './ui_rendering.js';
 
 
-export function handleAddTaskFormSubmit(event) {
+export async function handleAddTaskFormSubmit(event) {
     const functionName = 'handleAddTaskFormSubmit';
     event.preventDefault();
     LoggingService.info('[FormEventHandlers] Attempting to add task.', { functionName });
@@ -81,7 +78,7 @@ export function handleAddTaskFormSubmit(event) {
         const estimates = TaskTimerSystemFeature.getEstimatesFromAddModal();
         estHours = estimates.estHours;
         estMinutes = estimates.estMinutes;
-    } else if (isFeatureEnabled('taskTimerSystem') && modalEstHoursAddEl && modalEstMinutesAddEl) { // Fallback
+    } else if (isFeatureEnabled('taskTimerSystem') && modalEstHoursAddEl && modalEstMinutesAddEl) {
         estHours = parseInt(modalEstHoursAddEl.value) || 0;
         estMinutes = parseInt(modalEstMinutesAddEl.value) || 0;
     }
@@ -108,7 +105,7 @@ export function handleAddTaskFormSubmit(event) {
 
         const subTasksToAdd = isFeatureEnabled('subTasksFeature') ? [...tempSubTasksForAddModal] : [];
 
-        TaskService.addTask({
+        await TaskService.addTask({
             text: parsedResult.remainingText,
             dueDate: parsedResult.parsedDate || dueDate,
             time, priority, label, notes, projectId,
@@ -121,10 +118,11 @@ export function handleAddTaskFormSubmit(event) {
         EventBus.publish('displayUserMessage', { text: 'Task added successfully!', type: 'success' });
         closeAddModal();
         clearTempSubTasksForAddModal();
+        
+        refreshTaskView();
+
         if (ViewManager.getCurrentFilter() !== 'inbox') {
             ViewManager.setCurrentFilter('inbox');
-        } else {
-            LoggingService.debug('[FormEventHandlers] Task added while in inbox. Relying on tasksChanged event for view refresh.', { functionName });
         }
     } else {
         LoggingService.warn('[FormEventHandlers] Task description was empty on add attempt.', { functionName });
@@ -132,7 +130,7 @@ export function handleAddTaskFormSubmit(event) {
     }
 }
 
-export function handleEditTaskFormSubmit(event) {
+export async function handleEditTaskFormSubmit(event) {
     const functionName = 'handleEditTaskFormSubmit';
     event.preventDefault();
     const modalViewEditTaskIdEl = document.getElementById('modalViewEditTaskId');
@@ -215,10 +213,11 @@ export function handleEditTaskFormSubmit(event) {
             recurrence
         };
 
-        TaskService.updateTask(taskId, taskUpdateData);
+        await TaskService.updateTask(taskId, taskUpdateData);
         LoggingService.info(`[FormEventHandlers] Task ID ${taskId} updated successfully.`, { functionName, taskId });
         EventBus.publish('displayUserMessage', { text: 'Task updated successfully!', type: 'success' });
         closeViewEditModal();
+        refreshTaskView();
     } else {
         LoggingService.warn('[FormEventHandlers] Task description empty or task ID missing for edit.', { functionName, taskId, taskTextIsEmpty: !taskText });
         EventBus.publish('displayUserMessage', { text: 'Task description cannot be empty.', type: 'error' });
