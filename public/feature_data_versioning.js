@@ -1,7 +1,7 @@
 // feature_data_versioning.js
 // Manages the Data Versioning Feature.
 
-import { isFeatureEnabled } from './featureFlagService.js';
+// import { isFeatureEnabled } from './featureFlagService.js'; // REMOVED
 import AppStore from './store.js';
 import EventBus from './eventBus.js'; // Already imported
 import LoggingService from './loggingService.js'; // Already imported
@@ -57,7 +57,7 @@ function _saveVersions() {
  */
 export function captureSnapshot(changeDescription = "Data changed") {
     const functionName = 'captureSnapshot (DataVersioningFeature)';
-    if (!isFeatureEnabled('dataVersioningFeature')) {
+    if (!window.isFeatureEnabled('dataVersioningFeature')) { // MODIFIED to use window
         return;
     }
 
@@ -117,7 +117,7 @@ export function getVersionHistory() {
  */
 export function restoreVersion(timestamp) {
     const functionName = 'restoreVersion (DataVersioningFeature)';
-    if (!isFeatureEnabled('dataVersioningFeature')) {
+    if (!window.isFeatureEnabled('dataVersioningFeature')) { // MODIFIED to use window
         LoggingService.warn('[DataVersioningFeature] Attempted to restore version while feature is disabled.', { functionName });
         // MODIFIED: Publish event instead of direct/conditional call
         EventBus.publish('displayUserMessage', { text: 'Data versioning feature is not enabled.', type: 'error' });
@@ -190,11 +190,11 @@ function initialize() {
  */
 function updateUIVisibility() {
     const functionName = 'updateUIVisibility (DataVersioningFeature)';
-    if (typeof isFeatureEnabled !== 'function') {
+    if (typeof window.isFeatureEnabled !== 'function') { // MODIFIED to use window
         LoggingService.error("[DataVersioningFeature] isFeatureEnabled function not available from FeatureFlagService.", new Error("DependencyMissing"), { functionName });
         return;
     }
-    const isActuallyEnabled = isFeatureEnabled('dataVersioningFeature');
+    const isActuallyEnabled = window.isFeatureEnabled('dataVersioningFeature'); // MODIFIED to use window
     LoggingService.debug(`[DataVersioningFeature] Updating UI visibility. Feature enabled: ${isActuallyEnabled}.`, { functionName, isActuallyEnabled });
 
     const settingsVersionHistoryBtnEl = document.getElementById('settingsVersionHistoryBtn'); 

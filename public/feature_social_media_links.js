@@ -1,7 +1,7 @@
 // feature_social_media_links.js
 // Manages the Social Media Links Feature.
 
-import { isFeatureEnabled } from './featureFlagService.js';
+// import { isFeatureEnabled } from './featureFlagService.js'; // REMOVED
 import LoggingService from './loggingService.js';
 
 // DOM Element References (will be populated in initialize if needed, or managed by settings modal structure)
@@ -34,11 +34,11 @@ function initialize() {
  */
 function updateUIVisibility() {
     const functionName = 'updateUIVisibility (SocialMediaLinksFeature)';
-    if (typeof isFeatureEnabled !== 'function') {
+    if (typeof window.isFeatureEnabled !== 'function') { // MODIFIED to check window
         LoggingService.error("[SocialMediaLinksFeature] isFeatureEnabled function not available from FeatureFlagService.", new Error("DependencyMissing"), { functionName });
         return;
     }
-    const isActuallyEnabled = isFeatureEnabled('socialMediaLinksFeature');
+    const isActuallyEnabled = window.isFeatureEnabled('socialMediaLinksFeature'); // MODIFIED to use window
     LoggingService.debug(`[SocialMediaLinksFeature] Updating UI visibility. Feature enabled: ${isActuallyEnabled}.`, { functionName, isActuallyEnabled });
 
     if (!socialMediaLinksContainerEl) { // Try to get it again if not found during init

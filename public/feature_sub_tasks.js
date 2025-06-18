@@ -2,7 +2,7 @@
 // Manages sub-task logic and UI interactions.
 // Now an ES6 module.
 
-import { isFeatureEnabled } from './featureFlagService.js';
+// import { isFeatureEnabled } from './featureFlagService.js'; // REMOVED
 import AppStore from './store.js';
 // showMessage and other UI rendering functions are still global for now.
 
@@ -18,11 +18,11 @@ function initialize() {
  * @param {boolean} isEnabledParam - (Not used directly, uses imported isFeatureEnabled)
  */
 function updateUIVisibility(isEnabledParam) {
-    if (typeof isFeatureEnabled !== 'function') {
+    if (typeof window.isFeatureEnabled !== 'function') { // MODIFIED to check window
         console.error("[SubTasksFeature] isFeatureEnabled function not available.");
         return;
     }
-    const isActuallyEnabled = isFeatureEnabled('subTasksFeature');
+    const isActuallyEnabled = window.isFeatureEnabled('subTasksFeature'); // MODIFIED to use window
     document.querySelectorAll('.sub-tasks-feature-element').forEach(el => el.classList.toggle('hidden', !isActuallyEnabled));
     console.log(`[SubTasksFeature] UI elements visibility/behavior updated based on feature flag: ${isActuallyEnabled}`);
 }
@@ -34,7 +34,7 @@ function updateUIVisibility(isEnabledParam) {
  * @returns {boolean} True if the sub-task was added successfully, false otherwise.
  */
 function addSubTaskLogic(parentId, subTaskText) {
-    if (!isFeatureEnabled('subTasksFeature') || !AppStore) {
+    if (!window.isFeatureEnabled('subTasksFeature') || !AppStore) { // MODIFIED to use window
         console.warn('[SubTasksFeature] Feature disabled or AppStore not available for addSubTaskLogic.');
         return false;
     }
@@ -75,7 +75,7 @@ function addSubTaskLogic(parentId, subTaskText) {
  * @returns {boolean} True if the sub-task was edited successfully, false otherwise.
  */
 function editSubTaskLogic(parentId, subTaskId, newText) {
-    if (!isFeatureEnabled('subTasksFeature') || !AppStore) return false;
+    if (!window.isFeatureEnabled('subTasksFeature') || !AppStore) return false; // MODIFIED to use window
     if (!parentId || !subTaskId || !newText || !newText.trim()) return false;
 
     let currentTasks = AppStore.getTasks();
@@ -98,7 +98,7 @@ function editSubTaskLogic(parentId, subTaskId, newText) {
  * @returns {boolean} True if the sub-task was toggled successfully, false otherwise.
  */
 function toggleSubTaskCompleteLogic(parentId, subTaskId) {
-    if (!isFeatureEnabled('subTasksFeature') || !AppStore) return false;
+    if (!window.isFeatureEnabled('subTasksFeature') || !AppStore) return false; // MODIFIED to use window
     if (!parentId || !subTaskId) return false;
 
     let currentTasks = AppStore.getTasks();
@@ -121,7 +121,7 @@ function toggleSubTaskCompleteLogic(parentId, subTaskId) {
  * @returns {boolean} True if the sub-task was deleted successfully, false otherwise.
  */
 function deleteSubTaskLogic(parentId, subTaskId) {
-    if (!isFeatureEnabled('subTasksFeature') || !AppStore) return false;
+    if (!window.isFeatureEnabled('subTasksFeature') || !AppStore) return false; // MODIFIED to use window
     if (!parentId || !subTaskId) return false;
 
     let currentTasks = AppStore.getTasks();

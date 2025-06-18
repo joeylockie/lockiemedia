@@ -1,8 +1,7 @@
 // feature_notes.js
 // Manages the UI and logic for the Notes feature.
 
-import protectPage from './authGuard.js'; // <-- ADDED: Import the auth guard
-import { isFeatureEnabled } from './featureFlagService.js';
+// import protectPage from './authGuard.js'; // REMOVED: Import the auth guard
 import LoggingService from './loggingService.js';
 import * as NoteService from './noteService.js';
 
@@ -191,7 +190,7 @@ function handleDeleteNote() {
     }
 }
 
-async function initialize() { // <-- MODIFIED: Made async
+async function initialize() { 
     const functionName = 'initialize (NotesFeature)';
     
     // Only run if we are on the notes.html page
@@ -201,14 +200,10 @@ async function initialize() { // <-- MODIFIED: Made async
     }
     
     try {
-        // <-- ADDED: Protect the page before doing anything else -->
-        await protectPage();
-
-        // ** THIS IS THE FIX **
-        // After the user is confirmed to be authenticated, make the page visible.
+        // Since auth is removed, we can just proceed.
         document.body.style.visibility = 'visible';
         
-        LoggingService.info('[NotesFeature] Auth Guard passed. Initializing...', { functionName });
+        LoggingService.info('[NotesFeature] Initializing...', { functionName });
 
         notebooksListEl = document.getElementById('notebooksList');
         notesListEl = document.getElementById('notesList');
@@ -232,13 +227,12 @@ async function initialize() { // <-- MODIFIED: Made async
         
         LoggingService.info('[NotesFeature] Initialized.', { functionName });
     } catch (error) {
-        LoggingService.critical('[NotesFeature] Auth Guard failed or error during initialization.', error, { functionName });
-        // The guard will redirect, but this catch is for safety.
+        LoggingService.critical('[NotesFeature] Error during initialization.', error, { functionName });
     }
 }
 
 function updateUIVisibility() {
-    const isActuallyEnabled = isFeatureEnabled('notesFeature');
+    const isActuallyEnabled = window.isFeatureEnabled('notesFeature');
     // This function can be expanded if there are global UI elements related to Notes
     // on other pages that need to be shown or hidden.
 }

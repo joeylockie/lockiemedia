@@ -1,7 +1,7 @@
 // admin_main.js - Main entry point for the Admin Panel
 // REFACTORED FOR SELF-HOSTED BACKEND (STATIC)
 
-import LoggingService from './public/loggingService.js';
+import LoggingService from './loggingService.js';
 import AdminUI from './adminUI.js';
 
 // --- DOM Elements ---

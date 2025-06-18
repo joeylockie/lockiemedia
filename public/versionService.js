@@ -3,7 +3,7 @@
 
 import LoggingService from './loggingService.js';
 import EventBus from './eventBus.js';
-import { isFeatureEnabled } from './featureFlagService.js'; // For feature flag check
+// import { isFeatureEnabled } from './featureFlagService.js'; // REMOVED
 
 // Default version, used if version.json is not found or is invalid
 const DEFAULT_VERSION = {
@@ -108,7 +108,7 @@ async function fetchRemoteVersion() {
 export async function checkForUpdates() {
     const functionName = 'checkForUpdates (VersionService)';
 
-    if (!isFeatureEnabled('appUpdateNotificationFeature')) {
+    if (!window.isFeatureEnabled('appUpdateNotificationFeature')) { // MODIFIED to use window
         LoggingService.debug('[VersionService] Update check skipped: appUpdateNotificationFeature is disabled.', { functionName });
         return;
     }
@@ -154,7 +154,7 @@ export async function checkForUpdates() {
 export function startUpdateChecker() {
     const functionName = 'startUpdateChecker (VersionService)';
 
-    if (!isFeatureEnabled('appUpdateNotificationFeature')) {
+    if (!window.isFeatureEnabled('appUpdateNotificationFeature')) { // MODIFIED to use window
         LoggingService.info('[VersionService] App update checker not started: feature is disabled.', { functionName });
         return;
     }

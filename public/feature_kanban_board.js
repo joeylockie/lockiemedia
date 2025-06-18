@@ -2,7 +2,7 @@
 // Manages the Kanban Board feature, including its state, logic, and UI rendering.
 // Now an ES6 module.
 
-import { isFeatureEnabled } from './featureFlagService.js';
+// import { isFeatureEnabled } from './featureFlagService.js'; // REMOVED
 import AppStore from './store.js';
 import { getPriorityClass } from './taskService.js'; 
 import { formatDate, formatTime } from './utils.js'; 
@@ -35,11 +35,11 @@ function initializeKanbanBoardFeature() {
  */
 function updateKanbanBoardUIVisibility() { 
     const functionName = "updateKanbanBoardUIVisibility";
-    if (typeof isFeatureEnabled !== 'function') {
+    if (typeof window.isFeatureEnabled !== 'function') { // MODIFIED to check window
         LoggingService.error("[KanbanBoardFeature] isFeatureEnabled function not available.", new Error("DependencyMissing"), {functionName, module: 'feature_kanban_board'});
         return;
     }
-    const isActuallyEnabled = isFeatureEnabled('kanbanBoardFeature');
+    const isActuallyEnabled = window.isFeatureEnabled('kanbanBoardFeature'); // MODIFIED to use window
     LoggingService.debug(`[KanbanFeature] updateKanbanBoardUIVisibility called. Feature enabled: ${isActuallyEnabled}`, {functionName, isEnabled: isActuallyEnabled, module: 'feature_kanban_board'});
 
     document.querySelectorAll('.kanban-board-feature-element').forEach(el => el.classList.toggle('hidden', !isActuallyEnabled));
@@ -68,7 +68,7 @@ function updateKanbanColumnTitle(columnId, newTitle) {
             AppStore.setKanbanColumns(currentKanbanColumns); 
             LoggingService.info(`[KanbanFeature] Column "${columnId}" title updated to "${trimmedNewTitle}".`, {functionName, columnId, newTitle: trimmedNewTitle, module: 'feature_kanban_board'});
 
-            if (currentTaskViewMode === 'kanban' && isFeatureEnabled('kanbanBoardFeature')) {
+            if (currentTaskViewMode === 'kanban' && window.isFeatureEnabled('kanbanBoardFeature')) { // MODIFIED to use window
                 renderKanbanBoardInternal();
             }
         } else if (trimmedNewTitle === "") {
@@ -233,7 +233,7 @@ function createKanbanTaskElement(task) {
         dDS.innerHTML = `<i class="far fa-calendar-alt mr-1"></i> ${dD}`;
         detailsContainer.appendChild(dDS);
     }
-    if (isFeatureEnabled('subTasksFeature') && task.subTasks && task.subTasks.length > 0) {
+    if (window.isFeatureEnabled('subTasksFeature') && task.subTasks && task.subTasks.length > 0) { // MODIFIED to use window
         const subTaskIcon = document.createElement('span');
         subTaskIcon.className = 'text-slate-400 dark:text-slate-500 flex items-center sub-tasks-feature-element';
         const completedSubTasks = task.subTasks.filter(st => st.completed).length;
@@ -371,7 +371,7 @@ function handleDrop(event) {
 function publicRenderKanbanView() {
     const functionName = "publicRenderKanbanView";
     LoggingService.debug('[KanbanFeature] publicRenderKanbanView called.', {functionName, module: 'feature_kanban_board'});
-    if (!isFeatureEnabled('kanbanBoardFeature')) {
+    if (!window.isFeatureEnabled('kanbanBoardFeature')) { // MODIFIED to use window
          LoggingService.warn("[KanbanFeature] publicRenderKanbanView called but feature flag is off.", {functionName, module: 'feature_kanban_board'});
          return;
     }

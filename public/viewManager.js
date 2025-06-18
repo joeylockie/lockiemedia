@@ -4,7 +4,7 @@
 
 import EventBus from './eventBus.js';
 import AppStore from './store.js'; // Import AppStore to access tasks
-import { isFeatureEnabled } from './featureFlagService.js'; // Import for project feature check
+// import { isFeatureEnabled } from './featureFlagService.js'; // REMOVED
 // NEW: Import LoggingService
 import LoggingService from './loggingService.js';
 
@@ -154,7 +154,7 @@ function getFilteredTasksForBulkAction() {
             task.text.toLowerCase().includes(searchTermLower) || //
             (task.label && task.label.toLowerCase().includes(searchTermLower)) || //
             (task.notes && task.notes.toLowerCase().includes(searchTermLower)) || //
-            (isFeatureEnabled('projectFeature') && task.projectId && currentProjects.find(p => p.id === task.projectId)?.name.toLowerCase().includes(searchTermLower)) //
+            (window.isFeatureEnabled('projectFeature') && task.projectId && currentProjects.find(p => p.id === task.projectId)?.name.toLowerCase().includes(searchTermLower)) // MODIFIED to use window
         );
     }
     // Note: This function does not apply sorting, as "Select All" typically applies to the filtered set regardless of sort order.

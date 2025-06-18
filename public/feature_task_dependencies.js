@@ -2,7 +2,7 @@
 // Manages logic for task dependencies.
 // Now an ES6 module.
 
-import { isFeatureEnabled } from './featureFlagService.js';
+// import { isFeatureEnabled } from './featureFlagService.js'; // REMOVED
 import AppStore from './store.js';
 import EventBus from './eventBus.js'; // MODIFIED: Added EventBus import
 import LoggingService from './loggingService.js'; // MODIFIED: Added LoggingService import
@@ -23,11 +23,11 @@ function initialize() {
  */
 function updateUIVisibility(isEnabledParam) { // isEnabledParam is for consistency if other features use it
     const functionName = 'updateUIVisibility (TaskDependenciesFeature)';
-    if (typeof isFeatureEnabled !== 'function') {
+    if (typeof window.isFeatureEnabled !== 'function') { // MODIFIED to check window
         LoggingService.error("[TaskDependenciesFeature] isFeatureEnabled function not available.", new Error("DependencyMissing"), { functionName });
         return;
     }
-    const isActuallyEnabled = isFeatureEnabled('taskDependenciesFeature');
+    const isActuallyEnabled = window.isFeatureEnabled('taskDependenciesFeature'); // MODIFIED to use window
     document.querySelectorAll('.task-dependencies-feature-element').forEach(el => el.classList.toggle('hidden', !isActuallyEnabled));
     LoggingService.info(`[TaskDependenciesFeature] UI Visibility set based on flag: ${isActuallyEnabled}`, { functionName, isEnabled: isActuallyEnabled });
 }
@@ -39,7 +39,7 @@ function updateUIVisibility(isEnabledParam) { // isEnabledParam is for consisten
  */
 function populateDependencyPickers(currentTask, modalType) {
     const functionName = 'populateDependencyPickers (TaskDependenciesFeature)';
-    if (!isFeatureEnabled('taskDependenciesFeature')) return;
+    if (!window.isFeatureEnabled('taskDependenciesFeature')) return; // MODIFIED to use window
     LoggingService.debug(`[TaskDependenciesFeature] Placeholder: populateDependencyPickers for modal: ${modalType}`, { functionName, currentTask: currentTask ? currentTask.id : null, modalType });
     const dependsOnContainerId = modalType === 'Add' ? 'dependsOnContainerAdd' : 'dependsOnContainerViewEdit';
     const blocksTasksContainerId = modalType === 'Add' ? 'blocksTasksContainerAdd' : 'blocksTasksContainerViewEdit';
@@ -57,7 +57,7 @@ function populateDependencyPickers(currentTask, modalType) {
  */
 function addDependency(taskAId, taskBId) {
     const functionName = 'addDependency (TaskDependenciesFeature)';
-    if (!isFeatureEnabled('taskDependenciesFeature') || !AppStore) {
+    if (!window.isFeatureEnabled('taskDependenciesFeature') || !AppStore) { // MODIFIED to use window
         LoggingService.error("[TaskDependenciesFeature] Feature disabled or AppStore not available for addDependency.", new Error("PrerequisitesMissing"), { functionName });
         // MODIFIED: Publish event instead of direct/conditional call
         EventBus.publish('displayUserMessage', { text: 'Dependency feature error.', type: 'error' });
@@ -110,7 +110,7 @@ function addDependency(taskAId, taskBId) {
  */
 function removeDependency(taskAId, taskBId) {
     const functionName = 'removeDependency (TaskDependenciesFeature)';
-    if (!isFeatureEnabled('taskDependenciesFeature') || !AppStore) {
+    if (!window.isFeatureEnabled('taskDependenciesFeature') || !AppStore) { // MODIFIED to use window
         LoggingService.warn(`[TaskDependenciesFeature] Attempted to remove dependency while feature disabled or AppStore unavailable.`, { functionName, taskAId, taskBId });
         return;
     }
@@ -143,7 +143,7 @@ function removeDependency(taskAId, taskBId) {
  */
 function canCompleteTask(taskId) {
     const functionName = 'canCompleteTask (TaskDependenciesFeature)';
-    if (!isFeatureEnabled('taskDependenciesFeature') || !AppStore) return true;
+    if (!window.isFeatureEnabled('taskDependenciesFeature') || !AppStore) return true; // MODIFIED to use window
     const currentTasks = AppStore.getTasks();
     const task = currentTasks.find(t => t.id === taskId);
     if (!task || !task.dependsOn || task.dependsOn.length === 0) return true;

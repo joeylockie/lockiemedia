@@ -1,7 +1,7 @@
 // feature_advanced_recurrence.js
 // Manages logic and UI for the advanced recurrence feature.
 
-import { isFeatureEnabled } from './featureFlagService.js';
+// import { isFeatureEnabled } from './featureFlagService.js'; // REMOVED
 import LoggingService from './loggingService.js';
 
 // --- Private Helper Function ---
@@ -105,11 +105,11 @@ function initialize() {
  * @param {boolean} isEnabledParam - (Not used directly, uses imported isFeatureEnabled)
  */
 function updateUIVisibility(isEnabledParam) {
-    if (typeof isFeatureEnabled !== 'function') {
+    if (typeof window.isFeatureEnabled !== 'function') { // MODIFIED to check window
         LoggingService.error("[AdvancedRecurrenceFeature] isFeatureEnabled function not available from FeatureFlagService.", new Error("DependencyMissing"));
         return;
     }
-    const isActuallyEnabled = isFeatureEnabled('advancedRecurrence');
+    const isActuallyEnabled = window.isFeatureEnabled('advancedRecurrence'); // MODIFIED to use window
     document.querySelectorAll('.advanced-recurrence-element').forEach(el => el.classList.toggle('hidden', !isActuallyEnabled));
     
     if (!isActuallyEnabled) {

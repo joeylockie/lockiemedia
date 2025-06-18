@@ -1,7 +1,7 @@
 // feature_desktop_notifications.js
 // Manages the Desktop Notifications Feature, including settings and triggering notifications.
 
-import { isFeatureEnabled } from './featureFlagService.js';
+// import { isFeatureEnabled } from './featureFlagService.js'; // REMOVED
 import NotificationService from './notificationService.js';
 import LoggingService from './loggingService.js';
 import EventBus from './eventBus.js';
@@ -75,7 +75,7 @@ async function _saveSettings() {
 
 function _updateSettingsUI() {
     const functionName = '_updateSettingsUI';
-    if (!isFeatureEnabled('desktopNotificationsFeature')) return;
+    if (!window.isFeatureEnabled('desktopNotificationsFeature')) return; // MODIFIED to use window
 
     if (!enableNotificationsToggleEl) enableNotificationsToggleEl = document.getElementById('enableNotificationsToggle');
     if (!notifyOnTaskDueToggleEl) notifyOnTaskDueToggleEl = document.getElementById('notifyOnTaskDueToggle');
@@ -127,7 +127,7 @@ function _updateSettingsUI() {
 
 function _checkAndNotifyForDueTasks() {
     const functionName = '_checkAndNotifyForDueTasks';
-    if (!isFeatureEnabled('desktopNotificationsFeature') ||
+    if (!window.isFeatureEnabled('desktopNotificationsFeature') || // MODIFIED to use window
         !currentSettings.notificationsEnabled ||
         !currentSettings.notifyOnTaskDue ||
         NotificationService.getPermissionStatus() !== 'granted' ||
@@ -180,7 +180,7 @@ function _manageDueTaskChecker() {
         LoggingService.debug('[DesktopNotificationsFeature] Due task checker interval cleared.', { functionName });
     }
 
-    if (isFeatureEnabled('desktopNotificationsFeature') &&
+    if (window.isFeatureEnabled('desktopNotificationsFeature') && // MODIFIED to use window
         currentSettings.notificationsEnabled &&
         currentSettings.notifyOnTaskDue &&
         NotificationService.getPermissionStatus() === 'granted') {
@@ -190,7 +190,7 @@ function _manageDueTaskChecker() {
     } else {
         LoggingService.info('[DesktopNotificationsFeature] Due task checker not started (conditions not met).', {
              functionName,
-             featureEnabled: isFeatureEnabled('desktopNotificationsFeature'),
+             featureEnabled: window.isFeatureEnabled('desktopNotificationsFeature'), // MODIFIED to use window
              settingsEnabled: currentSettings.notificationsEnabled,
              notifyOnDue: currentSettings.notifyOnTaskDue,
              permission: NotificationService.getPermissionStatus()
@@ -322,7 +322,7 @@ function initialize() {
 
 function updateUIVisibility() {
     const functionName = 'updateUIVisibility (DesktopNotificationsFeature)';
-    const isActuallyEnabled = isFeatureEnabled('desktopNotificationsFeature');
+    const isActuallyEnabled = window.isFeatureEnabled('desktopNotificationsFeature'); // MODIFIED to use window
     LoggingService.debug(`[DesktopNotificationsFeature] Updating UI visibility. Feature enabled: ${isActuallyEnabled}.`, { functionName, isActuallyEnabled });
 
     if (!settingsDesktopNotificationsBtnEl) settingsDesktopNotificationsBtnEl = document.getElementById('settingsManageNotificationsBtn');

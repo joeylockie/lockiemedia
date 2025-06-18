@@ -2,9 +2,7 @@
 // Manages UI interactions for task reminders in modals.
 // Now an ES6 module.
 
-import { isFeatureEnabled } from './featureFlagService.js';
-// DOM elements (modalRemindMeAdd, etc.) are accessed globally, initialized by ui_rendering.js
-// showMessage is also global for now.
+// import { isFeatureEnabled } from './featureFlagService.js'; // REMOVED
 
 /**
  * Initializes the Reminder Feature.
@@ -26,7 +24,7 @@ function initialize() {
 
     if (modalRemindMeAddEl && reminderOptionsAddEl) {
         modalRemindMeAddEl.addEventListener('change', () => {
-            if (!isFeatureEnabled('reminderFeature')) {
+            if (!window.isFeatureEnabled('reminderFeature')) { // MODIFIED to use window
                 reminderOptionsAddEl.classList.add('hidden');
                 return;
             }
@@ -50,7 +48,7 @@ function initialize() {
 
     if (modalRemindMeViewEditEl && reminderOptionsViewEditEl) {
         modalRemindMeViewEditEl.addEventListener('change', () => {
-            if (!isFeatureEnabled('reminderFeature')) {
+            if (!window.isFeatureEnabled('reminderFeature')) { // MODIFIED to use window
                 reminderOptionsViewEditEl.classList.add('hidden');
                 return;
             }
@@ -72,11 +70,11 @@ function initialize() {
  * @param {boolean} isEnabledParam - (Not used directly, uses imported isFeatureEnabled)
  */
 function updateUIVisibility(isEnabledParam) {
-    if (typeof isFeatureEnabled !== 'function') {
+    if (typeof window.isFeatureEnabled !== 'function') { // MODIFIED to check window
         console.error("[ReminderFeature] isFeatureEnabled function not available from FeatureFlagService.");
         return;
     }
-    const isActuallyEnabled = isFeatureEnabled('reminderFeature');
+    const isActuallyEnabled = window.isFeatureEnabled('reminderFeature'); // MODIFIED to use window
 
     const reminderElements = document.querySelectorAll('.reminder-feature-element');
     reminderElements.forEach(el => {

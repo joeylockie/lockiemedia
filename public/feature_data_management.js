@@ -2,7 +2,7 @@
 // Manages data export functionality.
 // Now an ES6 module.
 
-import { isFeatureEnabled } from './featureFlagService.js';
+// import { isFeatureEnabled } from './featureFlagService.js'; // REMOVED
 import AppStore from './store.js'; // To get data for export
 import EventBus from './eventBus.js'; // MODIFIED: Added EventBus import
 import LoggingService from './loggingService.js'; // MODIFIED: Added LoggingService import (was missing)
@@ -49,7 +49,7 @@ function prepareDataForExport() {
  */
 function handleExportData() {
     const functionName = "handleExportData (DataManagement)"; // For logging
-    if (!isFeatureEnabled('exportDataFeature')) {
+    if (!window.isFeatureEnabled('exportDataFeature')) { // MODIFIED to use window
         // MODIFIED: Publish event instead of direct/conditional call
         EventBus.publish('displayUserMessage', { text: 'Export feature is not enabled.', type: 'error' });
         LoggingService.warn("[DataManagement] Export attempt while feature is disabled.", { functionName });
@@ -125,11 +125,11 @@ function initialize() {
  */
 function updateUIVisibility() { // Removed isEnabledParam
     const functionName = "updateUIVisibility (DataManagement)"; // For logging
-    if (typeof isFeatureEnabled !== 'function') {
+    if (typeof window.isFeatureEnabled !== 'function') { // MODIFIED to check window
         LoggingService.error("[DataManagementFeature] isFeatureEnabled function not available.", new Error("DependencyMissing"), { functionName });
         return;
     }
-    const isActuallyEnabled = isFeatureEnabled('exportDataFeature');
+    const isActuallyEnabled = window.isFeatureEnabled('exportDataFeature'); // MODIFIED to use window
     LoggingService.debug(`[DataManagement] Updating UI visibility. Feature 'exportDataFeature' enabled: ${isActuallyEnabled}.`, {functionName});
 
     if (settingsExportDataBtnEl) { 

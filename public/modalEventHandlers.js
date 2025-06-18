@@ -18,9 +18,9 @@ import {
     openDesktopNotificationsSettingsModal, closeDesktopNotificationsSettingsModal,
     openProfileModal, closeProfileModal
 } from './modal_interactions.js';
-import { UserAccountsFeature } from './feature_user_accounts.js';
+// import { UserAccountsFeature } from './feature_user_accounts.js'; // REMOVED
 import { ProjectsFeature } from './feature_projects.js'; // For closing manage projects modal
-import { isFeatureEnabled, getAllFeatureFlags, setFeatureFlag } from './featureFlagService.js'; // For feature flags modal
+// import { isFeatureEnabled, getAllFeatureFlags, setFeatureFlag } from './featureFlagService.js'; // REMOVED
 
 // Helper function to attach listeners (can be localized or imported if made generic)
 function attachListener(elementId, eventType, handler, handlerName) {
@@ -53,47 +53,13 @@ function openFeatureFlagsModal() {
     if (ffModal && ffDialog && currentFFListContainer) {
         // Populate feature flags modal content
         currentFFListContainer.innerHTML = ''; // Clear previous content
-        const currentFlags = getAllFeatureFlags();
-        LoggingService.debug('[ModalEventHandlers] Populating feature flags modal in openFeatureFlagsModal.', { functionName, flagCount: Object.keys(currentFlags).length });
+        
+        // Note: getAllFeatureFlags and setFeatureFlag would need to be moved from the non-existent
+        // featureFlagService to main.js and exposed on the window object like isFeatureEnabled
+        // For now, this part will not fully function. We are just fixing the 404 error.
+        LoggingService.warn('[ModalEventHandlers] openFeatureFlagsModal is not fully functional without feature flag management service.', { functionName });
+        currentFFListContainer.innerHTML = '<p class="text-slate-400">Feature flag management is not available in this version.</p>';
 
-        const friendlyNames = { /* ... (copy friendlyNames from ui_event_handlers.js) ... */ };
-        // For brevity, assuming friendlyNames is defined as in ui_event_handlers.js
-        // In a real refactor, this might be a shared constant or utility.
-        const featureOrder = Object.keys(currentFlags).sort((a,b) => {
-            const nameA = friendlyNames[a] || a;
-            const nameB = friendlyNames[b] || b;
-            return nameA.localeCompare(nameB);
-        });
-
-        featureOrder.forEach(key => {
-            const displayName = friendlyNames[key] || key;
-            const itemDiv = document.createElement('div');
-            itemDiv.className = 'feature-flag-item';
-            const label = document.createElement('label');
-            label.htmlFor = `toggle-${key}`;
-            label.textContent = displayName;
-            label.className = 'feature-flag-label flex-grow';
-            const toggleContainer = document.createElement('div');
-            toggleContainer.className = 'relative';
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.id = `toggle-${key}`;
-            checkbox.checked = currentFlags[key];
-            checkbox.className = 'toggle-checkbox';
-            checkbox.addEventListener('change', (e) => {
-                LoggingService.info(`[ModalEventHandlers] Feature flag '${key}' toggled by user to ${e.target.checked}.`, { functionName, flagKey: key, newValue: e.target.checked });
-                setFeatureFlag(key, e.target.checked);
-            });
-            const toggleLabel = document.createElement('label');
-            toggleLabel.htmlFor = `toggle-${key}`;
-            toggleLabel.className = 'toggle-label';
-            toggleContainer.appendChild(checkbox);
-            toggleContainer.appendChild(toggleLabel);
-            itemDiv.appendChild(label);
-            itemDiv.appendChild(toggleContainer);
-            currentFFListContainer.appendChild(itemDiv);
-        });
-        // End of populate logic
 
         ffModal.classList.remove('hidden');
         setTimeout(() => { ffDialog.classList.remove('scale-95', 'opacity-0'); ffDialog.classList.add('scale-100', 'opacity-100'); }, 10);
@@ -120,7 +86,7 @@ export function setupModalEventListeners() {
     attachListener('openFeatureFlagsModalBtn', 'click', openFeatureFlagsModal, 'openFeatureFlagsModal'); // Use the combined open and populate
 
     // Special handling for Manage Projects Modal opener (it's part of ProjectsFeature)
-    if (isFeatureEnabled('projectFeature')) {
+    if (window.isFeatureEnabled('projectFeature')) { // MODIFIED to use window
         const settingsManageProjectsBtnEl = document.getElementById('settingsManageProjectsBtn');
         if (settingsManageProjectsBtnEl && ProjectsFeature?.openManageProjectsModal) {
             settingsManageProjectsBtnEl.addEventListener('click', ProjectsFeature.openManageProjectsModal);
@@ -189,8 +155,7 @@ export function setupModalEventListeners() {
             const projModal = document.getElementById('manageProjectsModal');
 
 
-            if (document.getElementById('authModal') && !document.getElementById('authModal').classList.contains('hidden') && UserAccountsFeature?.closeAuthModal) UserAccountsFeature.closeAuthModal();
-            else if (profileModalEl && !profileModalEl.classList.contains('hidden')) closeProfileModal();
+            if (profileModalEl && !profileModalEl.classList.contains('hidden')) closeProfileModal();
             else if (document.getElementById('addTaskModal') && !document.getElementById('addTaskModal').classList.contains('hidden')) closeAddModal();
             else if (document.getElementById('viewEditTaskModal') && !document.getElementById('viewEditTaskModal').classList.contains('hidden')) closeViewEditModal();
             else if (document.getElementById('viewTaskDetailsModal') && !document.getElementById('viewTaskDetailsModal').classList.contains('hidden')) closeViewTaskDetailsModal();
@@ -213,8 +178,6 @@ export function setupModalEventListeners() {
                 setTimeout(() => { projModal.classList.add('hidden'); }, 200);
             }
         }
-        // The "+" key for opening add task modal is not strictly a modal event,
-        // so it can remain in a more general event handler module or ui_event_handlers.js itself.
     });
     LoggingService.debug(`[ModalEventHandlers] Document keydown listener for modals attached.`, { functionName });
 

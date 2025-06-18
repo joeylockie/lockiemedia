@@ -2,7 +2,7 @@
 // This script runs on public-facing pages to check for and display ads from localStorage.
 // REFACTORED FOR SELF-HOSTED BACKEND
 
-import LoggingService from './public/loggingService.js';
+import LoggingService from './loggingService.js';
 import AdvertisingService from './advertisingService.js';
 
 const AD_POPUP_ID = 'adPopup';

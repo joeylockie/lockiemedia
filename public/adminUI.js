@@ -1,7 +1,7 @@
 // adminUI.js - Handles UI rendering for the Admin Panel
 // REFACTORED FOR SELF-HOSTED BACKEND (STATIC)
 
-import LoggingService from './public/loggingService.js';
+import LoggingService from './loggingService.js';
 
 /**
  * Displays a temporary message to the admin.

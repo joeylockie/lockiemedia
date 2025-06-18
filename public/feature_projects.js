@@ -2,7 +2,7 @@
 
 import AppStore from './store.js';
 import EventBus from './eventBus.js'; // Already imported
-import { isFeatureEnabled } from './featureFlagService.js';
+// import { isFeatureEnabled } from './featureFlagService.js'; // REMOVED
 import { addProject, updateProjectName, deleteProjectById, getProjectById, getAllProjects } from './projectService.js';
 
 // NEW: Import LoggingService
@@ -81,11 +81,11 @@ function initializeProjectFeature() {
 
 function updateProjectUIVisibility() {
     const functionName = 'updateProjectUIVisibility';
-    if (typeof isFeatureEnabled !== 'function') { 
+    if (typeof window.isFeatureEnabled !== 'function') { // MODIFIED to check window
         LoggingService.error("[ProjectsFeature] isFeatureEnabled function not available.", new Error("isFeatureEnabledMissing"), { functionName });
         return;
     }
-    const isActuallyEnabled = isFeatureEnabled('projectFeature'); 
+    const isActuallyEnabled = window.isFeatureEnabled('projectFeature'); // MODIFIED to use window
     LoggingService.debug(`[ProjectsFeature] Updating UI visibility. Project feature enabled: ${isActuallyEnabled}.`, { functionName, isActuallyEnabled });
     const projectElements = document.querySelectorAll('.project-feature-element'); 
     projectElements.forEach(el => el.classList.toggle('hidden', !isActuallyEnabled)); 
@@ -249,12 +249,12 @@ function populateProjectDropdowns() {
 
 function populateProjectFilterList() {
     const functionName = 'populateProjectFilterList';
-    if (!projectFilterContainer || typeof AppStore === 'undefined' || typeof AppStore.getUniqueProjects !== 'function' || typeof isFeatureEnabled !== 'function' || !ViewManager) { 
+    if (!projectFilterContainer || typeof AppStore === 'undefined' || typeof AppStore.getUniqueProjects !== 'function' || typeof window.isFeatureEnabled !== 'function' || !ViewManager) { // MODIFIED to check window
         LoggingService.warn("[ProjectsFeature] Cannot populate project filter list. Dependencies missing.", {
             functionName,
             projectFilterContainerFound: !!projectFilterContainer,
             appStoreAvailable: !!AppStore,
-            isFeatureEnabledAvailable: typeof isFeatureEnabled === 'function',
+            isFeatureEnabledAvailable: typeof window.isFeatureEnabled === 'function',
             viewManagerAvailable: !!ViewManager
         });
         if (projectFilterContainer) projectFilterContainer.innerHTML = ''; return; 
@@ -262,9 +262,9 @@ function populateProjectFilterList() {
     projectFilterContainer.innerHTML = ''; 
     const currentUniqueProjects = AppStore.getUniqueProjects(); 
 
-    if (!isFeatureEnabled('projectFeature') || currentUniqueProjects.length === 0) { 
+    if (!window.isFeatureEnabled('projectFeature') || currentUniqueProjects.length === 0) { // MODIFIED to use window
         projectFilterContainer.classList.add('hidden'); 
-        LoggingService.debug("[ProjectsFeature] Project filter list hidden (feature disabled or no projects).", { functionName, projectFeatureEnabled: isFeatureEnabled('projectFeature'), projectCount: currentUniqueProjects.length });
+        LoggingService.debug("[ProjectsFeature] Project filter list hidden (feature disabled or no projects).", { functionName, projectFeatureEnabled: window.isFeatureEnabled('projectFeature'), projectCount: currentUniqueProjects.length }); // MODIFIED to use window
         return; 
     }
     projectFilterContainer.classList.remove('hidden'); 

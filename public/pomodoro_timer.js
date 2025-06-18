@@ -2,7 +2,7 @@
 // Manages the Pomodoro Timer Hybrid feature, including its state, logic, and UI rendering for its dedicated page.
 // Now an ES6 module.
 
-import { isFeatureEnabled } from './featureFlagService.js';
+// import { isFeatureEnabled } from './featureFlagService.js'; // REMOVED
 import AppStore from './store.js';
 import ViewManager from './viewManager.js';
 import EventBus from './eventBus.js'; // EventBus is already imported
@@ -98,12 +98,12 @@ function updateSidebarDisplay() {
     if (!sidebarPomodoroTimeTextEl) sidebarPomodoroTimeTextEl = document.getElementById('sidebarPomodoroTime');
     if (!sidebarPomodoroTaskTextEl) sidebarPomodoroTaskTextEl = document.getElementById('sidebarPomodoroTask');
 
-    if (!sidebarPomodoroDisplayEl || !isFeatureEnabled || !ViewManager || !AppStore) {
+    if (!sidebarPomodoroDisplayEl || typeof window.isFeatureEnabled !== 'function' || !ViewManager || !AppStore) { // MODIFIED to check window
         if(sidebarPomodoroDisplayEl) sidebarPomodoroDisplayEl.classList.add('hidden');
         LoggingService.debug('[PomodoroTimer] Skipping sidebar display update due to missing elements or disabled feature.', {
             functionName,
             sidebarDisplayElFound: !!sidebarPomodoroDisplayEl,
-            featureEnabled: typeof isFeatureEnabled === 'function' ? isFeatureEnabled('pomodoroTimerHybridFeature') : 'unknown',
+            featureEnabled: typeof window.isFeatureEnabled === 'function' ? window.isFeatureEnabled('pomodoroTimerHybridFeature') : 'unknown',
             viewManagerAvailable: !!ViewManager,
             appStoreAvailable: !!AppStore
         });
@@ -112,7 +112,7 @@ function updateSidebarDisplay() {
 
     const isSidebarMaximized = !document.getElementById('taskSidebar')?.classList.contains('sidebar-minimized');
 
-    if (isFeatureEnabled('pomodoroTimerHybridFeature') && _isActive && isSidebarMaximized && ViewManager.getCurrentTaskViewMode() !== 'pomodoro') {
+    if (window.isFeatureEnabled('pomodoroTimerHybridFeature') && _isActive && isSidebarMaximized && ViewManager.getCurrentTaskViewMode() !== 'pomodoro') { // MODIFIED to use window
         LoggingService.debug('[PomodoroTimer] Updating sidebar Pomodoro display.', { functionName, isActive: _isActive, currentState: _currentState, timeRemaining: _timeRemaining });
         sidebarPomodoroDisplayEl.classList.remove('hidden');
         if (sidebarPomodoroStateTextEl) {
@@ -317,11 +317,11 @@ function initializeFeature() {
 
 function updateVisibility() {
     const functionName = 'updateVisibility (Pomodoro)';
-    if (!isFeatureEnabled || !ViewManager) {
-        LoggingService.error("[PomodoroTimer] Core services not available for UI visibility update.", new Error("CoreServicesMissing"), { functionName, isFeatureEnabledAvailable: !!isFeatureEnabled, viewManagerAvailable: !!ViewManager });
+    if (!window.isFeatureEnabled || !ViewManager) { // MODIFIED to check window
+        LoggingService.error("[PomodoroTimer] Core services not available for UI visibility update.", new Error("CoreServicesMissing"), { functionName, isFeatureEnabledAvailable: !!window.isFeatureEnabled, viewManagerAvailable: !!ViewManager });
         return;
     }
-    const isActuallyEnabled = isFeatureEnabled('pomodoroTimerHybridFeature');
+    const isActuallyEnabled = window.isFeatureEnabled('pomodoroTimerHybridFeature'); // MODIFIED to use window
     const elements = document.querySelectorAll('.pomodoro-timer-hybrid-feature-element');
     elements.forEach(el => el.classList.toggle('hidden', !isActuallyEnabled));
     if (!isActuallyEnabled) {

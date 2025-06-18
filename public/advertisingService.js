@@ -2,7 +2,7 @@
 // This service manages the logic for triggering and displaying ads.
 // REFACTORED for self-hosted mode (uses localStorage and a hardcoded ad list).
 
-import LoggingService from './public/loggingService.js';
+import LoggingService from './loggingService.js';
 
 const AD_TRIGGER_KEY = 'lockiemedia_ad_trigger_v1';
 

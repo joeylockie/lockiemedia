@@ -1,252 +1,157 @@
 // timeTrackerService.js
-// Manages all logic for the time tracker feature using Firebase Firestore.
+// Manages all logic for the time tracker feature using localStorage.
 
 import LoggingService from './loggingService.js';
-import { getFirestoreInstance } from './feature_user_accounts.js'; 
 
-const TIME_ACTIVITIES_COLLECTION = 'time_activities';
-const TIME_LOG_ENTRIES_COLLECTION = 'time_log_entries';
+const ACTIVITIES_KEY = 'timeTracker_activities_v1';
+const LOG_ENTRIES_KEY = 'timeTracker_log_entries_v1';
+const ACTIVE_TIMER_KEY = 'timeTracker_active_timer_v1';
 
 // --- Internal State ---
 let _activities = [];
 let _logEntries = [];
-let _activeTimer = null; 
-
-// --- Firestore Listeners (to be managed by the feature module) ---
-let _activitiesUnsubscribe = null;
-let _logEntriesUnsubscribe = null;
+let _activeTimer = null;
 
 // --- Private Helper Functions ---
+function _loadData() {
+    try {
+        const storedActivities = localStorage.getItem(ACTIVITIES_KEY);
+        _activities = storedActivities ? JSON.parse(storedActivities) : [
+             // Default activities
+            { id: 'activity_1', name: 'Development', icon: 'fas fa-code', color: 'sky' },
+            { id: 'activity_2', name: 'Meeting', icon: 'fas fa-users', color: 'purple' },
+            { id: 'activity_3', name: 'Design', icon: 'fas fa-paint-brush', color: 'pink' },
+            { id: 'activity_4', name: 'Learning', icon: 'fas fa-book-open', color: 'yellow' },
+        ];
 
-function _getCurrentUserId() {
-    if (typeof firebase !== 'undefined' && firebase.auth) {
-        return firebase.auth().currentUser ? firebase.auth().currentUser.uid : null;
+        const storedLogs = localStorage.getItem(LOG_ENTRIES_KEY);
+        _logEntries = storedLogs ? JSON.parse(storedLogs).map(log => ({
+            ...log,
+            startTime: new Date(log.startTime),
+            endTime: new Date(log.endTime)
+        })) : [];
+
+        const storedTimer = localStorage.getItem(ACTIVE_TIMER_KEY);
+        _activeTimer = storedTimer ? JSON.parse(storedTimer) : null;
+        if (_activeTimer) {
+            _activeTimer.startTime = new Date(_activeTimer.startTime);
+        }
+
+    } catch (error) {
+        LoggingService.error('[TimeTrackerService] Error loading data from localStorage.', error);
+        _activities = [];
+        _logEntries = [];
+        _activeTimer = null;
     }
-    return null;
+}
+
+function _saveActivities() {
+    try {
+        localStorage.setItem(ACTIVITIES_KEY, JSON.stringify(_activities));
+    } catch (error) {
+        LoggingService.error('[TimeTrackerService] Error saving activities to localStorage.', error);
+    }
+}
+
+function _saveLogEntries() {
+     try {
+        localStorage.setItem(LOG_ENTRIES_KEY, JSON.stringify(_logEntries));
+    } catch (error) {
+        LoggingService.error('[TimeTrackerService] Error saving log entries to localStorage.', error);
+    }
+}
+
+function _saveActiveTimer() {
+     try {
+        if (_activeTimer) {
+            localStorage.setItem(ACTIVE_TIMER_KEY, JSON.stringify(_activeTimer));
+        } else {
+            localStorage.removeItem(ACTIVE_TIMER_KEY);
+        }
+    } catch (error) {
+        LoggingService.error('[TimeTrackerService] Error saving active timer to localStorage.', error);
+    }
+}
+
+function _getTodaysEntries() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return _logEntries.filter(entry => new Date(entry.startTime) >= today);
 }
 
 // --- Public API ---
 
-/**
- * Streams the user's activities from Firestore in real-time.
- * @param {function} onUpdate - Callback function that receives the activities array.
- */
 function streamActivities(onUpdate) {
-    const functionName = 'streamActivities';
-    const userId = _getCurrentUserId();
-    if (!userId) {
-        LoggingService.warn('[TimeTrackerService] No user ID available. Cannot stream activities.', { functionName });
-        return;
+    if (typeof onUpdate === 'function') {
+        onUpdate([..._activities]);
     }
-
-    if (_activitiesUnsubscribe) _activitiesUnsubscribe();
-
-    const db = getFirestoreInstance();
-    // CORRECTED PATH: Access the sub-collection within the user's document.
-    const q = db.collection('users').doc(userId).collection(TIME_ACTIVITIES_COLLECTION)
-                .orderBy('createdAt', 'asc');
-
-    _activitiesUnsubscribe = q.onSnapshot(querySnapshot => {
-        _activities = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        LoggingService.info(`[TimeTrackerService] Activity stream updated. Found ${_activities.length} activities.`, { functionName, count: _activities.length });
-        if (typeof onUpdate === 'function') {
-            onUpdate([..._activities]);
-        }
-    }, error => {
-        LoggingService.error('[TimeTrackerService] Error in activity stream.', error, { functionName });
-    });
+    // This is a placeholder for a real-time stream.
+    // In a localStorage model, we might use a custom event or just rely on direct calls.
 }
 
-/**
- * Streams the user's time log entries for a given date range from Firestore.
- * @param {Date} startDate - The start of the date range.
- * @param {function} onUpdate - Callback function that receives the log entries array.
- */
 function streamLogEntries(startDate, onUpdate) {
-    const functionName = 'streamLogEntries';
-    const userId = _getCurrentUserId();
-    if (!userId) {
-        LoggingService.warn('[TimeTrackerService] No user ID available. Cannot stream log entries.', { functionName });
-        return;
+     if (typeof onUpdate === 'function') {
+        const entries = _logEntries.filter(entry => new Date(entry.startTime) >= startDate);
+        onUpdate(entries);
     }
-     if (_logEntriesUnsubscribe) _logEntriesUnsubscribe();
-
-    const db = getFirestoreInstance();
-    // CORRECTED PATH: Access the sub-collection within the user's document.
-    const q = db.collection('users').doc(userId).collection(TIME_LOG_ENTRIES_COLLECTION)
-                .where('startTime', '>=', startDate)
-                .orderBy('startTime', 'desc');
-
-    _logEntriesUnsubscribe = q.onSnapshot(querySnapshot => {
-        _logEntries = querySnapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                id: doc.id,
-                ...data,
-                // Ensure startTime and endTime are converted to Date objects
-                startTime: data.startTime?.toDate ? data.startTime.toDate() : new Date(data.startTime),
-                endTime: data.endTime?.toDate ? data.endTime.toDate() : new Date(data.endTime)
-            };
-        });
-         LoggingService.info(`[TimeTrackerService] Log entry stream updated. Found ${_logEntries.length} entries.`, { functionName, count: _logEntries.length });
-        if (typeof onUpdate === 'function') {
-            onUpdate([..._logEntries]);
-        }
-    }, error => {
-        LoggingService.error('[TimeTrackerService] Error in log entry stream.', error, { functionName });
-    });
 }
 
-/**
- * Calculates the total tracked milliseconds for today.
- * @returns {number} Total milliseconds tracked today.
- */
 function getTodaysTotalTrackedMs() {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    return _logEntries
-        .filter(entry => new Date(entry.startTime) >= today)
-        .reduce((total, entry) => total + entry.durationMs, 0);
+    return _getTodaysEntries().reduce((total, entry) => total + entry.durationMs, 0);
 }
 
-
-/**
- * Fetches log entries for a specific date range for reporting.
- * @param {Date} startDate The start date of the range.
- * @param {Date} endDate The end date of the range.
- * @returns {Promise<Array<Object>>} A promise that resolves with an array of log entries.
- */
 async function fetchLogEntriesForDateRange(startDate, endDate) {
-    const functionName = 'fetchLogEntriesForDateRange';
-    const userId = _getCurrentUserId();
-    if (!userId) {
-        LoggingService.error('[TimeTrackerService] User not logged in. Cannot fetch history.', new Error('UserNotLoggedIn'), { functionName });
-        return [];
-    }
-    const db = getFirestoreInstance();
-    try {
-        // CORRECTED PATH: Access the sub-collection within the user's document.
-        const querySnapshot = await db.collection('users').doc(userId).collection(TIME_LOG_ENTRIES_COLLECTION)
-            .where('startTime', '>=', startDate)
-            .where('startTime', '<=', endDate)
-            .orderBy('startTime', 'desc')
-            .get();
-
-        const entries = querySnapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                id: doc.id,
-                ...data,
-                startTime: data.startTime.toDate(),
-                endTime: data.endTime.toDate()
-            };
-        });
-        LoggingService.info(`[TimeTrackerService] Fetched ${entries.length} log entries for date range.`, { functionName, count: entries.length });
-        return entries;
-    } catch (error) {
-        LoggingService.error('[TimeTrackerService] Error fetching log entries for date range.', error, { functionName });
-        throw error;
-    }
+    return Promise.resolve(_logEntries.filter(entry => {
+        const entryDate = new Date(entry.startTime);
+        return entryDate >= startDate && entryDate <= endDate;
+    }));
 }
 
-/**
- * Stops all active data streams.
- */
 function stopAllStreams() {
-    if (_activitiesUnsubscribe) _activitiesUnsubscribe();
-    if (_logEntriesUnsubscribe) _logEntriesUnsubscribe();
-    LoggingService.info('[TimeTrackerService] All Firestore streams stopped.', { functionName: 'stopAllStreams' });
+    // No-op for localStorage implementation
 }
 
-/**
- * Adds a new activity for the current user to Firestore.
- * @param {object} activityData - Should contain { name, icon, color }.
- */
 async function addActivity(activityData) {
-    const functionName = 'addActivity';
-    const userId = _getCurrentUserId();
-    if (!userId) throw new Error('UserNotLoggedIn');
-    
-    const db = getFirestoreInstance();
-    try {
-        // CORRECTED PATH: Access the sub-collection within the user's document.
-        await db.collection('users').doc(userId).collection(TIME_ACTIVITIES_COLLECTION).add({
-            ...activityData,
-            userId: userId, // Keep for potential rule changes or backend queries
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        LoggingService.info(`[TimeTrackerService] Added new activity: ${activityData.name}`, { functionName, activityData });
-    } catch (error) {
-        LoggingService.error('[TimeTrackerService] Error adding activity to Firestore.', error, { functionName });
-        throw error;
-    }
+    const newActivity = {
+        id: `activity_${Date.now()}`,
+        ...activityData,
+        createdAt: new Date().toISOString()
+    };
+    _activities.push(newActivity);
+    _saveActivities();
+    // In a real streaming scenario, this would trigger the onUpdate callback.
+    // For now, the UI needs to be manually refreshed.
+    return Promise.resolve();
 }
 
-/**
- * Deletes an activity from Firestore.
- * @param {string} activityId - The ID of the activity to delete.
- */
 async function deleteActivity(activityId) {
-    const functionName = 'deleteActivity';
-    const userId = _getCurrentUserId();
-    if (!userId) throw new Error('UserNotLoggedIn');
-
-    const db = getFirestoreInstance();
-    try {
-        // CORRECTED PATH: Access the sub-collection within the user's document.
-        await db.collection('users').doc(userId).collection(TIME_ACTIVITIES_COLLECTION).doc(activityId).delete();
-        LoggingService.info(`[TimeTrackerService] Deleted activity with ID: ${activityId}`, { functionName, activityId });
-    } catch (error) {
-        LoggingService.error(`[TimeTrackerService] Error deleting activity ${activityId}.`, error, { functionName });
-        throw error;
-    }
+    _activities = _activities.filter(a => a.id !== activityId);
+    _saveActivities();
+     return Promise.resolve();
 }
 
 async function stopTracking() {
     if (!_activeTimer) return;
 
-    const functionName = 'stopTracking';
-    const userId = _getCurrentUserId();
-    if (!userId) {
-        LoggingService.error('[TimeTrackerService] Cannot stop tracking and save log, no user ID.', new Error('UserNotLoggedIn'), { functionName });
-        _activeTimer = null; 
-        return;
-    }
-
-    const db = getFirestoreInstance();
     const newLogEntry = {
-        userId: userId,
+        id: `log_${Date.now()}`,
         activityId: _activeTimer.activityId,
-        startTime: _activeTimer.startTime, 
+        startTime: _activeTimer.startTime,
         endTime: new Date(),
-        notes: '' // Add notes field
+        notes: _activeTimer.notes || ''
     };
     newLogEntry.durationMs = newLogEntry.endTime.getTime() - newLogEntry.startTime.getTime();
+    _logEntries.unshift(newLogEntry);
+    _saveLogEntries();
 
-    try {
-        await db.collection('users').doc(userId).collection(TIME_LOG_ENTRIES_COLLECTION).add(newLogEntry);
-        LoggingService.info(`[TimeTrackerService] Stopped tracking. Logged entry to Firestore.`, { functionName, newLogEntry });
-    } catch (error) {
-        LoggingService.error('[TimeTrackerService] Error saving log entry to Firestore.', error, { functionName });
-    } finally {
-        _activeTimer = null; 
-    }
+    _activeTimer = null;
+    _saveActiveTimer();
+     return Promise.resolve();
 }
 
-/**
- * Adds a manual time log entry to Firestore.
- * @param {object} logData - Object containing { activityId, startTime, endTime, notes }
- * @returns {Promise<void>}
- */
 async function addLogEntry(logData) {
-    const functionName = 'addLogEntry';
-    const userId = _getCurrentUserId();
-    if (!userId) throw new Error('User not logged in');
-
-    const db = getFirestoreInstance();
     const newLog = {
-        userId,
+        id: `log_${Date.now()}`,
         activityId: logData.activityId,
         startTime: new Date(logData.startTime),
         endTime: new Date(logData.endTime),
@@ -254,83 +159,45 @@ async function addLogEntry(logData) {
         durationMs: new Date(logData.endTime).getTime() - new Date(logData.startTime).getTime(),
         manuallyAdded: true
     };
-
-    try {
-        await db.collection('users').doc(userId).collection(TIME_LOG_ENTRIES_COLLECTION).add(newLog);
-        LoggingService.info('[TimeTrackerService] Manually added new time log.', { functionName, newLog });
-    } catch (error) {
-        LoggingService.error('[TimeTrackerService] Error manually adding time log.', error, { functionName });
-        throw error;
-    }
+    _logEntries.unshift(newLog);
+    _logEntries.sort((a,b) => b.startTime - a.startTime); // Keep sorted
+    _saveLogEntries();
+    return Promise.resolve();
 }
 
-/**
- * Updates an existing time log entry in Firestore.
- * @param {string} logId The ID of the log entry to update.
- * @param {object} updatedData The data to update, e.g., { startTime, endTime, notes, activityId }.
- * @returns {Promise<void>}
- */
 async function updateLogEntry(logId, updatedData) {
-    const functionName = 'updateLogEntry';
-    const userId = _getCurrentUserId();
-    if (!userId) throw new Error('User not logged in');
-    if (!logId) throw new Error('Log ID is required for update');
+    const logIndex = _logEntries.findIndex(log => log.id === logId);
+    if (logIndex === -1) throw new Error("Log entry not found");
 
-    const db = getFirestoreInstance();
-    const logRef = db.collection('users').doc(userId).collection(TIME_LOG_ENTRIES_COLLECTION).doc(logId);
+    const existingLog = _logEntries[logIndex];
+    const newStartTime = updatedData.startTime ? new Date(updatedData.startTime) : existingLog.startTime;
+    const newEndTime = updatedData.endTime ? new Date(updatedData.endTime) : existingLog.endTime;
 
-    // Recalculate duration if start/end times are changed
-    if (updatedData.startTime || updatedData.endTime) {
-        const doc = await logRef.get();
-        const existingData = doc.data();
-        const newStartTime = updatedData.startTime ? new Date(updatedData.startTime) : existingData.startTime.toDate();
-        const newEndTime = updatedData.endTime ? new Date(updatedData.endTime) : existingData.endTime.toDate();
-        updatedData.durationMs = newEndTime.getTime() - newStartTime.getTime();
-
-        // Convert dates back to Firestore Timestamps if they are date objects
-        if (updatedData.startTime) updatedData.startTime = firebase.firestore.Timestamp.fromDate(newStartTime);
-        if (updatedData.endTime) updatedData.endTime = firebase.firestore.Timestamp.fromDate(newEndTime);
-    }
-    
-    try {
-        await logRef.update(updatedData);
-        LoggingService.info(`[TimeTrackerService] Updated time log entry: ${logId}`, { functionName, logId, updatedData });
-    } catch (error) {
-        LoggingService.error(`[TimeTrackerService] Error updating time log entry: ${logId}`, error, { functionName });
-        throw error;
-    }
+    _logEntries[logIndex] = {
+        ...existingLog,
+        ...updatedData,
+        startTime: newStartTime,
+        endTime: newEndTime,
+        durationMs: newEndTime.getTime() - newStartTime.getTime()
+    };
+    _saveLogEntries();
+    return Promise.resolve();
 }
 
-/**
- * Deletes a time log entry from Firestore.
- * @param {string} logId The ID of the log entry to delete.
- * @returns {Promise<void>}
- */
 async function deleteLogEntry(logId) {
-    const functionName = 'deleteLogEntry';
-    const userId = _getCurrentUserId();
-    if (!userId) throw new Error('User not logged in');
-    if (!logId) throw new Error('Log ID is required for deletion');
-
-    const db = getFirestoreInstance();
-    try {
-        await db.collection('users').doc(userId).collection(TIME_LOG_ENTRIES_COLLECTION).doc(logId).delete();
-        LoggingService.info(`[TimeTrackerService] Deleted time log entry: ${logId}`, { functionName, logId });
-    } catch (error) {
-        LoggingService.error(`[TimeTrackerService] Error deleting time log entry: ${logId}`, error, { functionName });
-        throw error;
-    }
+    _logEntries = _logEntries.filter(log => log.id !== logId);
+    _saveLogEntries();
+    return Promise.resolve();
 }
 
-
-// --- Unchanged Functions ---
 function getActivities() { return [..._activities]; }
 function getLogEntries() { return [..._logEntries]; }
 function getActiveTimer() { return _activeTimer ? { ..._activeTimer } : null; }
+
 function startTracking(activityId) {
     if (_activeTimer) {
         if (_activeTimer.activityId === activityId) return;
-        stopTracking(); 
+        stopTracking();
     }
     const activity = _activities.find(a => a.id === activityId);
     if (!activity) {
@@ -339,17 +206,20 @@ function startTracking(activityId) {
     }
     _activeTimer = {
         activityId: activityId,
-        startTime: new Date() 
+        startTime: new Date()
     };
+    _saveActiveTimer();
     LoggingService.info(`[TimeTrackerService] Started tracking activity: ${activity.name}`, { activeTimer: _activeTimer });
     return getActiveTimer();
 }
-function initialize() {
-    const functionName = 'initialize (TimeTrackerService)';
-    LoggingService.info('[TimeTrackerService] Initializing...', { functionName });
-    LoggingService.info('[TimeTrackerService] Service Initialized. Ready for streams.', { functionName });
-}
 
+function initialize() {
+    _loadData();
+    LoggingService.info('[TimeTrackerService] Initialized and data loaded from localStorage.', {
+        activityCount: _activities.length,
+        logCount: _logEntries.length
+    });
+}
 
 const TimeTrackerService = {
     initialize,
@@ -360,8 +230,8 @@ const TimeTrackerService = {
     stopAllStreams,
     addActivity,
     deleteActivity,
-    getActivities, 
-    getLogEntries, 
+    getActivities,
+    getLogEntries,
     getActiveTimer,
     startTracking,
     stopTracking,

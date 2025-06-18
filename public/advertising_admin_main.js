@@ -2,7 +2,7 @@
 // Main entry point for the Advertising Admin Panel.
 // REFACTORED FOR SELF-HOSTED BACKEND (STATIC)
 
-import LoggingService from './public/loggingService.js';
+import LoggingService from './loggingService.js';
 import AdvertisingService from './advertisingService.js';
 
 // --- DOM Element References ---
