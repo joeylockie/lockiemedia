@@ -241,3 +241,9 @@ body { font-family: 'Inter', sans-serif; }
 .dark .input-example-text {
     color: #94a3b8; /* slate-400 */
 }
+
+/* ===== NEW DEBUGGING RULE ===== */
+/* This rule forcefully centers all sidebar buttons */
+#taskSidebar .sidebar-button-icon-only {
+    justify-content: center !important;
+}

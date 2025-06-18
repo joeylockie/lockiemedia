@@ -269,7 +269,7 @@ function populateProjectFilterList() {
 
     currentUniqueProjects.forEach(project => { 
         const button = document.createElement('button'); 
-        button.className = 'smart-view-btn w-full text-left px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only justify-center bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'; 
+        button.className = 'smart-view-btn w-full px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-colors duration-300 flex items-center justify-center sidebar-button-icon-only bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'; 
         button.dataset.filter = `project_${project.id}`; 
         button.title = project.name; 
 

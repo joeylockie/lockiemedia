@@ -85,7 +85,7 @@
     
     <div class="w-full max-w-6xl mx-auto flex-grow">
         <div class="flex flex-col md:flex-row gap-6 lg:gap-8 h-full">
-            <aside id="taskSidebar" class="bg-slate-100 dark:bg-slate-800 rounded-xl shadow-xl flex-shrink-0 md:sticky md:top-10 md:self-start sticky-sidebar w-full md:w-72 lg:w-80 p-3 sm:p-4 md:p-5">
+            <aside id="taskSidebar" class="bg-slate-100 dark:bg-slate-800 rounded-xl shadow-xl flex-shrink-0 md:sticky md:top-10 md:self-start sticky-sidebar w-full md:w-72 lg:w-80 p-3 sm:p-4 md:p-5 flex flex-col">
                 <div class="flex justify-between items-center mb-4">
                     <h1 class="sidebar-text-content text-xl md:text-2xl font-bold text-slate-800 dark:text-slate-100">Menu</h1>
                     <button id="sidebarToggleBtn" class="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="Toggle Sidebar">
@@ -93,41 +93,50 @@
                     </button>
                 </div>
 
-                <div class="flex flex-col gap-3">
-                    <button id="openAddModalButton" class="w-full text-left px-4 py-3 bg-sky-500 hover:bg-sky-600 text-white rounded-lg font-semibold transition-colors flex items-center sidebar-button-icon-only">
-                        <i class="fas fa-plus md:mr-2.5"></i> <span class="sidebar-text-content">Add New Item</span>
-                    </button>
-                    <button id="openSettingsModalButton" class="w-full text-left px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600 rounded-lg font-medium transition-colors flex items-center sidebar-button-icon-only">
+                <div class="flex-grow">
+                    <div class="flex flex-col gap-3">
+                        <button id="openAddModalButton" class="w-full px-4 py-3 bg-sky-500 hover:bg-sky-600 text-white rounded-lg font-semibold transition-colors flex items-center justify-center sidebar-button-icon-only">
+                            <i class="fas fa-plus md:mr-2.5"></i> <span class="sidebar-text-content">Add New Task</span>
+                        </button>
+                    </div>
+
+                    <hr class="my-4 border-slate-200 dark:border-slate-700">
+
+                    <div id="smartViewButtonsContainer" class="flex flex-col gap-2">
+                        <button data-filter="inbox" class="smart-view-btn w-full px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-colors duration-300 flex items-center justify-center sidebar-button-icon-only">
+                            <i class="fas fa-inbox md:mr-2.5"></i> <span class="sidebar-text-content">Inbox</span>
+                        </button>
+                        <button data-filter="today" class="smart-view-btn w-full px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-colors duration-300 flex items-center justify-center sidebar-button-icon-only">
+                            <i class="fas fa-calendar-day md:mr-2.5"></i> <span class="sidebar-text-content">Today</span>
+                        </button>
+                        <button data-filter="upcoming" class="smart-view-btn w-full px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-colors duration-300 flex items-center justify-center sidebar-button-icon-only">
+                            <i class="fas fa-calendar-alt md:mr-2.5"></i> <span class="sidebar-text-content">Upcoming</span>
+                        </button>
+                         <button data-filter="shopping_list" class="smart-view-btn w-full px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-colors duration-300 flex items-center justify-center sidebar-button-icon-only shopping-list-feature-element">
+                            <i class="fas fa-shopping-cart md:mr-2.5"></i> <span class="sidebar-text-content">Shopping List</span>
+                        </button>
+                        <button data-filter="completed" class="smart-view-btn w-full px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-colors duration-300 flex items-center justify-center sidebar-button-icon-only">
+                            <i class="fas fa-check-double md:mr-2.5"></i> <span class="sidebar-text-content">Completed</span>
+                        </button>
+                    </div>
+                    
+                    <div id="projectFilterContainer" class="mt-4 project-feature-element">
+                        </div>
+                </div>
+
+                <div class="mt-auto pt-4">
+                     <h2 class="sidebar-text-content sidebar-section-title text-lg md:text-xl font-semibold text-slate-700 dark:text-slate-200 mb-2 md:mb-3 mt-4">Settings</h2>
+                    <button id="openSettingsModalButton" class="w-full px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600 rounded-lg font-medium transition-colors flex items-center justify-center sidebar-button-icon-only">
                         <i class="fas fa-cog md:mr-2.5"></i> <span class="sidebar-text-content">Settings</span>
                     </button>
                 </div>
-
-                <hr class="my-4 border-slate-200 dark:border-slate-700">
-
-                <div id="smartViewButtonsContainer" class="flex flex-col gap-2">
-                    <button data-filter="inbox" class="smart-view-btn w-full text-left px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only">
-                        <i class="fas fa-inbox md:mr-2.5"></i> <span class="sidebar-text-content">Inbox</span>
-                    </button>
-                    <button data-filter="today" class="smart-view-btn w-full text-left px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only">
-                        <i class="fas fa-calendar-day md:mr-2.5"></i> <span class="sidebar-text-content">Today</span>
-                    </button>
-                    <button data-filter="upcoming" class="smart-view-btn w-full text-left px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only">
-                        <i class="fas fa-calendar-alt md:mr-2.5"></i> <span class="sidebar-text-content">Upcoming</span>
-                    </button>
-                     <button data-filter="shopping_list" class="smart-view-btn w-full text-left px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only shopping-list-feature-element">
-                        <i class="fas fa-shopping-cart md:mr-2.5"></i> <span class="sidebar-text-content">Shopping List</span>
-                    </button>
-                    <button data-filter="completed" class="smart-view-btn w-full text-left px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-colors duration-300 flex items-center sidebar-button-icon-only">
-                        <i class="fas fa-check-double md:mr-2.5"></i> <span class="sidebar-text-content">Completed</span>
-                    </button>
-                </div>
-                
-                <div id="projectFilterContainer" class="mt-4 project-feature-element">
-                    </div>
             </aside>
             <main class="w-full flex-grow bg-white dark:bg-slate-900 p-4 md:p-6 lg:p-8 rounded-xl shadow-2xl min-h-[300px] mt-4 md:mt-0">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 md:mb-6">
-                    <h2 id="yourTasksHeading" class="text-xl sm:text-2xl md:text-3xl font-semibold text-slate-800 dark:text-slate-100">Your Items</h2>
+                    <div class="flex items-baseline gap-3">
+                        <h2 id="yourTasksHeading" class="text-xl sm:text-2xl md:text-3xl font-semibold text-slate-800 dark:text-slate-100">Your Items</h2>
+                        <span id="mainContentDate" class="text-base font-medium text-slate-500 dark:text-slate-400 hidden sm:block"></span>
+                    </div>
                 </div>
 
                 <div id="taskControls" class="flex flex-col sm:flex-row gap-2 mb-4">
