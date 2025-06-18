@@ -170,7 +170,7 @@ export function initializeDOMElements() {
     viewSubTaskProgress = document.getElementById('viewSubTaskProgress');
     modalSubTasksListViewDetails = document.getElementById('modalSubTasksListViewDetails');
     noSubTasksMessageViewDetails = document.getElementById('noSubTasksMessageViewDetails');
-    subTasksSectionAdd = document.getElementById('subTasksSectionAdd');
+    subTasksSectionAdd = document.getElementById('modalSubTaskInputAdd');
     modalSubTaskInputAdd = document.getElementById('modalSubTaskInputAdd');
     modalAddSubTaskBtnAdd = document.getElementById('modalAddSubTaskBtnAdd');
     modalSubTasksListAdd = document.getElementById('modalSubTasksListAdd');
@@ -285,7 +285,7 @@ export function setSidebarMinimized(minimize) {
 
 
     if (sidebarToggleIcon) {
-        sidebarToggleIcon.className = `fas ${minimize ? 'fa-chevron-right' : 'fa-chevron-left'}`;
+        sidebarToggleIcon.className = `fas ${minimize ? 'fa-chevron-right' : 'fa-chevron-left'} text-white`;
     } else {
         LoggingService.warn("[UI Rendering] setSidebarMinimized: sidebarToggleIcon element not initialized.", {module: 'ui_rendering'});
     }
@@ -331,6 +331,7 @@ export function refreshTaskView() {
     updateViewToggleButtonsState();
     updateYourTasksHeading();
     styleSmartViewButtons();
+    updateSortButtonStates(); // <--- FIX IS HERE
 
     // Default to list view as other views are removed
     ViewManager.setTaskViewMode('list');

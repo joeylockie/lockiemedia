@@ -104,8 +104,12 @@
                         </button>
                     </div>
 
-                    <hr class="my-4 border-slate-200 dark:border-slate-700">
-
+                    <div id="taskSearchInputContainer" class="mt-4">
+                        <h2 class="sidebar-text-content text-lg md:text-xl font-semibold text-slate-700 dark:text-slate-200 mb-2">Search Tasks</h2>
+                        <input type="text" id="taskSearchInput" placeholder="Search items..." class="w-full p-2.5 border-2 border-slate-200 dark:border-slate-700 rounded-lg dark:bg-slate-800 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-shadow">
+                    </div>
+                    
+                    <h2 class="sidebar-text-content text-lg md:text-xl font-semibold text-slate-700 dark:text-slate-200 mb-2 mt-4">Smart Views</h2>
                     <div id="smartViewButtonsContainer" class="flex flex-col gap-2">
                         <button data-filter="inbox" class="smart-view-btn w-full px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-colors duration-300 flex items-center justify-center sidebar-button-icon-only">
                             <i class="fas fa-inbox md:mr-2.5"></i> <span class="sidebar-text-content">Inbox</span>
@@ -136,21 +140,24 @@
                 </div>
             </aside>
             <main class="w-full flex-grow bg-white dark:bg-slate-900 p-4 md:p-6 lg:p-8 rounded-xl shadow-2xl min-h-[300px] mt-4 md:mt-0">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 md:mb-6">
+                <div class="flex flex-col sm:flex-row justify-between items-center mb-4 md:mb-6">
                     <div class="flex items-baseline gap-3">
                         <h2 id="yourTasksHeading" class="text-xl sm:text-2xl md:text-3xl font-semibold text-slate-800 dark:text-slate-100">Your Items</h2>
                         <span id="mainContentDate" class="text-base font-medium text-slate-500 dark:text-slate-400 hidden sm:block"></span>
                     </div>
-                </div>
-
-                <div id="taskControls" class="flex flex-col sm:flex-row gap-2 mb-4">
-                    <div id="taskSearchInputContainer" class="flex-grow">
-                        <input type="text" id="taskSearchInput" placeholder="Search items..." class="w-full p-2.5 border-2 border-slate-200 dark:border-slate-700 rounded-lg dark:bg-slate-800 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-shadow">
-                    </div>
-                    <div class="flex-shrink-0 flex gap-2">
-                        <button id="sortByDueDateBtn" class="sort-btn p-2.5 rounded-lg transition-colors" title="Sort by due date"><i class="fas fa-calendar-alt"></i></button>
-                        <button id="sortByPriorityBtn" class="sort-btn p-2.5 rounded-lg transition-colors" title="Sort by priority"><i class="fas fa-exclamation-triangle"></i></button>
-                        <button id="sortByLabelBtn" class="sort-btn p-2.5 rounded-lg transition-colors" title="Sort by label"><i class="fas fa-tag"></i></button>
+                    <div class="flex-shrink-0 flex gap-2 mt-4 sm:mt-0">
+                        <button id="sortByDueDateBtn" class="sort-btn px-4 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm" title="Sort by due date">
+                            <i class="fas fa-sort-amount-down"></i>
+                            <span>Due Date</span>
+                        </button>
+                        <button id="sortByPriorityBtn" class="sort-btn px-4 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm" title="Sort by priority">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <span>Priority</span>
+                        </button>
+                        <button id="sortByLabelBtn" class="sort-btn px-4 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm" title="Sort by label">
+                            <i class="fas fa-tag"></i>
+                            <span>Label</span>
+                        </button>
                     </div>
                 </div>
 
