@@ -1,10 +1,10 @@
 // admin_main.js - Main entry point for the Admin Panel
 
 import LoggingService, { initializeFirestoreLogging, LOG_LEVELS } from './loggingService.js'; // Import the initializer and LOG_LEVELS
-import EventBus from './eventBus.js';
-import { loadFeatureFlags, getAllFeatureFlags, isFeatureEnabled } from './featureFlagService.js';
+import EventBus from '../eventBus.js';
+import { loadFeatureFlags, getAllFeatureFlags, isFeatureEnabled } from '../featureFlagService.js';
 import AdminUI from './adminUI.js';
-import AdminDataService from './adminDataService.js';
+import AdminDataService from '../adminDataService.js';
 
 // Firebase SDKs are loaded via <script> tags in admin.html
 

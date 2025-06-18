@@ -1,0 +1,28 @@
+{
+  "tasks": [],
+  "projects": [
+    {
+      "id": 0,
+      "name": "No Project"
+    }
+  ],
+  "kanbanColumns": [
+    {
+      "id": "todo",
+      "title": "To Do"
+    },
+    {
+      "id": "inprogress",
+      "title": "In Progress"
+    },
+    {
+      "id": "done",
+      "title": "Done"
+    }
+  ],
+  "userPreferences": {},
+  "userProfile": {
+    "displayName": "User",
+    "role": "admin"
+  }
+}
