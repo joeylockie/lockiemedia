@@ -4,7 +4,7 @@
 
 import AppStore from './store.js';
 import ViewManager from './viewManager.js';
-import { isFeatureEnabled } from './featureFlagService.js';
+// import { isFeatureEnabled } from './featureFlagService.js'; // REMOVED
 import { getAppVersionString } from './versionService.js';
 // TaskService is not directly used in this file anymore by the remaining functions,
 // but it might be needed by other functions if they were to remain.
@@ -388,10 +388,10 @@ export function setSidebarMinimized(minimize) {
 
     const testFeatureButtonContainerEl = document.getElementById('testFeatureButtonContainer');
     if (testFeatureButtonContainerEl) {
-        const shouldBeHidden = minimize || !isFeatureEnabled('testButtonFeature');
+        const shouldBeHidden = minimize || !window.isFeatureEnabled('testButtonFeature'); // MODIFIED to use window
         testFeatureButtonContainerEl.classList.toggle('hidden', shouldBeHidden);
 
-        if (!isFeatureEnabled('testButtonFeature')) {
+        if (!window.isFeatureEnabled('testButtonFeature')) { // MODIFIED to use window
             testFeatureButtonContainerEl.classList.add('hidden');
         }
     }
@@ -415,10 +415,10 @@ export function setSidebarMinimized(minimize) {
         }
     });
 
-    if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) {
+    if (window.isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) { // MODIFIED to use window
         ProjectsFeature.populateProjectFilterList();
     }
-    if (isFeatureEnabled('pomodoroTimerHybridFeature') && PomodoroTimerHybridFeature?.updateSidebarDisplay) {
+    if (window.isFeatureEnabled('pomodoroTimerHybridFeature') && PomodoroTimerHybridFeature?.updateSidebarDisplay) { // MODIFIED to use window
         PomodoroTimerHybridFeature.updateSidebarDisplay();
     }
 
@@ -430,7 +430,7 @@ export function setSidebarMinimized(minimize) {
 
 
 export function showTooltip(element, text) {
-    if (!isFeatureEnabled('tooltipsGuide') || !taskSidebar || !iconTooltip || !taskSidebar.classList.contains('sidebar-minimized')) {
+    if (!window.isFeatureEnabled('tooltipsGuide') || !taskSidebar || !iconTooltip || !taskSidebar.classList.contains('sidebar-minimized')) { // MODIFIED to use window
         if (iconTooltip && iconTooltip.style.display === 'block') hideTooltip();
         return;
     }
@@ -457,7 +457,7 @@ export function refreshTaskView() {
     }
     // --- End Page-Specific Guard ---
 
-    if (!mainContentArea || !ViewManager || !isFeatureEnabled) { LoggingService.error("[RefreshTaskView] Core dependencies not found.", null, {module: 'ui_rendering'}); return; }
+    if (!mainContentArea || !ViewManager || typeof window.isFeatureEnabled !== 'function') { LoggingService.error("[RefreshTaskView] Core dependencies not found.", null, {module: 'ui_rendering'}); return; } // MODIFIED to check window
     const currentView = ViewManager.getCurrentTaskViewMode();
     updateViewToggleButtonsState();
     updateYourTasksHeading();
@@ -468,17 +468,17 @@ export function refreshTaskView() {
     if (calendarViewContainer) calendarViewContainer.classList.add('hidden');
     if (pomodoroTimerPageContainer) pomodoroTimerPageContainer.classList.add('hidden');
 
-    if (isFeatureEnabled('pomodoroTimerHybridFeature') && currentView === 'pomodoro') {
+    if (window.isFeatureEnabled('pomodoroTimerHybridFeature') && currentView === 'pomodoro') { // MODIFIED to use window
         if (PomodoroTimerHybridFeature?.renderPomodoroPage) {
             if(pomodoroTimerPageContainer) pomodoroTimerPageContainer.classList.remove('hidden');
             PomodoroTimerHybridFeature.renderPomodoroPage();
         } else { ViewManager.setTaskViewMode('list'); renderTaskListView(); }
-    } else if (isFeatureEnabled('calendarViewFeature') && currentView === 'calendar') {
+    } else if (window.isFeatureEnabled('calendarViewFeature') && currentView === 'calendar') { // MODIFIED to use window
         if (CalendarViewFeature?.renderFullCalendar) {
             if(calendarViewContainer) calendarViewContainer.classList.remove('hidden');
             CalendarViewFeature.renderFullCalendar(calendarViewContainer, AppStore.getTasks());
         } else { ViewManager.setTaskViewMode('list'); renderTaskListView(); }
-    } else if (isFeatureEnabled('kanbanBoardFeature') && currentView === 'kanban') {
+    } else if (window.isFeatureEnabled('kanbanBoardFeature') && currentView === 'kanban') { // MODIFIED to use window
         if (KanbanBoardFeature?.renderKanbanView) {
             KanbanBoardFeature.renderKanbanView();
         } else { ViewManager.setTaskViewMode('list'); renderTaskListView(); }
@@ -488,7 +488,7 @@ export function refreshTaskView() {
     }
     updateClearCompletedButtonState();
     renderBulkActionControls(); // Now imported
-    if (isFeatureEnabled('pomodoroTimerHybridFeature') && PomodoroTimerHybridFeature?.updateSidebarDisplay) {
+    if (window.isFeatureEnabled('pomodoroTimerHybridFeature') && PomodoroTimerHybridFeature?.updateSidebarDisplay) { // MODIFIED to use window
         PomodoroTimerHybridFeature.updateSidebarDisplay();
     }
     LoggingService.debug(`[UI Rendering] Task view refreshed for mode: ${currentView}`, {module: 'ui_rendering'});
@@ -736,7 +736,7 @@ export function updateClearCompletedButtonState() {
     settingsClearCompletedBtn.classList.toggle('cursor-not-allowed', !hasCompleted);
 }
 export function updateViewToggleButtonsState() {
-    if (!ViewManager || !isFeatureEnabled) return;
+    if (!ViewManager || typeof window.isFeatureEnabled !== 'function') return; // MODIFIED to check window
     const currentMode = ViewManager.getCurrentTaskViewMode();
     const buttons = [
         { el: kanbanViewToggleBtn, mode: 'kanban', feature: 'kanbanBoardFeature' },
@@ -746,7 +746,7 @@ export function updateViewToggleButtonsState() {
 
     buttons.forEach(item => {
         if (item.el) {
-            const featureOn = isFeatureEnabled(item.feature);
+            const featureOn = window.isFeatureEnabled(item.feature); // MODIFIED to use window
             item.el.classList.toggle('hidden', !featureOn);
             if (featureOn) {
                 const isActive = currentMode === item.mode;
@@ -784,7 +784,7 @@ export function updateYourTasksHeading() {
         else if (currentFilter === 'completed') title = "Completed Tasks";
         else if (currentFilter === 'shopping_list') title = "Shopping List";
         else if (currentFilter.startsWith('project_')) {
-            if (isFeatureEnabled('projectFeature') && AppStore) {
+            if (window.isFeatureEnabled('projectFeature') && AppStore) { // MODIFIED to use window
                 const projectId = parseInt(currentFilter.split('_')[1]);
                 const project = AppStore.getProjects().find(p => p.id === projectId);
                 title = project ? `Project: ${project.name}` : "Project Tasks";
@@ -862,7 +862,7 @@ export function renderVersionHistoryList(versions) {
 
 
 export function initializeUiRenderingSubscriptions() {
-    if (!EventBus || !ViewManager || !isFeatureEnabled) { LoggingService.error("[UI Rendering] Core dependencies for subscriptions not available.", null, {module: 'ui_rendering'}); return; }
+    if (!EventBus || !ViewManager || typeof window.isFeatureEnabled !== 'function') { LoggingService.error("[UI Rendering] Core dependencies for subscriptions not available.", null, {module: 'ui_rendering'}); return; } // MODIFIED to check window
 
     EventBus.subscribe('displayUserMessage', (data) => {
         if (data && data.text) {
@@ -880,17 +880,17 @@ export function initializeUiRenderingSubscriptions() {
     EventBus.subscribe('projectsChanged', (updatedProjects) => {
         LoggingService.debug("[UI Rendering] Event received: projectsChanged. Refreshing view and project UI.", {module: 'ui_rendering'});
         refreshTaskView();
-        if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) ProjectsFeature.populateProjectFilterList();
-        if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectDropdowns) ProjectsFeature.populateProjectDropdowns();
+        if (window.isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) ProjectsFeature.populateProjectFilterList(); // MODIFIED to use window
+        if (window.isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectDropdowns) ProjectsFeature.populateProjectDropdowns(); // MODIFIED to use window
         styleSmartViewButtons();
     });
     EventBus.subscribe('uniqueProjectsChanged', (newUniqueProjects) => {
         LoggingService.debug("[UI Rendering] Event received: uniqueProjectsChanged. Repopulating project UI.", {module: 'ui_rendering'});
-        if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) ProjectsFeature.populateProjectFilterList();
-        if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectDropdowns) ProjectsFeature.populateProjectDropdowns();
+        if (window.isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) ProjectsFeature.populateProjectFilterList(); // MODIFIED to use window
+        if (window.isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectDropdowns) ProjectsFeature.populateProjectDropdowns(); // MODIFIED to use window
         styleSmartViewButtons();
     });
-    EventBus.subscribe('kanbanColumnsChanged', (updatedColumns) => { LoggingService.debug("[UI Rendering] Event received: kanbanColumnsChanged.", {module: 'ui_rendering'}); if (ViewManager.getCurrentTaskViewMode() === 'kanban' && isFeatureEnabled('kanbanBoardFeature')) { refreshTaskView(); } });
+    EventBus.subscribe('kanbanColumnsChanged', (updatedColumns) => { LoggingService.debug("[UI Rendering] Event received: kanbanColumnsChanged.", {module: 'ui_rendering'}); if (ViewManager.getCurrentTaskViewMode() === 'kanban' && window.isFeatureEnabled('kanbanBoardFeature')) { refreshTaskView(); } }); // MODIFIED to use window
 
     EventBus.subscribe('filterChanged', (eventData) => {
         LoggingService.debug("[UI Rendering] Event received: filterChanged. Refreshing view, heading, and button styles.", {module: 'ui_rendering'});
@@ -915,7 +915,7 @@ export function initializeUiRenderingSubscriptions() {
     EventBus.subscribe('bulkSelectionChanged', (selectedIds) => { LoggingService.debug("[UI Rendering] Event received: bulkSelectionChanged. Rendering controls.", {module: 'ui_rendering'}); renderBulkActionControls(); }); // renderBulkActionControls is now imported
     EventBus.subscribe('pomodoroStateUpdated', (pomodoroData) => {
         LoggingService.debug("[UI Rendering] Event received: pomodoroStateUpdated.", { pomodoroData, module: 'ui_rendering' });
-        if (isFeatureEnabled('pomodoroTimerHybridFeature') && PomodoroTimerHybridFeature?.updateSidebarDisplay) {
+        if (window.isFeatureEnabled('pomodoroTimerHybridFeature') && PomodoroTimerHybridFeature?.updateSidebarDisplay) { // MODIFIED to use window
             PomodoroTimerHybridFeature.updateSidebarDisplay();
         }
     });

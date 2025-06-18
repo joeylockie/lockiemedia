@@ -1,7 +1,7 @@
 // feature_tooltips_guide.js
 // Manages the Tooltips Guide Feature.
 
-import { isFeatureEnabled } from './featureFlagService.js';
+// import { isFeatureEnabled } from './featureFlagService.js'; // REMOVED
 
 /**
  * Initializes the Tooltips Guide Feature.
@@ -15,11 +15,11 @@ function initializeTooltipsGuideFeature() {
  * @param {boolean} [isEnabledParam] - Parameter for consistency, actual check uses imported isFeatureEnabled.
  */
 function updateTooltipsGuideUIVisibility(isEnabledParam) {
-    if (typeof isFeatureEnabled !== 'function') {
+    if (typeof window.isFeatureEnabled !== 'function') { // MODIFIED to check window
         console.error("[TooltipsGuideFeature] isFeatureEnabled function not available.");
         return;
     }
-    const isActuallyEnabled = isFeatureEnabled('tooltipsGuide');
+    const isActuallyEnabled = window.isFeatureEnabled('tooltipsGuide'); // MODIFIED to use window
 
     // Handle generic elements with the class
     document.querySelectorAll('.tooltips-guide-element').forEach(el => el.classList.toggle('hidden', !isActuallyEnabled));

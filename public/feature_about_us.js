@@ -1,7 +1,7 @@
 // feature_about_us.js
 // Manages the About Us Feature.
 
-import { isFeatureEnabled } from './featureFlagService.js';
+// import { isFeatureEnabled } from './featureFlagService.js'; // REMOVED
 import LoggingService from './loggingService.js';
 // Import modal interaction functions if needed for more complex interactions
 // For now, open/close is handled by ui_event_handlers.js calling modal_interactions.js
@@ -36,11 +36,11 @@ function initialize() {
  */
 function updateUIVisibility() {
     const functionName = 'updateUIVisibility (AboutUsFeature)';
-    if (typeof isFeatureEnabled !== 'function') {
+    if (typeof window.isFeatureEnabled !== 'function') { // MODIFIED to check window
         LoggingService.error("[AboutUsFeature] isFeatureEnabled function not available from FeatureFlagService.", new Error("DependencyMissing"), { functionName });
         return;
     }
-    const isActuallyEnabled = isFeatureEnabled('aboutUsFeature');
+    const isActuallyEnabled = window.isFeatureEnabled('aboutUsFeature'); // MODIFIED to use window
     LoggingService.debug(`[AboutUsFeature] Updating UI visibility. Feature enabled: ${isActuallyEnabled}.`, { functionName, isActuallyEnabled });
 
     // The button visibility is handled by the '.about-us-feature-element' class

@@ -2,7 +2,7 @@
 // Placeholder for Calendar View Feature.
 // Now an ES6 module.
 
-import { isFeatureEnabled } from './featureFlagService.js';
+// import { isFeatureEnabled } from './featureFlagService.js'; // REMOVED
 import AppStore from './store.js'; // To get tasks if renderFullCalendar is implemented
 
 // DOM elements (e.g., calendarViewContainer) are assumed to be global, initialized by ui_rendering.js
@@ -21,7 +21,7 @@ function initialize() {
  * @param {Array<Object>} tasksToDisplay - Tasks to display (typically from AppStore.getTasks()).
  */
 function renderFullCalendar(containerElement, tasksToDisplay) {
-    if (!isFeatureEnabled('calendarViewFeature')) {
+    if (!window.isFeatureEnabled('calendarViewFeature')) { // MODIFIED to use window
         if(containerElement) containerElement.classList.add('hidden');
         return;
     }
@@ -47,11 +47,11 @@ function renderFullCalendar(containerElement, tasksToDisplay) {
  * @param {boolean} isEnabledParam - (Not used directly, uses imported isFeatureEnabled)
  */
 function updateUIVisibility(isEnabledParam) {
-    if (typeof isFeatureEnabled !== 'function') {
+    if (typeof window.isFeatureEnabled !== 'function') { // MODIFIED to check window
         console.error("[CalendarViewFeature] isFeatureEnabled function not available.");
         return;
     }
-    const isActuallyEnabled = isFeatureEnabled('calendarViewFeature');
+    const isActuallyEnabled = window.isFeatureEnabled('calendarViewFeature'); // MODIFIED to use window
     
     // Handle generic elements with the class
     document.querySelectorAll('.calendar-view-feature-element').forEach(el => el.classList.toggle('hidden', !isActuallyEnabled));

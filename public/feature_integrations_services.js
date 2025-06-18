@@ -2,8 +2,7 @@
 // Placeholder for Integrations with other Services Feature.
 // Now an ES6 module.
 
-import { isFeatureEnabled } from './featureFlagService.js';
-// DOM elements with '.integrations-services-element' are handled by applyActiveFeatures
+// import { isFeatureEnabled } from './featureFlagService.js'; // REMOVED
 
 /**
  * Initializes the Integrations Services Feature.
@@ -19,11 +18,11 @@ function initialize() {
  * @param {boolean} isEnabledParam - (Not used directly, uses imported isFeatureEnabled)
  */
 function updateUIVisibility(isEnabledParam) {
-    if (typeof isFeatureEnabled !== 'function') {
+    if (typeof window.isFeatureEnabled !== 'function') { // MODIFIED to check window
         console.error("[IntegrationsServicesFeature] isFeatureEnabled function not available from FeatureFlagService.");
         return;
     }
-    const isActuallyEnabled = isFeatureEnabled('integrationsServices');
+    const isActuallyEnabled = window.isFeatureEnabled('integrationsServices'); // MODIFIED to use window
     document.querySelectorAll('.integrations-services-element').forEach(el => el.classList.toggle('hidden', !isActuallyEnabled));
     console.log(`[IntegrationsServicesFeature] UI Visibility set based on flag: ${isActuallyEnabled}`);
 }

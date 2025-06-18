@@ -1,7 +1,7 @@
 // feature_shopping_list.js
 // Manages the Shopping List Feature.
 
-import { isFeatureEnabled } from './featureFlagService.js';
+// import { isFeatureEnabled } from './featureFlagService.js'; // REMOVED
 import LoggingService from './loggingService.js';
 
 /**
@@ -19,11 +19,11 @@ function initialize() {
  */
 function updateUIVisibility() {
     const functionName = 'updateUIVisibility (ShoppingListFeature)';
-    if (typeof isFeatureEnabled !== 'function') {
+    if (typeof window.isFeatureEnabled !== 'function') { // MODIFIED to check window
         LoggingService.error("[ShoppingListFeature] isFeatureEnabled function not available.", new Error("DependencyMissing"), { functionName });
         return;
     }
-    const isActuallyEnabled = isFeatureEnabled('shoppingListFeature');
+    const isActuallyEnabled = window.isFeatureEnabled('shoppingListFeature'); // MODIFIED to use window
     
     // The button's visibility is controlled by the .shopping-list-feature-element class
     // which is handled by the applyActiveFeatures function.

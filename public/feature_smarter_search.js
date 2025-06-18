@@ -2,8 +2,7 @@
 // Placeholder for Smarter Search Feature.
 // Now an ES6 module.
 
-import { isFeatureEnabled } from './featureFlagService.js';
-// DOM elements with '.smarter-search-feature-element' are handled by applyActiveFeatures in ui_event_handlers.js
+// import { isFeatureEnabled } from './featureFlagService.js'; // REMOVED
 
 /**
  * Initializes the Smarter Search feature.
@@ -20,11 +19,11 @@ function initialize() {
  * @param {boolean} isEnabledParam - (Not used directly, uses imported isFeatureEnabled)
  */
 function updateUIVisibility(isEnabledParam) {
-    if (typeof isFeatureEnabled !== 'function') {
+    if (typeof window.isFeatureEnabled !== 'function') { // MODIFIED to check window
         console.error("[SmarterSearchFeature] isFeatureEnabled function not available from FeatureFlagService.");
         return;
     }
-    const isActuallyEnabled = isFeatureEnabled('smarterSearchFeature');
+    const isActuallyEnabled = window.isFeatureEnabled('smarterSearchFeature'); // MODIFIED to use window
     document.querySelectorAll('.smarter-search-feature-element').forEach(el => el.classList.toggle('hidden', !isActuallyEnabled));
     console.log(`[SmarterSearchFeature] UI Visibility set based on flag: ${isActuallyEnabled}`);
 }

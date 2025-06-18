@@ -2,7 +2,7 @@
 // Manages the Background Feature.
 // Now an ES6 module.
 
-import { isFeatureEnabled } from './featureFlagService.js';
+// import { isFeatureEnabled } from './featureFlagService.js'; // REMOVED
 
 /**
  * Initializes the Background Feature.
@@ -19,11 +19,11 @@ function initialize() {
  * @param {boolean} [isEnabledParam] - Not used directly, uses imported isFeatureEnabled.
  */
 function updateUIVisibility() { // Renamed from updateUIVisibility for clarity if it does more than hide/show
-    if (typeof isFeatureEnabled !== 'function') {
+    if (typeof window.isFeatureEnabled !== 'function') { // MODIFIED to check window
         console.error("[BackgroundFeature] isFeatureEnabled function not available from FeatureFlagService.");
         return;
     }
-    const isActuallyEnabled = isFeatureEnabled('backgroundFeature');
+    const isActuallyEnabled = window.isFeatureEnabled('backgroundFeature'); // MODIFIED to use window
 
     // Example: If you had specific elements to show/hide based on this feature:
     // document.querySelectorAll('.background-feature-element').forEach(el => el.classList.toggle('hidden', !isActuallyEnabled));

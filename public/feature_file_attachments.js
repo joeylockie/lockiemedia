@@ -2,8 +2,7 @@
 // Placeholder for File Attachments Feature.
 // Now an ES6 module.
 
-import { isFeatureEnabled } from './featureFlagService.js';
-// DOM elements with '.file-attachments-element' are handled by applyActiveFeatures
+// import { isFeatureEnabled } from './featureFlagService.js'; // REMOVED
 
 /**
  * Initializes the File Attachments Feature.
@@ -20,11 +19,11 @@ function initialize() {
  * @param {boolean} isEnabledParam - (Not used directly, uses imported isFeatureEnabled)
  */
 function updateUIVisibility(isEnabledParam) {
-    if (typeof isFeatureEnabled !== 'function') {
+    if (typeof window.isFeatureEnabled !== 'function') { // MODIFIED to check window
         console.error("[FileAttachmentsFeature] isFeatureEnabled function not available from FeatureFlagService.");
         return;
     }
-    const isActuallyEnabled = isFeatureEnabled('fileAttachments');
+    const isActuallyEnabled = window.isFeatureEnabled('fileAttachments'); // MODIFIED to use window
     document.querySelectorAll('.file-attachments-element').forEach(el => el.classList.toggle('hidden', !isActuallyEnabled));
     console.log(`[FileAttachmentsFeature] UI Visibility set based on flag: ${isActuallyEnabled}`);
 }

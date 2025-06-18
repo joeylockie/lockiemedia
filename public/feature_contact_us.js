@@ -1,7 +1,7 @@
 // feature_contact_us.js
 // Manages the Contact Us Feature.
 
-import { isFeatureEnabled } from './featureFlagService.js';
+// import { isFeatureEnabled } from './featureFlagService.js'; // REMOVED
 import LoggingService from './loggingService.js';
 import EventBus from './eventBus.js'; // MODIFIED: Added EventBus import
 // Import modal interaction functions from modal_interactions.js
@@ -46,11 +46,11 @@ function initialize() {
  */
 function updateUIVisibility() {
     const functionName = 'updateUIVisibility (ContactUsFeature)';
-    if (typeof isFeatureEnabled !== 'function') {
+    if (typeof window.isFeatureEnabled !== 'function') { // MODIFIED to check window
         LoggingService.error("[ContactUsFeature] isFeatureEnabled function not available from FeatureFlagService.", new Error("DependencyMissing"), { functionName });
         return;
     }
-    const isActuallyEnabled = isFeatureEnabled('contactUsFeature');
+    const isActuallyEnabled = window.isFeatureEnabled('contactUsFeature'); // MODIFIED to use window
     LoggingService.debug(`[ContactUsFeature] Updating UI visibility. Feature enabled: ${isActuallyEnabled}.`, { functionName, isActuallyEnabled });
 
     if (!settingsContactUsBtnEl) { // Try to get it again if not found during init

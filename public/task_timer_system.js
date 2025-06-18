@@ -2,7 +2,7 @@
 // Manages task estimation and time tracking.
 // Now an ES6 module.
 
-import { isFeatureEnabled } from './featureFlagService.js';
+// import { isFeatureEnabled } from './featureFlagService.js'; // REMOVED
 import AppStore from './store.js';
 import ModalStateService from './modalStateService.js';
 import { formatMillisecondsToHMS, formatDuration } from './utils.js';
@@ -22,8 +22,8 @@ let currentModuleTaskTimerInterval = null; //
 // --- Private Logic Functions ---
 function startTimerLogic(taskId) {
     const functionName = 'startTimerLogic';
-    if (!isFeatureEnabled('taskTimerSystem') || !taskId) { //
-        LoggingService.debug(`[TaskTimerSystem] Timer start prerequisites not met. Feature enabled: ${isFeatureEnabled('taskTimerSystem')}, TaskID: ${taskId}`, { functionName, taskId });
+    if (!window.isFeatureEnabled('taskTimerSystem') || !taskId) { // MODIFIED to use window
+        LoggingService.debug(`[TaskTimerSystem] Timer start prerequisites not met. Feature enabled: ${window.isFeatureEnabled('taskTimerSystem')}, TaskID: ${taskId}`, { functionName, taskId });
         return false;
     }
     if (!AppStore) { //
@@ -55,8 +55,8 @@ function startTimerLogic(taskId) {
 
 function pauseTimerLogic(taskId) {
     const functionName = 'pauseTimerLogic';
-    if (!isFeatureEnabled('taskTimerSystem') || !taskId) { //
-        LoggingService.debug(`[TaskTimerSystem] Timer pause prerequisites not met. Feature enabled: ${isFeatureEnabled('taskTimerSystem')}, TaskID: ${taskId}`, { functionName, taskId });
+    if (!window.isFeatureEnabled('taskTimerSystem') || !taskId) { // MODIFIED to use window
+        LoggingService.debug(`[TaskTimerSystem] Timer pause prerequisites not met. Feature enabled: ${window.isFeatureEnabled('taskTimerSystem')}, TaskID: ${taskId}`, { functionName, taskId });
         return false;
     }
     if (!AppStore) { //
@@ -84,8 +84,8 @@ function pauseTimerLogic(taskId) {
 
 function stopTimerLogic(taskId) {
     const functionName = 'stopTimerLogic';
-    if (!isFeatureEnabled('taskTimerSystem') || !taskId) { //
-        LoggingService.debug(`[TaskTimerSystem] Timer stop prerequisites not met. Feature enabled: ${isFeatureEnabled('taskTimerSystem')}, TaskID: ${taskId}`, { functionName, taskId });
+    if (!window.isFeatureEnabled('taskTimerSystem') || !taskId) { // MODIFIED to use window
+        LoggingService.debug(`[TaskTimerSystem] Timer stop prerequisites not met. Feature enabled: ${window.isFeatureEnabled('taskTimerSystem')}, TaskID: ${taskId}`, { functionName, taskId });
         return false;
     }
     if (!AppStore) { //
@@ -141,11 +141,11 @@ function updateLiveTimerDisplayUI(taskId) {
 
 function updateTimerControlsUI(task) {
     const functionName = 'updateTimerControlsUI';
-    if (!isFeatureEnabled('taskTimerSystem') || !task || !viewTaskStartTimerBtn || !viewTaskPauseTimerBtn || !viewTaskStopTimerBtn || !viewTaskActualDuration || !timerButtonsContainer || !ModalStateService) { //
+    if (!window.isFeatureEnabled('taskTimerSystem') || !task || !viewTaskStartTimerBtn || !viewTaskPauseTimerBtn || !viewTaskStopTimerBtn || !viewTaskActualDuration || !timerButtonsContainer || !ModalStateService) { // MODIFIED to use window
         LoggingService.debug(`[TaskTimerSystem] Prerequisites for updating timer controls UI not met for task ID: ${task?.id}.`, {
             functionName,
             taskId: task?.id,
-            featureEnabled: isFeatureEnabled('taskTimerSystem'),
+            featureEnabled: window.isFeatureEnabled('taskTimerSystem'), // MODIFIED to use window
             elementsFound: !!(viewTaskStartTimerBtn && viewTaskPauseTimerBtn && viewTaskStopTimerBtn && viewTaskActualDuration && timerButtonsContainer),
             modalStateServiceAvailable: !!ModalStateService
         });
@@ -261,7 +261,7 @@ function initialize() {
 
 function updateUIVisibility(isEnabledParam) { // isEnabledParam is for consistency //
     const functionName = 'updateUIVisibility (TaskTimerSystem)';
-    const actualIsEnabled = isFeatureEnabled('taskTimerSystem'); //
+    const actualIsEnabled = window.isFeatureEnabled('taskTimerSystem'); // MODIFIED to use window
     const elements = document.querySelectorAll('.task-timer-system-element'); //
     elements.forEach(el => el.classList.toggle('hidden', !actualIsEnabled)); //
     if (settingsTaskReviewBtn) settingsTaskReviewBtn.classList.toggle('hidden', !actualIsEnabled); //
@@ -270,11 +270,11 @@ function updateUIVisibility(isEnabledParam) { // isEnabledParam is for consisten
 
 function setupTimerForModal(task) {
     const functionName = 'setupTimerForModal';
-    if (!isFeatureEnabled('taskTimerSystem') || !task || !AppStore || !ModalStateService) { //
+    if (!window.isFeatureEnabled('taskTimerSystem') || !task || !AppStore || !ModalStateService) { // MODIFIED to use window
         LoggingService.debug(`[TaskTimerSystem] Prerequisites for setting up timer in modal not met for task ID: ${task?.id}.`, {
             functionName,
             taskId: task?.id,
-            featureEnabled: isFeatureEnabled('taskTimerSystem'),
+            featureEnabled: window.isFeatureEnabled('taskTimerSystem'), // MODIFIED to use window
             taskAvailable: !!task,
             appStoreAvailable: !!AppStore,
             modalStateServiceAvailable: !!ModalStateService
@@ -308,7 +308,7 @@ function clearTimerOnModalClose() {
 function handleTaskCompletion(taskId, isCompleted) {
     const functionName = 'handleTaskCompletion (TaskTimerSystem)';
     LoggingService.debug(`[TaskTimerSystem] Handling task completion event. Task ID: ${taskId}, IsCompleted: ${isCompleted}.`, { functionName, taskId, isCompleted });
-    if (!isFeatureEnabled('taskTimerSystem') || !AppStore || !ModalStateService) { //
+    if (!window.isFeatureEnabled('taskTimerSystem') || !AppStore || !ModalStateService) { // MODIFIED to use window
         LoggingService.warn(`[TaskTimerSystem] Cannot handle task completion: Core services missing or feature disabled.`, { functionName, taskId });
         return;
     }
@@ -328,13 +328,13 @@ function handleTaskCompletion(taskId, isCompleted) {
 }
 
 function getEstimatesFromAddModal() { //
-    if (!isFeatureEnabled('taskTimerSystem') || !modalEstHoursAdd || !modalEstMinutesAdd) return { estHours: 0, estMinutes: 0 }; //
+    if (!window.isFeatureEnabled('taskTimerSystem') || !modalEstHoursAdd || !modalEstMinutesAdd) return { estHours: 0, estMinutes: 0 }; // MODIFIED to use window
     return { estHours: parseInt(modalEstHoursAdd.value) || 0, estMinutes: parseInt(modalEstMinutesAdd.value) || 0 }; //
 }
 
 function getEstimatesFromEditModal() { //
     const functionName = 'getEstimatesFromEditModal';
-    if (!isFeatureEnabled('taskTimerSystem') || !modalEstHoursViewEdit || !modalEstMinutesViewEdit || !AppStore || !ModalStateService) { //
+    if (!window.isFeatureEnabled('taskTimerSystem') || !modalEstHoursViewEdit || !modalEstMinutesViewEdit || !AppStore || !ModalStateService) { // MODIFIED to use window
         const currentEditingTaskId = ModalStateService ? ModalStateService.getEditingTaskId() : null; //
         const task = currentEditingTaskId && AppStore ? AppStore.getTasks().find(t => t.id === currentEditingTaskId) : null; //
         LoggingService.debug(`[TaskTimerSystem] Getting estimates from edit modal, falling back to stored task values due to missing elements/services.`, { functionName, currentEditingTaskId, taskFound: !!task });

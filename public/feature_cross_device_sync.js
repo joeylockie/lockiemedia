@@ -2,8 +2,7 @@
 // Placeholder for Cross-Device Sync Feature.
 // Now an ES6 module.
 
-import { isFeatureEnabled } from './featureFlagService.js';
-// DOM elements with '.cross-device-sync-element' are handled by applyActiveFeatures
+// import { isFeatureEnabled } from './featureFlagService.js'; // REMOVED
 
 /**
  * Initializes the Cross-Device Sync Feature.
@@ -19,11 +18,11 @@ function initialize() {
  * @param {boolean} isEnabledParam - (Not used directly, uses imported isFeatureEnabled)
  */
 function updateUIVisibility(isEnabledParam) {
-    if (typeof isFeatureEnabled !== 'function') {
+    if (typeof window.isFeatureEnabled !== 'function') { // MODIFIED to check window
         console.error("[CrossDeviceSyncFeature] isFeatureEnabled function not available from FeatureFlagService.");
         return;
     }
-    const isActuallyEnabled = isFeatureEnabled('crossDeviceSync');
+    const isActuallyEnabled = window.isFeatureEnabled('crossDeviceSync'); // MODIFIED to use window
     document.querySelectorAll('.cross-device-sync-element').forEach(el => el.classList.toggle('hidden', !isActuallyEnabled));
     console.log(`[CrossDeviceSyncFeature] UI Visibility set based on flag: ${isActuallyEnabled}`);
 }

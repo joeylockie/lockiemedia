@@ -2,21 +2,21 @@
 // This service captures and logs application performance metrics.
 
 import LoggingService from './loggingService.js';
-import { getFirestoreInstance } from './feature_user_accounts.js';
-import { isFeatureEnabled } from './featureFlagService.js';
+// import { getFirestoreInstance } from './feature_user_accounts.js'; // REMOVED
+// import { isFeatureEnabled } from './featureFlagService.js'; // REMOVED
 
 // Using a general feature flag for now, could be its own later.
-const PERFORMANCE_METRICS_FEATURE_FLAG = 'userAccounts';
+const PERFORMANCE_METRICS_FEATURE_FLAG = 'userRoleFeature'; // Changed to a flag that exists in main.js
 const METRICS_COLLECTION = 'performance_metrics';
 
 /**
- * Captures key performance metrics from the browser's Performance API
- * and sends them to Firestore for aggregation.
+ * Captures key performance metrics from the browser's Performance API.
+ * In this version, it only logs to the console as Firestore is removed.
  */
 export function logPerformanceMetrics() {
     const functionName = 'logPerformanceMetrics (PerformanceService)';
 
-    if (!isFeatureEnabled(PERFORMANCE_METRICS_FEATURE_FLAG)) {
+    if (!window.isFeatureEnabled(PERFORMANCE_METRICS_FEATURE_FLAG)) { // MODIFIED to use window
         LoggingService.debug('[PerformanceService] Performance metric logging is disabled via flag.', { functionName, flag: PERFORMANCE_METRICS_FEATURE_FLAG });
         return;
     }
@@ -36,10 +36,8 @@ export function logPerformanceMetrics() {
             }
 
             const timing = navEntries[0];
-            // Using domContentLoadedEventEnd as a good metric for when the app becomes interactive.
             const loadTime = timing.domContentLoadedEventEnd;
 
-            // A loadTime of 0 often indicates a prerendered page or a scenario where the metric isn't meaningful.
             if (loadTime <= 0) {
                 LoggingService.debug('[PerformanceService] Load time is 0, likely a prerendered page or reload. Skipping metric logging.', { functionName, loadTime });
                 return;
@@ -47,10 +45,11 @@ export function logPerformanceMetrics() {
 
             const metric = {
                 loadTimeMS: loadTime,
-                url: window.location.pathname, // Log path instead of full URL for privacy
+                url: window.location.pathname,
             };
 
-            _sendMetricToFirestore(metric);
+            // Since Firestore is removed, we'll just log it locally.
+            LoggingService.info(`[PerformanceService] App Load Time: ${metric.loadTimeMS.toFixed(2)}ms for page: ${metric.url}`, { functionName, metric });
 
         } catch (error) {
             LoggingService.error('[PerformanceService] Error capturing performance metrics.', error, { functionName });
@@ -59,35 +58,13 @@ export function logPerformanceMetrics() {
 }
 
 /**
- * Sends the captured performance metric to a dedicated Firestore collection.
- * @param {object} metric - The performance metric object to send.
+ * (No-op) Sends the captured performance metric to a dedicated Firestore collection.
+ * This function is now a placeholder.
+ * @param {object} metric - The performance metric object.
  * @private
  */
 async function _sendMetricToFirestore(metric) {
     const functionName = '_sendMetricToFirestore (PerformanceService)';
-    const db = getFirestoreInstance();
-
-    if (!db) {
-        LoggingService.error('[PerformanceService] Firestore instance not available. Cannot send metric.', new Error('FirestoreUnavailable'), { functionName });
-        return;
-    }
-
-    // We can get the firebase global object to access FieldValue
-    if (typeof firebase === 'undefined' || typeof firebase.firestore === 'undefined' || typeof firebase.firestore.FieldValue === 'undefined') {
-        LoggingService.error('[PerformanceService] firebase.firestore.FieldValue is not available for server timestamp.', new Error('FirebaseGlobalMissing'), { functionName });
-        return;
-    }
-
-    const metricToSend = {
-        ...metric,
-        serverTimestamp: firebase.firestore.FieldValue.serverTimestamp()
-    };
-
-    try {
-        // No need to await if we don't need to block on this. "Fire and forget".
-        db.collection(METRICS_COLLECTION).add(metricToSend);
-        LoggingService.info(`[PerformanceService] Performance metric logged. Load time: ${metric.loadTimeMS.toFixed(2)}ms`, { functionName, metric: metricToSend });
-    } catch (error) {
-        LoggingService.error('[PerformanceService] Failed to send performance metric to Firestore.', error, { functionName });
-    }
+    LoggingService.debug('[PerformanceService] Firestore logging is disabled in this version. Metric not sent.', { functionName, metric });
+    return;
 }

@@ -3,7 +3,7 @@
 
 import AppStore from './store.js';
 import ViewManager from './viewManager.js';
-import { isFeatureEnabled } from './featureFlagService.js';
+// import { isFeatureEnabled } from './featureFlagService.js'; // REMOVED
 import * as TaskService from './taskService.js';
 import * as BulkActionService from './bulkActionService.js';
 import EventBus from './eventBus.js';
@@ -34,7 +34,7 @@ import {
  * Renders the main list of tasks based on current filters, sort order, and search term.
  */
 export function renderTaskListView() {
-    if (!taskList || !ViewManager || !AppStore || !isFeatureEnabled || !TaskService || !BulkActionService) {
+    if (!taskList || !ViewManager || !AppStore || typeof window.isFeatureEnabled !== 'function' || !TaskService || !BulkActionService) { // MODIFIED to use window
         console.error("renderTaskListView: Core dependencies not found.");
         return;
     }
@@ -105,7 +105,7 @@ export function renderTaskListView() {
             task.text.toLowerCase().includes(searchTermLower) ||
             (task.label && task.label.toLowerCase().includes(searchTermLower)) ||
             (task.notes && task.notes.toLowerCase().includes(searchTermLower)) ||
-            (isFeatureEnabled('projectFeature') && task.projectId && currentProjects.find(p => p.id === task.projectId)?.name.toLowerCase().includes(searchTermLower))
+            (window.isFeatureEnabled('projectFeature') && task.projectId && currentProjects.find(p => p.id === task.projectId)?.name.toLowerCase().includes(searchTermLower)) // MODIFIED to use window
         );
     }
 
@@ -150,7 +150,7 @@ export function renderTaskListView() {
         li.className = `task-item flex items-start justify-between bg-slate-100 dark:bg-slate-700 p-3 sm:p-3.5 rounded-lg shadow hover:shadow-md transition-shadow duration-300 ${task.completed ? 'opacity-60' : ''} overflow-hidden`;
         li.dataset.taskId = task.id;
 
-        const hasOpenPrerequisites = isFeatureEnabled('taskDependenciesFeature') && task.dependsOn && task.dependsOn.some(depId => {
+        const hasOpenPrerequisites = window.isFeatureEnabled('taskDependenciesFeature') && task.dependsOn && task.dependsOn.some(depId => { // MODIFIED to use window
             const dependentTask = AppStore.getTasks().find(t => t.id === depId);
             return dependentTask && !dependentTask.completed;
         });
@@ -168,7 +168,7 @@ export function renderTaskListView() {
 
         const bulkSelectCheckboxContainer = document.createElement('div');
         bulkSelectCheckboxContainer.className = 'bulk-select-checkbox-container flex-shrink-0 mr-2 sm:mr-3 bulk-actions-feature-element';
-        if (isFeatureEnabled('bulkActionsFeature')) {
+        if (window.isFeatureEnabled('bulkActionsFeature')) { // MODIFIED to use window
             const bulkCheckbox = document.createElement('input');
             bulkCheckbox.type = 'checkbox';
             bulkCheckbox.className = 'form-checkbox h-5 w-5 text-blue-500 rounded border-slate-400 dark:border-slate-500 focus:ring-blue-400 dark:focus:ring-blue-500 mt-0.5 cursor-pointer';
@@ -204,7 +204,7 @@ export function renderTaskListView() {
         const detailsContainer = document.createElement('div');
         detailsContainer.className = 'flex items-center flex-wrap gap-x-2 gap-y-1 mt-1 sm:mt-1.5 text-xs';
 
-        if (isFeatureEnabled('projectFeature') && task.projectId && task.projectId !== 0) {
+        if (window.isFeatureEnabled('projectFeature') && task.projectId && task.projectId !== 0) { // MODIFIED to use window
             const project = AppStore.getProjects().find(p => p.id === task.projectId);
             if (project) {
                 const projSpan = document.createElement('span');
@@ -236,26 +236,26 @@ export function renderTaskListView() {
             dDS.innerHTML = `<i class="far fa-calendar-alt mr-1"></i> ${dD}`;
             detailsContainer.appendChild(dDS);
         }
-        if (isFeatureEnabled('advancedRecurrence') && task.recurrence && task.recurrence.frequency && task.recurrence.frequency !== 'none') {
+        if (window.isFeatureEnabled('advancedRecurrence') && task.recurrence && task.recurrence.frequency && task.recurrence.frequency !== 'none') { // MODIFIED to use window
             const recurrenceIcon = document.createElement('span');
             recurrenceIcon.className = 'text-slate-400 dark:text-slate-500 flex items-center advanced-recurrence-element';
             recurrenceIcon.innerHTML = `<i class="fas fa-sync-alt" title="This task repeats"></i>`;
             detailsContainer.appendChild(recurrenceIcon);
         }
-        if (isFeatureEnabled('fileAttachments') && task.attachments && task.attachments.length > 0) {
+        if (window.isFeatureEnabled('fileAttachments') && task.attachments && task.attachments.length > 0) { // MODIFIED to use window
             const aS = document.createElement('span');
             aS.className = 'text-slate-500 dark:text-slate-400 flex items-center file-attachments-element';
             aS.innerHTML = `<i class="fas fa-paperclip mr-1"></i> ${task.attachments.length}`;
             detailsContainer.appendChild(aS);
         }
-        if (isFeatureEnabled('subTasksFeature') && task.subTasks && task.subTasks.length > 0) {
+        if (window.isFeatureEnabled('subTasksFeature') && task.subTasks && task.subTasks.length > 0) { // MODIFIED to use window
             const subTaskIcon = document.createElement('span');
             subTaskIcon.className = 'text-slate-400 dark:text-slate-500 flex items-center sub-tasks-feature-element';
             const completedSubTasks = task.subTasks.filter(st => st.completed).length;
             subTaskIcon.innerHTML = `<i class="fas fa-tasks mr-1" title="${completedSubTasks}/${task.subTasks.length} sub-tasks completed"></i>`;
             detailsContainer.appendChild(subTaskIcon);
         }
-        if (isFeatureEnabled('taskDependenciesFeature') && ((task.dependsOn && task.dependsOn.length > 0) || (task.blocksTasks && task.blocksTasks.length > 0))) {
+        if (window.isFeatureEnabled('taskDependenciesFeature') && ((task.dependsOn && task.dependsOn.length > 0) || (task.blocksTasks && task.blocksTasks.length > 0))) { // MODIFIED to use window
             const depIcon = document.createElement('span');
             depIcon.className = 'text-slate-400 dark:text-slate-500 flex items-center task-dependencies-feature-element';
             let depTitle = '';
@@ -309,7 +309,7 @@ export function renderBulkActionControls() {
     if (!bulkActionControlsContainer || !BulkActionService || !AppStore || !ViewManager) return;
 
     const selectedIds = BulkActionService.getSelectedIds();
-    const isEnabled = isFeatureEnabled('bulkActionsFeature') && selectedIds.length > 0;
+    const isEnabled = window.isFeatureEnabled('bulkActionsFeature') && selectedIds.length > 0; // MODIFIED to use window
     bulkActionControlsContainer.classList.toggle('hidden', !isEnabled);
 
     if (!isEnabled) return;
@@ -320,7 +320,7 @@ export function renderBulkActionControls() {
     if (bulkCompleteBtn) bulkCompleteBtn.disabled = selectedIds.length === 0;
     if (bulkDeleteBtn) bulkDeleteBtn.disabled = selectedIds.length === 0;
 
-    if (isFeatureEnabled('projectFeature')) {
+    if (window.isFeatureEnabled('projectFeature')) { // MODIFIED to use window
         if (bulkAssignProjectDropdown) {
             bulkAssignProjectDropdown.disabled = selectedIds.length === 0;
             if (ProjectsFeature?.populateProjectDropdowns && typeof bulkAssignProjectDropdown.dataset.populated === 'undefined') {

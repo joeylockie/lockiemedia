@@ -1,7 +1,7 @@
 // feature_test_button.js
 // ES6 Module for the Test Button Feature.
 
-import { isFeatureEnabled } from './featureFlagService.js';
+// import { isFeatureEnabled } from './featureFlagService.js'; // REMOVED
 import EventBus from './eventBus.js'; // MODIFIED: Added EventBus import
 import LoggingService from './loggingService.js'; // MODIFIED: Added LoggingService import (was missing in original for consistency)
 
@@ -36,11 +36,11 @@ function initialize() {
  */
 function updateUIVisibility(isEnabledParam) { 
     const functionName = "updateUIVisibility (TestButtonFeature)"; // For logging
-    if (typeof isFeatureEnabled !== 'function') {
+    if (typeof window.isFeatureEnabled !== 'function') { // MODIFIED to check window
         LoggingService.error("[TestButtonFeature] isFeatureEnabled function not available from FeatureFlagService.", new Error("DependencyMissing"), { functionName });
         return;
     }
-    const isActuallyEnabled = isFeatureEnabled('testButtonFeature');
+    const isActuallyEnabled = window.isFeatureEnabled('testButtonFeature'); // MODIFIED to use window
     
     const container = document.getElementById('testFeatureButtonContainer');
     if (container) {
