@@ -6,7 +6,7 @@
 import EventBus from './eventBus.js';
 import LoggingService from './loggingService.js';
 
-const API_URL = 'http://localhost:3000/api/data'; // We'll use the server's IP later
+const API_URL = 'http://192.168.2.200:3000/api/data'; // We'll use the server's IP later
 
 // --- Internal State Variables (scoped to this module) ---
 let _tasks = [];
