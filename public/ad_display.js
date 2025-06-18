@@ -1,7 +1,8 @@
 // ad_display.js
 // This script runs on public-facing pages to check for and display ads from localStorage.
+// REFACTORED FOR SELF-HOSTED BACKEND
 
-import LoggingService from './loggingService.js';
+import LoggingService from './public/loggingService.js';
 import AdvertisingService from './advertisingService.js';
 
 const AD_POPUP_ID = 'adPopup';
@@ -11,11 +12,9 @@ const AD_IMAGE_ID = 'adPopupImage';
 const AD_CLOSE_BTN_ID = 'adPopupCloseBtn';
 
 function getUserId() {
-    // This function will now only be called after Firebase is initialized.
-    if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
-        return firebase.auth().currentUser.uid;
-    }
-    return 'anonymous';
+    // In self-hosted mode, there is no user authentication.
+    // We can return a static placeholder.
+    return 'local_user';
 }
 
 function showAdPopup(adData) {
@@ -31,6 +30,7 @@ function showAdPopup(adData) {
         return;
     }
 
+    // Logging analytics is disabled in the refactored service, but we'll leave the call here for future use.
     AdvertisingService.logAdEvent({
         adId: adData.id,
         eventType: 'view',
@@ -94,16 +94,13 @@ function checkForAd() {
 
 /**
  * Initializes the ad display logic and sets up listeners.
- * This should only be called after Firebase has been initialized.
  */
 export function initialize() {
     const functionName = 'initialize (AdDisplay)';
     LoggingService.info('[AdDisplay] Initializing ad display check and listeners.', { functionName });
     
-    // Check for an ad immediately on initialization
     checkForAd();
 
-    // Listen for storage changes from other tabs
     window.addEventListener('storage', (event) => {
         if (event.key === 'lockiemedia_ad_trigger_v1') {
             LoggingService.info('[AdDisplay] Storage event detected for ad trigger.', { functionName: 'storageListener' });

@@ -1,12 +1,10 @@
 // main.js
 // Main entry point for the application.
+// REFACTORED FOR SELF-HOSTED BACKEND
 
-import protectPage from './authGuard.js';
 import EventBus from './eventBus.js';
 import AppStore from './store.js';
-import { loadFeatureFlags, isFeatureEnabled as isFeatureEnabledFromService, getAllFeatureFlags, setFeatureFlag as setFeatureFlagInService } from './featureFlagService.js';
-import { loadAppVersion, getAppVersionString, startUpdateChecker } from './versionService.js';
-import * as TaskService from './taskService.js';
+import { loadAppVersion, startUpdateChecker } from './versionService.js';
 import { ProjectsFeature } from './feature_projects.js';
 import { setupEventListeners, applyActiveFeatures, setFilter } from './ui_event_handlers.js';
 import ViewManager from './viewManager.js';
@@ -15,7 +13,6 @@ import { ReminderFeature } from './feature_reminder.js';
 import { AdvancedRecurrenceFeature } from './feature_advanced_recurrence.js';
 import { FileAttachmentsFeature } from './feature_file_attachments.js';
 import { IntegrationsServicesFeature } from './feature_integrations_services.js';
-import { UserAccountsFeature } from './feature_user_accounts.js';
 import { CollaborationSharingFeature } from './feature_collaboration_sharing.js';
 import { CrossDeviceSyncFeature } from './feature_cross_device_sync.js';
 import { TaskDependenciesFeature } from './feature_task_dependencies.js';
@@ -34,13 +31,51 @@ import { SocialMediaLinksFeature } from './feature_social_media_links.js';
 import { AboutUsFeature } from './feature_about_us.js';
 import { DataVersioningFeature } from './feature_data_versioning.js';
 import { ShoppingListFeature } from './feature_shopping_list.js';
-import LoggingService, { LOG_LEVELS } from './loggingService.js';
+import LoggingService from './loggingService.js';
 import { DesktopNotificationsFeature } from './feature_desktop_notifications.js';
 import * as uiRendering from './ui_rendering.js';
 import { logPerformanceMetrics } from './performanceService.js';
 import { NotesFeature } from './feature_notes.js';
 import { refreshTaskView } from './ui_rendering.js';
 
+// --- Simplified Feature Handling ---
+// Since we removed feature flags, we now treat every feature as enabled.
+// The `isFeatureEnabled` function is a simple true/false check.
+function isFeatureEnabled(featureName) {
+    // For now, we enable all features. You can disable one by setting it to false.
+    const features = {
+        testButtonFeature: true,
+        reminderFeature: true,
+        taskTimerSystem: true,
+        advancedRecurrence: true,
+        fileAttachments: true,
+        integrationsServices: false, // Keep planned features off
+        collaborationSharing: false,
+        crossDeviceSync: false,
+        tooltipsGuide: true,
+        subTasksFeature: true,
+        kanbanBoardFeature: true,
+        projectFeature: true,
+        exportDataFeature: true,
+        calendarViewFeature: true,
+        taskDependenciesFeature: true,
+        smarterSearchFeature: true,
+        bulkActionsFeature: true,
+        pomodoroTimerHybridFeature: true,
+        backgroundFeature: false,
+        contactUsFeature: true,
+        socialMediaLinksFeature: true,
+        aboutUsFeature: true,
+        dataVersioningFeature: true,
+        desktopNotificationsFeature: true,
+        appUpdateNotificationFeature: true,
+        shoppingListFeature: true,
+        notesFeature: true,
+        debugMode: true,
+        userRoleFeature: true,
+    };
+    return features[featureName] || false;
+}
 
 let showCriticalErrorImported = (message, errorId) => {
     const fallbackErrorMsg = `CRITICAL ERROR (display): ${message}, ID: ${errorId}. UI for errors not yet loaded.`;
@@ -48,9 +83,11 @@ let showCriticalErrorImported = (message, errorId) => {
     alert(fallbackErrorMsg);
 };
 
+// --- Update Notification ---
 let updateNotificationElement = null;
 
 function showUpdateNotificationBar(data) {
+    // This function remains the same as before
     const functionName = 'showUpdateNotificationBar (main.js)';
     const newVersionString = data.newVersion;
     LoggingService.info(`[Main] Preparing update notification for version: ${newVersionString}`, { functionName, newVersionString });
@@ -116,6 +153,8 @@ function showUpdateNotificationBar(data) {
     }, 50);
 }
 
+
+// --- Global Error Handling ---
 window.onerror = function(message, source, lineno, colno, error) {
     const errorId = `ERR-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
     LoggingService.critical(String(message), error || new Error(String(message)), {
@@ -141,97 +180,79 @@ window.onunhandledrejection = function(event) {
     event.preventDefault();
 };
 
+// --- Main Application Initialization ---
 document.addEventListener('DOMContentLoaded', async () => {
-    // Phase 1: Core Service Initialization
-    if (typeof window.AppFeatures === 'undefined') window.AppFeatures = {};
-    window.AppFeatures.UserAccountsFeature = UserAccountsFeature;
+    // No more authentication check here
+    document.body.style.visibility = 'visible';
+    LoggingService.info("[Main] Starting application initialization...");
 
-    if (window.AppFeatures.UserAccountsFeature && typeof window.AppFeatures.UserAccountsFeature.initialize === 'function') {
-        try {
-            LoggingService.info("[Main] Initializing UserAccountsFeature (includes Firebase SDK setup)...");
-            window.AppFeatures.UserAccountsFeature.initialize();
-            LoggingService.info("[Main] UserAccountsFeature initialization complete.");
-        } catch (e) {
-            LoggingService.critical('[Main] CRITICAL: Error initializing UserAccountsFeature (Firebase).', e, { step: "userAccountsInit" });
-            return;
-        }
+    // Phase 1: Initialize UI elements and core services
+    uiRendering.initializeDOMElements();
+    if (uiRendering.showCriticalError) {
+        showCriticalErrorImported = uiRendering.showCriticalError;
+    }
+    await loadAppVersion();
+    
+    // Phase 2: Load data from our new backend
+    if (AppStore && AppStore.initializeStore) {
+        await AppStore.initializeStore();
+        LoggingService.info("[Main] Initial data load from server complete.");
     } else {
-        LoggingService.warn('[Main] UserAccountsFeature or its initialize function is not available.');
+        LoggingService.critical('[Main] AppStore.initializeStore is not available. Cannot load data.', new Error('DataLoadFailed'));
         return;
     }
 
-    try {
-        // Phase 2: Authentication
-        const user = await protectPage();
-        document.body.style.visibility = 'visible';
-        LoggingService.info("[Main] Auth confirmed. Starting controlled application initialization...");
-        
-        // Phase 3: Load Configuration & Basic UI
-        uiRendering.initializeDOMElements();
-        if (uiRendering.showCriticalError) {
-            showCriticalErrorImported = uiRendering.showCriticalError;
-        }
-        await loadFeatureFlags();
-        LoggingService.initializeLogLevel();
-        await loadAppVersion();
-        
-        // Phase 4: Populate Data Store from Firestore (One-time Load)
-        if (AppStore && AppStore.loadDataFromFirestore) {
-            await AppStore.loadDataFromFirestore(user.uid);
-            LoggingService.info("[Main] Initial data load from Firestore complete.");
-        } else {
-            LoggingService.critical('[Main] AppStore.loadDataFromFirestore is not available. Cannot load data.', new Error('DataLoadFailed'));
-            return;
-        }
-        
-        // Phase 5: Initialize all UI logic, event listeners, and feature modules now that data is present
-        window.AppFeatures = { // Rebuild AppFeatures object now that all modules are ready
-             UserAccountsFeature, LoggingService, EventBus, AppStore, ViewManager, ModalInteractions, TaskService, TestButtonFeature, ReminderFeature, AdvancedRecurrenceFeature, FileAttachmentsFeature, IntegrationsServicesFeature, CollaborationSharingFeature, CrossDeviceSyncFeature, TaskDependenciesFeature, SmarterSearchFeature, DataManagementFeature, CalendarViewFeature, TaskTimerSystemFeature, KanbanBoardFeature, PomodoroTimerHybridFeature, ProjectsFeature, TooltipsGuideFeature, SubTasksFeature, BackgroundFeature, ContactUsFeature, SocialMediaLinksFeature, AboutUsFeature, DataVersioningFeature, ShoppingListFeature, DesktopNotificationsFeature, NotesFeature,
-             isFeatureEnabled: isFeatureEnabledFromService, getAllFeatureFlags, setFeatureFlag: setFeatureFlagInService
-        };
-        
-        uiRendering.initializeUiRenderingSubscriptions();
-        setupEventListeners();
+    // Phase 3: Initialize all feature modules now that data is present
+    window.AppFeatures = {
+        LoggingService, EventBus, AppStore, ViewManager, ModalInteractions,
+        TestButtonFeature, ReminderFeature, AdvancedRecurrenceFeature, FileAttachmentsFeature,
+        IntegrationsServicesFeature, CollaborationSharingFeature, CrossDeviceSyncFeature,
+        TaskDependenciesFeature, SmarterSearchFeature, DataManagementFeature,
+        CalendarViewFeature, TaskTimerSystemFeature, KanbanBoardFeature,
+        PomodoroTimerHybridFeature, ProjectsFeature, TooltipsGuideFeature,
+        SubTasksFeature, BackgroundFeature, ContactUsFeature, SocialMediaLinksFeature,
+        AboutUsFeature, DataVersioningFeature, ShoppingListFeature,
+        DesktopNotificationsFeature, NotesFeature,
+        isFeatureEnabled // Use our local function
+    };
+    
+    uiRendering.initializeUiRenderingSubscriptions();
+    setupEventListeners();
 
-        for (const featureKey in window.AppFeatures) {
-            if (typeof window.AppFeatures[featureKey]?.initialize === 'function') {
-                if (featureKey !== 'UserAccountsFeature') { // Already initialized
-                    try {
-                        LoggingService.debug(`[Main] Initializing feature module: ${featureKey}`);
-                        window.AppFeatures[featureKey].initialize();
-                    } catch (e) {
-                        LoggingService.error(`[Main] Error initializing feature ${featureKey}:`, e);
-                    }
-                }
+    for (const featureKey in window.AppFeatures) {
+        if (typeof window.AppFeatures[featureKey]?.initialize === 'function') {
+            try {
+                LoggingService.debug(`[Main] Initializing feature module: ${featureKey}`);
+                window.AppFeatures[featureKey].initialize();
+            } catch (e) {
+                LoggingService.error(`[Main] Error initializing feature ${featureKey}:`, e);
             }
         }
-        
-        // Phase 6: Initial Render
-        applyActiveFeatures();
-        setFilter(ViewManager.getCurrentFilter());
-        uiRendering.setSidebarMinimized(localStorage.getItem('sidebarState') === 'minimized');
-        refreshTaskView(); // Perform the first full render
-        LoggingService.info("[Main] Initial UI render complete.");
-        
-        // Phase 7: Start Real-time Services
-        if (isFeatureEnabledFromService('appUpdateNotificationFeature')) {
-            startUpdateChecker();
-        }
-        AppStore.startStreamingUserData(user.uid);
-        logPerformanceMetrics();
-
-        LoggingService.info("---------------------------------------------------------");
-        LoggingService.info("         Todo App Initialization Complete ✓");
-        LoggingService.info("---------------------------------------------------------");
-        
-    } catch (error) {
-        LoggingService.critical('[Main] A critical error occurred during the main initialization sequence.', error);
-        showCriticalErrorImported('A critical error occurred during startup. Please refresh.', 'MAIN_INIT_FAIL');
     }
+    
+    // Phase 4: Initial Render
+    applyActiveFeatures(); // This function now relies on our local isFeatureEnabled
+    setFilter(ViewManager.getCurrentFilter());
+    uiRendering.setSidebarMinimized(localStorage.getItem('sidebarState') === 'minimized');
+    refreshTaskView();
+    LoggingService.info("[Main] Initial UI render complete.");
+    
+    // Phase 5: Start background services
+    if (isFeatureEnabled('appUpdateNotificationFeature')) {
+        startUpdateChecker();
+    }
+    // No more user data streaming
+    logPerformanceMetrics();
+
+    LoggingService.info("---------------------------------------------------------");
+    LoggingService.info("         LockieMedia App Initialization Complete ✓");
+    LoggingService.info("---------------------------------------------------------");
 });
 
-// Expose essential globals if needed by older parts of the app
-if (typeof window.isFeatureEnabled === 'undefined') window.isFeatureEnabled = isFeatureEnabledFromService;
-if (typeof window.getAllFeatureFlags === 'undefined') window.getAllFeatureFlags = getAllFeatureFlags;
-if (typeof window.setFeatureFlag === 'undefined') window.setFeatureFlag = setFeatureFlagInService;
-if (typeof window.LoggingService === 'undefined') window.LoggingService = LoggingService;
+// Expose our new local isFeatureEnabled globally for any modules that might need it
+if (typeof window.isFeatureEnabled === 'undefined') {
+    window.isFeatureEnabled = isFeatureEnabled;
+}
+if (typeof window.LoggingService === 'undefined') {
+    window.LoggingService = LoggingService;
+}

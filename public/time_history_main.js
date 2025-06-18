@@ -1,29 +1,18 @@
 // time_history_main.js
 // Main entry point for the Time Tracker History & Reports page.
+// REFACTORED FOR SELF-HOSTED BACKEND
 
-import protectPage from './authGuard.js';
 import LoggingService from './loggingService.js';
-import { UserAccountsFeature } from './feature_user_accounts.js';
 import { TimeHistoryFeature } from './feature_time_history.js';
+// REMOVED: protectPage and UserAccountsFeature imports
 
 document.addEventListener('DOMContentLoaded', async () => {
     const functionName = 'DOMContentLoaded (TimeHistoryMain)';
     
+    // Make the page visible immediately since there's no auth check
+    document.body.style.visibility = 'visible';
+
     try {
-        // Initialize Firebase services first, as the auth guard depends on them.
-        if (UserAccountsFeature && UserAccountsFeature.initialize) {
-            UserAccountsFeature.initialize();
-        } else {
-            LoggingService.critical('[TimeHistoryMain] UserAccountsFeature is not available to initialize Firebase.', new Error('DependencyMissing'), { functionName });
-            return;
-        }
-
-        // Ensure the user is authenticated before proceeding.
-        await protectPage();
-        
-        // After the user is confirmed to be authenticated, make the page visible.
-        document.body.style.visibility = 'visible';
-
         LoggingService.info('[TimeHistoryMain] Auth Guard passed. Initializing History & Reports page...', { functionName });
 
         // Initialize the feature module, which will handle all UI logic for this page.
@@ -36,7 +25,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         LoggingService.info('[TimeHistoryMain] History & Reports page initialization complete.', { functionName });
 
     } catch (error) {
-        LoggingService.critical('[TimeHistoryMain] A critical error occurred during History page initialization or auth.', error, { functionName });
+        LoggingService.critical('[TimeHistoryMain] A critical error occurred during History page initialization.', error, { functionName });
         // Optionally, display an error message in the UI
         const container = document.querySelector('main');
         if (container) {

@@ -1,32 +1,24 @@
 // time_tracker_main.js
 // Main entry point for the Time Tracker page.
+// REFACTORED FOR SELF-HOSTED BACKEND
 
-import protectPage from './authGuard.js'; // <-- ADDED
 import LoggingService from './loggingService.js';
 import { TimeTrackerFeature } from './feature_time_tracker.js';
-import { UserAccountsFeature } from './feature_user_accounts.js'; // <-- ADDED
+// REMOVED: protectPage and UserAccountsFeature imports
 
-document.addEventListener('DOMContentLoaded', async () => { // <-- MODIFIED: Made async
+document.addEventListener('DOMContentLoaded', async () => {
     const functionName = 'DOMContentLoaded (TimeTrackerMain)';
     
+    // Make the page visible immediately since there's no auth check
+    document.body.style.visibility = 'visible';
+
     try {
-        // --- MODIFIED START: Initialize Firebase first, then protect the page ---
-        if (UserAccountsFeature && UserAccountsFeature.initialize) {
-            UserAccountsFeature.initialize();
-        } else {
-            LoggingService.critical('[TimeTrackerMain] UserAccountsFeature is not available to initialize Firebase.', new Error('DependencyMissing'), { functionName });
-            return;
-        }
+        LoggingService.info('[TimeTrackerMain] Initializing Time Tracker page...', { functionName });
 
-        await protectPage();
-        // --- MODIFIED END ---
-
-        // ** THIS IS THE FIX **
-        // After the user is confirmed to be authenticated, make the page visible.
-        document.body.style.visibility = 'visible';
-
-        LoggingService.info('[TimeTrackerMain] Auth Guard passed. Initializing Time Tracker page...', { functionName });
-
+        // The timeTrackerService relies on a Firestore instance, which we are no longer using in this simplified version.
+        // We will need to refactor TimeTrackerService and its feature file next to use AppStore or another local mechanism.
+        // For now, this will likely cause errors, but we are refactoring step-by-step.
+        
         // Initialize the feature module, which in turn initializes its dependencies like the service.
         if (TimeTrackerFeature && typeof TimeTrackerFeature.initialize === 'function') {
             TimeTrackerFeature.initialize();
@@ -37,7 +29,7 @@ document.addEventListener('DOMContentLoaded', async () => { // <-- MODIFIED: Mad
         LoggingService.info('[TimeTrackerMain] Time Tracker page initialization complete.', { functionName });
 
     } catch (error) {
-        LoggingService.critical('[TimeTrackerMain] A critical error occurred during Time Tracker initialization or auth.', error, { functionName });
+        LoggingService.critical('[TimeTrackerMain] A critical error occurred during Time Tracker initialization.', error, { functionName });
         // Optionally, display an error message in the UI
         const container = document.querySelector('main');
         if (container) {

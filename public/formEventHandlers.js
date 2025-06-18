@@ -1,14 +1,13 @@
 // formEventHandlers.js
 // Handles form submission logic for various forms in the application.
+// REFACTORED FOR SELF-HOSTED BACKEND
 
 import AppStore from './store.js';
 import ViewManager from './viewManager.js';
-import { isFeatureEnabled } from './featureFlagService.js';
 import * as TaskService from './taskService.js';
 import * as LabelService from './labelService.js';
 import EventBus from './eventBus.js';
 import LoggingService from './loggingService.js';
-import { UserAccountsFeature } from './feature_user_accounts.js';
 import { TaskTimerSystemFeature } from './task_timer_system.js';
 import { clearTempSubTasksForAddModal, tempSubTasksForAddModal } from './ui_event_handlers.js';
 
@@ -19,6 +18,10 @@ import {
 } from './modal_interactions.js';
 import { refreshTaskView } from './ui_rendering.js';
 
+// A local helper function to use, since the global one is in main.js
+function isFeatureEnabled(featureName) {
+    return window.isFeatureEnabled(featureName);
+}
 
 export async function handleAddTaskFormSubmit(event) {
     const functionName = 'handleAddTaskFormSubmit';
@@ -32,8 +35,6 @@ export async function handleAddTaskFormSubmit(event) {
     const modalLabelInputAddEl = document.getElementById('modalLabelInputAdd');
     const modalNotesInputAddEl = document.getElementById('modalNotesInputAdd');
     const modalProjectSelectAddEl = document.getElementById('modalProjectSelectAdd');
-    const modalEstHoursAddEl = document.getElementById('modalEstHoursAdd');
-    const modalEstMinutesAddEl = document.getElementById('modalEstMinutesAdd');
     const modalRemindMeAddEl = document.getElementById('modalRemindMeAdd');
     const modalReminderDateAddEl = document.getElementById('modalReminderDateAdd');
     const modalReminderTimeAddEl = document.getElementById('modalReminderTimeAdd');
@@ -78,11 +79,7 @@ export async function handleAddTaskFormSubmit(event) {
         const estimates = TaskTimerSystemFeature.getEstimatesFromAddModal();
         estHours = estimates.estHours;
         estMinutes = estimates.estMinutes;
-    } else if (isFeatureEnabled('taskTimerSystem') && modalEstHoursAddEl && modalEstMinutesAddEl) {
-        estHours = parseInt(modalEstHoursAddEl.value) || 0;
-        estMinutes = parseInt(modalEstMinutesAddEl.value) || 0;
     }
-
 
     let isReminderSet = false, reminderDate = null, reminderTime = null, reminderEmail = null;
     if (isFeatureEnabled('reminderFeature') && modalRemindMeAddEl && modalRemindMeAddEl.checked) {
@@ -114,18 +111,16 @@ export async function handleAddTaskFormSubmit(event) {
             subTasks: subTasksToAdd,
             recurrence
         });
-        LoggingService.info(`[FormEventHandlers] Task added via form: "${parsedResult.remainingText.substring(0, 30)}..."`, { functionName, taskLength: parsedResult.remainingText.length });
         EventBus.publish('displayUserMessage', { text: 'Task added successfully!', type: 'success' });
         closeAddModal();
         clearTempSubTasksForAddModal();
         
-        refreshTaskView();
-
         if (ViewManager.getCurrentFilter() !== 'inbox') {
             ViewManager.setCurrentFilter('inbox');
+        } else {
+             refreshTaskView();
         }
     } else {
-        LoggingService.warn('[FormEventHandlers] Task description was empty on add attempt.', { functionName });
         EventBus.publish('displayUserMessage', { text: 'Task description cannot be empty.', type: 'error' });
     }
 }
@@ -199,7 +194,6 @@ export async function handleEditTaskFormSubmit(event) {
         reminderTime = modalReminderTimeViewEditEl.value;
         reminderEmail = modalReminderEmailViewEditEl.value.trim();
         if (!reminderDate || !reminderTime || !reminderEmail) {
-            LoggingService.warn(`[FormEventHandlers] Reminder fields not completely filled for editing task ID: ${taskId}.`, { functionName, taskId, reminderDate, reminderTime, reminderEmail });
             EventBus.publish('displayUserMessage', { text: 'Please fill all reminder fields or disable the reminder for edit.', type: 'error' });
             return;
         }
@@ -214,43 +208,10 @@ export async function handleEditTaskFormSubmit(event) {
         };
 
         await TaskService.updateTask(taskId, taskUpdateData);
-        LoggingService.info(`[FormEventHandlers] Task ID ${taskId} updated successfully.`, { functionName, taskId });
         EventBus.publish('displayUserMessage', { text: 'Task updated successfully!', type: 'success' });
         closeViewEditModal();
-        refreshTaskView();
     } else {
-        LoggingService.warn('[FormEventHandlers] Task description empty or task ID missing for edit.', { functionName, taskId, taskTextIsEmpty: !taskText });
         EventBus.publish('displayUserMessage', { text: 'Task description cannot be empty.', type: 'error' });
-    }
-}
-
-export async function handleProfileFormSubmit(event) {
-    const functionName = 'handleProfileFormSubmit';
-    event.preventDefault();
-    LoggingService.info('[FormEventHandlers] Attempting to save profile.', { functionName });
-
-    const profileDisplayNameInputEl = document.getElementById('profileDisplayName');
-    const displayName = profileDisplayNameInputEl.value.trim();
-
-    if (!displayName) {
-        LoggingService.warn('[FormEventHandlers] Display name cannot be empty.', { functionName });
-        EventBus.publish('displayUserMessage', { text: 'Display name cannot be empty.', type: 'error' });
-        return;
-    }
-
-    const profileData = {
-        displayName: displayName,
-    };
-
-    if (UserAccountsFeature && UserAccountsFeature.handleSaveProfile) {
-        try {
-            await UserAccountsFeature.handleSaveProfile(profileData);
-        } catch (err) {
-            LoggingService.error('[FormEventHandlers] Error during profile save process (delegated to UserAccountsFeature).', err, {functionName});
-        }
-    } else {
-        LoggingService.error('[FormEventHandlers] UserAccountsFeature.handleSaveProfile not available.', new Error("DependencyMissing"), { functionName });
-        EventBus.publish('displayUserMessage', { text: 'Error saving profile: System component missing.', type: 'error' });
     }
 }
 
@@ -272,42 +233,4 @@ export async function handleAddNewLabelFormSubmit(event) {
     }
 }
 
-export function handleUserSignUpFormSubmit(event) {
-    const functionName = "handleUserSignUpFormSubmit";
-    event.preventDefault();
-    LoggingService.debug(`[FormEventHandlers] Sign-up form submitted.`, {functionName});
-    const emailEl = document.getElementById('signUpEmail');
-    const passwordEl = document.getElementById('signUpPassword');
-    if (emailEl && passwordEl && UserAccountsFeature?.handleSignUp) {
-        UserAccountsFeature.handleSignUp(emailEl.value, passwordEl.value);
-    } else {
-        LoggingService.warn('[FormEventHandlers] Sign up form elements or UserAccountsFeature.handleSignUp not found.', {
-            functionName,
-            emailElFound: !!emailEl,
-            passwordElFound: !!passwordEl,
-            signUpHandlerAvailable: !!UserAccountsFeature?.handleSignUp
-        });
-        EventBus.publish('displayUserMessage', { text: 'Sign up service unavailable.', type: 'error' });
-    }
-}
-
-export function handleUserSignInFormSubmit(event) {
-    const functionName = "handleUserSignInFormSubmit";
-    event.preventDefault();
-    LoggingService.debug(`[FormEventHandlers] Sign-in form submitted.`, {functionName});
-    const emailEl = document.getElementById('signInEmail');
-    const passwordEl = document.getElementById('signInPassword');
-     if (emailEl && passwordEl && UserAccountsFeature?.handleSignIn) {
-        UserAccountsFeature.handleSignIn(emailEl.value, passwordEl.value);
-    } else {
-        LoggingService.warn('[FormEventHandlers] Sign in form elements or UserAccountsFeature.handleSignIn not found.', {
-            functionName,
-            emailElFound: !!emailEl,
-            passwordElFound: !!passwordEl,
-            signInHandlerAvailable: !!UserAccountsFeature?.handleSignIn
-        });
-        EventBus.publish('displayUserMessage', { text: 'Sign in service unavailable.', type: 'error' });
-    }
-}
-
-console.log("formEventHandlers.js loaded (corrected).");
+// REMOVED: handleProfileFormSubmit, handleUserSignUpFormSubmit, handleUserSignInFormSubmit

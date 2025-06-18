@@ -1,4 +1,3 @@
-import protectPage from './authGuard.js';
 import LoggingService from './loggingService.js';
 import EventBus from './eventBus.js';
 import AppStore from './store.js';
@@ -6,9 +5,7 @@ import * as TaskService from './taskService.js';
 import * as NoteService from './noteService.js';
 import HabitTrackerService from './habitTrackerService.js';
 import TimeTrackerService from './timeTrackerService.js';
-import { UserAccountsFeature } from './feature_user_accounts.js';
 import { formatDate, formatMillisecondsToHMS } from './utils.js';
-// --- NEW: Import the ad display initializer ---
 import { initialize as initializeAdDisplay } from './ad_display.js';
 
 // --- DOM Element References ---
@@ -279,15 +276,8 @@ function renderAllWidgets() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // There is no longer an auth check here. The page loads directly.
     try {
-        if (UserAccountsFeature && UserAccountsFeature.initialize) {
-            UserAccountsFeature.initialize();
-        } else {
-            throw new Error("UserAccountsFeature is not available to initialize Firebase.");
-        }
-
-        await protectPage();
-        
         await AppStore.initializeStore(); 
         NoteService.getNotes(); 
         HabitTrackerService.initialize();
@@ -303,27 +293,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         document.body.style.visibility = 'visible';
         
-        // --- FIX: Initialize the ad display logic AFTER everything else is ready ---
         initializeAdDisplay();
 
         renderAllWidgets();
 
-        const signOutBtn = document.getElementById('signOutBtn');
-        if (signOutBtn) {
-            signOutBtn.addEventListener('click', () => UserAccountsFeature.handleSignOut());
-        }
-
+        // Listen for data changes that might come from other tabs (via server polling in a more advanced setup)
+        // For now, we mainly re-render if tasks change on the todo.html page and come back.
         EventBus.subscribe('tasksChanged', () => {
             renderMyDayWidget();
             renderUpcomingWidget();
         });
-        EventBus.subscribe('timeLogChanged', renderTimeTrackerWidget); 
-        EventBus.subscribe('storeDataUpdatedFromFirebase', renderAllWidgets);
+        EventBus.subscribe('storeDataUpdatedFromServer', renderAllWidgets); // A generic event if we implement polling
         EventBus.subscribe('userProfileChanged', renderGreeting);
 
     } catch (error) {
-        LoggingService.critical('[Dashboard] Auth guard failed or critical error during init.', error);
-        document.body.innerHTML = '<p class="text-white text-center p-8">Could not load dashboard. Please try logging in again.</p>';
+        LoggingService.critical('[Dashboard] Critical error during init.', error);
+        document.body.innerHTML = '<p class="text-white text-center p-8">Could not load dashboard. Please check the server connection and refresh.</p>';
         document.body.style.visibility = 'visible';
     }
 });

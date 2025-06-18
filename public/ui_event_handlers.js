@@ -1,60 +1,47 @@
 // ui_event_handlers.js
-// Handles non-form, non-modal UI event listeners,
-// applying feature flags to UI, and general UI interaction logic.
+// REFACTORED FOR SELF-HOSTED BACKEND
 
 import AppStore from './store.js';
 import ViewManager from './viewManager.js';
-import { isFeatureEnabled, setFeatureFlag, getAllFeatureFlags } from './featureFlagService.js';
 import * as TaskService from './taskService.js';
 import * as LabelService from './labelService.js';
 import ModalStateService from './modalStateService.js';
 import TooltipService from './tooltipService.js';
 import EventBus from './eventBus.js';
 import * as BulkActionService from './bulkActionService.js';
-
 import LoggingService from './loggingService.js';
 
-// Import UI rendering functions needed by handlers still in this file
+// Import UI rendering functions
 import {
     showTooltip,
     hideTooltip,
     setSidebarMinimized,
 } from './ui_rendering.js';
 
-// Import modal interaction functions (still needed for some direct calls like populateManageLabelsList)
+// Import modal interaction functions
 import {
     populateManageLabelsList,
-    // Modal open/close functions are now primarily called by modalEventHandlers
-    // but some might be needed by other handlers if they directly manipulate modals.
-    // For now, keeping them if any remaining handler needs them.
-    openAddModal, // For '+' key shortcut
-    closeViewTaskDetailsModal, // for deleteTask
-    closeViewEditModal, // for deleteTask
-    closeSettingsModal // for clearCompletedTasks
+    openAddModal,
+    closeViewTaskDetailsModal,
+    closeViewEditModal,
+    closeSettingsModal
 } from './modal_interactions.js';
 
-// Import form event handlers (still needed for attaching to forms)
+// Import form event handlers
 import {
     handleAddTaskFormSubmit,
     handleEditTaskFormSubmit,
-    handleProfileFormSubmit,
-    handleAddNewLabelFormSubmit,
-    handleUserSignUpFormSubmit,
-    handleUserSignInFormSubmit
+    handleAddNewLabelFormSubmit
 } from './formEventHandlers.js';
 
 // Import the new modal event handlers setup function
 import { setupModalEventListeners } from './modalEventHandlers.js';
 
-
 // Import Feature Modules (some might be used by handlers still in this file)
 import { ProjectsFeature } from './feature_projects.js';
 import { PomodoroTimerHybridFeature } from './pomodoro_timer.js';
 import { SubTasksFeature } from './feature_sub_tasks.js';
-import { UserAccountsFeature } from './feature_user_accounts.js'; // For '+' key shortcut check
 
-// This state is temporarily exported for formEventHandlers.js
-// It should ideally move to a subTaskEventHandlers.js or ModalStateService
 export let tempSubTasksForAddModal = [];
 
 export function clearTempSubTasksForAddModal() {
@@ -63,59 +50,41 @@ export function clearTempSubTasksForAddModal() {
     tempSubTasksForAddModal = [];
 }
 
-// populateFeatureFlagsModal is now part of modalEventHandlers.js (within openFeatureFlagsModal)
-
 export function applyActiveFeatures() {
     const functionName = 'applyActiveFeatures';
     LoggingService.info('[UIEventHandlers] Applying active features based on current flags.', { functionName });
 
+    // window.isFeatureEnabled is now globally available from main.js
+    if (typeof window.isFeatureEnabled !== 'function') {
+        LoggingService.error('[UIEventHandlers] isFeatureEnabled function not available globally.', null, {functionName});
+        return;
+    }
+    
     if (window.AppFeatures) {
         for (const featureKey in window.AppFeatures) {
             if (window.AppFeatures[featureKey] && typeof window.AppFeatures[featureKey].updateUIVisibility === 'function') {
-                // UserAccountsFeature visibility is handled internally.
-                // Modal-related features' UI (like buttons to open them) are also handled by their own updateUIVisibility
-                // or by the generic class toggling.
-                if (featureKey !== 'UserAccountsFeature') {
-                    window.AppFeatures[featureKey].updateUIVisibility();
-                }
+                window.AppFeatures[featureKey].updateUIVisibility();
             }
-        }
-        // Ensure UserAccountsFeature UI (like sign-out button) is also updated
-        if (window.AppFeatures.UserAccountsFeature && typeof window.AppFeatures.UserAccountsFeature.updateUIVisibility === 'function') {
-            window.AppFeatures.UserAccountsFeature.updateUIVisibility();
         }
     }
 
-    const settingsTooltipsGuideBtnEl = document.getElementById('settingsTooltipsGuideBtn');
-    if (settingsTooltipsGuideBtnEl) settingsTooltipsGuideBtnEl.classList.toggle('hidden', !isFeatureEnabled('tooltipsGuide'));
-
     const bulkControls = document.getElementById('bulkActionControlsContainer');
     if (bulkControls) {
-        if (!isFeatureEnabled('bulkActionsFeature')) {
+        if (!window.isFeatureEnabled('bulkActionsFeature')) {
             if (BulkActionService && BulkActionService.clearSelections) BulkActionService.clearSelections();
             bulkControls.classList.add('hidden');
         }
     }
-    document.querySelectorAll('.bulk-actions-feature-element').forEach(el => el.classList.toggle('hidden', !isFeatureEnabled('bulkActionsFeature')));
+    
+    // Since we are now single-user (admin), we can simplify this.
+    // The admin role is set in db.json and loaded into the store.
+    const userProfile = AppStore.getUserProfile();
+    const isAdmin = userProfile && userProfile.role === 'admin';
+    document.querySelectorAll('.admin-only-feature-element').forEach(el => {
+        el.classList.toggle('hidden', !isAdmin);
+    });
 
-    // NEW: Logic for admin-only elements
-    if (AppStore && typeof AppStore.getUserProfile === 'function') {
-        const userProfile = AppStore.getUserProfile();
-        const isAdmin = userProfile && userProfile.role === 'admin';
-        document.querySelectorAll('.admin-only-feature-element').forEach(el => {
-            el.classList.toggle('hidden', !isAdmin);
-        });
-        LoggingService.debug(`[UIEventHandlers] Admin-only elements visibility set. IsAdmin: ${isAdmin}`, { functionName, isAdmin });
-    }
-    // END NEW
-
-    EventBus.publish('requestViewRefresh'); // Triggers UI refresh which includes task list, headings etc.
-
-    // If feature flags modal is open, re-populate it (handled by modalEventHandlers.js if it's open)
-    // const featureFlagsModalElement = document.getElementById('featureFlagsModal');
-    // if (featureFlagsModalElement && !featureFlagsModalElement.classList.contains('hidden')) {
-    //     populateFeatureFlagsModal(); // This function is now within modalEventHandlers
-    // }
+    EventBus.publish('requestViewRefresh');
     LoggingService.info('[UIEventHandlers] Finished applying active features.', { functionName });
 }
 
@@ -218,7 +187,6 @@ export function handleDeleteLabel(labelNameToDelete) {
     }
 }
 
-// Sub-task handlers (still here for now, to be moved)
 async function handleAddSubTaskViewEdit() {
     const functionName = 'handleAddSubTaskViewEdit';
     const modalSubTaskInputViewEditEl = document.getElementById('modalSubTaskInputViewEdit');
@@ -269,8 +237,8 @@ function handleAddTempSubTaskForAddModal() {
     LoggingService.debug(`[UIEventHandlers] Temporary sub-task added. Current temp count: ${tempSubTasksForAddModal.length}`, { functionName });
     modalSubTaskInputAddEl.value = '';
 
-    const uiRenderingModule = globalThis.uiRenderingModule || (globalThis.uiRenderingModule = import('./ui_rendering.js'));
-    uiRenderingModule.then(ui => {
+    // Dynamically import to avoid circular dependencies if this file is loaded early
+    import('./ui_rendering.js').then(ui => {
         if (ui.renderTempSubTasksForAddModal) {
             ui.renderTempSubTasksForAddModal(tempSubTasksForAddModal, modalSubTasksListAddEl);
         }
@@ -284,44 +252,26 @@ export function setupEventListeners() {
     const functionName = 'setupEventListeners';
     LoggingService.info('[UIEventHandlers] Setting up event listeners.', { functionName });
 
-    // --- Page-Specific Guard ---
-    // Only set up listeners for the main task application on the correct page.
-    const mainAppContainer = document.getElementById('taskSidebar'); // A key element of todo.html
+    const mainAppContainer = document.getElementById('taskSidebar');
     if (!mainAppContainer) {
         LoggingService.debug('[UIEventHandlers] Not on the main task page. Skipping main event listener setup.', { functionName });
-        // Global listeners that should apply everywhere can still be set up here if needed.
-        return; // Exit the function to prevent errors on other pages like notes.html
+        return;
     }
-    // --- End Page-Specific Guard ---
 
-    // Setup modal related event listeners
-    setupModalEventListeners(); // Imported from modalEventHandlers.js
+    setupModalEventListeners();
 
-    // EventBus subscriptions for task actions (toggleComplete, deleteTask)
     if (EventBus) {
-        EventBus.subscribe('uiRequestToggleComplete', (data) => {
-            if (data && data.taskId) {
-                toggleComplete(data.taskId);
-            }
-        });
-        EventBus.subscribe('uiRequestDeleteTask', (data) => {
-            if (data && data.taskId) {
-                deleteTask(data.taskId);
-            }
-        });
-        LoggingService.debug('[UIEventHandlers] Subscribed to uiRequestToggleComplete and uiRequestDeleteTask.', { functionName });
-    } else {
-        LoggingService.error('[UIEventHandlers] EventBus not available for subscribing to custom UI events.', new Error("EventBusMissing"), { functionName });
+        EventBus.subscribe('uiRequestToggleComplete', (data) => { if (data && data.taskId) toggleComplete(data.taskId); });
+        EventBus.subscribe('uiRequestDeleteTask', (data) => { if (data && data.taskId) deleteTask(data.taskId); });
+        LoggingService.debug('[UIEventHandlers] Subscribed to task action requests.', { functionName });
     }
 
-    // Helper to attach other listeners
     const attachListener = (elementId, eventType, handler, handlerName) => {
         const element = document.getElementById(elementId);
         if (element) {
             element.addEventListener(eventType, handler);
-            LoggingService.debug(`[UIEventHandlers] Attached '${eventType}' listener to #${elementId} for ${handlerName || handler.name || 'anonymous function'}.`, { functionName: 'attachListener', elementId, eventType });
         } else {
-            LoggingService.warn(`[UIEventHandlers] Element #${elementId} not found. Cannot attach ${eventType} listener for ${handlerName || handler.name || 'anonymous function'}.`, { functionName: 'attachListener', elementId, eventType });
+            LoggingService.warn(`[UIEventHandlers] Element #${elementId} not found for listener for ${handlerName}.`, { functionName: 'attachListener', elementId, eventType });
         }
     };
 
@@ -329,12 +279,8 @@ export function setupEventListeners() {
     const sidebarToggleBtnEl = document.getElementById('sidebarToggleBtn');
     if (sidebarToggleBtnEl) {
         sidebarToggleBtnEl.addEventListener('click', () => {
-            const sidebarHandlerFuncName = 'sidebarToggleClickHandler';
             const taskSidebarEl = document.getElementById('taskSidebar');
-            if (!taskSidebarEl) {
-                LoggingService.error("[UIEventHandlers] Sidebar element not found for toggle.", new Error("DOMElementMissing"), { functionName: sidebarHandlerFuncName, elementId: 'taskSidebar' });
-                return;
-            }
+            if (!taskSidebarEl) return;
             const isCurrentlyMinimized = taskSidebarEl.classList.contains('sidebar-minimized');
             const newMinimizedState = !isCurrentlyMinimized;
             localStorage.setItem('sidebarState', newMinimizedState ? 'minimized' : 'expanded');
@@ -344,17 +290,14 @@ export function setupEventListeners() {
             } else {
                 TooltipService.clearTooltipTimeout();
             }
-            if (isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) {
+            // Use window.isFeatureEnabled which is set globally by main.js
+            if (window.isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) {
                 ProjectsFeature.populateProjectFilterList();
             }
-            if (isFeatureEnabled('pomodoroTimerHybridFeature') && PomodoroTimerHybridFeature?.updateSidebarDisplay) {
+            if (window.isFeatureEnabled('pomodoroTimerHybridFeature') && PomodoroTimerHybridFeature?.updateSidebarDisplay) {
                 PomodoroTimerHybridFeature.updateSidebarDisplay();
             }
-            LoggingService.debug(`[UIEventHandlers] Sidebar toggle clicked. New state: ${newMinimizedState ? 'minimized' : 'expanded'}.`, { functionName: sidebarHandlerFuncName, newMinimizedState });
         });
-        LoggingService.debug(`[UIEventHandlers] Sidebar toggle listener attached.`, { functionName, elementId: 'sidebarToggleBtn' });
-    } else {
-         LoggingService.warn(`[UIEventHandlers] Sidebar toggle button not found.`, { functionName, elementId: 'sidebarToggleBtn' });
     }
 
     // Sidebar icon tooltips
@@ -369,60 +312,38 @@ export function setupEventListeners() {
                     TooltipService.setTooltipTimeout(timeoutId);
                 }
             });
-            button.addEventListener('mouseleave', () => {
-                hideTooltip();
-            });
+            button.addEventListener('mouseleave', () => { hideTooltip(); });
         });
-        LoggingService.debug(`[UIEventHandlers] Sidebar icon tooltips listeners attached for ${sidebarIconOnlyButtonsEls.length} buttons.`, { functionName });
     }
 
-    // Edit and Delete from View Details Modal Buttons
+    // Modal Buttons
     const editFromViewModalBtnEl = document.getElementById('editFromViewModalBtn');
     if (editFromViewModalBtnEl) {
-        editFromViewModalBtnEl.addEventListener('click', async () => { // MADE ASYNC
-            const handlerName = 'editFromViewModalHandler';
+        editFromViewModalBtnEl.addEventListener('click', async () => {
             const taskId = ModalStateService.getCurrentViewTaskId();
-            LoggingService.debug(`[UIEventHandlers] Edit from View Modal button clicked for task ID: ${taskId}.`, { functionName: handlerName, taskId });
             if (taskId) {
                 closeViewTaskDetailsModal();
-                const { openViewEditModal } = await import('./modal_interactions.js'); // Dynamic import
+                const { openViewEditModal } = await import('./modal_interactions.js');
                 openViewEditModal(taskId);
-            } else {
-                LoggingService.warn(`[UIEventHandlers] No task ID to edit from View Modal.`, { functionName: handlerName });
             }
         });
-         LoggingService.debug(`[UIEventHandlers] Edit From View Modal listener attached.`, { functionName, elementId: 'editFromViewModalBtn' });
     }
     const deleteFromViewModalBtnEl = document.getElementById('deleteFromViewModalBtn');
     if(deleteFromViewModalBtnEl) {
         deleteFromViewModalBtnEl.addEventListener('click', () => {
-            const handlerName = 'deleteFromViewModalHandler';
             const taskId = ModalStateService.getCurrentViewTaskId();
-            LoggingService.debug(`[UIEventHandlers] Delete from View Modal button clicked for task ID: ${taskId}.`, { functionName: handlerName, taskId });
             if(taskId) deleteTask(taskId);
-            else { LoggingService.warn(`[UIEventHandlers] No task ID to delete from View Modal.`, { functionName: handlerName }); }
         });
-        LoggingService.debug(`[UIEventHandlers] Delete From View Modal listener attached.`, { functionName, elementId: 'deleteFromViewModalBtn' });
     }
 
-    // Form Submissions - Now use imported handlers
+    // Form Submissions
     attachListener('modalTodoFormAdd', 'submit', handleAddTaskFormSubmit, 'handleAddTaskFormSubmit');
     attachListener('modalTodoFormViewEdit', 'submit', handleEditTaskFormSubmit, 'handleEditTaskFormSubmit');
     attachListener('addNewLabelForm', 'submit', handleAddNewLabelFormSubmit, 'handleAddNewLabelFormSubmit');
-    attachListener('profileForm', 'submit', handleProfileFormSubmit, 'handleProfileFormSubmit');
-
-    // User Accounts Form Submissions & Sign Out
-    if (UserAccountsFeature) {
-        attachListener('signUpForm', 'submit', handleUserSignUpFormSubmit, 'handleUserSignUpFormSubmit');
-        attachListener('signInForm', 'submit', handleUserSignInFormSubmit, 'handleUserSignInFormSubmit');
-        attachListener('settingsSignOutBtn', 'click', () => {
-            if (UserAccountsFeature.handleSignOut) {
-                 UserAccountsFeature.handleSignOut();
-            } else {
-                LoggingService.error('[UIEventHandlers] UserAccountsFeature.handleSignOut not found.', new Error("MethodMissing"), {functionName:'settingsSignOutHandler'});
-            }
-        }, 'handleUserSignOutFromSettings');
-    }
+    
+    // REMOVED: Profile form submit, it is no longer on this page.
+    
+    // REMOVED: User Accounts Form Submissions & Sign Out listeners
 
     // Filter Buttons (Smart Views)
     const smartViewButtonsContainerEl = document.getElementById('smartViewButtonsContainer');
@@ -430,11 +351,9 @@ export function setupEventListeners() {
         smartViewButtonsContainerEl.addEventListener('click', (event) => {
             const button = event.target.closest('.smart-view-btn');
             if (button && button.dataset.filter) {
-                LoggingService.debug(`[UIEventHandlers] Smart view button clicked: ${button.dataset.filter}`, { functionName: 'smartViewButtonHandler', filter: button.dataset.filter });
                 setFilter(button.dataset.filter);
             }
         });
-        LoggingService.debug(`[UIEventHandlers] Smart view buttons container listener attached.`, { functionName, elementId: 'smartViewButtonsContainer' });
     }
 
     // Sort Buttons
@@ -447,27 +366,14 @@ export function setupEventListeners() {
         const element = document.getElementById(item.elId);
         if (element) {
             element.addEventListener('click', async () => {
-                LoggingService.debug(`[UIEventHandlers] Sort button clicked: ${item.type}`, { functionName: 'sortButtonHandler', sortType: item.type });
                 ViewManager.setCurrentSort(item.type);
-                try {
-                    const { updateSortButtonStates } = await import('./ui_rendering.js');
-                    if (updateSortButtonStates) {
-                        updateSortButtonStates();
-                    }
-                } catch (e) {
-                    LoggingService.error("[UIEventHandlers] Failed to load ui_rendering for sort button update", e, { functionName: 'sortButtonHandler', sortType: item.type });
-                }
             });
-            LoggingService.debug(`[UIEventHandlers] Sort button listener attached for ${item.type}.`, { functionName, elementId: item.elId });
-        } else {
-            LoggingService.warn(`[UIEventHandlers] Sort button #${item.elId} not found.`, { functionName, elementId: item.elId });
         }
     });
 
     // View Toggle Buttons
     const viewToggleHandler = (mode, currentViewMode) => {
         const newMode = currentViewMode === mode ? 'list' : mode;
-        LoggingService.debug(`[UIEventHandlers] View toggle clicked. Current: ${currentViewMode}, Target: ${mode}, New: ${newMode}`, { functionName: 'viewToggleHandler', currentMode: currentViewMode, targetMode: mode, newMode });
         ViewManager.setTaskViewMode(newMode);
     };
     attachListener('kanbanViewToggleBtn', 'click', () => viewToggleHandler('kanban', ViewManager.getCurrentTaskViewMode()), 'kanbanViewToggle');
@@ -480,39 +386,30 @@ export function setupEventListeners() {
         taskSearchInputEl.addEventListener('input', (e) => {
             ViewManager.setCurrentSearchTerm(e.target.value)
         });
-         LoggingService.debug(`[UIEventHandlers] Task search input listener attached.`, { functionName, elementId: 'taskSearchInput' });
-    } else {
-        LoggingService.warn(`[UIEventHandlers] Task search input not found.`, { functionName, elementId: 'taskSearchInput' });
     }
 
     // Settings Actions
     attachListener('settingsClearCompletedBtn', 'click', clearCompletedTasks, 'clearCompletedTasks');
 
-    // Global keydown for "+" add task shortcut (not modal escape, that's in modalEventHandlers.js)
+    // Global keydown for "+" add task shortcut
     document.addEventListener('keydown', (event) => {
-        const keydownHandlerName = 'documentKeydownHandler (ui_event_handlers for +)';
         if ((event.key === '+' || event.key === '=') &&
             !event.altKey && !event.ctrlKey && !event.metaKey &&
             !['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName.toUpperCase()) &&
-            document.querySelectorAll('.fixed.inset-0:not(.hidden)').length === 0) { // Check no modal is open
-            LoggingService.debug('[UIEventHandlers] Add task shortcut key pressed.', { functionName: keydownHandlerName, key: event.key });
+            document.querySelectorAll('.fixed.inset-0:not(.hidden)').length === 0) {
             event.preventDefault();
-            openAddModal(); // from modal_interactions.js
+            openAddModal();
         }
     });
-    LoggingService.debug(`[UIEventHandlers] Document keydown listener for '+' attached.`, { functionName });
 
-
-    // Sub-task add buttons (still here for now)
+    // Sub-task add buttons
     attachListener('modalAddSubTaskBtnAdd', 'click', handleAddTempSubTaskForAddModal, 'handleAddTempSubTaskForAddModal');
     attachListener('modalAddSubTaskBtnViewEdit', 'click', handleAddSubTaskViewEdit, 'handleAddSubTaskViewEdit');
 
     // Bulk Action Listeners
     const selectAllTasksCheckboxEl = document.getElementById('selectAllTasksCheckbox');
-    if (selectAllTasksCheckboxEl && isFeatureEnabled('bulkActionsFeature')) {
+    if (selectAllTasksCheckboxEl && window.isFeatureEnabled('bulkActionsFeature')) {
         selectAllTasksCheckboxEl.addEventListener('change', (e) => {
-            const handlerName = 'selectAllTasksCheckboxHandler';
-            LoggingService.debug(`[UIEventHandlers] Select All Tasks checkbox changed: ${e.target.checked}`, { functionName: handlerName, checked: e.target.checked });
             const tasksToSelect = ViewManager.getFilteredTasksForBulkAction();
             if (e.target.checked) {
                 tasksToSelect.forEach(task => BulkActionService.selectTaskIfNotSelected(task.id));
@@ -520,7 +417,6 @@ export function setupEventListeners() {
                 tasksToSelect.forEach(task => BulkActionService.deselectTaskIfSelected(task.id));
             }
         });
-        LoggingService.debug(`[UIEventHandlers] Select All Tasks checkbox listener attached.`, { functionName, elementId: 'selectAllTasksCheckbox' });
     }
 
     LoggingService.info("[UIEventHandlers] All non-modal, non-form event listeners setup process completed.", { functionName });
@@ -531,14 +427,5 @@ if (EventBus && typeof applyActiveFeatures === 'function') {
     EventBus.subscribe('featureFlagsUpdated', (data) => {
         LoggingService.info("[UIEventHandlers] Event received: featureFlagsUpdated. Re-applying active features.", { functionName: 'featureFlagsUpdatedHandler (subscription)', eventData: data });
         applyActiveFeatures();
-        // Populate feature flags modal if open (now handled by modalEventHandlers.js)
-        // const featureFlagsModalElement = document.getElementById('featureFlagsModal');
-        // if (featureFlagsModalElement && !featureFlagsModalElement.classList.contains('hidden')) {
-        //     populateFeatureFlagsModal();
-        // }
     });
-} else {
-    LoggingService.warn("[UIEventHandlers] EventBus or applyActiveFeatures not available for featureFlagsUpdated subscription.", { functionName: 'featureFlagsUpdatedSubscriptionSetup' });
 }
-
-LoggingService.debug("ui_event_handlers.js loaded as ES6 module (further modified).", { module: 'ui_event_handlers' });
