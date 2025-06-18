@@ -1,15 +1,10 @@
 // feature_projects.js
 
 import AppStore from './store.js';
-import EventBus from './eventBus.js'; // Already imported
-// import { isFeatureEnabled } from './featureFlagService.js'; // REMOVED
+import EventBus from './eventBus.js';
 import { addProject, updateProjectName, deleteProjectById, getProjectById, getAllProjects } from './projectService.js';
 
-// NEW: Import LoggingService
 import LoggingService from './loggingService.js';
-
-// MODIFIED: showMessage import removed
-// import { showMessage } from './ui_rendering.js'; 
 import { setFilter } from './ui_event_handlers.js';
 import ViewManager from './viewManager.js'; 
 
@@ -23,13 +18,10 @@ let modalProjectSelectAdd, modalProjectSelectViewEdit;
 function initializeProjectFeature() {
     const functionName = 'initializeProjectFeature';
     
-    // --- Page-Specific Guard ---
-    // This feature's DOM elements are only on the main todo.html page.
     if (!document.getElementById('taskSidebar')) {
         LoggingService.debug('[ProjectsFeature] Not on the main task page. Skipping initialization.', { functionName });
         return;
     }
-    // --- End Page-Specific Guard ---
 
     LoggingService.info('[ProjectsFeature] Initializing...', { functionName });
 
@@ -81,18 +73,26 @@ function initializeProjectFeature() {
 
 function updateProjectUIVisibility() {
     const functionName = 'updateProjectUIVisibility';
-    if (typeof window.isFeatureEnabled !== 'function') { // MODIFIED to check window
+    if (typeof window.isFeatureEnabled !== 'function') {
         LoggingService.error("[ProjectsFeature] isFeatureEnabled function not available.", new Error("isFeatureEnabledMissing"), { functionName });
         return;
     }
-    const isActuallyEnabled = window.isFeatureEnabled('projectFeature'); // MODIFIED to use window
+    const isActuallyEnabled = window.isFeatureEnabled('projectFeature');
     LoggingService.debug(`[ProjectsFeature] Updating UI visibility. Project feature enabled: ${isActuallyEnabled}.`, { functionName, isActuallyEnabled });
-    const projectElements = document.querySelectorAll('.project-feature-element'); 
+    
+    // Select all project-feature elements *EXCEPT* the modal itself.
+    const projectElements = document.querySelectorAll('.project-feature-element:not(#manageProjectsModal)'); 
     projectElements.forEach(el => el.classList.toggle('hidden', !isActuallyEnabled)); 
+
+    // The modal's visibility is controlled only by open/close functions, so we ensure it's hidden if the feature is disabled.
+    if (!isActuallyEnabled && manageProjectsModal && !manageProjectsModal.classList.contains('hidden')) {
+        closeManageProjectsModal();
+    }
 
     populateProjectFilterList(); 
     LoggingService.info(`[ProjectsFeature] UI Visibility set to: ${isActuallyEnabled}`, { functionName, isEnabled: isActuallyEnabled });
 }
+
 
 function openManageProjectsModal() {
     const functionName = 'openManageProjectsModal';
@@ -155,7 +155,6 @@ function handleAddNewProject(event) {
     LoggingService.info(`[ProjectsFeature] Attempting to add new project: "${projectName}".`, { functionName, projectName });
     const newProjectAdded = addProject(projectName); 
     if (newProjectAdded) { 
-        // MODIFIED: Publish event instead of direct call
         EventBus.publish('displayUserMessage', { text: `Project "${newProjectAdded.name}" added.`, type: 'success' });
         newProjectInput.value = ''; 
     }
@@ -171,7 +170,6 @@ function handleEditProject(projectId) {
     const project = getProjectById(projectId); 
     if (!project || project.id === 0) { 
         LoggingService.warn(`[ProjectsFeature] Edit cancelled: Project ID ${projectId} not found or is "No Project".`, { functionName, projectId });
-        // projectService now handles its own error messages/logging for this
         return; 
     }
     const newName = prompt(`Edit project name for "${project.name}":`, project.name); 
@@ -181,7 +179,6 @@ function handleEditProject(projectId) {
     }
     const updatedProject = updateProjectName(projectId, newName); 
     if (updatedProject) { 
-        // MODIFIED: Publish event instead of direct call
         EventBus.publish('displayUserMessage', { text: `Project updated to "${updatedProject.name}".`, type: 'success' });
     }
 }
@@ -202,7 +199,6 @@ function handleDeleteProject(projectId) {
     const project = getProjectById(projectId); 
     if (!project || project.id === 0) { 
         LoggingService.warn(`[ProjectsFeature] Delete cancelled: Project ID ${projectId} not found or is "No Project".`, { functionName, projectId });
-        // projectService now handles its own error messages/logging
         return; 
     }
     if (!confirm(`Are you sure you want to delete the project "${project.name}"? Tasks in this project will be moved to "No Project".`)) { 
@@ -211,7 +207,6 @@ function handleDeleteProject(projectId) {
     }
     const currentFilterBeforeDelete = ViewManager.getCurrentFilter(); 
     if (deleteProjectById(projectId)) { 
-        // MODIFIED: Publish event instead of direct call
         EventBus.publish('displayUserMessage', { text: `Project "${project.name}" deleted. Associated tasks moved.`, type: 'success' });
         if (currentFilterBeforeDelete === `project_${projectId}`) { 
             LoggingService.info(`[ProjectsFeature] Current filter was for deleted project ${projectId}. Resetting filter to inbox.`, { functionName, projectId });
@@ -219,7 +214,6 @@ function handleDeleteProject(projectId) {
         }
     } else {
         LoggingService.warn(`[ProjectsFeature] Deletion failed for project ID: ${projectId} (see projectService logs).`, { functionName, projectId });
-        // Error message handled by projectService if needed
     }
 }
 
@@ -249,7 +243,7 @@ function populateProjectDropdowns() {
 
 function populateProjectFilterList() {
     const functionName = 'populateProjectFilterList';
-    if (!projectFilterContainer || typeof AppStore === 'undefined' || typeof AppStore.getUniqueProjects !== 'function' || typeof window.isFeatureEnabled !== 'function' || !ViewManager) { // MODIFIED to check window
+    if (!projectFilterContainer || typeof AppStore === 'undefined' || typeof AppStore.getUniqueProjects !== 'function' || typeof window.isFeatureEnabled !== 'function' || !ViewManager) { 
         LoggingService.warn("[ProjectsFeature] Cannot populate project filter list. Dependencies missing.", {
             functionName,
             projectFilterContainerFound: !!projectFilterContainer,
@@ -262,9 +256,9 @@ function populateProjectFilterList() {
     projectFilterContainer.innerHTML = ''; 
     const currentUniqueProjects = AppStore.getUniqueProjects(); 
 
-    if (!window.isFeatureEnabled('projectFeature') || currentUniqueProjects.length === 0) { // MODIFIED to use window
+    if (!window.isFeatureEnabled('projectFeature') || currentUniqueProjects.length === 0) { 
         projectFilterContainer.classList.add('hidden'); 
-        LoggingService.debug("[ProjectsFeature] Project filter list hidden (feature disabled or no projects).", { functionName, projectFeatureEnabled: window.isFeatureEnabled('projectFeature'), projectCount: currentUniqueProjects.length }); // MODIFIED to use window
+        LoggingService.debug("[ProjectsFeature] Project filter list hidden (feature disabled or no projects).", { functionName, projectFeatureEnabled: window.isFeatureEnabled('projectFeature'), projectCount: currentUniqueProjects.length }); 
         return; 
     }
     projectFilterContainer.classList.remove('hidden'); 
@@ -311,6 +305,7 @@ export const ProjectsFeature = {
     initialize: initializeProjectFeature, 
     updateUIVisibility: updateProjectUIVisibility, 
     openManageProjectsModal: openManageProjectsModal, 
+    closeManageProjectsModal: closeManageProjectsModal,
     populateProjectDropdowns: populateProjectDropdowns, 
     populateProjectFilterList: populateProjectFilterList 
 };
