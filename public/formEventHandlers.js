@@ -8,7 +8,6 @@ import * as TaskService from './taskService.js';
 import * as LabelService from './labelService.js';
 import EventBus from './eventBus.js';
 import LoggingService from './loggingService.js';
-import { TaskTimerSystemFeature } from './task_timer_system.js';
 import { clearTempSubTasksForAddModal, tempSubTasksForAddModal } from './ui_event_handlers.js';
 
 // Import UI and Modal functions
@@ -74,13 +73,6 @@ export async function handleAddTaskFormSubmit(event) {
         }
     }
 
-    let estHours = 0, estMinutes = 0;
-    if (isFeatureEnabled('taskTimerSystem') && TaskTimerSystemFeature?.getEstimatesFromAddModal) {
-        const estimates = TaskTimerSystemFeature.getEstimatesFromAddModal();
-        estHours = estimates.estHours;
-        estMinutes = estimates.estMinutes;
-    }
-
     let isReminderSet = false, reminderDate = null, reminderTime = null, reminderEmail = null;
     if (isFeatureEnabled('reminderFeature') && modalRemindMeAddEl && modalRemindMeAddEl.checked) {
         isReminderSet = true;
@@ -107,7 +99,6 @@ export async function handleAddTaskFormSubmit(event) {
             dueDate: parsedResult.parsedDate || dueDate,
             time, priority, label, notes, projectId,
             isReminderSet, reminderDate, reminderTime, reminderEmail,
-            estimatedHours: estHours, estimatedMinutes: estMinutes,
             subTasks: subTasksToAdd,
             recurrence
         });
@@ -180,13 +171,6 @@ export async function handleEditTaskFormSubmit(event) {
         }
     }
 
-    let estHours = 0, estMinutes = 0;
-    if (isFeatureEnabled('taskTimerSystem') && TaskTimerSystemFeature?.getEstimatesFromEditModal) {
-        const estimates = TaskTimerSystemFeature.getEstimatesFromEditModal();
-        estHours = estimates.estHours;
-        estMinutes = estimates.estMinutes;
-    }
-
     let isReminderSet = false, reminderDate = null, reminderTime = null, reminderEmail = null;
     if (isFeatureEnabled('reminderFeature') && modalRemindMeViewEditEl && modalRemindMeViewEditEl.checked) {
         isReminderSet = true;
@@ -203,7 +187,6 @@ export async function handleEditTaskFormSubmit(event) {
         const taskUpdateData = {
             text: taskText, dueDate, time, priority, label, notes, projectId,
             isReminderSet, reminderDate, reminderTime, reminderEmail,
-            estimatedHours: estHours, estimatedMinutes: estMinutes,
             recurrence
         };
 
@@ -232,5 +215,3 @@ export async function handleAddNewLabelFormSubmit(event) {
         }
     }
 }
-
-// REMOVED: handleProfileFormSubmit, handleUserSignUpFormSubmit, handleUserSignInFormSubmit

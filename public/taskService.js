@@ -4,7 +4,6 @@
 
 import { getTodayDateString, getDateString } from './utils.js';
 import AppStore from './store.js';
-// import { isFeatureEnabled } from './featureFlagService.js'; // REMOVED
 import LoggingService from './loggingService.js';
 
 export function getPriorityClass(priority) {
@@ -45,13 +44,11 @@ export async function addTask(taskData) {
         return null;
     }
     let currentTasks = AppStore.getTasks();
-    const currentKanbanColumns = AppStore.getKanbanColumns();
-    const defaultKanbanColumn = currentKanbanColumns[0]?.id || 'todo';
+    
     const newTask = {
         id: Date.now(),
         creationDate: Date.now(),
         completed: false,
-        kanbanColumnId: defaultKanbanColumn,
         ...taskData,
         dueDate: taskData.dueDate || null,
         time: taskData.time || null,
@@ -63,13 +60,6 @@ export async function addTask(taskData) {
         reminderDate: taskData.reminderDate || null,
         reminderTime: taskData.reminderTime || null,
         reminderEmail: taskData.reminderEmail || null,
-        estimatedHours: taskData.estimatedHours || 0,
-        estimatedMinutes: taskData.estimatedMinutes || 0,
-        timerStartTime: null,
-        timerAccumulatedTime: 0,
-        timerIsRunning: false,
-        timerIsPaused: false,
-        actualDurationMs: 0,
         attachments: taskData.attachments || [],
         completedDate: null,
         subTasks: taskData.subTasks || [],
@@ -101,7 +91,7 @@ export async function updateTask(taskId, taskUpdateData) {
 }
 
 export async function toggleTaskComplete(taskId) {
-    if (!AppStore || typeof window.isFeatureEnabled !== 'function') { // MODIFIED to check window
+    if (!AppStore || typeof window.isFeatureEnabled !== 'function') { 
         const errorContext = { functionName: 'toggleTaskComplete', taskId };
         if (!AppStore) LoggingService.error("[TaskService] AppStore not available.", new Error("AppStoreMissing"), errorContext);
         if (typeof window.isFeatureEnabled !== 'function') LoggingService.error("[TaskService] isFeatureEnabled function not available.", new Error("isFeatureEnabledMissing"), errorContext);
@@ -117,7 +107,7 @@ export async function toggleTaskComplete(taskId) {
 
     const taskToToggle = currentTasks[taskIndex];
     
-    if (window.isFeatureEnabled('taskDependenciesFeature') && !taskToToggle.completed) { // MODIFIED to use window
+    if (window.isFeatureEnabled('taskDependenciesFeature') && !taskToToggle.completed) { 
         if (taskToToggle.dependsOn && taskToToggle.dependsOn.length > 0) {
             const incompleteDependencies = taskToToggle.dependsOn.some(depId => {
                 const dependentTask = currentTasks.find(t => t.id === depId);
@@ -133,7 +123,7 @@ export async function toggleTaskComplete(taskId) {
     const isNowCompleted = !taskToToggle.completed;
     let isRecurringAndRenewed = false;
 
-    if (isNowCompleted && window.isFeatureEnabled('advancedRecurrence') && taskToToggle.recurrence && taskToToggle.recurrence.frequency && taskToToggle.recurrence.frequency !== 'none') { // MODIFIED to use window
+    if (isNowCompleted && window.isFeatureEnabled('advancedRecurrence') && taskToToggle.recurrence && taskToToggle.recurrence.frequency && taskToToggle.recurrence.frequency !== 'none') { 
         const recurrence = taskToToggle.recurrence;
         const interval = recurrence.interval || 1;
         const currentDueDate = new Date(taskToToggle.dueDate + 'T00:00:00Z');
@@ -196,20 +186,6 @@ export async function toggleTaskComplete(taskId) {
     if (!isRecurringAndRenewed) {
         currentTasks[taskIndex].completed = isNowCompleted;
         currentTasks[taskIndex].completedDate = isNowCompleted ? Date.now() : null;
-
-        if (window.isFeatureEnabled('kanbanBoardFeature')) { // MODIFIED to use window
-            const currentKanbanColumns = AppStore.getKanbanColumns();
-            if (isNowCompleted) {
-                const doneColumn = currentKanbanColumns.find(col => col.id === 'done');
-                if (doneColumn) currentTasks[taskIndex].kanbanColumnId = doneColumn.id;
-            } else if (currentTasks[taskIndex].kanbanColumnId === 'done') {
-                const defaultColumn = currentKanbanColumns[0]?.id || 'todo';
-                currentTasks[taskIndex].kanbanColumnId = defaultColumn;
-            }
-        }
-        if (window.isFeatureEnabled('taskTimerSystem') && window.AppFeatures?.TaskTimerSystem?.handleTaskCompletion) { // MODIFIED to use window
-            window.AppFeatures.TaskTimerSystem.handleTaskCompletion(taskId, isNowCompleted);
-        }
     }
 
     await AppStore.setTasks(currentTasks);
@@ -219,7 +195,7 @@ export async function toggleTaskComplete(taskId) {
 
 
 export async function deleteTaskById(taskId) {
-    if (!AppStore || typeof window.isFeatureEnabled !== 'function') { // MODIFIED to use window
+    if (!AppStore || typeof window.isFeatureEnabled !== 'function') { 
         const errorContext = { functionName: 'deleteTaskById', taskId };
         if (!AppStore) LoggingService.error("[TaskService] AppStore not available.", new Error("AppStoreMissing"), errorContext);
         if (typeof window.isFeatureEnabled !== 'function') LoggingService.error("[TaskService] isFeatureEnabled function not available.", new Error("isFeatureEnabledMissing"), errorContext);
@@ -230,7 +206,7 @@ export async function deleteTaskById(taskId) {
     const initialLength = currentTasks.length; 
     let updatedTasks = currentTasks.filter(task => task.id !== taskId); 
 
-    if (window.isFeatureEnabled('taskDependenciesFeature')) { // MODIFIED to use window
+    if (window.isFeatureEnabled('taskDependenciesFeature')) { 
         updatedTasks = updatedTasks.map(task => { 
             const newDependsOn = task.dependsOn ? task.dependsOn.filter(id => id !== taskId) : []; 
             const newBlocksTasks = task.blocksTasks ? task.blocksTasks.filter(id => id !== taskId) : []; 

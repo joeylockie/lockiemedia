@@ -8,27 +8,13 @@ import { loadAppVersion, startUpdateChecker } from './versionService.js';
 import { ProjectsFeature } from './feature_projects.js';
 import { setupEventListeners, applyActiveFeatures, setFilter } from './ui_event_handlers.js';
 import ViewManager from './viewManager.js';
-import { TestButtonFeature } from './feature_test_button.js';
 import { ReminderFeature } from './feature_reminder.js';
 import { AdvancedRecurrenceFeature } from './feature_advanced_recurrence.js';
 import { FileAttachmentsFeature } from './feature_file_attachments.js';
-import { IntegrationsServicesFeature } from './feature_integrations_services.js';
-import { CollaborationSharingFeature } from './feature_collaboration_sharing.js';
-import { CrossDeviceSyncFeature } from './feature_cross_device_sync.js';
 import { TaskDependenciesFeature } from './feature_task_dependencies.js';
-import { SmarterSearchFeature } from './feature_smarter_search.js';
 import { DataManagementFeature } from './feature_data_management.js';
-import { CalendarViewFeature } from './feature_calendar_view.js';
-import { TaskTimerSystemFeature } from './task_timer_system.js';
-import { KanbanBoardFeature } from './feature_kanban_board.js';
-import { PomodoroTimerHybridFeature } from './pomodoro_timer.js';
 import * as ModalInteractions from './modal_interactions.js';
-import { TooltipsGuideFeature } from './feature_tooltips_guide.js';
 import { SubTasksFeature } from './feature_sub_tasks.js';
-import { BackgroundFeature } from './feature_background.js';
-import { ContactUsFeature } from './feature_contact_us.js';
-import { SocialMediaLinksFeature } from './feature_social_media_links.js';
-import { AboutUsFeature } from './feature_about_us.js';
 import { DataVersioningFeature } from './feature_data_versioning.js';
 import { ShoppingListFeature } from './feature_shopping_list.js';
 import LoggingService from './loggingService.js';
@@ -44,28 +30,14 @@ import { refreshTaskView } from './ui_rendering.js';
 function isFeatureEnabled(featureName) {
     // For now, we enable all features. You can disable one by setting it to false.
     const features = {
-        testButtonFeature: true,
         reminderFeature: true,
-        taskTimerSystem: true,
         advancedRecurrence: true,
         fileAttachments: true,
-        integrationsServices: false, // Keep planned features off
-        collaborationSharing: false,
-        crossDeviceSync: false,
-        tooltipsGuide: true,
         subTasksFeature: true,
-        kanbanBoardFeature: true,
         projectFeature: true,
         exportDataFeature: true,
-        calendarViewFeature: true,
         taskDependenciesFeature: true,
-        smarterSearchFeature: true,
         bulkActionsFeature: true,
-        pomodoroTimerHybridFeature: true,
-        backgroundFeature: false,
-        contactUsFeature: true,
-        socialMediaLinksFeature: true,
-        aboutUsFeature: true,
         dataVersioningFeature: true,
         desktopNotificationsFeature: true,
         appUpdateNotificationFeature: true,
@@ -73,6 +45,22 @@ function isFeatureEnabled(featureName) {
         notesFeature: true,
         debugMode: true,
         userRoleFeature: true,
+
+        // --- REMOVED FEATURES ---
+        testButtonFeature: false,
+        taskTimerSystem: false,
+        integrationsServices: false, 
+        collaborationSharing: false,
+        crossDeviceSync: false,
+        tooltipsGuide: false,
+        kanbanBoardFeature: false,
+        calendarViewFeature: false,
+        smarterSearchFeature: false,
+        pomodoroTimerHybridFeature: false, 
+        backgroundFeature: false,
+        contactUsFeature: false,
+        socialMediaLinksFeature: false,
+        aboutUsFeature: false,
     };
     return features[featureName] || false;
 }
@@ -205,13 +193,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Phase 3: Initialize all feature modules now that data is present
     window.AppFeatures = {
         LoggingService, EventBus, AppStore, ViewManager, ModalInteractions,
-        TestButtonFeature, ReminderFeature, AdvancedRecurrenceFeature, FileAttachmentsFeature,
-        IntegrationsServicesFeature, CollaborationSharingFeature, CrossDeviceSyncFeature,
-        TaskDependenciesFeature, SmarterSearchFeature, DataManagementFeature,
-        CalendarViewFeature, TaskTimerSystemFeature, KanbanBoardFeature,
-        PomodoroTimerHybridFeature, ProjectsFeature, TooltipsGuideFeature,
-        SubTasksFeature, BackgroundFeature, ContactUsFeature, SocialMediaLinksFeature,
-        AboutUsFeature, DataVersioningFeature, ShoppingListFeature,
+        ReminderFeature, AdvancedRecurrenceFeature, FileAttachmentsFeature,
+        TaskDependenciesFeature, DataManagementFeature,
+        ProjectsFeature, SubTasksFeature,
+        DataVersioningFeature, ShoppingListFeature,
         DesktopNotificationsFeature, NotesFeature,
         isFeatureEnabled // Use our local function
     };

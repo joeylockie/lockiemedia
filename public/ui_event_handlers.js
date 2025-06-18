@@ -6,15 +6,12 @@ import ViewManager from './viewManager.js';
 import * as TaskService from './taskService.js';
 import * as LabelService from './labelService.js';
 import ModalStateService from './modalStateService.js';
-import TooltipService from './tooltipService.js';
 import EventBus from './eventBus.js';
 import * as BulkActionService from './bulkActionService.js';
 import LoggingService from './loggingService.js';
 
 // Import UI rendering functions
 import {
-    showTooltip,
-    hideTooltip,
     setSidebarMinimized,
 } from './ui_rendering.js';
 
@@ -39,7 +36,6 @@ import { setupModalEventListeners } from './modalEventHandlers.js';
 
 // Import Feature Modules (some might be used by handlers still in this file)
 import { ProjectsFeature } from './feature_projects.js';
-import { PomodoroTimerHybridFeature } from './pomodoro_timer.js';
 import { SubTasksFeature } from './feature_sub_tasks.js';
 
 export let tempSubTasksForAddModal = [];
@@ -54,7 +50,6 @@ export function applyActiveFeatures() {
     const functionName = 'applyActiveFeatures';
     LoggingService.info('[UIEventHandlers] Applying active features based on current flags.', { functionName });
 
-    // window.isFeatureEnabled is now globally available from main.js
     if (typeof window.isFeatureEnabled !== 'function') {
         LoggingService.error('[UIEventHandlers] isFeatureEnabled function not available globally.', null, {functionName});
         return;
@@ -76,8 +71,6 @@ export function applyActiveFeatures() {
         }
     }
     
-    // Since we are now single-user (admin), we can simplify this.
-    // The admin role is set in db.json and loaded into the store.
     const userProfile = AppStore.getUserProfile();
     const isAdmin = userProfile && userProfile.role === 'admin';
     document.querySelectorAll('.admin-only-feature-element').forEach(el => {
@@ -237,7 +230,6 @@ function handleAddTempSubTaskForAddModal() {
     LoggingService.debug(`[UIEventHandlers] Temporary sub-task added. Current temp count: ${tempSubTasksForAddModal.length}`, { functionName });
     modalSubTaskInputAddEl.value = '';
 
-    // Dynamically import to avoid circular dependencies if this file is loaded early
     import('./ui_rendering.js').then(ui => {
         if (ui.renderTempSubTasksForAddModal) {
             ui.renderTempSubTasksForAddModal(tempSubTasksForAddModal, modalSubTasksListAddEl);
@@ -285,34 +277,9 @@ export function setupEventListeners() {
             const newMinimizedState = !isCurrentlyMinimized;
             localStorage.setItem('sidebarState', newMinimizedState ? 'minimized' : 'expanded');
             setSidebarMinimized(newMinimizedState);
-            if (newMinimizedState) {
-                hideTooltip();
-            } else {
-                TooltipService.clearTooltipTimeout();
-            }
-            // Use window.isFeatureEnabled which is set globally by main.js
             if (window.isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) {
                 ProjectsFeature.populateProjectFilterList();
             }
-            if (window.isFeatureEnabled('pomodoroTimerHybridFeature') && PomodoroTimerHybridFeature?.updateSidebarDisplay) {
-                PomodoroTimerHybridFeature.updateSidebarDisplay();
-            }
-        });
-    }
-
-    // Sidebar icon tooltips
-    const taskSidebarElForTooltips = document.getElementById('taskSidebar');
-    if (taskSidebarElForTooltips) {
-        const sidebarIconOnlyButtonsEls = taskSidebarElForTooltips.querySelectorAll('.sidebar-button-icon-only');
-        sidebarIconOnlyButtonsEls.forEach(button => {
-            button.addEventListener('mouseenter', () => {
-                if (taskSidebarElForTooltips.classList.contains('sidebar-minimized')) {
-                    TooltipService.clearTooltipTimeout();
-                    const timeoutId = setTimeout(() => showTooltip(button, button.title), 500);
-                    TooltipService.setTooltipTimeout(timeoutId);
-                }
-            });
-            button.addEventListener('mouseleave', () => { hideTooltip(); });
         });
     }
 
@@ -341,10 +308,6 @@ export function setupEventListeners() {
     attachListener('modalTodoFormViewEdit', 'submit', handleEditTaskFormSubmit, 'handleEditTaskFormSubmit');
     attachListener('addNewLabelForm', 'submit', handleAddNewLabelFormSubmit, 'handleAddNewLabelFormSubmit');
     
-    // REMOVED: Profile form submit, it is no longer on this page.
-    
-    // REMOVED: User Accounts Form Submissions & Sign Out listeners
-
     // Filter Buttons (Smart Views)
     const smartViewButtonsContainerEl = document.getElementById('smartViewButtonsContainer');
     if (smartViewButtonsContainerEl) {
@@ -370,16 +333,7 @@ export function setupEventListeners() {
             });
         }
     });
-
-    // View Toggle Buttons
-    const viewToggleHandler = (mode, currentViewMode) => {
-        const newMode = currentViewMode === mode ? 'list' : mode;
-        ViewManager.setTaskViewMode(newMode);
-    };
-    attachListener('kanbanViewToggleBtn', 'click', () => viewToggleHandler('kanban', ViewManager.getCurrentTaskViewMode()), 'kanbanViewToggle');
-    attachListener('calendarViewToggleBtn', 'click', () => viewToggleHandler('calendar', ViewManager.getCurrentTaskViewMode()), 'calendarViewToggle');
-    attachListener('pomodoroViewToggleBtn', 'click', () => viewToggleHandler('pomodoro', ViewManager.getCurrentTaskViewMode()), 'pomodoroViewToggle');
-
+    
     // Search Input
     const taskSearchInputEl = document.getElementById('taskSearchInput');
     if (taskSearchInputEl) {

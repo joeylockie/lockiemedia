@@ -4,31 +4,19 @@
 
 import AppStore from './store.js';
 import ViewManager from './viewManager.js';
-// import { isFeatureEnabled } from './featureFlagService.js'; // REMOVED
 import { getAppVersionString } from './versionService.js';
-// TaskService is not directly used in this file anymore by the remaining functions,
-// but it might be needed by other functions if they were to remain.
-// import * as TaskService from './taskService.js';
-// BulkActionService is not directly used here anymore.
-// import * as BulkActionService from './bulkActionService.js';
 import ModalStateService from './modalStateService.js';
-import TooltipService from './tooltipService.js';
 import EventBus from './eventBus.js';
 import { formatDate, formatTime, formatDuration, formatMillisecondsToHMS } from './utils.js';
-import LoggingService from './loggingService.js'; // Added LoggingService import
+import LoggingService from './loggingService.js'; 
 
 // Import functions from other UI modules
 import {
-    // openViewTaskDetailsModal, // Not directly used by remaining functions
-    // openViewEditModal, // Not directly used by remaining functions
     populateManageLabelsList
 } from './modal_interactions.js';
 
 // Import Feature Modules needed for direct calls
 import { ProjectsFeature } from './feature_projects.js';
-import { KanbanBoardFeature } from './feature_kanban_board.js';
-import { CalendarViewFeature } from './feature_calendar_view.js';
-import { PomodoroTimerHybridFeature } from './pomodoro_timer.js';
 import { SubTasksFeature } from './feature_sub_tasks.js';
 
 // Import the newly created rendering functions
@@ -37,61 +25,44 @@ import { renderTaskListView, renderBulkActionControls } from './renderTaskListVi
 // DOM Elements (declared with let, will be module-scoped)
 // These are initialized by initializeDOMElements()
 // We need to export the ones needed by renderTaskListView.js
-export let taskSidebar, sidebarToggleBtn, sidebarToggleIcon, sidebarTextElements, sidebarIconOnlyButtons, iconTooltip;
+export let taskSidebar, sidebarToggleBtn, sidebarToggleIcon, sidebarTextElements, sidebarIconOnlyButtons;
 export let sortByDueDateBtn, sortByPriorityBtn, sortByLabelBtn, taskSearchInput, taskList, emptyState, noMatchingTasks;
 export let smartViewButtonsContainer, smartViewButtons, messageBox;
 export let addTaskModal, modalDialogAdd, openAddModalButton, closeAddModalBtn, cancelAddModalBtn, modalTodoFormAdd;
-export let modalTaskInputAdd, modalDueDateInputAdd, modalTimeInputAdd, modalEstHoursAdd, modalEstMinutesAdd;
+export let modalTaskInputAdd, modalDueDateInputAdd, modalTimeInputAdd;
 export let modalPriorityInputAdd, modalLabelInputAdd, existingLabelsDatalist, modalNotesInputAdd;
 export let modalRemindMeAddContainer, modalRemindMeAdd, reminderOptionsAdd, modalReminderDateAdd, modalReminderTimeAdd, modalReminderEmailAdd;
 export let viewEditTaskModal, modalDialogViewEdit, closeViewEditModalBtn, cancelViewEditModalBtn, modalTodoFormViewEdit;
 export let modalViewEditTaskId, modalTaskInputViewEdit, modalDueDateInputViewEdit, modalTimeInputViewEdit;
-export let modalEstHoursViewEdit, modalEstMinutesViewEdit, modalPriorityInputViewEdit, modalLabelInputViewEdit;
+export let modalPriorityInputViewEdit, modalLabelInputViewEdit;
 export let existingLabelsEditDatalist, modalNotesInputViewEdit, modalRemindMeViewEditContainer, modalRemindMeViewEdit;
 export let reminderOptionsViewEdit, modalReminderDateViewEdit, modalReminderTimeViewEdit, modalReminderEmailViewEdit;
 export let existingAttachmentsViewEdit;
 export let viewTaskDetailsModal, modalDialogViewDetails, closeViewDetailsModalBtn, closeViewDetailsSecondaryBtn;
-export let editFromViewModalBtn, deleteFromViewModalBtn, viewTaskText, viewTaskDueDate, viewTaskTime, viewTaskEstDuration;
+export let editFromViewModalBtn, deleteFromViewModalBtn, viewTaskText, viewTaskDueDate, viewTaskTime;
 export let viewTaskPriority, viewTaskStatus, viewTaskLabel, viewTaskNotes, viewTaskReminderSection, viewTaskReminderStatus;
 export let viewTaskReminderDetails, viewTaskReminderDate, viewTaskReminderTime, viewTaskReminderEmail;
 export let viewTaskAttachmentsSection, viewTaskAttachmentsList;
-export let taskTimerSection, viewTaskTimerDisplay, viewTaskStartTimerBtn, viewTaskPauseTimerBtn, viewTaskStopTimerBtn;
-export let viewTaskActualDuration, timerButtonsContainer;
 export let manageLabelsModal, modalDialogManageLabels, closeManageLabelsModalBtn, closeManageLabelsSecondaryBtn;
 export let addNewLabelForm, newLabelInput, existingLabelsList;
 export let settingsModal, modalDialogSettings, openSettingsModalButton, closeSettingsModalBtn, closeSettingsSecondaryBtn;
-export let settingsClearCompletedBtn, settingsManageLabelsBtn, settingsManageRemindersBtn, settingsTaskReviewBtn;
-export let settingsTooltipsGuideBtn, settingsIntegrationsBtn, settingsUserAccountsBtn, settingsCollaborationBtn, settingsSyncBackupBtn;
-export let taskReviewModal, modalDialogTaskReview, closeTaskReviewModalBtn, closeTaskReviewSecondaryBtn, taskReviewContent;
-export let tooltipsGuideModal, modalDialogTooltipsGuide, closeTooltipsGuideModalBtn, closeTooltipsGuideSecondaryBtn, tooltipsGuideContent;
-export let testFeatureButtonContainer, testFeatureButton;
+export let settingsClearCompletedBtn, settingsManageLabelsBtn, settingsManageRemindersBtn;
 export let subTasksSectionViewEdit, modalSubTaskInputViewEdit, modalAddSubTaskBtnViewEdit, modalSubTasksListViewEdit;
 export let subTasksSectionViewDetails, viewSubTaskProgress, modalSubTasksListViewDetails, noSubTasksMessageViewDetails;
 export let subTasksSectionAdd, modalSubTaskInputAdd, modalAddSubTaskBtnAdd, modalSubTasksListAdd;
 export let featureFlagsListContainer;
-export let kanbanViewToggleBtn, kanbanViewToggleBtnText, calendarViewToggleBtn, calendarViewToggleBtnText, pomodoroViewToggleBtn, pomodoroViewToggleBtnText;
 export let yourTasksHeading, mainContentArea;
-export let kanbanBoardContainer;
-export let calendarViewContainer;
-export let pomodoroTimerPageContainer;
 export let settingsManageProjectsBtn;
 export let manageProjectsModal, modalDialogManageProjects, closeManageProjectsModalBtn, closeManageProjectsSecondaryBtn;
-// addNewProjectForm, newProjectInput, existingProjectsList are already declared above with manageLabelsModal
 export let modalProjectSelectAdd, modalProjectSelectViewEdit;
 export let projectFilterContainer;
 export let viewTaskProject;
 export let taskDependenciesSectionAdd, dependsOnContainerAdd, blocksTasksContainerAdd;
 export let taskDependenciesSectionViewEdit, dependsOnContainerViewEdit, blocksTasksContainerViewEdit;
 export let viewTaskDependenciesSection, viewTaskDependsOnList, viewTaskBlocksTasksList;
-export let smarterSearchContainer, smarterSearchAdvancedToggleBtn, smarterSearchOptionsDiv;
 export let bulkActionControlsContainer, selectAllTasksCheckbox, bulkCompleteBtn, bulkDeleteBtn; // These are needed by renderTaskListView.js
 export let bulkAssignProjectDropdown, bulkChangePriorityDropdown, bulkChangeLabelInput; // Needed by renderTaskListView.js
-export let sidebarPomodoroDisplay, sidebarPomodoroState, sidebarPomodoroTime, sidebarPomodoroTask;
 export let criticalErrorDisplay, criticalErrorMessage, criticalErrorId, closeCriticalErrorBtn;
-export let settingsContactUsBtn;
-export let contactUsModal, modalDialogContactUs, closeContactUsModalBtn, closeContactUsSecondaryBtn, contactUsForm;
-export let settingsAboutUsBtn;
-export let aboutUsModal, modalDialogAboutUs, closeAboutUsModalBtn, closeAboutUsSecondaryBtn, aboutUsContent;
 export let settingsVersionHistoryBtn;
 export let dataVersionHistoryModal, modalDialogDataVersionHistory, closeDataVersionHistoryModalBtn, closeDataVersionHistorySecondaryBtn;
 export let dataVersionHistoryContent;
@@ -102,15 +73,12 @@ export let appVersionAboutUsDisplayEl;
 export function initializeDOMElements() {
     LoggingService.debug('[DOM Init] Attempting to initialize DOM elements...', { module: 'ui_rendering' }); // Changed console.log
     mainContentArea = document.querySelector('main');
-    kanbanViewToggleBtn = document.getElementById('kanbanViewToggleBtn');
-    kanbanViewToggleBtnText = document.getElementById('kanbanViewToggleBtnText');
     smartViewButtonsContainer = document.getElementById('smartViewButtonsContainer');
     taskSidebar = document.getElementById('taskSidebar');
     sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
     sidebarToggleIcon = document.getElementById('sidebarToggleIcon');
     sidebarTextElements = taskSidebar ? taskSidebar.querySelectorAll('.sidebar-text-content') : [];
     sidebarIconOnlyButtons = taskSidebar ? taskSidebar.querySelectorAll('.sidebar-button-icon-only') : [];
-    iconTooltip = document.getElementById('iconTooltip');
     sortByDueDateBtn = document.getElementById('sortByDueDateBtn');
     sortByPriorityBtn = document.getElementById('sortByPriorityBtn');
     sortByLabelBtn = document.getElementById('sortByLabelBtn');
@@ -128,8 +96,6 @@ export function initializeDOMElements() {
     modalTaskInputAdd = document.getElementById('modalTaskInputAdd');
     modalDueDateInputAdd = document.getElementById('modalDueDateInputAdd');
     modalTimeInputAdd = document.getElementById('modalTimeInputAdd');
-    modalEstHoursAdd = document.getElementById('modalEstHoursAdd');
-    modalEstMinutesAdd = document.getElementById('modalEstMinutesAdd');
     modalPriorityInputAdd = document.getElementById('modalPriorityInputAdd');
     modalLabelInputAdd = document.getElementById('modalLabelInputAdd');
     existingLabelsDatalist = document.getElementById('existingLabels');
@@ -149,8 +115,6 @@ export function initializeDOMElements() {
     modalTaskInputViewEdit = document.getElementById('modalTaskInputViewEdit');
     modalDueDateInputViewEdit = document.getElementById('modalDueDateInputViewEdit');
     modalTimeInputViewEdit = document.getElementById('modalTimeInputViewEdit');
-    modalEstHoursViewEdit = document.getElementById('modalEstHoursViewEdit');
-    modalEstMinutesViewEdit = document.getElementById('modalEstMinutesViewEdit');
     modalPriorityInputViewEdit = document.getElementById('modalPriorityInputViewEdit');
     modalLabelInputViewEdit = document.getElementById('modalLabelInputViewEdit');
     existingLabelsEditDatalist = document.getElementById('existingLabelsEdit');
@@ -171,7 +135,6 @@ export function initializeDOMElements() {
     viewTaskText = document.getElementById('viewTaskText');
     viewTaskDueDate = document.getElementById('viewTaskDueDate');
     viewTaskTime = document.getElementById('viewTaskTime');
-    viewTaskEstDuration = document.getElementById('viewTaskEstDuration');
     viewTaskPriority = document.getElementById('viewTaskPriority');
     viewTaskStatus = document.getElementById('viewTaskStatus');
     viewTaskLabel = document.getElementById('viewTaskLabel');
@@ -184,13 +147,6 @@ export function initializeDOMElements() {
     viewTaskReminderEmail = document.getElementById('viewTaskReminderEmail');
     viewTaskAttachmentsSection = document.getElementById('viewTaskAttachmentsSection');
     viewTaskAttachmentsList = document.getElementById('viewTaskAttachmentsList');
-    taskTimerSection = document.getElementById('taskTimerSection');
-    viewTaskTimerDisplay = document.getElementById('viewTaskTimerDisplay');
-    viewTaskStartTimerBtn = document.getElementById('viewTaskStartTimerBtn');
-    viewTaskPauseTimerBtn = document.getElementById('viewTaskPauseTimerBtn');
-    viewTaskStopTimerBtn = document.getElementById('viewTaskStopTimerBtn');
-    viewTaskActualDuration = document.getElementById('viewTaskActualDuration');
-    timerButtonsContainer = document.getElementById('timerButtonsContainer');
     manageLabelsModal = document.getElementById('manageLabelsModal');
     modalDialogManageLabels = document.getElementById('modalDialogManageLabels');
     closeManageLabelsModalBtn = document.getElementById('closeManageLabelsModalBtn');
@@ -206,24 +162,6 @@ export function initializeDOMElements() {
     settingsClearCompletedBtn = document.getElementById('settingsClearCompletedBtn');
     settingsManageLabelsBtn = document.getElementById('settingsManageLabelsBtn');
     settingsManageRemindersBtn = document.getElementById('settingsManageRemindersBtn');
-    settingsTaskReviewBtn = document.getElementById('settingsTaskReviewBtn');
-    settingsTooltipsGuideBtn = document.getElementById('settingsTooltipsGuideBtn');
-    settingsIntegrationsBtn = document.getElementById('settingsIntegrationsBtn');
-    settingsUserAccountsBtn = document.getElementById('settingsUserAccountsBtn');
-    settingsCollaborationBtn = document.getElementById('settingsCollaborationBtn');
-    settingsSyncBackupBtn = document.getElementById('settingsSyncBackupBtn');
-    taskReviewModal = document.getElementById('taskReviewModal');
-    modalDialogTaskReview = document.getElementById('modalDialogTaskReview');
-    closeTaskReviewModalBtn = document.getElementById('closeTaskReviewModalBtn');
-    closeTaskReviewSecondaryBtn = document.getElementById('closeTaskReviewSecondaryBtn');
-    taskReviewContent = document.getElementById('taskReviewContent');
-    tooltipsGuideModal = document.getElementById('tooltipsGuideModal');
-    modalDialogTooltipsGuide = document.getElementById('modalDialogTooltipsGuide');
-    closeTooltipsGuideModalBtn = document.getElementById('closeTooltipsGuideModalBtn');
-    closeTooltipsGuideSecondaryBtn = document.getElementById('closeTooltipsGuideSecondaryBtn');
-    tooltipsGuideContent = document.getElementById('tooltipsGuideContent');
-    testFeatureButtonContainer = document.getElementById('testFeatureButtonContainer');
-    testFeatureButton = document.getElementById('testFeatureButton');
     subTasksSectionViewEdit = document.getElementById('subTasksSectionViewEdit');
     modalSubTaskInputViewEdit = document.getElementById('modalSubTaskInputViewEdit');
     modalAddSubTaskBtnViewEdit = document.getElementById('modalAddSubTaskBtnViewEdit');
@@ -238,23 +176,15 @@ export function initializeDOMElements() {
     modalSubTasksListAdd = document.getElementById('modalSubTasksListAdd');
     featureFlagsListContainer = document.getElementById('featureFlagsListContainer');
     yourTasksHeading = document.getElementById('yourTasksHeading');
-    kanbanBoardContainer = document.getElementById('kanbanBoardContainer');
-    calendarViewContainer = document.getElementById('calendarViewContainer');
-    pomodoroTimerPageContainer = document.getElementById('pomodoroTimerPageContainer');
     settingsManageProjectsBtn = document.getElementById('settingsManageProjectsBtn');
     manageProjectsModal = document.getElementById('manageProjectsModal');
     modalDialogManageProjects = document.getElementById('modalDialogManageProjects');
     closeManageProjectsModalBtn = document.getElementById('closeManageProjectsModalBtn');
     closeManageProjectsSecondaryBtn = document.getElementById('closeManageProjectsSecondaryBtn');
-    // addNewProjectForm, newProjectInput, existingProjectsList were already declared above for manageLabels
     modalProjectSelectAdd = document.getElementById('modalProjectSelectAdd');
     modalProjectSelectViewEdit = document.getElementById('modalProjectSelectViewEdit');
     projectFilterContainer = document.getElementById('projectFilterContainer');
     viewTaskProject = document.getElementById('viewTaskProject');
-    calendarViewToggleBtn = document.getElementById('calendarViewToggleBtn'); // Already declared
-    calendarViewToggleBtnText = document.getElementById('calendarViewToggleBtnText'); // Already declared
-    pomodoroViewToggleBtn = document.getElementById('pomodoroViewToggleBtn'); // Already declared
-    pomodoroViewToggleBtnText = document.getElementById('pomodoroViewToggleBtnText'); // Already declared
     taskDependenciesSectionAdd = document.getElementById('taskDependenciesSectionAdd');
     dependsOnContainerAdd = document.getElementById('dependsOnContainerAdd');
     blocksTasksContainerAdd = document.getElementById('blocksTasksContainerAdd');
@@ -264,9 +194,6 @@ export function initializeDOMElements() {
     viewTaskDependenciesSection = document.getElementById('viewTaskDependenciesSection');
     viewTaskDependsOnList = document.getElementById('viewTaskDependsOnList');
     viewTaskBlocksTasksList = document.getElementById('viewTaskBlocksTasksList');
-    smarterSearchContainer = document.getElementById('smarterSearchContainer');
-    smarterSearchAdvancedToggleBtn = document.getElementById('smarterSearchAdvancedToggleBtn');
-    smarterSearchOptionsDiv = document.getElementById('smarterSearchOptionsDiv');
     bulkActionControlsContainer = document.getElementById('bulkActionControlsContainer'); // Exported
     selectAllTasksCheckbox = document.getElementById('selectAllTasksCheckbox'); // Exported
     bulkCompleteBtn = document.getElementById('bulkCompleteBtn'); // Exported
@@ -274,26 +201,10 @@ export function initializeDOMElements() {
     bulkAssignProjectDropdown = document.getElementById('bulkAssignProjectDropdown'); // Exported
     bulkChangePriorityDropdown = document.getElementById('bulkChangePriorityDropdown'); // Exported
     bulkChangeLabelInput = document.getElementById('bulkChangeLabelInput'); // Exported
-    sidebarPomodoroDisplay = document.getElementById('sidebarPomodoroTimerDisplay');
-    sidebarPomodoroState = document.getElementById('sidebarPomodoroState');
-    sidebarPomodoroTime = document.getElementById('sidebarPomodoroTime');
-    sidebarPomodoroTask = document.getElementById('sidebarPomodoroTask');
     criticalErrorDisplay = document.getElementById('criticalErrorDisplay');
     criticalErrorMessage = document.getElementById('criticalErrorMessage');
     criticalErrorId = document.getElementById('criticalErrorId');
     closeCriticalErrorBtn = document.getElementById('closeCriticalErrorBtn');
-    settingsContactUsBtn = document.getElementById('settingsContactUsBtn');
-    contactUsModal = document.getElementById('contactUsModal');
-    modalDialogContactUs = document.getElementById('modalDialogContactUs');
-    closeContactUsModalBtn = document.getElementById('closeContactUsModalBtn');
-    closeContactUsSecondaryBtn = document.getElementById('closeContactUsSecondaryBtn');
-    contactUsForm = document.getElementById('contactUsForm');
-    settingsAboutUsBtn = document.getElementById('settingsAboutUsBtn');
-    aboutUsModal = document.getElementById('aboutUsModal');
-    modalDialogAboutUs = document.getElementById('modalDialogAboutUs');
-    closeAboutUsModalBtn = document.getElementById('closeAboutUsModalBtn');
-    closeAboutUsSecondaryBtn = document.getElementById('closeAboutUsSecondaryBtn');
-    aboutUsContent = document.getElementById('aboutUsContent');
     settingsVersionHistoryBtn = document.getElementById('settingsVersionHistoryBtn');
     dataVersionHistoryModal = document.getElementById('dataVersionHistoryModal');
     modalDialogDataVersionHistory = document.getElementById('modalDialogDataVersionHistory');
@@ -307,7 +218,6 @@ export function initializeDOMElements() {
         closeCriticalErrorBtn.addEventListener('click', hideCriticalError);
     }
     LoggingService.debug('[DOM Init] Finished initializing DOM elements.', { module: 'ui_rendering' }); // Changed console.log
-    // renderAppVersion(); // MODIFICATION: Removed direct call here
 }
 
 // --- UI Helper Functions ---
@@ -346,7 +256,6 @@ export function hideCriticalError() {
     }
 }
 
-// MODIFIED: Renamed to _displayMessage and no longer exported (kept internal)
 function _displayMessage(messageText, type = 'success') {
     if (!messageBox) return;
     messageBox.textContent = messageText;
@@ -385,17 +294,7 @@ export function setSidebarMinimized(minimize) {
     if (taskSearchInputContainerEl) {
         taskSearchInputContainerEl.classList.toggle('hidden', minimize);
     }
-
-    const testFeatureButtonContainerEl = document.getElementById('testFeatureButtonContainer');
-    if (testFeatureButtonContainerEl) {
-        const shouldBeHidden = minimize || !window.isFeatureEnabled('testButtonFeature'); // MODIFIED to use window
-        testFeatureButtonContainerEl.classList.toggle('hidden', shouldBeHidden);
-
-        if (!window.isFeatureEnabled('testButtonFeature')) { // MODIFIED to use window
-            testFeatureButtonContainerEl.classList.add('hidden');
-        }
-    }
-
+    
     const allTextElements = taskSidebar.querySelectorAll('.sidebar-text-content');
     allTextElements.forEach(el => {
         el.classList.toggle('hidden', minimize);
@@ -415,86 +314,32 @@ export function setSidebarMinimized(minimize) {
         }
     });
 
-    if (window.isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) { // MODIFIED to use window
+    if (window.isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) { 
         ProjectsFeature.populateProjectFilterList();
-    }
-    if (window.isFeatureEnabled('pomodoroTimerHybridFeature') && PomodoroTimerHybridFeature?.updateSidebarDisplay) { // MODIFIED to use window
-        PomodoroTimerHybridFeature.updateSidebarDisplay();
-    }
-
-    if (minimize && iconTooltip && iconTooltip.style.display === 'block') {
-        hideTooltip();
     }
     LoggingService.debug(`[UI Rendering] Sidebar minimized state set to: ${minimize}. CSS should now apply relevant styles.`, {module: 'ui_rendering'});
 }
 
-
-export function showTooltip(element, text) {
-    if (!window.isFeatureEnabled('tooltipsGuide') || !taskSidebar || !iconTooltip || !taskSidebar.classList.contains('sidebar-minimized')) { // MODIFIED to use window
-        if (iconTooltip && iconTooltip.style.display === 'block') hideTooltip();
-        return;
-    }
-    iconTooltip.textContent = text;
-    const rect = element.getBoundingClientRect();
-    iconTooltip.style.left = `${rect.right + 10}px`;
-    iconTooltip.style.top = `${rect.top + (rect.height / 2) - (iconTooltip.offsetHeight / 2)}px`;
-    iconTooltip.style.display = 'block';
-}
-export function hideTooltip() {
-    if (!iconTooltip) return;
-    if (TooltipService) TooltipService.clearTooltipTimeout();
-    iconTooltip.style.display = 'none';
-}
-
 // --- Task Rendering ---
 export function refreshTaskView() {
-    // --- Page-Specific Guard ---
-    // This entire function is for rendering the main task view area.
-    // If the core task list element doesn't exist, we're not on the right page.
     if (!document.getElementById('taskList')) {
         LoggingService.debug('[UI Rendering] Not on the main task page. Skipping refreshTaskView.', {module: 'ui_rendering'});
         return;
     }
-    // --- End Page-Specific Guard ---
 
-    if (!mainContentArea || !ViewManager || typeof window.isFeatureEnabled !== 'function') { LoggingService.error("[RefreshTaskView] Core dependencies not found.", null, {module: 'ui_rendering'}); return; } // MODIFIED to check window
-    const currentView = ViewManager.getCurrentTaskViewMode();
+    if (!mainContentArea || !ViewManager || typeof window.isFeatureEnabled !== 'function') { LoggingService.error("[RefreshTaskView] Core dependencies not found.", null, {module: 'ui_rendering'}); return; } 
     updateViewToggleButtonsState();
     updateYourTasksHeading();
     styleSmartViewButtons();
 
-    if (taskList) taskList.classList.add('hidden');
-    if (kanbanBoardContainer) kanbanBoardContainer.classList.add('hidden');
-    if (calendarViewContainer) calendarViewContainer.classList.add('hidden');
-    if (pomodoroTimerPageContainer) pomodoroTimerPageContainer.classList.add('hidden');
-
-    if (window.isFeatureEnabled('pomodoroTimerHybridFeature') && currentView === 'pomodoro') { // MODIFIED to use window
-        if (PomodoroTimerHybridFeature?.renderPomodoroPage) {
-            if(pomodoroTimerPageContainer) pomodoroTimerPageContainer.classList.remove('hidden');
-            PomodoroTimerHybridFeature.renderPomodoroPage();
-        } else { ViewManager.setTaskViewMode('list'); renderTaskListView(); }
-    } else if (window.isFeatureEnabled('calendarViewFeature') && currentView === 'calendar') { // MODIFIED to use window
-        if (CalendarViewFeature?.renderFullCalendar) {
-            if(calendarViewContainer) calendarViewContainer.classList.remove('hidden');
-            CalendarViewFeature.renderFullCalendar(calendarViewContainer, AppStore.getTasks());
-        } else { ViewManager.setTaskViewMode('list'); renderTaskListView(); }
-    } else if (window.isFeatureEnabled('kanbanBoardFeature') && currentView === 'kanban') { // MODIFIED to use window
-        if (KanbanBoardFeature?.renderKanbanView) {
-            KanbanBoardFeature.renderKanbanView();
-        } else { ViewManager.setTaskViewMode('list'); renderTaskListView(); }
-    } else {
-        if (currentView !== 'list') ViewManager.setTaskViewMode('list');
-        renderTaskListView(); // Now imported
-    }
+    // Default to list view as other views are removed
+    ViewManager.setTaskViewMode('list');
+    renderTaskListView();
+    
     updateClearCompletedButtonState();
-    renderBulkActionControls(); // Now imported
-    if (window.isFeatureEnabled('pomodoroTimerHybridFeature') && PomodoroTimerHybridFeature?.updateSidebarDisplay) { // MODIFIED to use window
-        PomodoroTimerHybridFeature.updateSidebarDisplay();
-    }
-    LoggingService.debug(`[UI Rendering] Task view refreshed for mode: ${currentView}`, {module: 'ui_rendering'});
+    renderBulkActionControls();
+    LoggingService.debug(`[UI Rendering] Task view refreshed for mode: list`, {module: 'ui_rendering'});
 }
-
-// renderTaskListView and renderBulkActionControls have been moved to renderTaskListView.js
 
 export function renderTaskDependenciesForViewModal(task) {
     const viewTaskDependsOnListEl = document.getElementById('viewTaskDependsOnList');
@@ -736,64 +581,29 @@ export function updateClearCompletedButtonState() {
     settingsClearCompletedBtn.classList.toggle('cursor-not-allowed', !hasCompleted);
 }
 export function updateViewToggleButtonsState() {
-    if (!ViewManager || typeof window.isFeatureEnabled !== 'function') return; // MODIFIED to check window
-    const currentMode = ViewManager.getCurrentTaskViewMode();
-    const buttons = [
-        { el: kanbanViewToggleBtn, mode: 'kanban', feature: 'kanbanBoardFeature' },
-        { el: calendarViewToggleBtn, mode: 'calendar', feature: 'calendarViewFeature' },
-        { el: pomodoroViewToggleBtn, mode: 'pomodoro', feature: 'pomodoroTimerHybridFeature' }
-    ];
-
-    buttons.forEach(item => {
-        if (item.el) {
-            const featureOn = window.isFeatureEnabled(item.feature); // MODIFIED to use window
-            item.el.classList.toggle('hidden', !featureOn);
-            if (featureOn) {
-                const isActive = currentMode === item.mode;
-                item.el.classList.toggle('bg-sky-500', isActive);
-                item.el.classList.toggle('text-white', isActive);
-                item.el.classList.toggle('dark:bg-sky-600', isActive);
-
-                 if (!isActive) {
-                    item.el.classList.remove('bg-sky-500', 'text-white', 'dark:bg-sky-600');
-                    if (item.el === kanbanViewToggleBtn) {
-                        item.el.classList.add('bg-purple-200', 'hover:bg-purple-300', 'dark:bg-purple-700', 'dark:hover:bg-purple-600', 'text-purple-700', 'dark:text-purple-200');
-                    } else if (item.el === calendarViewToggleBtn) {
-                         item.el.classList.add('bg-teal-200', 'hover:bg-teal-300', 'dark:bg-teal-700', 'dark:hover:bg-teal-600', 'text-teal-700', 'dark:text-teal-200');
-                    } else if (item.el === pomodoroViewToggleBtn) {
-                        item.el.classList.add('bg-rose-200', 'hover:bg-rose-300', 'dark:bg-rose-700', 'dark:hover:bg-rose-600', 'text-rose-700', 'dark:text-rose-200');
-                    }
-                }
-            }
-        }
-    });
+    // This function can be removed or left empty as the buttons are gone.
+    // Leaving it empty prevents errors if it's called from somewhere else.
 }
 export function updateYourTasksHeading() {
     if (!yourTasksHeading || !ViewManager) return;
     const currentFilter = ViewManager.getCurrentFilter();
-    const currentMode = ViewManager.getCurrentTaskViewMode();
-    let title = "Your Tasks";
+    let title = "Your Items"; // More generic title
 
-    if (currentMode === 'kanban') title = "Kanban Board";
-    else if (currentMode === 'calendar') title = "Calendar View";
-    else if (currentMode === 'pomodoro') title = "Pomodoro Timer";
-    else {
-        if (currentFilter === 'inbox') title = "Inbox";
-        else if (currentFilter === 'today') title = "Today's Tasks";
-        else if (currentFilter === 'upcoming') title = "Upcoming Tasks";
-        else if (currentFilter === 'completed') title = "Completed Tasks";
-        else if (currentFilter === 'shopping_list') title = "Shopping List";
-        else if (currentFilter.startsWith('project_')) {
-            if (window.isFeatureEnabled('projectFeature') && AppStore) { // MODIFIED to use window
-                const projectId = parseInt(currentFilter.split('_')[1]);
-                const project = AppStore.getProjects().find(p => p.id === projectId);
-                title = project ? `Project: ${project.name}` : "Project Tasks";
-            } else {
-                title = "Project Tasks";
-            }
+    if (currentFilter === 'inbox') title = "Inbox";
+    else if (currentFilter === 'today') title = "Today's Items";
+    else if (currentFilter === 'upcoming') title = "Upcoming Items";
+    else if (currentFilter === 'completed') title = "Completed Items";
+    else if (currentFilter === 'shopping_list') title = "Shopping List";
+    else if (currentFilter.startsWith('project_')) {
+        if (window.isFeatureEnabled('projectFeature') && AppStore) { 
+            const projectId = parseInt(currentFilter.split('_')[1]);
+            const project = AppStore.getProjects().find(p => p.id === projectId);
+            title = project ? `Project: ${project.name}` : "Project Items";
         } else {
-            title = `Label: ${currentFilter.charAt(0).toUpperCase() + currentFilter.slice(1)}`;
+            title = "Project Items";
         }
+    } else {
+        title = `Label: ${currentFilter.charAt(0).toUpperCase() + currentFilter.slice(1)}`;
     }
     yourTasksHeading.textContent = title;
 }
@@ -862,7 +672,7 @@ export function renderVersionHistoryList(versions) {
 
 
 export function initializeUiRenderingSubscriptions() {
-    if (!EventBus || !ViewManager || typeof window.isFeatureEnabled !== 'function') { LoggingService.error("[UI Rendering] Core dependencies for subscriptions not available.", null, {module: 'ui_rendering'}); return; } // MODIFIED to check window
+    if (!EventBus || !ViewManager || typeof window.isFeatureEnabled !== 'function') { LoggingService.error("[UI Rendering] Core dependencies for subscriptions not available.", null, {module: 'ui_rendering'}); return; } 
 
     EventBus.subscribe('displayUserMessage', (data) => {
         if (data && data.text) {
@@ -870,7 +680,6 @@ export function initializeUiRenderingSubscriptions() {
         }
     });
 
-    // MODIFICATION: Added subscription for appVersionLoaded
     EventBus.subscribe('appVersionLoaded', (versionData) => {
         LoggingService.debug("[UI Rendering] Event received: appVersionLoaded. Re-rendering app version.", { versionData, module: 'ui_rendering' });
         renderAppVersion();
@@ -880,18 +689,17 @@ export function initializeUiRenderingSubscriptions() {
     EventBus.subscribe('projectsChanged', (updatedProjects) => {
         LoggingService.debug("[UI Rendering] Event received: projectsChanged. Refreshing view and project UI.", {module: 'ui_rendering'});
         refreshTaskView();
-        if (window.isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) ProjectsFeature.populateProjectFilterList(); // MODIFIED to use window
-        if (window.isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectDropdowns) ProjectsFeature.populateProjectDropdowns(); // MODIFIED to use window
+        if (window.isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) ProjectsFeature.populateProjectFilterList(); 
+        if (window.isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectDropdowns) ProjectsFeature.populateProjectDropdowns(); 
         styleSmartViewButtons();
     });
     EventBus.subscribe('uniqueProjectsChanged', (newUniqueProjects) => {
         LoggingService.debug("[UI Rendering] Event received: uniqueProjectsChanged. Repopulating project UI.", {module: 'ui_rendering'});
-        if (window.isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) ProjectsFeature.populateProjectFilterList(); // MODIFIED to use window
-        if (window.isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectDropdowns) ProjectsFeature.populateProjectDropdowns(); // MODIFIED to use window
+        if (window.isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) ProjectsFeature.populateProjectFilterList(); 
+        if (window.isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectDropdowns) ProjectsFeature.populateProjectDropdowns(); 
         styleSmartViewButtons();
     });
-    EventBus.subscribe('kanbanColumnsChanged', (updatedColumns) => { LoggingService.debug("[UI Rendering] Event received: kanbanColumnsChanged.", {module: 'ui_rendering'}); if (ViewManager.getCurrentTaskViewMode() === 'kanban' && window.isFeatureEnabled('kanbanBoardFeature')) { refreshTaskView(); } }); // MODIFIED to use window
-
+    
     EventBus.subscribe('filterChanged', (eventData) => {
         LoggingService.debug("[UI Rendering] Event received: filterChanged. Refreshing view, heading, and button styles.", {module: 'ui_rendering'});
         refreshTaskView();
@@ -912,13 +720,7 @@ export function initializeUiRenderingSubscriptions() {
             populateManageLabelsList();
         }
     });
-    EventBus.subscribe('bulkSelectionChanged', (selectedIds) => { LoggingService.debug("[UI Rendering] Event received: bulkSelectionChanged. Rendering controls.", {module: 'ui_rendering'}); renderBulkActionControls(); }); // renderBulkActionControls is now imported
-    EventBus.subscribe('pomodoroStateUpdated', (pomodoroData) => {
-        LoggingService.debug("[UI Rendering] Event received: pomodoroStateUpdated.", { pomodoroData, module: 'ui_rendering' });
-        if (window.isFeatureEnabled('pomodoroTimerHybridFeature') && PomodoroTimerHybridFeature?.updateSidebarDisplay) { // MODIFIED to use window
-            PomodoroTimerHybridFeature.updateSidebarDisplay();
-        }
-    });
+    EventBus.subscribe('bulkSelectionChanged', (selectedIds) => { LoggingService.debug("[UI Rendering] Event received: bulkSelectionChanged. Rendering controls.", {module: 'ui_rendering'}); renderBulkActionControls(); }); 
     LoggingService.debug("[UI Rendering] Event subscriptions initialized.", {module: 'ui_rendering'});
 }
 
