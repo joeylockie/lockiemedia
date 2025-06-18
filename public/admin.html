@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LockieMedia - Admin Panel</title>
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif; 
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden; 
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937; /* slate-800 */
+        }
+        ::-webkit-scrollbar-thumb {
+            background-color: #4b5563; /* slate-600 */
+            border-radius: 10px;
+            border: 2px solid #1f2937; /* slate-800 */
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: #6b7280; /* slate-500 */
+        }
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .admin-table th, .admin-table td {
+            border: 1px solid #374151; /* slate-700 */
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-size: 0.875rem;
+        }
+        .admin-table th {
+            background-color: #1f2937; /* slate-800 */
+            font-weight: 600;
+            color: #d1d5db; /* slate-300 */
+        }
+        .admin-table tbody tr:hover {
+            background-color: #374151;
+        }
+        .admin-table td {
+            color: #e5e7eb; /* slate-200 */
+        }
+        #adminMessageBox {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050; 
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .admin-message {
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.5rem;
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            opacity: 0;
+            transform: translateX(100%);
+            transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+        }
+        .admin-message.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .admin-message.error { background-color: #ef4444; }
+        .admin-message.success { background-color: #22c55e; }
+        .admin-message.info { background-color: #3b82f6; }
+
+        .admin-btn {
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
+            transition: all 0.2s ease-in-out;
+        }
+        .admin-btn:hover {
+             transform: translateY(-1px);
+             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+        }
+
+        .admin-sidebar-link.active { 
+            background-color: #0ea5e9;
+            color: white;
+            font-weight: 600;
+        }
+        .admin-sidebar-link i { 
+            margin-right: 0.75rem;
+            width: 1.25rem;
+            text-align: center;
+        }
+        .admin-content-section { display: none; }
+        .admin-content-section.active { display: block; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 to-slate-700 min-h-screen text-slate-300 selection:bg-sky-400 selection:text-white">
+
+    <div id="adminMessageBox"></div>
+
+    <div id="adminContent"> 
+        <header class="bg-slate-800 shadow-lg sticky top-0 z-[100] border-b border-slate-700">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-20">
+                <div class="flex items-center">
+                    <img src="https://placehold.co/40x40/0ea5e9/ffffff?text=LM&font=inter" alt="LockieMedia Logo" class="h-10 w-10 mr-3 rounded-md">
+                    <h1 class="text-2xl sm:text-3xl font-bold text-sky-400">LockieMedia Admin</h1>
+                </div>
+                <div class="flex items-center gap-4">
+                     <a href="dashboard.html" class="text-slate-400 hover:text-white" title="Back to Dashboard">
+                        <i class="fas fa-arrow-left fa-lg"></i>
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <div class="flex min-h-[calc(100vh-80px)]"> 
+            <aside class="admin-sidebar bg-slate-800 p-6 border-r border-slate-700 shadow-lg flex flex-col">
+                <nav class="space-y-2 flex-grow">
+                    <a href="#" data-section="overview" class="flex items-center px-4 py-3 text-slate-300 hover:bg-slate-700 hover:text-sky-400 rounded-lg transition-colors duration-200 admin-sidebar-link active">
+                        <i class="fas fa-tachometer-alt"></i><span>Overview</span>
+                    </a>
+                    <a href="advertising_admin.html" class="flex items-center px-4 py-3 text-slate-300 hover:bg-slate-700 hover:text-sky-400 rounded-lg transition-colors duration-200 admin-sidebar-link">
+                        <i class="fas fa-bullhorn"></i><span>Ad Management</span>
+                    </a>
+                    </nav>
+            </aside>
+
+            <main class="flex-grow p-4 sm:p-6 lg:p-8 overflow-y-auto">
+                <div id="mainContentHeader" class="mb-6">
+                     <h2 id="currentSectionTitle" class="text-3xl font-semibold text-slate-100">Overview</h2>
+                </div>
+                <section id="overviewSection" class="admin-content-section active">
+                    <p>Welcome to the Admin Panel. More widgets and stats will be available here soon.</p>
+                </section>
+                </main>
+        </div>
+    </div>
+
+    <script src="./public/loggingService.js" type="module"></script>
+    
+    <script type="module">
+        // Basic navigation for the simplified admin panel
+        document.body.style.visibility = 'visible'; // Show the page right away
+        const sidebarLinks = document.querySelectorAll('.admin-sidebar-link');
+        const contentSections = document.querySelectorAll('.admin-content-section');
+        const currentSectionTitleEl = document.getElementById('currentSectionTitle');
+
+        sidebarLinks.forEach(link => {
+            // Only add listeners to non-external links
+            if(link.href.endsWith('#')) {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const sectionId = link.dataset.section;
+                    const sectionTitle = link.querySelector('span').textContent;
+
+                    sidebarLinks.forEach(l => l.classList.remove('active'));
+                    contentSections.forEach(s => s.classList.remove('active'));
+                    
+                    link.classList.add('active');
+                    document.getElementById(`${sectionId}Section`).classList.add('active');
+                    currentSectionTitleEl.textContent = sectionTitle;
+                });
+            }
+        });
+    </script>
+</body>
+</html>
