@@ -194,7 +194,8 @@ const AppStore = {
             _tasks = data.tasks || [];
             _projects = data.projects || [];
             _userPreferences = data.userPreferences || {};
-            _userProfile = data.userProfile || { displayName: 'User', role: 'admin' };
+            // FIX: Ensure the default profile object has all keys the server expects
+            _userProfile = data.userProfile || { displayName: 'User', email: null, role: 'admin' };
             _notebooks = data.notebooks || [];
             _notes = data.notes || [];
             _time_activities = data.time_activities || [];
