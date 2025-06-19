@@ -1,21 +1,22 @@
 // store.js
 // Manages application data state internally and exposes an API (AppStore) for access and modification.
 // Publishes events via EventBus when state changes.
-// REFACTORED FOR SELF-HOSTED BACKEND
+// REFACTORED FOR SELF-HOSTED BACKEND (using SQLite)
 
 import EventBus from './eventBus.js';
 import LoggingService from './loggingService.js';
 
-const API_URL = 'http://192.168.2.200:3000/api/data'; // We'll use the server's IP later
+// The API URL is now the single source of truth for the backend endpoint.
+const API_URL = '/api/data';
 
 // --- Internal State Variables (scoped to this module) ---
 let _tasks = [];
 let _projects = [];
 let _uniqueLabels = [];
 let _uniqueProjects = [];
-let _kanbanColumns = [];
 let _userPreferences = {};
 let _userProfile = {};
+// Removed _kanbanColumns as it's no longer a primary data entity managed here.
 
 // --- Private Helper Functions ---
 function _publish(eventName, data) {
@@ -55,15 +56,15 @@ function _updateUniqueProjectsInternal() {
 
 async function _saveAllData(source = 'unknown') {
     const functionName = '_saveAllData (Store)';
-    LoggingService.debug(`[Store] Initiating save for all data to self-hosted backend. Source: ${source}.`, { functionName, source });
+    LoggingService.debug(`[Store] Initiating save for all data to backend. Source: ${source}.`, { functionName, source });
 
     _updateUniqueLabelsInternal();
     _updateUniqueProjectsInternal();
     
+    // Assemble the complete data payload that the server expects.
     const dataToSave = {
         tasks: _tasks,
         projects: _projects,
-        kanbanColumns: _kanbanColumns,
         userPreferences: _userPreferences,
         userProfile: _userProfile
     };
@@ -78,7 +79,8 @@ async function _saveAllData(source = 'unknown') {
         });
 
         if (!response.ok) {
-            throw new Error(`Server responded with ${response.status}`);
+            const errorBody = await response.text();
+            throw new Error(`Server responded with ${response.status}: ${errorBody}`);
         }
         
         const result = await response.json();
@@ -95,12 +97,14 @@ async function _saveAllData(source = 'unknown') {
 const AppStore = {
     getTasks: () => JSON.parse(JSON.stringify(_tasks)),
     getProjects: () => JSON.parse(JSON.stringify(_projects)),
-    getKanbanColumns: () => JSON.parse(JSON.stringify(_kanbanColumns)),
+    // KanbanColumns are no longer managed here.
+    getKanbanColumns: () => [], 
     getUniqueLabels: () => [..._uniqueLabels],
     getUniqueProjects: () => [..._uniqueProjects],
     getUserPreferences: () => JSON.parse(JSON.stringify(_userPreferences)),
     getUserProfile: () => JSON.parse(JSON.stringify(_userProfile)),
 
+    // The 'set' methods now update local state and then trigger a save of the entire state.
     setTasks: async (newTasksArray, source = 'setTasks') => {
         _tasks = JSON.parse(JSON.stringify(newTasksArray));
         await _saveAllData(source);
@@ -113,11 +117,7 @@ const AppStore = {
         await _saveAllData(source);
         _publish('projectsChanged', [..._projects]);
     },
-    setKanbanColumns: async (newColumnsArray, source = 'setKanbanColumns') => {
-        _kanbanColumns = JSON.parse(JSON.stringify(newColumnsArray));
-        await _saveAllData(source);
-        _publish('kanbanColumnsChanged', [..._kanbanColumns]);
-    },
+    // setKanbanColumns is removed as it's no longer managed data.
     setUserPreferences: async (newPreferences, source = 'setUserPreferences') => {
         _userPreferences = { ..._userPreferences, ...JSON.parse(JSON.stringify(newPreferences)) };
         await _saveAllData(source);
@@ -136,13 +136,14 @@ const AppStore = {
         try {
             const response = await fetch(API_URL);
             if (!response.ok) {
-                throw new Error(`Server responded with ${response.status}`);
+                const errorBody = await response.text();
+                throw new Error(`Server responded with ${response.status}: ${errorBody}`);
             }
             const data = await response.json();
             
+            // The server now provides data in the correct format, so no frontend conversion is needed.
             _tasks = data.tasks || [];
             _projects = data.projects || [];
-            _kanbanColumns = data.kanbanColumns || [];
             _userPreferences = data.userPreferences || {};
             _userProfile = data.userProfile || { displayName: 'User', role: 'admin' };
             
@@ -153,8 +154,8 @@ const AppStore = {
             _publish('storeInitialized');
             _publish('tasksChanged', [..._tasks]);
             _publish('projectsChanged', [..._projects]);
-            // Publish other events as needed to update UI
             _publish('userProfileChanged', { ..._userProfile });
+            _publish('userPreferencesChanged', { ..._userPreferences });
 
         } catch (error) {
             LoggingService.critical('[AppStore] Could not load data from backend server. The app may not function correctly.', error, { functionName });
