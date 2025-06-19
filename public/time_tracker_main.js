@@ -4,22 +4,22 @@
 
 import LoggingService from './loggingService.js';
 import { TimeTrackerFeature } from './feature_time_tracker.js';
-// REMOVED: protectPage and UserAccountsFeature imports
+import AppStore from './store.js'; // Import AppStore
+import EventBus from './eventBus.js'; // Import EventBus
 
 document.addEventListener('DOMContentLoaded', async () => {
     const functionName = 'DOMContentLoaded (TimeTrackerMain)';
     
-    // Make the page visible immediately since there's no auth check
+    // Make the page visible immediately
     document.body.style.visibility = 'visible';
 
     try {
         LoggingService.info('[TimeTrackerMain] Initializing Time Tracker page...', { functionName });
 
-        // The timeTrackerService relies on a Firestore instance, which we are no longer using in this simplified version.
-        // We will need to refactor TimeTrackerService and its feature file next to use AppStore or another local mechanism.
-        // For now, this will likely cause errors, but we are refactoring step-by-step.
+        // Initialize the AppStore to load all data from the backend. This is the critical step.
+        await AppStore.initializeStore();
         
-        // Initialize the feature module, which in turn initializes its dependencies like the service.
+        // Initialize the feature module, which in turn initializes its dependencies.
         if (TimeTrackerFeature && typeof TimeTrackerFeature.initialize === 'function') {
             TimeTrackerFeature.initialize();
         } else {
