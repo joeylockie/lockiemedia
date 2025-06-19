@@ -159,6 +159,24 @@ const AppStore = {
         _publish('timeLogEntriesChanged', [..._time_log_entries]);
     },
 
+    // --- NEW COMPLEX ACTION ---
+    deleteTimeActivity: async (activityId, source = 'deleteTimeActivity') => {
+        const initialActivityCount = _time_activities.length;
+        _time_activities = _time_activities.filter(a => a.id !== activityId);
+
+        // If an activity was actually removed, remove its logs too.
+        if (_time_activities.length < initialActivityCount) {
+            _time_log_entries = _time_log_entries.filter(log => log.activityId !== activityId);
+            
+            // Now that the internal state is consistent, save everything once.
+            await _saveAllData(source);
+
+            // Publish events to notify the UI of the changes.
+            _publish('timeActivitiesChanged', [..._time_activities]);
+            _publish('timeLogEntriesChanged', [..._time_log_entries]);
+        }
+    },
+
 
     initializeStore: async () => {
         const functionName = 'initializeStore (AppStore)';

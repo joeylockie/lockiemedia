@@ -47,8 +47,6 @@ function _getTodaysEntries() {
 
 // --- Public API ---
 
-// The stream functions now rely on the UI feature to subscribe to AppStore events.
-// This function can provide the initial data load to the callback.
 function streamActivities(onUpdate) {
     if (typeof onUpdate === 'function' && AppStore) {
         onUpdate(AppStore.getTimeActivities());
@@ -94,9 +92,8 @@ async function addActivity(activityData) {
 async function deleteActivity(activityId) {
     const functionName = 'deleteActivity (TimeTrackerService)';
     if (!AppStore) return;
-    let activities = AppStore.getTimeActivities();
-    activities = activities.filter(a => a.id !== activityId);
-    await AppStore.setTimeActivities(activities, functionName);
+    // This now calls the new, safe function in the AppStore
+    await AppStore.deleteTimeActivity(activityId, functionName);
 }
 
 async function stopTracking() {
