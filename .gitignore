@@ -1,0 +1,12 @@
+# Node dependencies
+node_modules/
+
+# Database files
+db.json
+lockiedb.sqlite
+
+# Log files
+*.log
+
+# Environment variables
+.env
