@@ -6,7 +6,6 @@ import * as NoteService from './noteService.js';
 import HabitTrackerService from './habitTrackerService.js';
 import TimeTrackerService from './timeTrackerService.js';
 import { formatDate, formatMillisecondsToHMS } from './utils.js';
-import { initialize as initializeAdDisplay } from './ad_display.js';
 
 // --- DOM Element References ---
 let greetingHeader, myDayContent, habitContent, timeTrackerContent, upcomingContent, notesContent, quickLinksContent;
@@ -196,9 +195,7 @@ function renderQuickLinksWidget() {
         { href: 'time-tracker.html', icon: 'fa-clock', title: 'Time Tracker', color: 'text-indigo-400' },
         { href: 'pomodoro.html', icon: 'fa-stopwatch-20', title: 'Pomodoro', color: 'text-red-400' },
         { href: 'calendar.html', icon: 'fa-calendar-alt', title: 'Calendar', color: 'text-teal-400' },
-        { href: 'budget.html', icon: 'fa-wallet', title: 'Budget Planner', color: 'text-lime-400' },
-        { href: 'admin.html', icon: 'fa-user-shield', title: 'Admin Panel', color: 'text-slate-400' },
-        { href: 'advertising_admin.html', icon: 'fa-bullhorn', title: 'Ad Admin', color: 'text-orange-400' }
+        { href: 'budget.html', icon: 'fa-wallet', title: 'Budget Planner', color: 'text-lime-400' }
     ];
 
     quickLinksContent.innerHTML = '';
@@ -293,8 +290,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         document.body.style.visibility = 'visible';
         
-        initializeAdDisplay();
-
         renderAllWidgets();
 
         // Listen for data changes that might come from other tabs (via server polling in a more advanced setup)

@@ -36,7 +36,6 @@ import { setupModalEventListeners } from './modalEventHandlers.js';
 
 // Import Feature Modules (some might be used by handlers still in this file)
 import { ProjectsFeature } from './feature_projects.js';
-import { SubTasksFeature } from './feature_sub_tasks.js';
 
 export let tempSubTasksForAddModal = [];
 
@@ -180,66 +179,6 @@ export function handleDeleteLabel(labelNameToDelete) {
     }
 }
 
-async function handleAddSubTaskViewEdit() {
-    const functionName = 'handleAddSubTaskViewEdit';
-    const modalSubTaskInputViewEditEl = document.getElementById('modalSubTaskInputViewEdit');
-    const modalSubTasksListViewEditEl = document.getElementById('modalSubTasksListViewEdit');
-
-    const parentId = ModalStateService.getEditingTaskId();
-    const subTaskText = modalSubTaskInputViewEditEl.value.trim();
-    LoggingService.info(`[UIEventHandlers] Attempting to add sub-task to parent ID ${parentId}: "${subTaskText.substring(0,20)}..."`, { functionName, parentId, subTaskTextLength: subTaskText.length });
-
-    if (!parentId || !subTaskText) {
-        LoggingService.warn('[UIEventHandlers] Parent task ID or sub-task text is missing for adding sub-task in edit modal.', { functionName, parentId, hasSubTaskText: !!subTaskText });
-        EventBus.publish('displayUserMessage', { text: 'Parent task ID or sub-task text is missing.', type: 'error' });
-        return;
-    }
-
-    if (SubTasksFeature?.add(parentId, subTaskText)) {
-        LoggingService.info(`[UIEventHandlers] Sub-task added to parent ID ${parentId}.`, { functionName, parentId });
-        EventBus.publish('displayUserMessage', { text: 'Sub-task added.', type: 'success' });
-        modalSubTaskInputViewEditEl.value = '';
-        try {
-            const { renderSubTasksForEditModal } = await import('./ui_rendering.js');
-            if (renderSubTasksForEditModal) {
-                renderSubTasksForEditModal(parentId, modalSubTasksListViewEditEl);
-            }
-        } catch (e) {
-            LoggingService.error("[UIEventHandlers] Failed to load ui_rendering for sub-task update in edit modal.", e, { functionName, parentId });
-        }
-    } else {
-        LoggingService.error(`[UIEventHandlers] Failed to add sub-task to parent ID ${parentId}.`, new Error("AddSubTaskFailed"), { functionName, parentId });
-        EventBus.publish('displayUserMessage', { text: 'Failed to add sub-task.', type: 'error' });
-    }
-}
-
-function handleAddTempSubTaskForAddModal() {
-    const functionName = 'handleAddTempSubTaskForAddModal';
-    const modalSubTaskInputAddEl = document.getElementById('modalSubTaskInputAdd');
-    const modalSubTasksListAddEl = document.getElementById('modalSubTasksListAdd');
-
-    const subTaskText = modalSubTaskInputAddEl.value.trim();
-    LoggingService.info(`[UIEventHandlers] Attempting to add temporary sub-task: "${subTaskText.substring(0,20)}..."`, { functionName, subTaskTextLength: subTaskText.length });
-
-    if (!subTaskText) {
-        LoggingService.warn('[UIEventHandlers] Sub-task text cannot be empty for temporary add.', { functionName });
-        EventBus.publish('displayUserMessage', { text: 'Sub-task text cannot be empty.', type: 'error' });
-        return;
-    }
-    tempSubTasksForAddModal.push({ id: `temp_${Date.now()}_${Math.random()}`, text: subTaskText, completed: false });
-    LoggingService.debug(`[UIEventHandlers] Temporary sub-task added. Current temp count: ${tempSubTasksForAddModal.length}`, { functionName });
-    modalSubTaskInputAddEl.value = '';
-
-    import('./ui_rendering.js').then(ui => {
-        if (ui.renderTempSubTasksForAddModal) {
-            ui.renderTempSubTasksForAddModal(tempSubTasksForAddModal, modalSubTasksListAddEl);
-        }
-    }).catch(e => {
-        LoggingService.error('[UIEventHandlers] Failed to load ui_rendering for rendering temp sub-tasks.', e, { functionName });
-    });
-}
-
-
 export function setupEventListeners() {
     const functionName = 'setupEventListeners';
     LoggingService.info('[UIEventHandlers] Setting up event listeners.', { functionName });
@@ -355,10 +294,6 @@ export function setupEventListeners() {
             openAddModal();
         }
     });
-
-    // Sub-task add buttons
-    attachListener('modalAddSubTaskBtnAdd', 'click', handleAddTempSubTaskForAddModal, 'handleAddTempSubTaskForAddModal');
-    attachListener('modalAddSubTaskBtnViewEdit', 'click', handleAddSubTaskViewEdit, 'handleAddSubTaskViewEdit');
 
     // Bulk Action Listeners
     const selectAllTasksCheckboxEl = document.getElementById('selectAllTasksCheckbox');
