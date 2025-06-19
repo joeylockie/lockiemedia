@@ -1,5 +1,5 @@
 AI Project Curation Log: Lockie Media Platform
-Last Updated: 2025-06-18 16:28 (EDT) ##
+Last Updated: 2025-06-18 21:01 (EDT) ##
 
 Instructions for AI (Gemini)
 Purpose of this Document: This document is your primary source of truth for the Lockie Media Platform project. It provides context, tracks progress, outlines current tasks, and lists future goals. Please refer to it to understand:
@@ -36,12 +36,12 @@ Maintain Format: Preserve the existing Markdown structure and formatting.
 Provide Complete Output: Present the entire, fully updated Markdown content back to the user so they can replace the content of their AI_PROJECT_LOG.md file.
 Avoid Redundancy: Use the "Work Completed" sections (3 and 4) from the previous log version to avoid re-suggesting solutions or code for tasks already finished before the current session began.
 
-1. Project Overview & Goals:
+Project Overview & Goals:
 Platform: "Lockie Media Platform", which includes user-facing "apps" and administrative "services".
 
 Vision: To become an all-in-one platform for personal and business management, comprised of modular apps and services.
 
-Technology: Self-hosted client-side application (HTML, CSS, JS) with a Node.js/Express.js backend and `lowdb` file-based database.
+Technology: Self-hosted client-side application (HTML, CSS, JS) with a Node.js/Express.js backend and an SQLite database.
 
 Core Platform Apps (Initial Focus): Task Manager, Notes, Habit Tracker, Time Tracker, Pomodoro, and Calendar.
 
@@ -49,21 +49,23 @@ Core Platform Services: The Admin Panel (admin.html) and Ad Admin (advertising_a
 
 Overall Goal: Develop a robust, feature-complete management platform with a suite of integrated apps and administrative services for monitoring and management.
 
-2. Current Major Task/Feature Being Worked On:
-Name: Major Feature Removal and Refactoring
+Current Major Task/Feature Being Worked On:
+Name: Centralize App Data into SQLite
 
-Goal for this Task: To streamline the platform by removing a significant number of non-core or planned features from the main `todo.html` application. This involves deleting feature files and cleaning up all references in the remaining codebase.
+Goal for this Task: To migrate the remaining client-side apps (Notes, Habit Tracker, Time Tracker) that use localStorage to use the new centralized SQLite backend. This will unify all application data, improve persistence, and enable more complex features.
 
-Status: In Progress
+Status: Not Started
 
-3. Work Completed (Overall Project - High Level):
+Work Completed (Overall Project - High Level):
 Lockie Media Platform (Apps):
 
 Core task management functionalities implemented as a foundational module.
 
-Refactored from a Firebase backend to a self-hosted Node.js/Express/lowdb stack.
+Refactored from a Firebase backend to a self-hosted Node.js/Express stack.
 
-Client-side error logging to the console via `loggingService.js`.
+Successfully migrated the core application's database from lowdb (JSON file) to a robust SQLite database.
+
+Client-side error logging to the console via loggingService.js.
 
 Modular architecture with services for logging, events, view management, tasks, projects, labels, etc.
 
@@ -81,16 +83,30 @@ Advertising System (Service):
 
 A basic internal advertising system implemented using localStorage.
 
-4. Work Completed (Specific to Current Major Task):
+Work Completed (Specific to Current Major Task):
 Date: 2025-06-18
 
-Began a major refactoring to remove a large number of features from the platform to simplify the codebase.
-Edited the following files to remove code related to deleted features: `main.js`, `todo.html`, `ui_rendering.js`, `ui_event_handlers.js`, `modalEventHandlers.js`, `taskService.js`, `dashboard_main.js`, `dashboard.html`, `style.css`, `viewManager.js`, `README.md`.
+Completed the full migration of the core application's backend from lowdb to SQLite.
+Installed better-sqlite3 and removed lowdb dependencies.
+Created a database-setup.js script to define and initialize the new database schema (lockiedb.sqlite).
+Overhauled server.js to handle API requests using the SQLite database, while maintaining the existing API contract with the frontend.
+Simplified public/store.js to remove data conversion logic now handled by the server.
+Successfully tested all core application features (add, edit, complete, delete tasks) with the new database.
+Synchronized all changes with the GitHub repository, including adding the new Personal Access Token for authentication.
+Updated project documentation (README.md and AI_PROJECT_LOG.md) to reflect the new architecture.
 
-5. Current Focus / Next Steps (Specific to Current Major Task):
-Current Sub-Task: Finalize the feature removal.
+Current Focus / Next Steps (Specific to Current Major Task):
+Current Sub-Task: Begin migration of the Notes App.
 
-Immediate Next Action: Identify and delete all JavaScript files for the removed features. Update this project log to reflect the new, leaner state of the project.
+Immediate Next Action:
+
+Analyze noteService.js and feature_notes.js.
+
+Modify server.js to include API endpoints for getting, adding, updating, and deleting notes from the SQLite database.
+
+Update the database-setup.js script to include a notes and notebooks table.
+
+Refactor noteService.js to call the new backend APIs instead of using localStorage.
 
 Specific questions for AI (if any):
 
@@ -100,20 +116,18 @@ Blockers (if any):
 
 None.
 
-6. Known Issues / Bugs (Related to current work or recently discovered):
+Known Issues / Bugs (Related to current work or recently discovered):
 None.
 
-7. Future/Pending Work (Overall Project - High Level):
+Future/Pending Work (Overall Project - High Level):
 Admin Panel (Service):
 
-Flesh out the Admin Panel with more statistics and monitoring tools relevant to the self-hosted environment.
+Flesh out the Admin Panel with more statistics and monitoring tools relevant to the self-hosted environment, pulling data from the SQLite DB.
 
 Lockie Media Platform (Apps):
 
-Refine the core remaining features (Tasks, Notes, Habits, etc.).
-Integrate the localStorage-based apps (Notes, Habits, Time Tracker) with the `lowdb` backend for unified data storage.
+Continue migrating Habits and Time Tracker apps to the SQLite backend.
+Refine the core remaining features.
 
-8. Important Notes / Decisions Made:
-Project Refactoring: A significant number of features were removed to simplify the platform and focus on core functionality. Removed features include Kanban view, Calendar view (from todo app), Pomodoro timer (from todo app), tooltips, task timer integration, and several planned/placeholder features.
-
-Backend Change: The entire platform was previously refactored from a Firebase backend to a self-hosted Node.js server with a `lowdb` JSON file database. All user authentication has been removed, making it a single-user platform.
+Important Notes / Decisions Made:
+Database Migration Complete & Successful: The decision to move to SQLite was made to support the user's goal of heavy, 24/7 data logging. This provides significant improvements in performance, scalability, and data integrity over the previous lowdb implementation.

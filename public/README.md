@@ -4,7 +4,7 @@
 
 The Lockie Media Platform is a modern, feature-rich **management platform** designed to provide users with a flexible and powerful tool for managing their tasks, projects, and other aspects of their personal and professional lives. The platform emphasizes a modular design, comprised of distinct "apps" (user-facing tools like the Task Manager) and "services" (administrative tools like the Admin Panel).
 
-The platform has been refactored to be a self-hosted, single-user application using a Node.js backend with a simple `lowdb` file-based database.
+The platform has been refactored to be a self-hosted, single-user application using a Node.js backend with a robust SQLite database.
 
 ## Features
 
@@ -56,7 +56,7 @@ The platform is designed with a range of features, with a focus on core producti
 * **Backend**:
     * **Runtime**: Node.js
     * **Web Framework**: Express.js
-    * **Database**: `lowdb` (file-based JSON database)
+    * **Database**: **SQLite** (via `better-sqlite3`)
 * **Frontend**:
     * HTML5
     * CSS3 (including Tailwind CSS for utility-first styling and custom styles in `style.css`)
@@ -84,17 +84,23 @@ This is a self-hosted application.
 
 3.  **Install Dependencies**:
     * Navigate to the project's root directory (where `package.json` is located).
-    * Run the following command:
+    * Run the following command to install required Node.js packages:
       ```bash
       npm install
       ```
 
-4.  **Running the Server**:
+4.  **Initialize the Database**:
+    * Run the setup script to create the `lockiedb.sqlite` file and its tables. This only needs to be done once.
+      ```bash
+      npm run setup
+      ```
+
+5.  **Running the Server**:
     * From the root directory, start the server:
       ```bash
       node server.js
       ```
     * The server will typically be accessible at `http://<your-server-ip>:3000`.
 
-5.  **Usage**:
+6.  **Usage**:
     * Navigate to `http://<your-server-ip>:3000/dashboard.html` to access the main dashboard.
