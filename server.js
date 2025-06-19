@@ -28,9 +28,6 @@ const parseTask = (task) => ({
   ...task,
   completed: task.completed === 1,
   isReminderSet: task.isReminderSet === 1,
-  subTasks: task.subTasks ? JSON.parse(task.subTasks) : [],
-  dependsOn: task.dependsOn ? JSON.parse(task.dependsOn) : [],
-  blocksTasks: task.blocksTasks ? JSON.parse(task.blocksTasks) : [],
   recurrence: task.recurrence ? JSON.parse(task.recurrence) : null,
 });
 
@@ -38,9 +35,6 @@ const stringifyTask = (task) => ({
     ...task,
     completed: task.completed ? 1 : 0,
     isReminderSet: task.isReminderSet ? 1 : 0,
-    subTasks: JSON.stringify(task.subTasks || []),
-    dependsOn: JSON.stringify(task.dependsOn || []),
-    blocksTasks: JSON.stringify(task.blocksTasks || []),
     recurrence: JSON.stringify(task.recurrence || null),
 });
 
@@ -121,7 +115,7 @@ app.post('/api/data', (req, res) => {
     db.prepare('DELETE FROM time_activities').run();
 
     // Prepare insert statements
-    const insertTask = db.prepare('INSERT INTO tasks (id, text, notes, completed, creationDate, completedDate, dueDate, time, priority, label, projectId, isReminderSet, reminderDate, reminderTime, reminderEmail, recurrence, subTasks, dependsOn, blocksTasks) VALUES (@id, @text, @notes, @completed, @creationDate, @completedDate, @dueDate, @time, @priority, @label, @projectId, @isReminderSet, @reminderDate, @reminderTime, @reminderEmail, @recurrence, @subTasks, @dependsOn, @blocksTasks)');
+    const insertTask = db.prepare('INSERT INTO tasks (id, text, notes, completed, creationDate, completedDate, dueDate, time, priority, label, projectId, isReminderSet, reminderDate, reminderTime, reminderEmail, recurrence) VALUES (@id, @text, @notes, @completed, @creationDate, @completedDate, @dueDate, @time, @priority, @label, @projectId, @isReminderSet, @reminderDate, @reminderTime, @reminderEmail, @recurrence)');
     const insertProject = db.prepare('INSERT INTO projects (id, name, creationDate) VALUES (@id, @name, @creationDate)');
     const insertPreference = db.prepare('INSERT INTO user_preferences (key, value) VALUES (@key, @value)');
     const updateUserProfile = db.prepare('UPDATE user_profile SET displayName = @displayName, email = @email, role = @role WHERE id = 1');

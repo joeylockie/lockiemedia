@@ -150,15 +150,6 @@ export function renderTaskListView() {
         li.className = `task-item flex items-start justify-between bg-slate-100 dark:bg-slate-700 p-3 sm:p-3.5 rounded-lg shadow hover:shadow-md transition-shadow duration-300 ${task.completed ? 'opacity-60' : ''} overflow-hidden`;
         li.dataset.taskId = task.id;
 
-        const hasOpenPrerequisites = window.isFeatureEnabled('taskDependenciesFeature') && task.dependsOn && task.dependsOn.some(depId => { // MODIFIED to use window
-            const dependentTask = AppStore.getTasks().find(t => t.id === depId);
-            return dependentTask && !dependentTask.completed;
-        });
-
-        if (hasOpenPrerequisites) {
-            li.classList.add('border-l-4', 'border-amber-500');
-        }
-
         const mainContentClickableArea = document.createElement('div');
         mainContentClickableArea.className = 'task-item-clickable-area flex items-start flex-grow min-w-0 mr-2 rounded-l-lg';
         mainContentClickableArea.addEventListener('click', (event) => {
@@ -187,12 +178,7 @@ export function renderTaskListView() {
         completeCheckbox.checked = task.completed;
         completeCheckbox.className = 'form-checkbox h-5 w-5 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 dark:focus:ring-sky-500 mt-0.5 mr-2 sm:mr-3 cursor-pointer flex-shrink-0';
         completeCheckbox.addEventListener('change', () => EventBus.publish('uiRequestToggleComplete', { taskId: task.id }));
-        if (hasOpenPrerequisites) {
-            completeCheckbox.disabled = true;
-            completeCheckbox.title = "This task is blocked by incomplete prerequisites.";
-            completeCheckbox.classList.add('opacity-50', 'cursor-not-allowed');
-        }
-
+        
         const textDetailsDiv = document.createElement('div');
         textDetailsDiv.className = 'flex flex-col flex-grow min-w-0';
         const span = document.createElement('span');
@@ -241,28 +227,6 @@ export function renderTaskListView() {
             recurrenceIcon.className = 'text-slate-400 dark:text-slate-500 flex items-center advanced-recurrence-element';
             recurrenceIcon.innerHTML = `<i class="fas fa-sync-alt" title="This task repeats"></i>`;
             detailsContainer.appendChild(recurrenceIcon);
-        }
-        if (window.isFeatureEnabled('fileAttachments') && task.attachments && task.attachments.length > 0) { // MODIFIED to use window
-            const aS = document.createElement('span');
-            aS.className = 'text-slate-500 dark:text-slate-400 flex items-center file-attachments-element';
-            aS.innerHTML = `<i class="fas fa-paperclip mr-1"></i> ${task.attachments.length}`;
-            detailsContainer.appendChild(aS);
-        }
-        if (window.isFeatureEnabled('subTasksFeature') && task.subTasks && task.subTasks.length > 0) { // MODIFIED to use window
-            const subTaskIcon = document.createElement('span');
-            subTaskIcon.className = 'text-slate-400 dark:text-slate-500 flex items-center sub-tasks-feature-element';
-            const completedSubTasks = task.subTasks.filter(st => st.completed).length;
-            subTaskIcon.innerHTML = `<i class="fas fa-tasks mr-1" title="${completedSubTasks}/${task.subTasks.length} sub-tasks completed"></i>`;
-            detailsContainer.appendChild(subTaskIcon);
-        }
-        if (window.isFeatureEnabled('taskDependenciesFeature') && ((task.dependsOn && task.dependsOn.length > 0) || (task.blocksTasks && task.blocksTasks.length > 0))) { // MODIFIED to use window
-            const depIcon = document.createElement('span');
-            depIcon.className = 'text-slate-400 dark:text-slate-500 flex items-center task-dependencies-feature-element';
-            let depTitle = '';
-            if (task.dependsOn && task.dependsOn.length > 0) depTitle += `Depends on ${task.dependsOn.length} task(s). `;
-            if (task.blocksTasks && task.blocksTasks.length > 0) depTitle += `Blocks ${task.blocksTasks.length} task(s).`;
-            depIcon.innerHTML = `<i class="fas fa-link mr-1" title="${depTitle.trim()}"></i>`;
-            detailsContainer.appendChild(depIcon);
         }
 
         if (detailsContainer.hasChildNodes()) {

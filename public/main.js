@@ -10,12 +10,6 @@ import { setupEventListeners, applyActiveFeatures, setFilter } from './ui_event_
 import ViewManager from './viewManager.js';
 import { ReminderFeature } from './feature_reminder.js';
 import { AdvancedRecurrenceFeature } from './feature_advanced_recurrence.js';
-import { FileAttachmentsFeature } from './feature_file_attachments.js';
-import { TaskDependenciesFeature } from './feature_task_dependencies.js';
-import { DataManagementFeature } from './feature_data_management.js';
-import * as ModalInteractions from './modal_interactions.js';
-import { SubTasksFeature } from './feature_sub_tasks.js';
-import { DataVersioningFeature } from './feature_data_versioning.js';
 import { ShoppingListFeature } from './feature_shopping_list.js';
 import LoggingService from './loggingService.js';
 import { DesktopNotificationsFeature } from './feature_desktop_notifications.js';
@@ -23,6 +17,7 @@ import * as uiRendering from './ui_rendering.js';
 import { logPerformanceMetrics } from './performanceService.js';
 import { NotesFeature } from './feature_notes.js';
 import { refreshTaskView } from './ui_rendering.js';
+import * as ModalInteractions from './modal_interactions.js';
 
 // --- Simplified Feature Handling ---
 // Since we removed feature flags, we now treat every feature as enabled.
@@ -32,13 +27,8 @@ function isFeatureEnabled(featureName) {
     const features = {
         reminderFeature: true,
         advancedRecurrence: true,
-        fileAttachments: true,
-        subTasksFeature: true,
         projectFeature: true,
-        exportDataFeature: true,
-        taskDependenciesFeature: true,
         bulkActionsFeature: true,
-        dataVersioningFeature: true,
         desktopNotificationsFeature: true,
         appUpdateNotificationFeature: true,
         shoppingListFeature: true,
@@ -47,6 +37,11 @@ function isFeatureEnabled(featureName) {
         userRoleFeature: true,
 
         // --- REMOVED FEATURES ---
+        fileAttachments: false,
+        subTasksFeature: false,
+        exportDataFeature: false,
+        taskDependenciesFeature: false,
+        dataVersioningFeature: false,
         testButtonFeature: false,
         taskTimerSystem: false,
         integrationsServices: false, 
@@ -193,10 +188,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Phase 3: Initialize all feature modules now that data is present
     window.AppFeatures = {
         LoggingService, EventBus, AppStore, ViewManager, ModalInteractions,
-        ReminderFeature, AdvancedRecurrenceFeature, FileAttachmentsFeature,
-        TaskDependenciesFeature, DataManagementFeature,
-        ProjectsFeature, SubTasksFeature,
-        DataVersioningFeature, ShoppingListFeature,
+        ReminderFeature, AdvancedRecurrenceFeature,
+        ProjectsFeature,
+        ShoppingListFeature,
         DesktopNotificationsFeature, NotesFeature,
         isFeatureEnabled // Use our local function
     };

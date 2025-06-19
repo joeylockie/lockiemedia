@@ -31,7 +31,7 @@ function setupDatabase() {
 
   // --- Tasks Table ---
   // This is the main table for storing all task items.
-  // We use TEXT for complex data like subTasks or recurrence rules,
+  // We use TEXT for complex data like recurrence rules,
   // which will be stored as JSON strings.
   const createTasksTable = `
   CREATE TABLE IF NOT EXISTS tasks (
@@ -51,9 +51,6 @@ function setupDatabase() {
     reminderTime TEXT,
     reminderEmail TEXT,
     recurrence TEXT,
-    subTasks TEXT,
-    dependsOn TEXT,
-    blocksTasks TEXT,
     FOREIGN KEY (projectId) REFERENCES projects (id)
   );`;
   db.exec(createTasksTable);

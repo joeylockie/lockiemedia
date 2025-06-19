@@ -9,16 +9,10 @@ import LoggingService from './loggingService.js';
 
 import {
     populateDatalist,
-    renderTempSubTasksForAddModal,
-    renderSubTasksForEditModal,
-    renderSubTasksForViewModal,
-    renderTaskDependenciesForViewModal,
-    renderVersionHistoryList 
 } from './ui_rendering.js';
 
 import { handleDeleteLabel, clearTempSubTasksForAddModal } from './ui_event_handlers.js';
 import { ProjectsFeature } from './feature_projects.js';
-import { DataVersioningFeature } from './feature_data_versioning.js';
 import { DesktopNotificationsFeature } from './feature_desktop_notifications.js';
 import { AdvancedRecurrenceFeature } from './feature_advanced_recurrence.js';
 
@@ -40,9 +34,6 @@ export function openAddModal() {
     const modalReminderEmailAddEl = document.getElementById('modalReminderEmailAdd'); 
     const reminderOptionsAddEl = document.getElementById('reminderOptionsAdd'); 
     const modalDueDateInputAddEl = document.getElementById('modalDueDateInputAdd'); 
-    const modalSubTasksListAddEl = document.getElementById('modalSubTasksListAdd'); 
-    const modalSubTaskInputAddEl = document.getElementById('modalSubTaskInputAdd'); 
-    const taskDependenciesSectionAddEl = document.getElementById('taskDependenciesSectionAdd'); 
     const modalRecurrenceAddEl = document.getElementById('modalRecurrenceAdd');
     const recurrenceOptionsAddEl = document.getElementById('recurrenceOptionsAdd');
     const recurrenceEndDateAddEl = document.getElementById('recurrenceEndDateAdd');
@@ -80,11 +71,6 @@ export function openAddModal() {
 
     clearTempSubTasksForAddModal(); 
 
-    if (window.isFeatureEnabled('subTasksFeature') && modalSubTasksListAddEl) { 
-        renderTempSubTasksForAddModal([], modalSubTasksListAddEl); 
-        if(modalSubTaskInputAddEl) modalSubTaskInputAddEl.value = ''; 
-    }
-    if (taskDependenciesSectionAddEl) taskDependenciesSectionAddEl.classList.toggle('hidden', !window.isFeatureEnabled('taskDependenciesFeature')); 
     LoggingService.info(`[ModalInteractions] Add Task Modal opened.`, { functionName });
 }
 
@@ -93,8 +79,7 @@ export function closeAddModal() {
     LoggingService.debug(`[ModalInteractions] Attempting to close Add Task Modal.`, { functionName });
     const addTaskModalEl = document.getElementById('addTaskModal'); 
     const modalDialogAddEl = document.getElementById('modalDialogAdd'); 
-    const modalSubTasksListAddEl = document.getElementById('modalSubTasksListAdd'); 
-
+    
     if (!modalDialogAddEl || !addTaskModalEl) { 
         LoggingService.warn(`[ModalInteractions] Add Task Modal elements not found for closing.`, { functionName });
         return;
@@ -103,8 +88,6 @@ export function closeAddModal() {
     setTimeout(() => { 
         addTaskModalEl.classList.add('hidden'); 
         clearTempSubTasksForAddModal(); 
-
-        if(modalSubTasksListAddEl) modalSubTasksListAddEl.innerHTML = ''; 
         LoggingService.info(`[ModalInteractions] Add Task Modal closed.`, { functionName });
     }, 200); 
 }
@@ -124,15 +107,11 @@ export function openViewEditModal(taskId) {
     const existingLabelsEditDatalistEl = document.getElementById('existingLabelsEdit'); 
     const modalProjectSelectViewEditEl = document.getElementById('modalProjectSelectViewEdit'); 
     const modalNotesInputViewEditEl = document.getElementById('modalNotesInputViewEdit'); 
-    const existingAttachmentsViewEditEl = document.getElementById('existingAttachmentsViewEdit'); 
     const modalRemindMeViewEditEl = document.getElementById('modalRemindMeViewEdit'); 
     const reminderOptionsViewEditEl = document.getElementById('reminderOptionsViewEdit'); 
     const modalReminderDateViewEditEl = document.getElementById('modalReminderDateViewEdit'); 
     const modalReminderTimeViewEditEl = document.getElementById('modalReminderTimeViewEdit'); 
     const modalReminderEmailViewEditEl = document.getElementById('modalReminderEmailViewEdit'); 
-    const modalSubTasksListViewEditEl = document.getElementById('modalSubTasksListViewEdit'); 
-    const modalSubTaskInputViewEditEl = document.getElementById('modalSubTaskInputViewEdit'); 
-    const taskDependenciesSectionViewEditEl = document.getElementById('taskDependenciesSectionViewEdit'); 
     const modalRecurrenceViewEditEl = document.getElementById('modalRecurrenceViewEdit');
     const recurrenceEndDateViewEditEl = document.getElementById('recurrenceEndDateViewEdit');
 
@@ -198,10 +177,6 @@ export function openViewEditModal(taskId) {
 
     if (modalNotesInputViewEditEl) modalNotesInputViewEditEl.value = task.notes || ''; 
 
-    if (window.isFeatureEnabled('fileAttachments') && existingAttachmentsViewEditEl) { 
-        existingAttachmentsViewEditEl.textContent = task.attachments && task.attachments.length > 0 ? `${task.attachments.length} file(s) attached (management UI coming soon)` : 'No files attached yet.'; 
-    }
-
     if (window.isFeatureEnabled('reminderFeature') && modalRemindMeViewEditEl) { 
         modalRemindMeViewEditEl.checked = task.isReminderSet || false; 
         if (reminderOptionsViewEditEl) reminderOptionsViewEditEl.classList.toggle('hidden', !modalRemindMeViewEditEl.checked); 
@@ -222,13 +197,6 @@ export function openViewEditModal(taskId) {
     const todayStr = getTodayDateString(); 
     if(modalDueDateInputViewEditEl) modalDueDateInputViewEditEl.min = todayStr; 
     if (modalReminderDateViewEditEl) modalReminderDateViewEditEl.min = todayStr; 
-
-    if (window.isFeatureEnabled('subTasksFeature') && modalSubTasksListViewEditEl) { 
-        renderSubTasksForEditModal(taskId, modalSubTasksListViewEditEl); 
-        if(modalSubTaskInputViewEditEl) modalSubTaskInputViewEditEl.value = ''; 
-    }
-    if (taskDependenciesSectionViewEditEl) taskDependenciesSectionViewEditEl.classList.toggle('hidden', !window.isFeatureEnabled('taskDependenciesFeature')); 
-
 
     if (!viewEditTaskModalEl || !modalDialogViewEditEl) { 
         LoggingService.error("[ModalInteractions] Core View/Edit modal DOM elements not found.", new Error("DOMElementMissing"), { functionName, taskId });
@@ -277,14 +245,6 @@ export function openViewTaskDetailsModal(taskId) {
     const viewTaskReminderDateEl = document.getElementById('viewTaskReminderDate');
     const viewTaskReminderTimeEl = document.getElementById('viewTaskReminderTime');
     const viewTaskReminderEmailEl = document.getElementById('viewTaskReminderEmail');
-    const viewTaskAttachmentsSectionEl = document.getElementById('viewTaskAttachmentsSection');
-    const viewTaskAttachmentsListEl = document.getElementById('viewTaskAttachmentsList');
-    const subTasksSectionViewDetailsEl = document.getElementById('subTasksSectionViewDetails');
-    const modalSubTasksListViewDetailsEl = document.getElementById('modalSubTasksListViewDetails');
-    const viewSubTaskProgressEl = document.getElementById('viewSubTaskProgress');
-    const noSubTasksMessageViewDetailsEl = document.getElementById('noSubTasksMessageViewDetails');
-    const viewTaskDependenciesSectionEl = document.getElementById('viewTaskDependenciesSection');
-
 
     if (!AppStore || typeof AppStore.getTasks !== 'function' || !ModalStateService) { 
         LoggingService.error("[ModalInteractions] Core dependencies not available for View Task Details.", new Error("CoreDependenciesMissing"), { functionName, taskId });
@@ -327,27 +287,6 @@ export function openViewTaskDetailsModal(taskId) {
         }
     } else if (viewTaskReminderSectionEl) {
         viewTaskReminderSectionEl.classList.add('hidden');
-    }
-
-    if(window.isFeatureEnabled('fileAttachments') && viewTaskAttachmentsSectionEl) { 
-        viewTaskAttachmentsSectionEl.classList.remove('hidden');
-        if(viewTaskAttachmentsListEl) viewTaskAttachmentsListEl.textContent = task.attachments && task.attachments.length > 0 ? `(${task.attachments.length}) files (UI coming soon)` : 'No attachments.';
-    } else if (viewTaskAttachmentsSectionEl) {
-        viewTaskAttachmentsSectionEl.classList.add('hidden');
-    }
-    
-    if (window.isFeatureEnabled('subTasksFeature') && subTasksSectionViewDetailsEl) { 
-        subTasksSectionViewDetailsEl.classList.remove('hidden');
-        renderSubTasksForViewModal(taskId, modalSubTasksListViewDetailsEl, viewSubTaskProgressEl, noSubTasksMessageViewDetailsEl);
-    } else if (subTasksSectionViewDetailsEl) {
-        subTasksSectionViewDetailsEl.classList.add('hidden');
-    }
-
-    if (window.isFeatureEnabled('taskDependenciesFeature') && viewTaskDependenciesSectionEl) { 
-        viewTaskDependenciesSectionEl.classList.remove('hidden');
-        renderTaskDependenciesForViewModal(task);
-    } else if (viewTaskDependenciesSectionEl) {
-         viewTaskDependenciesSectionEl.classList.add('hidden');
     }
 
     if (!viewTaskDetailsModalEl || !modalDialogViewDetailsEl) { 
@@ -463,67 +402,6 @@ export function closeSettingsModal() {
     }
     modalDialogSettingsEl.classList.add('scale-95', 'opacity-0'); 
     setTimeout(() => { settingsModalEl.classList.add('hidden'); LoggingService.info(`[ModalInteractions] Settings Modal closed.`, { functionName }); }, 200); 
-}
-
-export function openDataVersionHistoryModal() {
-    const functionName = 'openDataVersionHistoryModal';
-    LoggingService.debug(`[ModalInteractions] Attempting to open Data Version History Modal.`, { functionName });
-
-    const dataVersionHistoryModalEl = document.getElementById('dataVersionHistoryModal');
-    const modalDialogDataVersionHistoryEl = document.getElementById('modalDialogDataVersionHistory');
-
-    if (!window.isFeatureEnabled('dataVersioningFeature')) { 
-        LoggingService.warn('[ModalInteractions] Data Versioning feature is disabled. Cannot open history modal.', { functionName });
-        if (EventBus && EventBus.publish) EventBus.publish('displayUserMessage', { text: "Data Versioning feature is currently disabled.", type: "info" });
-        return;
-    }
-
-    if (!dataVersionHistoryModalEl || !modalDialogDataVersionHistoryEl) {
-        LoggingService.error("[ModalInteractions] Core Data Version History modal DOM elements not found.", new Error("DOMElementMissing"), { functionName });
-        return;
-    }
-
-    if (typeof DataVersioningFeature === 'undefined' || typeof DataVersioningFeature.getVersionHistory !== 'function') {
-        LoggingService.error("[ModalInteractions] DataVersioningFeature or getVersionHistory function is not available.", new Error("FeatureUnavailable"), { functionName });
-        if (EventBus && EventBus.publish) EventBus.publish('displayUserMessage', { text: "Error: Could not load version history.", type: "error" });
-        const contentArea = document.getElementById('dataVersionHistoryContent');
-        if (contentArea) contentArea.innerHTML = '<p class="text-slate-500 dark:text-slate-400 text-center p-4">Error loading version history service.</p>';
-        return;
-    }
-    
-    const versions = DataVersioningFeature.getVersionHistory();
-    if (typeof renderVersionHistoryList === 'function') {
-        renderVersionHistoryList(versions); 
-    } else {
-        LoggingService.error("[ModalInteractions] renderVersionHistoryList function not available from ui_rendering.", new Error("FunctionMissing"), { functionName });
-        const contentArea = document.getElementById('dataVersionHistoryContent');
-        if (contentArea) contentArea.innerHTML = '<p class="text-slate-500 dark:text-slate-400 text-center p-4">Error displaying version history.</p>';
-    }
-
-    dataVersionHistoryModalEl.classList.remove('hidden');
-    setTimeout(() => {
-        modalDialogDataVersionHistoryEl.classList.remove('scale-95', 'opacity-0');
-        modalDialogDataVersionHistoryEl.classList.add('scale-100', 'opacity-100');
-    }, 10);
-    LoggingService.info(`[ModalInteractions] Data Version History Modal opened. Displaying ${versions.length} versions.`, { functionName, versionCount: versions.length });
-}
-
-export function closeDataVersionHistoryModal() {
-    const functionName = 'closeDataVersionHistoryModal';
-    LoggingService.debug(`[ModalInteractions] Attempting to close Data Version History Modal.`, { functionName });
-
-    const dataVersionHistoryModalEl = document.getElementById('dataVersionHistoryModal');
-    const modalDialogDataVersionHistoryEl = document.getElementById('modalDialogDataVersionHistory');
-
-    if (!dataVersionHistoryModalEl || !modalDialogDataVersionHistoryEl) {
-        LoggingService.warn("[ModalInteractions] Data Version History Modal DOM elements not found for closing.", { functionName });
-        return;
-    }
-    modalDialogDataVersionHistoryEl.classList.add('scale-95', 'opacity-0');
-    setTimeout(() => {
-        dataVersionHistoryModalEl.classList.add('hidden');
-        LoggingService.info(`[ModalInteractions] Data Version History Modal closed.`, { functionName });
-    }, 200);
 }
 
 export function openDesktopNotificationsSettingsModal() {

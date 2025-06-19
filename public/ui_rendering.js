@@ -17,7 +17,6 @@ import {
 
 // Import Feature Modules needed for direct calls
 import { ProjectsFeature } from './feature_projects.js';
-import { SubTasksFeature } from './feature_sub_tasks.js';
 
 // Import the newly created rendering functions
 import { renderTaskListView, renderBulkActionControls } from './renderTaskListView.js';
@@ -37,19 +36,14 @@ export let modalViewEditTaskId, modalTaskInputViewEdit, modalDueDateInputViewEdi
 export let modalPriorityInputViewEdit, modalLabelInputViewEdit;
 export let existingLabelsEditDatalist, modalNotesInputViewEdit, modalRemindMeViewEditContainer, modalRemindMeViewEdit;
 export let reminderOptionsViewEdit, modalReminderDateViewEdit, modalReminderTimeViewEdit, modalReminderEmailViewEdit;
-export let existingAttachmentsViewEdit;
 export let viewTaskDetailsModal, modalDialogViewDetails, closeViewDetailsModalBtn, closeViewDetailsSecondaryBtn;
 export let editFromViewModalBtn, deleteFromViewModalBtn, viewTaskText, viewTaskDueDate, viewTaskTime;
 export let viewTaskPriority, viewTaskStatus, viewTaskLabel, viewTaskNotes, viewTaskReminderSection, viewTaskReminderStatus;
 export let viewTaskReminderDetails, viewTaskReminderDate, viewTaskReminderTime, viewTaskReminderEmail;
-export let viewTaskAttachmentsSection, viewTaskAttachmentsList;
 export let manageLabelsModal, modalDialogManageLabels, closeManageLabelsModalBtn, closeManageLabelsSecondaryBtn;
 export let addNewLabelForm, newLabelInput, existingLabelsList;
 export let settingsModal, modalDialogSettings, openSettingsModalButton, closeSettingsModalBtn, closeSettingsSecondaryBtn;
 export let settingsClearCompletedBtn, settingsManageLabelsBtn, settingsManageRemindersBtn;
-export let subTasksSectionViewEdit, modalSubTaskInputViewEdit, modalAddSubTaskBtnViewEdit, modalSubTasksListViewEdit;
-export let subTasksSectionViewDetails, viewSubTaskProgress, modalSubTasksListViewDetails, noSubTasksMessageViewDetails;
-export let subTasksSectionAdd, modalSubTaskInputAdd, modalAddSubTaskBtnAdd, modalSubTasksListAdd;
 export let featureFlagsListContainer;
 export let yourTasksHeading, mainContentArea;
 export let settingsManageProjectsBtn;
@@ -57,15 +51,9 @@ export let manageProjectsModal, modalDialogManageProjects, closeManageProjectsMo
 export let modalProjectSelectAdd, modalProjectSelectViewEdit;
 export let projectFilterContainer;
 export let viewTaskProject;
-export let taskDependenciesSectionAdd, dependsOnContainerAdd, blocksTasksContainerAdd;
-export let taskDependenciesSectionViewEdit, dependsOnContainerViewEdit, blocksTasksContainerViewEdit;
-export let viewTaskDependenciesSection, viewTaskDependsOnList, viewTaskBlocksTasksList;
 export let bulkActionControlsContainer, selectAllTasksCheckbox, bulkCompleteBtn, bulkDeleteBtn; // These are needed by renderTaskListView.js
 export let bulkAssignProjectDropdown, bulkChangePriorityDropdown, bulkChangeLabelInput; // Needed by renderTaskListView.js
 export let criticalErrorDisplay, criticalErrorMessage, criticalErrorId, closeCriticalErrorBtn;
-export let settingsVersionHistoryBtn;
-export let dataVersionHistoryModal, modalDialogDataVersionHistory, closeDataVersionHistoryModalBtn, closeDataVersionHistorySecondaryBtn;
-export let dataVersionHistoryContent;
 export let appVersionFooterEl;
 export let appVersionAboutUsDisplayEl;
 
@@ -125,7 +113,6 @@ export function initializeDOMElements() {
     modalReminderDateViewEdit = document.getElementById('modalReminderDateViewEdit');
     modalReminderTimeViewEdit = document.getElementById('modalReminderTimeViewEdit');
     modalReminderEmailViewEdit = document.getElementById('modalReminderEmailViewEdit');
-    existingAttachmentsViewEdit = document.getElementById('existingAttachmentsViewEdit');
     viewTaskDetailsModal = document.getElementById('viewTaskDetailsModal');
     modalDialogViewDetails = document.getElementById('modalDialogViewDetails');
     closeViewDetailsModalBtn = document.getElementById('closeViewDetailsModalBtn');
@@ -145,8 +132,6 @@ export function initializeDOMElements() {
     viewTaskReminderDate = document.getElementById('viewTaskReminderDate');
     viewTaskReminderTime = document.getElementById('viewTaskReminderTime');
     viewTaskReminderEmail = document.getElementById('viewTaskReminderEmail');
-    viewTaskAttachmentsSection = document.getElementById('viewTaskAttachmentsSection');
-    viewTaskAttachmentsList = document.getElementById('viewTaskAttachmentsList');
     manageLabelsModal = document.getElementById('manageLabelsModal');
     modalDialogManageLabels = document.getElementById('modalDialogManageLabels');
     closeManageLabelsModalBtn = document.getElementById('closeManageLabelsModalBtn');
@@ -162,18 +147,6 @@ export function initializeDOMElements() {
     settingsClearCompletedBtn = document.getElementById('settingsClearCompletedBtn');
     settingsManageLabelsBtn = document.getElementById('settingsManageLabelsBtn');
     settingsManageRemindersBtn = document.getElementById('settingsManageRemindersBtn');
-    subTasksSectionViewEdit = document.getElementById('subTasksSectionViewEdit');
-    modalSubTaskInputViewEdit = document.getElementById('modalSubTaskInputViewEdit');
-    modalAddSubTaskBtnViewEdit = document.getElementById('modalAddSubTaskBtnViewEdit');
-    modalSubTasksListViewEdit = document.getElementById('modalSubTasksListViewEdit');
-    subTasksSectionViewDetails = document.getElementById('subTasksSectionViewDetails');
-    viewSubTaskProgress = document.getElementById('viewSubTaskProgress');
-    modalSubTasksListViewDetails = document.getElementById('modalSubTasksListViewDetails');
-    noSubTasksMessageViewDetails = document.getElementById('noSubTasksMessageViewDetails');
-    subTasksSectionAdd = document.getElementById('modalSubTaskInputAdd');
-    modalSubTaskInputAdd = document.getElementById('modalSubTaskInputAdd');
-    modalAddSubTaskBtnAdd = document.getElementById('modalAddSubTaskBtnAdd');
-    modalSubTasksListAdd = document.getElementById('modalSubTasksListAdd');
     featureFlagsListContainer = document.getElementById('featureFlagsListContainer');
     yourTasksHeading = document.getElementById('yourTasksHeading');
     settingsManageProjectsBtn = document.getElementById('settingsManageProjectsBtn');
@@ -185,15 +158,6 @@ export function initializeDOMElements() {
     modalProjectSelectViewEdit = document.getElementById('modalProjectSelectViewEdit');
     projectFilterContainer = document.getElementById('projectFilterContainer');
     viewTaskProject = document.getElementById('viewTaskProject');
-    taskDependenciesSectionAdd = document.getElementById('taskDependenciesSectionAdd');
-    dependsOnContainerAdd = document.getElementById('dependsOnContainerAdd');
-    blocksTasksContainerAdd = document.getElementById('blocksTasksContainerAdd');
-    taskDependenciesSectionViewEdit = document.getElementById('taskDependenciesSectionViewEdit');
-    dependsOnContainerViewEdit = document.getElementById('dependsOnContainerViewEdit');
-    blocksTasksContainerViewEdit = document.getElementById('blocksTasksContainerViewEdit');
-    viewTaskDependenciesSection = document.getElementById('viewTaskDependenciesSection');
-    viewTaskDependsOnList = document.getElementById('viewTaskDependsOnList');
-    viewTaskBlocksTasksList = document.getElementById('viewTaskBlocksTasksList');
     bulkActionControlsContainer = document.getElementById('bulkActionControlsContainer'); // Exported
     selectAllTasksCheckbox = document.getElementById('selectAllTasksCheckbox'); // Exported
     bulkCompleteBtn = document.getElementById('bulkCompleteBtn'); // Exported
@@ -205,12 +169,6 @@ export function initializeDOMElements() {
     criticalErrorMessage = document.getElementById('criticalErrorMessage');
     criticalErrorId = document.getElementById('criticalErrorId');
     closeCriticalErrorBtn = document.getElementById('closeCriticalErrorBtn');
-    settingsVersionHistoryBtn = document.getElementById('settingsVersionHistoryBtn');
-    dataVersionHistoryModal = document.getElementById('dataVersionHistoryModal');
-    modalDialogDataVersionHistory = document.getElementById('modalDialogDataVersionHistory');
-    closeDataVersionHistoryModalBtn = document.getElementById('closeDataVersionHistoryModalBtn');
-    closeDataVersionHistorySecondaryBtn = document.getElementById('closeDataVersionHistorySecondaryBtn');
-    dataVersionHistoryContent = document.getElementById('dataVersionHistoryContent');
     appVersionFooterEl = document.getElementById('appVersionFooter');
     appVersionAboutUsDisplayEl = document.getElementById('appVersionAboutUsDisplay');
 
@@ -342,186 +300,6 @@ export function refreshTaskView() {
     LoggingService.debug(`[UI Rendering] Task view refreshed for mode: list`, {module: 'ui_rendering'});
 }
 
-export function renderTaskDependenciesForViewModal(task) {
-    const viewTaskDependsOnListEl = document.getElementById('viewTaskDependsOnList');
-    const viewTaskBlocksTasksListEl = document.getElementById('viewTaskBlocksTasksList');
-
-    if (!viewTaskDependsOnListEl || !viewTaskBlocksTasksListEl || !AppStore) return;
-    const allTasks = AppStore.getTasks();
-    viewTaskDependsOnListEl.innerHTML = ''; viewTaskBlocksTasksListEl.innerHTML = '';
-
-    if (task.dependsOn && task.dependsOn.length > 0) {
-        task.dependsOn.forEach(depId => {
-            const depTask = allTasks.find(t => t.id === depId);
-            const li = document.createElement('li');
-            li.textContent = depTask ? `${depTask.text} (${depTask.completed ? 'Done' : 'Pending'})` : `Task ID: ${depId} (Not found)`;
-            if (depTask && depTask.completed) li.classList.add('text-green-600', 'dark:text-green-400');
-            else if (depTask) li.classList.add('text-amber-600', 'dark:text-amber-400');
-            viewTaskDependsOnListEl.appendChild(li);
-        });
-    } else {
-        viewTaskDependsOnListEl.innerHTML = '<li class="italic">None</li>';
-    }
-
-    if (task.blocksTasks && task.blocksTasks.length > 0) {
-        task.blocksTasks.forEach(blockedId => {
-            const blockedTask = allTasks.find(t => t.id === blockedId);
-            const li = document.createElement('li');
-            li.textContent = blockedTask ? blockedTask.text : `Task ID: ${blockedId} (Not found)`;
-            viewTaskBlocksTasksListEl.appendChild(li);
-        });
-    } else {
-        viewTaskBlocksTasksListEl.innerHTML = '<li class="italic">None</li>';
-    }
-}
-export function renderTempSubTasksForAddModal(tempSubTasks, listElement) {
-    if (!listElement) return;
-    listElement.innerHTML = '';
-    if (!tempSubTasks || tempSubTasks.length === 0) {
-        listElement.innerHTML = '<li class="text-xs text-slate-400 dark:text-slate-500">No sub-tasks added yet.</li>';
-        return;
-    }
-    tempSubTasks.forEach((st, index) => {
-        const li = document.createElement('li');
-        li.className = 'flex items-center justify-between text-sm bg-slate-100 dark:bg-slate-600 p-1.5 rounded';
-        const span = document.createElement('span');
-        span.textContent = st.text;
-        span.className = "dark:text-slate-200";
-        li.appendChild(span);
-        const removeBtn = document.createElement('button');
-        removeBtn.type = 'button';
-        removeBtn.innerHTML = '<i class="fas fa-times text-red-500 hover:text-red-700 text-xs"></i>';
-        removeBtn.onclick = () => {
-            tempSubTasks.splice(index, 1);
-            renderTempSubTasksForAddModal(tempSubTasks, listElement);
-        };
-        li.appendChild(removeBtn);
-        listElement.appendChild(li);
-    });
-}
-export function renderSubTasksForEditModal(parentId, subTasksListElement) {
-    if (!AppStore || !subTasksListElement || !ModalStateService) return;
-    const actualParentId = parentId || ModalStateService.getEditingTaskId();
-    if (!actualParentId) {
-        LoggingService.error("[RenderSubTasksEdit] Parent ID missing.", null, {module: 'ui_rendering'});
-        subTasksListElement.innerHTML = '<li class="text-xs text-red-500 dark:text-red-400">Error: Parent task ID not found.</li>';
-        return;
-    }
-
-    const parentTask = AppStore.getTasks().find(t => t.id === actualParentId);
-    subTasksListElement.innerHTML = '';
-
-    if (!parentTask || !parentTask.subTasks || parentTask.subTasks.length === 0) {
-        subTasksListElement.innerHTML = '<li class="text-xs text-slate-400 dark:text-slate-500">No sub-tasks added yet.</li>';
-        return;
-    }
-
-    parentTask.subTasks.forEach(st => {
-        const li = document.createElement('li');
-        li.className = 'flex items-center justify-between text-sm bg-slate-100 dark:bg-slate-600 p-1.5 rounded';
-
-        const textSpan = document.createElement('span');
-        textSpan.textContent = st.text;
-        textSpan.className = `dark:text-slate-200 ${st.completed ? 'line-through text-slate-500 dark:text-slate-400' : ''}`;
-
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.checked = st.completed;
-        checkbox.className = 'form-checkbox h-4 w-4 text-sky-500 rounded border-slate-300 dark:border-slate-500 focus:ring-sky-400 mr-2';
-        checkbox.onchange = () => {
-            if (SubTasksFeature && SubTasksFeature.toggleComplete) {
-                if (SubTasksFeature.toggleComplete(actualParentId, st.id)) {
-                    renderSubTasksForEditModal(actualParentId, subTasksListElement);
-                } else {
-                    _displayMessage('Failed to toggle sub-task.', 'error');
-                }
-            } else {
-                 LoggingService.warn("SubTasksFeature.toggleComplete not available.", {module: 'ui_rendering'});
-            }
-        };
-
-        const editBtn = document.createElement('button');
-        editBtn.type = 'button';
-        editBtn.innerHTML = '<i class="fas fa-pencil-alt text-sky-500 hover:text-sky-700 text-xs mx-1"></i>';
-        editBtn.title = 'Edit sub-task';
-        editBtn.onclick = () => {
-            const newText = prompt('Edit sub-task:', st.text);
-            if (newText !== null && newText.trim() !== '') {
-                if (SubTasksFeature && SubTasksFeature.edit) {
-                    if (SubTasksFeature.edit(actualParentId, st.id, newText.trim())) {
-                        renderSubTasksForEditModal(actualParentId, subTasksListElement);
-                    } else {
-                        _displayMessage('Failed to edit sub-task.', 'error');
-                    }
-                } else {
-                     LoggingService.warn("SubTasksFeature.edit not available.", {module: 'ui_rendering'});
-                }
-            }
-        };
-
-        const removeBtn = document.createElement('button');
-        removeBtn.type = 'button';
-        removeBtn.innerHTML = '<i class="fas fa-times text-red-500 hover:text-red-700 text-xs"></i>';
-        removeBtn.title = 'Delete sub-task';
-        removeBtn.onclick = () => {
-            if (confirm('Delete this sub-task?')) {
-                if (SubTasksFeature && SubTasksFeature.delete) {
-                    if (SubTasksFeature.delete(actualParentId, st.id)) {
-                        renderSubTasksForEditModal(actualParentId, subTasksListElement);
-                    } else {
-                        _displayMessage('Failed to delete sub-task.', 'error');
-                    }
-                } else {
-                    LoggingService.warn("SubTasksFeature.delete not available.", {module: 'ui_rendering'});
-                }
-            }
-        };
-
-        const controlsDiv = document.createElement('div');
-        controlsDiv.appendChild(editBtn);
-        controlsDiv.appendChild(removeBtn);
-
-        const contentDiv = document.createElement('div');
-        contentDiv.className = 'flex items-center flex-grow';
-        contentDiv.appendChild(checkbox);
-        contentDiv.appendChild(textSpan);
-
-        li.appendChild(contentDiv);
-        li.appendChild(controlsDiv);
-
-        subTasksListElement.appendChild(li);
-    });
-}
-export function renderSubTasksForViewModal(parentId, subTasksListElement, progressElement, noSubTasksMessageElement) {
-     if (!AppStore || !subTasksListElement || !progressElement || !noSubTasksMessageElement) return;
-    const parentTask = AppStore.getTasks().find(t => t.id === parentId);
-    subTasksListElement.innerHTML = '';
-    if (!parentTask || !parentTask.subTasks || parentTask.subTasks.length === 0) {
-        noSubTasksMessageElement.classList.remove('hidden');
-        progressElement.textContent = '';
-        return;
-    }
-    noSubTasksMessageElement.classList.add('hidden');
-    let completedCount = 0;
-    parentTask.subTasks.forEach(st => {
-        const li = document.createElement('li');
-        li.className = 'flex items-center text-slate-600 dark:text-slate-300';
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.checked = st.completed;
-        checkbox.className = 'form-checkbox h-4 w-4 text-sky-500 rounded border-slate-400 dark:border-slate-500 focus:ring-sky-400 mr-2 cursor-not-allowed';
-        checkbox.disabled = true;
-        if (st.completed) completedCount++;
-        const span = document.createElement('span');
-        span.textContent = st.text;
-        if (st.completed) span.classList.add('line-through', 'text-slate-400', 'dark:text-slate-500');
-        li.appendChild(checkbox);
-        li.appendChild(span);
-        subTasksListElement.appendChild(li);
-    });
-    progressElement.textContent = `${completedCount} / ${parentTask.subTasks.length} completed`;
-}
-
 export function styleSmartViewButtons() {
     if (!ViewManager) return;
     const currentFilter = ViewManager.getCurrentFilter();
@@ -608,69 +386,6 @@ export function updateYourTasksHeading() {
     }
     yourTasksHeading.textContent = title;
 }
-
-export function renderVersionHistoryList(versions) {
-    if (!dataVersionHistoryContent) {
-        LoggingService.error("[UI Rendering] Data version history content element not found.", null, {module: 'ui_rendering'});
-        return;
-    }
-    dataVersionHistoryContent.innerHTML = '';
-
-    if (!versions || versions.length === 0) {
-        dataVersionHistoryContent.innerHTML = '<p class="text-slate-500 dark:text-slate-400 text-center p-4">No version history available.</p>';
-        return;
-    }
-
-    const ul = document.createElement('ul');
-    ul.className = 'space-y-2';
-
-    versions.forEach(version => {
-        const li = document.createElement('li');
-        li.className = 'p-3 bg-slate-100 dark:bg-slate-700 rounded-md shadow-sm flex justify-between items-center';
-
-        const infoDiv = document.createElement('div');
-        const timeSpan = document.createElement('span');
-        timeSpan.className = 'font-semibold text-slate-800 dark:text-slate-200 block text-sm';
-        timeSpan.textContent = new Date(version.timestamp).toLocaleString();
-
-        const descSpan = document.createElement('span');
-        descSpan.className = 'text-xs text-slate-600 dark:text-slate-400 block';
-        descSpan.textContent = version.description || 'No description';
-
-        infoDiv.appendChild(timeSpan);
-        infoDiv.appendChild(descSpan);
-
-        const restoreButton = document.createElement('button');
-        restoreButton.textContent = 'Restore';
-        restoreButton.className = 'px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-medium rounded-md shadow-sm';
-        restoreButton.title = `Restore to version from ${new Date(version.timestamp).toLocaleString()}`;
-        restoreButton.onclick = async () => {
-            if (confirm(`Are you sure you want to restore data to the version from ${new Date(version.timestamp).toLocaleString()}? This will overwrite your current data.`)) {
-                try {
-                    const { DataVersioningFeature } = await import('./feature_data_versioning.js');
-                    if (DataVersioningFeature && DataVersioningFeature.restoreVersion) {
-                        const success = DataVersioningFeature.restoreVersion(version.timestamp);
-                        if (success) {
-                            const { closeDataVersionHistoryModal } = await import('./modal_interactions.js');
-                            if (closeDataVersionHistoryModal) closeDataVersionHistoryModal();
-                        }
-                    } else {
-                        _displayMessage('Error: Restore function not available.', 'error');
-                    }
-                } catch (e) {
-                    LoggingService.error("Error importing DataVersioningFeature for restore:", e, {module: 'ui_rendering'});
-                    _displayMessage('Error trying to restore version.', 'error');
-                }
-            }
-        };
-
-        li.appendChild(infoDiv);
-        li.appendChild(restoreButton);
-        ul.appendChild(li);
-    });
-    dataVersionHistoryContent.appendChild(ul);
-}
-
 
 export function initializeUiRenderingSubscriptions() {
     if (!EventBus || !ViewManager || typeof window.isFeatureEnabled !== 'function') { LoggingService.error("[UI Rendering] Core dependencies for subscriptions not available.", null, {module: 'ui_rendering'}); return; } 

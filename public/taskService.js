@@ -60,11 +60,7 @@ export async function addTask(taskData) {
         reminderDate: taskData.reminderDate || null,
         reminderTime: taskData.reminderTime || null,
         reminderEmail: taskData.reminderEmail || null,
-        attachments: taskData.attachments || [],
         completedDate: null,
-        subTasks: taskData.subTasks || [],
-        dependsOn: taskData.dependsOn || [],
-        blocksTasks: taskData.blocksTasks || [],
         recurrence: taskData.recurrence || null
     };
     currentTasks.unshift(newTask);
@@ -107,19 +103,6 @@ export async function toggleTaskComplete(taskId) {
 
     const taskToToggle = currentTasks[taskIndex];
     
-    if (window.isFeatureEnabled('taskDependenciesFeature') && !taskToToggle.completed) { 
-        if (taskToToggle.dependsOn && taskToToggle.dependsOn.length > 0) {
-            const incompleteDependencies = taskToToggle.dependsOn.some(depId => {
-                const dependentTask = currentTasks.find(t => t.id === depId);
-                return dependentTask && !dependentTask.completed;
-            });
-            if (incompleteDependencies) {
-                LoggingService.warn(`[TaskService] Cannot complete task ${taskId}. It has incomplete dependencies.`, { functionName: 'toggleTaskComplete', taskId, dependencies: taskToToggle.dependsOn });
-                return { ...taskToToggle, _blocked: true };
-            }
-        }
-    }
-
     const isNowCompleted = !taskToToggle.completed;
     let isRecurringAndRenewed = false;
 
@@ -205,14 +188,6 @@ export async function deleteTaskById(taskId) {
     let currentTasks = AppStore.getTasks(); 
     const initialLength = currentTasks.length; 
     let updatedTasks = currentTasks.filter(task => task.id !== taskId); 
-
-    if (window.isFeatureEnabled('taskDependenciesFeature')) { 
-        updatedTasks = updatedTasks.map(task => { 
-            const newDependsOn = task.dependsOn ? task.dependsOn.filter(id => id !== taskId) : []; 
-            const newBlocksTasks = task.blocksTasks ? task.blocksTasks.filter(id => id !== taskId) : []; 
-            return { ...task, dependsOn: newDependsOn, blocksTasks: newBlocksTasks }; 
-        });
-    }
 
     if (updatedTasks.length < initialLength) { 
         await AppStore.setTasks(updatedTasks); 
