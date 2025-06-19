@@ -9,8 +9,7 @@ import {
     closeSettingsModal, openManageLabelsModal,
     openSettingsModal,
     closeManageLabelsModal,
-    closeViewTaskDetailsModal, openDataVersionHistoryModal,
-    closeDataVersionHistoryModal,
+    closeViewTaskDetailsModal,
     openDesktopNotificationsSettingsModal, closeDesktopNotificationsSettingsModal,
     openProfileModal, closeProfileModal
 } from './modal_interactions.js';
@@ -34,7 +33,6 @@ export function setupModalEventListeners() {
     attachListener('openAddModalButton', 'click', openAddModal, 'openAddModal');
     attachListener('settingsManageLabelsBtn', 'click', openManageLabelsModal, 'openManageLabelsModal');
     attachListener('openSettingsModalButton', 'click', openSettingsModal, 'openSettingsModal');
-    attachListener('settingsVersionHistoryBtn', 'click', openDataVersionHistoryModal, 'openDataVersionHistoryModal');
     attachListener('settingsManageNotificationsBtn', 'click', openDesktopNotificationsSettingsModal, 'openDesktopNotificationsSettingsModal');
     attachListener('settingsManageProfileBtn', 'click', openProfileModal, 'openProfileModal');
 
