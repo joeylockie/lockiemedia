@@ -78,6 +78,53 @@ function setupDatabase() {
   );`;
   db.exec(createUserPreferencesTable);
 
+  // --- Notebooks Table ---
+  const createNotebooksTable = `
+  CREATE TABLE IF NOT EXISTS notebooks (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    createdAt TEXT NOT NULL
+  );`;
+  db.exec(createNotebooksTable);
+
+  // --- Notes Table ---
+  const createNotesTable = `
+  CREATE TABLE IF NOT EXISTS notes (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    content TEXT,
+    notebookId TEXT,
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY (notebookId) REFERENCES notebooks (id)
+  );`;
+  db.exec(createNotesTable);
+
+  // --- Time Tracking Activities Table ---
+  const createTimeActivitiesTable = `
+  CREATE TABLE IF NOT EXISTS time_activities (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    icon TEXT,
+    color TEXT,
+    createdAt TEXT NOT NULL
+  );`;
+  db.exec(createTimeActivitiesTable);
+
+  // --- Time Log Entries Table ---
+  const createTimeLogEntriesTable = `
+  CREATE TABLE IF NOT EXISTS time_log_entries (
+    id TEXT PRIMARY KEY,
+    activityId TEXT NOT NULL,
+    startTime TEXT NOT NULL,
+    endTime TEXT NOT NULL,
+    durationMs INTEGER NOT NULL,
+    notes TEXT,
+    manuallyAdded BOOLEAN DEFAULT 0,
+    FOREIGN KEY (activityId) REFERENCES time_activities (id) ON DELETE CASCADE
+  );`;
+  db.exec(createTimeLogEntriesTable);
+
 
   // --- Insert Default Data ---
   // Here, we ensure that some essential default data exists.
@@ -90,6 +137,19 @@ function setupDatabase() {
   // Ensure a default user profile exists.
   const insertDefaultProfile = db.prepare('INSERT OR IGNORE INTO user_profile (id, displayName, role) VALUES (?, ?, ?)');
   insertDefaultProfile.run(1, 'User', 'admin');
+
+  // Insert default time tracking activities
+  const defaultActivities = [
+    { id: 'activity_1', name: 'Development', icon: 'fas fa-code', color: 'sky', createdAt: new Date().toISOString() },
+    { id: 'activity_2', name: 'Meeting', icon: 'fas fa-users', color: 'purple', createdAt: new Date().toISOString() },
+    { id: 'activity_3', name: 'Design', icon: 'fas fa-paint-brush', color: 'pink', createdAt: new Date().toISOString() },
+    { id: 'activity_4', name: 'Learning', icon: 'fas fa-book-open', color: 'yellow', createdAt: new Date().toISOString() }
+  ];
+  const insertActivity = db.prepare('INSERT OR IGNORE INTO time_activities (id, name, icon, color, createdAt) VALUES (@id, @name, @icon, @color, @createdAt)');
+  for (const activity of defaultActivities) {
+    insertActivity.run(activity);
+  }
+
 
   console.log('Database setup complete.');
 }
