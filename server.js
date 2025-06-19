@@ -14,6 +14,7 @@ const dbFile = path.join(__dirname, 'lockiedb.sqlite');
 // -- Database Connection (SQLite) --
 const db = new Database(dbFile, { verbose: console.log });
 db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON'); // <-- FIX: This line enables foreign key enforcement.
 console.log(`Connected to SQLite database at ${dbFile}`);
 
 // -- Middleware --
