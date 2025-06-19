@@ -4,6 +4,7 @@
 import LoggingService from './loggingService.js';
 import TimeTrackerService from './timeTrackerService.js';
 import { formatMillisecondsToHMS } from './utils.js';
+import EventBus from './eventBus.js'; // Import EventBus
 
 // --- Internal State ---
 let _updateInterval = null;
@@ -11,7 +12,7 @@ let _updateInterval = null;
 // --- DOM Element References ---
 let trackedItemsContainer;
 let currentTrackingSection, currentTrackingName, currentTrackingTime;
-let startStopBtn, pauseBtn; 
+let startStopBtn; 
 let activityButtonsContainer;
 let addManualEntryBtn;
 
@@ -20,7 +21,7 @@ let manageActivitiesModal, manageActivitiesDialog, closeManageActivitiesModalBtn
 let addActivityForm, activityNameInput, activityIconInput, activityColorInput;
 let existingActivitiesList, manageActivitiesBtn;
 
-// --- NEW: Time Entry Modal DOM Element References ---
+// --- Time Entry Modal DOM Element References ---
 let timeEntryModal, timeEntryDialog, timeEntryModalTitle, closeTimeEntryModalBtn, cancelTimeEntryBtn;
 let timeEntryForm, timeEntryLogId, timeEntryActivitySelect, timeEntryDate, timeEntryStartTime, timeEntryEndTime, timeEntryNotes, saveTimeEntryBtn;
 
@@ -39,13 +40,18 @@ const colorMap = {
 
 // --- Rendering Functions ---
 
-function renderTrackedItems(logEntries) {
+function renderTrackedItems() {
     if (!trackedItemsContainer) {
         LoggingService.error("[TimeTrackerFeature] Tracked items container not found! Cannot render list.", null, { functionName: 'renderTrackedItems' });
         return;
     }
 
     const activities = TimeTrackerService.getActivities();
+    // Get today's entries directly
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const logEntries = TimeTrackerService.getLogEntries().filter(entry => new Date(entry.startTime) >= today);
+
     trackedItemsContainer.innerHTML = ''; 
 
     if (logEntries.length === 0) {
@@ -72,14 +78,14 @@ function renderTrackedItems(logEntries) {
 
         const timeP = document.createElement('p');
         timeP.className = 'text-xs text-slate-400';
-        const startTime = log.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const endTime = log.endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const startTime = new Date(log.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const endTime = new Date(log.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         timeP.textContent = `${startTime} - ${endTime}`;
 
         const notesP = document.createElement('p');
         notesP.className = 'text-sm text-slate-300 mt-1 italic';
-        notesP.textContent = log.notes || ''; // Display notes
-        if (!log.notes) notesP.classList.add('hidden'); // Hide if no notes
+        notesP.textContent = log.notes || '';
+        if (!log.notes) notesP.classList.add('hidden');
 
         infoDiv.appendChild(nameP);
         infoDiv.appendChild(timeP);
@@ -100,11 +106,7 @@ function renderTrackedItems(logEntries) {
         deleteBtn.title = 'Delete Entry';
         deleteBtn.onclick = async () => {
             if (confirm('Are you sure you want to delete this time entry?')) {
-                try {
-                    await TimeTrackerService.deleteLogEntry(log.id);
-                } catch (error) {
-                    LoggingService.error('Failed to delete time entry.', error, { logId: log.id });
-                }
+                await TimeTrackerService.deleteLogEntry(log.id);
             }
         };
 
@@ -142,7 +144,7 @@ function updateCurrentlyTrackingUI() {
     }
     const updateTime = () => {
         if (currentTrackingTime) {
-            const elapsedMs = new Date().getTime() - activeTimer.startTime.getTime();
+            const elapsedMs = new Date().getTime() - new Date(activeTimer.startTime).getTime();
             currentTrackingTime.textContent = formatMillisecondsToHMS(elapsedMs);
         }
     };
@@ -151,8 +153,9 @@ function updateCurrentlyTrackingUI() {
     updateTime(); 
 }
 
-function renderActivityButtons(activities) {
+function renderActivityButtons() {
     if (!activityButtonsContainer) return;
+    const activities = TimeTrackerService.getActivities();
     activityButtonsContainer.innerHTML = ''; 
     if (!activities || activities.length === 0) {
         activityButtonsContainer.innerHTML = `<p class="text-slate-400 italic text-sm p-4">No activities created. Click "Manage Activities" to add some.</p>`;
@@ -178,8 +181,9 @@ function renderActivityButtons(activities) {
 
 // --- Modal Management Functions ---
 
-function renderManageActivitiesList(activities) {
+function renderManageActivitiesList() {
     if (!existingActivitiesList) return;
+    const activities = TimeTrackerService.getActivities();
     existingActivitiesList.innerHTML = '';
     if (!activities || activities.length === 0) {
         existingActivitiesList.innerHTML = `<p class="text-slate-400 text-sm italic text-center p-2">No activities yet.</p>`;
@@ -196,11 +200,7 @@ function renderManageActivitiesList(activities) {
         deleteBtn.title = `Delete "${activity.name}"`;
         deleteBtn.onclick = async () => {
             if (confirm(`Are you sure you want to delete the activity "${activity.name}"? This cannot be undone.`)) {
-                try {
-                    await TimeTrackerService.deleteActivity(activity.id);
-                } catch (error) {
-                    LoggingService.error('Failed to delete activity via button.', error, { functionName: 'deleteBtn.onclick' });
-                }
+                await TimeTrackerService.deleteActivity(activity.id);
             }
         };
         li.appendChild(nameSpan);
@@ -211,7 +211,7 @@ function renderManageActivitiesList(activities) {
 
 function openManageActivitiesModal() {
     if (!manageActivitiesModal || !manageActivitiesDialog) return;
-    renderManageActivitiesList(TimeTrackerService.getActivities());
+    renderManageActivitiesList();
     manageActivitiesModal.classList.remove('hidden');
     requestAnimationFrame(() => {
         manageActivitiesModal.classList.remove('opacity-0');
@@ -230,26 +230,18 @@ function closeManageActivitiesModal() {
 
 async function handleAddActivityFormSubmit(event) {
     event.preventDefault();
-    const functionName = 'handleAddActivityFormSubmit';
     const activityData = {
         name: activityNameInput.value.trim(),
         icon: activityIconInput.value.trim() || 'fas fa-stopwatch',
         color: activityColorInput.value
     };
-    if (!activityData.name) {
-        LoggingService.warn('[TimeTrackerFeature] Activity name is required.', { functionName });
-        return;
-    }
-    try {
-        await TimeTrackerService.addActivity(activityData);
-        addActivityForm.reset();
-        activityNameInput.focus();
-    } catch (error) {
-        LoggingService.error('Failed to add activity via form.', error, { functionName });
-    }
+    if (!activityData.name) return;
+    await TimeTrackerService.addActivity(activityData);
+    addActivityForm.reset();
+    activityNameInput.focus();
 }
 
-// --- NEW: Time Entry Modal Functions ---
+// --- Time Entry Modal Functions ---
 
 function openTimeEntryModal(logId = null) {
     timeEntryForm.reset();
@@ -263,7 +255,6 @@ function openTimeEntryModal(logId = null) {
     });
 
     if (logId) {
-        // Editing existing entry
         timeEntryModalTitle.textContent = 'Edit Time Entry';
         const logEntry = TimeTrackerService.getLogEntries().find(log => log.id === logId);
         if (logEntry) {
@@ -276,7 +267,6 @@ function openTimeEntryModal(logId = null) {
             timeEntryNotes.value = logEntry.notes || '';
         }
     } else {
-        // Adding new entry
         timeEntryModalTitle.textContent = 'Add Manual Entry';
         timeEntryLogId.value = '';
         const now = new Date();
@@ -316,19 +306,12 @@ async function handleTimeEntryFormSubmit(event) {
         notes: timeEntryNotes.value.trim()
     };
 
-    try {
-        if (logId) {
-            // Update existing log
-            await TimeTrackerService.updateLogEntry(logId, logData);
-        } else {
-            // Add new log
-            await TimeTrackerService.addLogEntry(logData);
-        }
-        closeTimeEntryModal();
-    } catch (error) {
-        LoggingService.error('Failed to save time entry.', error);
-        alert('Error saving time entry. Please check the console.');
+    if (logId) {
+        await TimeTrackerService.updateLogEntry(logId, logData);
+    } else {
+        await TimeTrackerService.addLogEntry(logData);
     }
+    closeTimeEntryModal();
 }
 
 
@@ -341,12 +324,15 @@ function initialize() {
     LoggingService.info('[TimeTrackerFeature] Initializing...', { functionName });
     TimeTrackerService.initialize();
 
+    // Get all DOM element references
     trackedItemsContainer = document.getElementById('trackedItemsContainer');
     activityButtonsContainer = document.querySelector('.flex.gap-4.overflow-x-auto');
     currentTrackingSection = document.querySelector('.bg-slate-800.p-4.rounded-lg');
-    currentTrackingName = currentTrackingSection ? currentTrackingSection.querySelector('span.font-medium') : null;
-    currentTrackingTime = currentTrackingSection ? currentTrackingSection.querySelector('span.text-2xl') : null;
-    startStopBtn = currentTrackingSection ? currentTrackingSection.querySelector('button.text-slate-400:nth-of-type(2)') : null;
+    if (currentTrackingSection) {
+        currentTrackingName = currentTrackingSection.querySelector('span.font-medium');
+        currentTrackingTime = currentTrackingSection.querySelector('span.text-2xl');
+        startStopBtn = currentTrackingSection.querySelector('button[title="Stop"]');
+    }
     manageActivitiesModal = document.getElementById('manageActivitiesModal');
     manageActivitiesDialog = document.getElementById('manageActivitiesDialog');
     closeManageActivitiesModalBtn = document.getElementById('closeManageActivitiesModalBtn');
@@ -357,8 +343,6 @@ function initialize() {
     existingActivitiesList = document.getElementById('existingActivitiesList');
     manageActivitiesBtn = document.getElementById('manageActivitiesBtn');
     addManualEntryBtn = document.getElementById('addManualEntryBtn');
-
-    // Time Entry Modal elements
     timeEntryModal = document.getElementById('timeEntryModal');
     timeEntryDialog = document.getElementById('timeEntryDialog');
     timeEntryModalTitle = document.getElementById('timeEntryModalTitle');
@@ -383,28 +367,28 @@ function initialize() {
     if (cancelTimeEntryBtn) cancelTimeEntryBtn.addEventListener('click', closeTimeEntryModal);
     
     if (startStopBtn) {
-        startStopBtn.innerHTML = '<i class="fas fa-stop"></i>';
         startStopBtn.onclick = async () => {
             await TimeTrackerService.stopTracking();
             updateCurrentlyTrackingUI();
         };
     }
     
-    TimeTrackerService.streamActivities((activities) => {
-        renderActivityButtons(activities);
+    // Subscribe to AppStore events for reactive UI updates
+    EventBus.subscribe('timeActivitiesChanged', () => {
+        renderActivityButtons();
         if (manageActivitiesModal && !manageActivitiesModal.classList.contains('hidden')) {
-            renderManageActivitiesList(activities);
+            renderManageActivitiesList();
         }
     });
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); 
-    TimeTrackerService.streamLogEntries(today, (logEntries) => {
-        renderTrackedItems(logEntries);
-    });
-    
+    EventBus.subscribe('timeLogEntriesChanged', renderTrackedItems);
+
+    // Initial Render
+    renderActivityButtons();
+    renderTrackedItems();
     updateCurrentlyTrackingUI();
-    LoggingService.info('[TimeTrackerFeature] Initialized and data streams started.', { functionName });
+    
+    LoggingService.info('[TimeTrackerFeature] Initialized and event bus subscriptions are active.', { functionName });
 }
 
 export const TimeTrackerFeature = {

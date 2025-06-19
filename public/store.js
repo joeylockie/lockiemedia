@@ -16,6 +16,10 @@ let _uniqueLabels = [];
 let _uniqueProjects = [];
 let _userPreferences = {};
 let _userProfile = {};
+let _notebooks = [];
+let _notes = [];
+let _time_activities = [];
+let _time_log_entries = [];
 // Removed _kanbanColumns as it's no longer a primary data entity managed here.
 
 // --- Private Helper Functions ---
@@ -66,7 +70,11 @@ async function _saveAllData(source = 'unknown') {
         tasks: _tasks,
         projects: _projects,
         userPreferences: _userPreferences,
-        userProfile: _userProfile
+        userProfile: _userProfile,
+        notebooks: _notebooks,
+        notes: _notes,
+        time_activities: _time_activities,
+        time_log_entries: _time_log_entries,
     };
 
     try {
@@ -97,12 +105,15 @@ async function _saveAllData(source = 'unknown') {
 const AppStore = {
     getTasks: () => JSON.parse(JSON.stringify(_tasks)),
     getProjects: () => JSON.parse(JSON.stringify(_projects)),
-    // KanbanColumns are no longer managed here.
     getKanbanColumns: () => [], 
     getUniqueLabels: () => [..._uniqueLabels],
     getUniqueProjects: () => [..._uniqueProjects],
     getUserPreferences: () => JSON.parse(JSON.stringify(_userPreferences)),
     getUserProfile: () => JSON.parse(JSON.stringify(_userProfile)),
+    getNotebooks: () => JSON.parse(JSON.stringify(_notebooks)),
+    getNotes: () => JSON.parse(JSON.stringify(_notes)),
+    getTimeActivities: () => JSON.parse(JSON.stringify(_time_activities)),
+    getTimeLogEntries: () => JSON.parse(JSON.stringify(_time_log_entries)),
 
     // The 'set' methods now update local state and then trigger a save of the entire state.
     setTasks: async (newTasksArray, source = 'setTasks') => {
@@ -117,7 +128,6 @@ const AppStore = {
         await _saveAllData(source);
         _publish('projectsChanged', [..._projects]);
     },
-    // setKanbanColumns is removed as it's no longer managed data.
     setUserPreferences: async (newPreferences, source = 'setUserPreferences') => {
         _userPreferences = { ..._userPreferences, ...JSON.parse(JSON.stringify(newPreferences)) };
         await _saveAllData(source);
@@ -128,6 +138,27 @@ const AppStore = {
        await _saveAllData(source);
        _publish('userProfileChanged', { ..._userProfile });
     },
+    setNotebooks: async (newNotebooksArray, source = 'setNotebooks') => {
+        _notebooks = JSON.parse(JSON.stringify(newNotebooksArray));
+        await _saveAllData(source);
+        _publish('notebooksChanged', [..._notebooks]);
+    },
+    setNotes: async (newNotesArray, source = 'setNotes') => {
+        _notes = JSON.parse(JSON.stringify(newNotesArray));
+        await _saveAllData(source);
+        _publish('notesChanged', [..._notes]);
+    },
+    setTimeActivities: async (newActivitiesArray, source = 'setTimeActivities') => {
+        _time_activities = JSON.parse(JSON.stringify(newActivitiesArray));
+        await _saveAllData(source);
+        _publish('timeActivitiesChanged', [..._time_activities]);
+    },
+    setTimeLogEntries: async (newLogEntriesArray, source = 'setTimeLogEntries') => {
+        _time_log_entries = JSON.parse(JSON.stringify(newLogEntriesArray));
+        await _saveAllData(source);
+        _publish('timeLogEntriesChanged', [..._time_log_entries]);
+    },
+
 
     initializeStore: async () => {
         const functionName = 'initializeStore (AppStore)';
@@ -141,21 +172,31 @@ const AppStore = {
             }
             const data = await response.json();
             
-            // The server now provides data in the correct format, so no frontend conversion is needed.
+            // Populate all data types from the server response
             _tasks = data.tasks || [];
             _projects = data.projects || [];
             _userPreferences = data.userPreferences || {};
             _userProfile = data.userProfile || { displayName: 'User', role: 'admin' };
+            _notebooks = data.notebooks || [];
+            _notes = data.notes || [];
+            _time_activities = data.time_activities || [];
+            _time_log_entries = data.time_log_entries ? data.time_log_entries.map(entry => ({...entry, startTime: new Date(entry.startTime), endTime: new Date(entry.endTime)})) : [];
             
             _updateUniqueLabelsInternal();
             _updateUniqueProjectsInternal();
             
             LoggingService.info("[AppStore] Store initialized with data from backend server.", { module: 'store', functionName });
+
+            // Publish events for all data types
             _publish('storeInitialized');
             _publish('tasksChanged', [..._tasks]);
             _publish('projectsChanged', [..._projects]);
             _publish('userProfileChanged', { ..._userProfile });
             _publish('userPreferencesChanged', { ..._userPreferences });
+            _publish('notebooksChanged', [..._notebooks]);
+            _publish('notesChanged', [..._notes]);
+            _publish('timeActivitiesChanged', [..._time_activities]);
+            _publish('timeLogEntriesChanged', [..._time_log_entries]);
 
         } catch (error) {
             LoggingService.critical('[AppStore] Could not load data from backend server. The app may not function correctly.', error, { functionName });

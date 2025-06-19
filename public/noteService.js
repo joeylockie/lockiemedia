@@ -5,50 +5,38 @@
 import LoggingService from './loggingService.js';
 import AppStore from './store.js';
 
-const NOTES_KEY = 'notes_v1';
-const NOTEBOOKS_KEY = 'notebooks_v1';
-
 // --- Private Helper Functions ---
 
-function _loadData(key) {
-    try {
-        const data = localStorage.getItem(key);
-        return data ? JSON.parse(data) : [];
-    } catch (error) {
-        LoggingService.error(`[NoteService] Error loading data from localStorage for key: ${key}`, error, { functionName: '_loadData' });
-        return [];
-    }
-}
-
-function _saveData(key, data) {
-    try {
-        localStorage.setItem(key, JSON.stringify(data));
-    } catch (error) {
-        LoggingService.error(`[NoteService] Error saving data to localStorage for key: ${key}`, error, { functionName: '_saveData' });
-    }
-}
-
+// The _loadData and _saveData functions are no longer needed as AppStore handles persistence.
 
 // --- Notebook Functions ---
 
 export function getNotebooks() {
-    return _loadData(NOTEBOOKS_KEY);
+    if (!AppStore) return [];
+    return AppStore.getNotebooks();
 }
 
 export function addNotebook(name) {
+    const functionName = 'addNotebook (NoteService)';
     if (!name || !name.trim()) {
-        LoggingService.warn('[NoteService] Attempted to add a notebook with an empty name.', { functionName: 'addNotebook' });
+        LoggingService.warn('[NoteService] Attempted to add a notebook with an empty name.', { functionName });
         return null;
     }
     const notebooks = getNotebooks();
+    if (notebooks.some(nb => nb.name.toLowerCase() === name.trim().toLowerCase())) {
+        LoggingService.warn(`[NoteService] Notebook with name "${name.trim()}" already exists.`, { functionName });
+        // Optionally publish a user message via EventBus if desired
+        return null;
+    }
+
     const newNotebook = {
         id: `nb_${Date.now()}`,
         name: name.trim(),
         createdAt: new Date().toISOString()
     };
-    notebooks.push(newNotebook);
-    _saveData(NOTEBOOKS_KEY, notebooks);
-    LoggingService.info(`[NoteService] Notebook added: "${newNotebook.name}"`, { functionName: 'addNotebook', newNotebook });
+    const updatedNotebooks = [...notebooks, newNotebook];
+    AppStore.setNotebooks(updatedNotebooks, functionName);
+    LoggingService.info(`[NoteService] Notebook added: "${newNotebook.name}"`, { functionName, newNotebook });
     return newNotebook;
 }
 
@@ -56,7 +44,8 @@ export function addNotebook(name) {
 // --- Note Functions ---
 
 export function getNotes(notebookId = null) {
-    const allNotes = _loadData(NOTES_KEY);
+    if (!AppStore) return [];
+    const allNotes = AppStore.getNotes();
     if (notebookId) {
         return allNotes.filter(note => note.notebookId === notebookId);
     }
@@ -69,8 +58,9 @@ export function getNoteById(noteId) {
 }
 
 export function addNote({ title, content, notebookId }) {
+    const functionName = 'addNote (NoteService)';
     if (!title || !title.trim()) {
-        LoggingService.warn('[NoteService] Attempted to add a note with an empty title.', { functionName: 'addNote' });
+        LoggingService.warn('[NoteService] Attempted to add a note with an empty title.', { functionName });
         return null;
     }
     const notes = getNotes();
@@ -83,42 +73,46 @@ export function addNote({ title, content, notebookId }) {
         updatedAt: new Date().toISOString()
     };
     notes.unshift(newNote); // Add to the beginning of the array
-    _saveData(NOTES_KEY, notes);
-    LoggingService.info(`[NoteService] Note added: "${newNote.title}"`, { functionName: 'addNote', newNote });
+    AppStore.setNotes(notes, functionName);
+    LoggingService.info(`[NoteService] Note added: "${newNote.title}"`, { functionName, newNote });
     return newNote;
 }
 
 export function updateNote(noteId, { title, content, notebookId }) {
+    const functionName = 'updateNote (NoteService)';
     const notes = getNotes();
     const noteIndex = notes.findIndex(note => note.id === noteId);
     if (noteIndex === -1) {
-        LoggingService.error(`[NoteService] Note with ID ${noteId} not found for update.`, new Error("NoteNotFound"), { functionName: 'updateNote', noteId });
+        LoggingService.error(`[NoteService] Note with ID ${noteId} not found for update.`, new Error("NoteNotFound"), { functionName, noteId });
         return null;
     }
     const updatedNote = {
         ...notes[noteIndex],
         title: title.trim(),
         content: content,
-        notebookId: notebookId,
+        // The notebookId is not typically updated from the note editor itself,
+        // but we include it for completeness.
+        notebookId: notebookId, 
         updatedAt: new Date().toISOString()
     };
     notes[noteIndex] = updatedNote;
-    _saveData(NOTES_KEY, notes);
-    LoggingService.info(`[NoteService] Note updated: "${updatedNote.title}"`, { functionName: 'updateNote', updatedNote });
+    AppStore.setNotes(notes, functionName);
+    LoggingService.info(`[NoteService] Note updated: "${updatedNote.title}"`, { functionName, updatedNote });
     return updatedNote;
 }
 
 export function deleteNote(noteId) {
+    const functionName = 'deleteNote (NoteService)';
     let notes = getNotes();
     const initialLength = notes.length;
     notes = notes.filter(note => note.id !== noteId);
     if (notes.length < initialLength) {
-        _saveData(NOTES_KEY, notes);
-        LoggingService.info(`[NoteService] Note with ID ${noteId} deleted.`, { functionName: 'deleteNote', noteId });
+        AppStore.setNotes(notes, functionName);
+        LoggingService.info(`[NoteService] Note with ID ${noteId} deleted.`, { functionName, noteId });
         return true;
     }
-    LoggingService.warn(`[NoteService] Note with ID ${noteId} not found for deletion.`, { functionName: 'deleteNote', noteId });
+    LoggingService.warn(`[NoteService] Note with ID ${noteId} not found for deletion.`, { functionName, noteId });
     return false;
 }
 
-LoggingService.info("noteService.js loaded.", { module: 'noteService' });
+LoggingService.info("noteService.js loaded and refactored to use AppStore.", { module: 'noteService' });
