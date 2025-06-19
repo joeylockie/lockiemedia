@@ -5,11 +5,12 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "setup": "node database-setup.js"
   },
   "dependencies": {
+    "better-sqlite3": "^11.1.2",
     "cors": "^2.8.5",
-    "express": "^4.19.2",
-    "lowdb": "^7.0.1"
+    "express": "^4.19.2"
   }
 }
