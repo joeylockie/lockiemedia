@@ -1,0 +1,29 @@
+{
+  "apps": [
+    {
+      "name": "api-gateway",
+      "script": "/root/lockiemedia/services/api-gateway/index.js",
+      "watch": false
+    },
+    {
+      "name": "notes-service",
+      "script": "/root/lockiemedia/services/notes-service/index.js",
+      "watch": false
+    },
+    {
+      "name": "task-service",
+      "script": "/root/lockiemedia/services/task-service/index.js",
+      "watch": false
+    },
+    {
+      "name": "time-tracker-service",
+      "script": "/root/lockiemedia/services/time-tracker-service/index.js",
+      "watch": false
+    },
+    {
+      "name": "lockiemedia-monolith",
+      "script": "/root/lockiemedia/server.js",
+      "watch": false
+    }
+  ]
+}

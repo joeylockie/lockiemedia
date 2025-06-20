@@ -1,15 +1,20 @@
-// store.js
-// Manages application data state internally and exposes an API (AppStore) for access and modification.
-// Publishes events via EventBus when state changes.
-// REFACTORED FOR SELF-HOSTED BACKEND (using SQLite)
-
 import EventBus from './eventBus.js';
 import LoggingService from './loggingService.js';
 
-// The API URL is now the single source of truth for the backend endpoint.
+// The API URL for the gateway.
 const API_URL = '/api/data';
 
-// --- Internal State Variables (scoped to this module) ---
+// --- Security Configuration ---
+// This MUST be the exact same key as in the api-gateway file, with no extra spaces.
+const API_KEY = "THeYYjPRRvQ6CjJFPL0T6cpAyfWbIMFm9U0Lo4d+saQ=";
+
+// --- Centralized Headers ---
+const API_HEADERS = {
+    'Content-Type': 'application/json',
+    'X-API-Key': API_KEY,
+};
+
+// --- Internal State Variables ---
 let _tasks = [];
 let _projects = [];
 let _uniqueLabels = [];
@@ -20,7 +25,6 @@ let _notebooks = [];
 let _notes = [];
 let _time_activities = [];
 let _time_log_entries = [];
-// Removed _kanbanColumns as it's no longer a primary data entity managed here.
 
 // --- Private Helper Functions ---
 function _publish(eventName, data) {
@@ -64,8 +68,7 @@ async function _saveAllData(source = 'unknown') {
 
     _updateUniqueLabelsInternal();
     _updateUniqueProjectsInternal();
-    
-    // Assemble the complete data payload that the server expects.
+
     const dataToSave = {
         tasks: _tasks,
         projects: _projects,
@@ -80,9 +83,7 @@ async function _saveAllData(source = 'unknown') {
     try {
         const response = await fetch(API_URL, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: API_HEADERS,
             body: JSON.stringify(dataToSave),
         });
 
@@ -90,7 +91,7 @@ async function _saveAllData(source = 'unknown') {
             const errorBody = await response.text();
             throw new Error(`Server responded with ${response.status}: ${errorBody}`);
         }
-        
+
         const result = await response.json();
         LoggingService.info(`[Store] Data successfully saved to backend. Server says: ${result.message}`, { functionName });
 
@@ -115,7 +116,6 @@ const AppStore = {
     getTimeActivities: () => JSON.parse(JSON.stringify(_time_activities)),
     getTimeLogEntries: () => JSON.parse(JSON.stringify(_time_log_entries)),
 
-    // The 'set' methods now update local state and then trigger a save of the entire state.
     setTasks: async (newTasksArray, source = 'setTasks') => {
         _tasks = JSON.parse(JSON.stringify(newTasksArray));
         await _saveAllData(source);
@@ -159,54 +159,50 @@ const AppStore = {
         _publish('timeLogEntriesChanged', [..._time_log_entries]);
     },
 
-    // --- NEW COMPLEX ACTION ---
     deleteTimeActivity: async (activityId, source = 'deleteTimeActivity') => {
         const initialActivityCount = _time_activities.length;
         _time_activities = _time_activities.filter(a => a.id !== activityId);
-
-        // If an activity was actually removed, remove its logs too.
         if (_time_activities.length < initialActivityCount) {
             _time_log_entries = _time_log_entries.filter(log => log.activityId !== activityId);
-            
-            // Now that the internal state is consistent, save everything once.
             await _saveAllData(source);
-
-            // Publish events to notify the UI of the changes.
             _publish('timeActivitiesChanged', [..._time_activities]);
             _publish('timeLogEntriesChanged', [..._time_log_entries]);
         }
     },
-
 
     initializeStore: async () => {
         const functionName = 'initializeStore (AppStore)';
         LoggingService.info('[AppStore] Initializing store from self-hosted backend...', { module: 'store', functionName });
 
         try {
-            const response = await fetch(API_URL);
+            const response = await fetch(API_URL, {
+                headers: API_HEADERS,
+            });
+
             if (!response.ok) {
                 const errorBody = await response.text();
+                if (response.status === 401) {
+                    EventBus.publish('displayUserMessage', { text: 'FATAL: Invalid API Key. The application cannot load data.', type: 'error' });
+                    throw new Error('Invalid API Key');
+                }
                 throw new Error(`Server responded with ${response.status}: ${errorBody}`);
             }
             const data = await response.json();
-            
-            // Populate all data types from the server response
+
             _tasks = data.tasks || [];
             _projects = data.projects || [];
             _userPreferences = data.userPreferences || {};
-            // FIX: Ensure the default profile object has all keys the server expects
             _userProfile = data.userProfile || { displayName: 'User', email: null, role: 'admin' };
             _notebooks = data.notebooks || [];
             _notes = data.notes || [];
             _time_activities = data.time_activities || [];
             _time_log_entries = data.time_log_entries ? data.time_log_entries.map(entry => ({...entry, startTime: new Date(entry.startTime), endTime: new Date(entry.endTime)})) : [];
-            
+
             _updateUniqueLabelsInternal();
             _updateUniqueProjectsInternal();
-            
+
             LoggingService.info("[AppStore] Store initialized with data from backend server.", { module: 'store', functionName });
 
-            // Publish events for all data types
             _publish('storeInitialized');
             _publish('tasksChanged', [..._tasks]);
             _publish('projectsChanged', [..._projects]);
@@ -219,7 +215,7 @@ const AppStore = {
 
         } catch (error) {
             LoggingService.critical('[AppStore] Could not load data from backend server. The app may not function correctly.', error, { functionName });
-            EventBus.publish('displayUserMessage', { text: 'Fatal: Cannot connect to server to load data. Please ensure the server is running.', type: 'error' });
+            EventBus.publish('displayUserMessage', { text: 'Fatal: Cannot connect to server to load data. Please ensure the server is running and the API Key is correct.', type: 'error' });
         }
     }
 };
