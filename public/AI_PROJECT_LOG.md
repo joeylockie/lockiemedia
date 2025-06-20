@@ -1,5 +1,5 @@
 # AI Project Curation Log: Lockie Media Platform
-Last Updated: 2025-06-19 01:47 (EDT) ##
+Last Updated: 2025-06-20 03:43 (EDT) ##
 
 ## 1. Instructions for AI (Gemini)
 **Purpose of this Document:** This document is your primary source of truth for the Lockie Media Platform project. It provides context, tracks progress, outlines current tasks, and lists future goals. Please refer to it to understand:
@@ -37,7 +37,7 @@ Last Updated: 2025-06-19 01:47 (EDT) ##
 
 **Vision:** To become an all-in-one platform for personal and business management, comprised of modular apps.
 
-**Technology:** Self-hosted client-side application (HTML, CSS, JS) with a Node.js/Express.js backend and an SQLite database.
+**Technology:** Self-hosted application with a **microservice architecture**. Backend services are built with Node.js/Express.js and a shared SQLite database. Services are managed by **PM2** and fronted by a central **API Gateway**.
 
 **Core Platform Apps (Initial Focus):** Task Manager, Notes, Habit Tracker, Time Tracker, Pomodoro, and Calendar.
 
@@ -47,50 +47,40 @@ Last Updated: 2025-06-19 01:47 (EDT) ##
 * **Core Task Management:** Functionalities implemented as a foundational module.
 * **Backend Refactor:** Migrated from a Firebase backend to a self-hosted Node.js/Express stack.
 * **Database Migration:** Successfully migrated the core application's database from `lowdb` (JSON file) to a robust SQLite database using `better-sqlite3`.
-* **Feature Streamlining:** Removed several non-core and administrative features to simplify the codebase and focus on the main productivity tools. This included the Admin Panel, Ads System, Sub-tasks, Dependencies, Attachments, Data Versioning, and Data Export.
-* **Client-side Services:** Implemented services for logging, events, view management, tasks, projects, labels, etc.
-* **App Implementations:** Functional, client-side implementations for Notes, Habit Tracker, and Time Tracker are in place (originally using localStorage, pending migration to SQLite).
-* **Advanced Recurrence Feature:** Fully implemented with custom intervals, specific day selection for weeks, and end dates.
-* **Shopping List Feature:** Fully implemented as a new Smart View in the Task Manager.
+* **Feature Streamlining:** Removed several non-core features to simplify the codebase.
+* **Client-side Services:** Implemented services for logging, events, view management, etc.
+* **Backend Architecture Refactor:** Migrated the backend from a single monolith to a microservice architecture, creating an API Gateway and independent services for Notes and Tasks. Implemented PM2 for process management.
 
 ## 4. Work Completed (Specific to Current Major Task):
-**Date: 2025-06-19**
-* **Task**: Streamline Platform Features.
-* **Summary**: Completed a major refactoring to remove several features from the platform to focus the application on its core productivity purpose.
+**Date: 2025-06-20**
+* **Task**: Decouple Backend into Microservices (Notes & Tasks)
+* **Summary**: Successfully refactored the monolithic backend into a microservice architecture. The Notes and Task applications now run as independent backend services, with a new API Gateway managing all incoming requests. This resolves the core problem of a tightly coupled codebase.
 * **Details**:
-    * Removed all UI elements for Sub-tasks, Dependencies, Attachments, Data Versioning, and Data Export from the Task Manager modals (`todo.html`).
-    * Removed Admin Panel and Advertising System links and UI from the `dashboard.html`.
-    * Updated the database schema (`database-setup.js`) to remove columns related to the deleted features from the `tasks` table.
-    * Modified `server.js` to align with the new, simpler database schema.
-    * Updated all relevant frontend JavaScript modules (`main.js`, `taskService.js`, `ui_rendering.js`, `modal_interactions.js`, etc.) to remove the logic, imports, and event handlers for the deleted features.
-    * Identified and fixed several 404 (Not Found) errors caused by leftover imports of deleted JavaScript files.
-    * Deleted all unused feature-specific JavaScript files from the `/public` directory.
-
-**Date: 2025-06-18**
-* **Task**: Migrate Core Backend to SQLite.
-* **Summary**: Completed the full migration of the core application's backend from `lowdb` to SQLite.
-* **Details**:
-    * Installed `better-sqlite3` and removed `lowdb` dependencies.
-    * Created a `database-setup.js` script to define and initialize the new database schema (`lockiedb.sqlite`).
-    * Overhauled `server.js` to handle API requests using the SQLite database, while maintaining the existing API contract with the frontend.
-    * Simplified `public/store.js` to remove data conversion logic now handled by the server.
-    * Successfully tested all core application features (add, edit, complete, delete tasks) with the new database.
-    * Updated project documentation (`README.md` and `AI_PROJECT_LOG.md`) to reflect the new architecture.
+    * Installed and configured **PM2** to manage all backend processes, providing auto-restarts and centralized logging.
+    * Created an `ecosystem.json` configuration file to define and manage all services from a single point.
+    * Created a new, independent **`notes-service`** and moved all database logic for notes and notebooks into it.
+    * Created a new, independent **`task-service`** and moved all remaining core data logic (tasks, projects, user profile, time tracking) into it.
+    * Created a central **`api-gateway`** service to act as the single, secure entry point for the frontend.
+    * Implemented an **API Composition** pattern in the gateway, where it fetches data from the `notes-service` and `task-service`, combines it, and returns a single response. This was done to avoid requiring any frontend code changes.
+    * Reduced the original `server.js` monolith to an empty shell, with all its data-handling responsibilities successfully migrated.
+    * Troubleshot and resolved several configuration issues related to PM2, module systems (`module.exports` vs. `export default`), and port conflicts (`EADDRINUSE`).
+    * Fixed a `RangeError` bug in the new `task-service` related to database updates.
 
 ## 5. Current Focus / Next Steps (Specific to Current Major Task):
 **Current Major Task/Feature Being Worked On:**
-* **Name:** Centralize Remaining App Data into SQLite
-* **Goal for this Task:** To migrate the remaining client-side apps (Notes, Habit Tracker, Time Tracker) that currently use localStorage to use the new centralized SQLite backend. This will unify all application data, improve persistence, and enable more complex features.
-* **Status:** Not Started
+* **Name:** Continue Backend Decoupling & Solidify Architecture
+* **Goal for this Task:** Finish migrating all remaining backend logic to microservices and then begin implementing new features on the new, stable architecture.
+* **Status:** In Progress
 
 **Current Sub-Task:**
-* Begin migration of the **Notes App**.
+* Decouple the **Time Tracker App**. The remaining time tracking logic currently resides in the `task-service` and should be moved to its own service to be truly independent.
 
 **Immediate Next Action:**
-1.  **Analyze** `noteService.js` and `feature_notes.js` to understand the current localStorage implementation.
-2.  **Update `server.js`** to add new API routes/logic within the existing `/api/data` endpoints to handle getting and saving notes and notebooks from the SQLite database.
-3.  **Refactor `noteService.js`** to call the backend API for all data operations instead of using localStorage.
-4.  **Test** the Notes app thoroughly to ensure all features work with the new backend.
+1.  Create a new `time-tracker-service` directory and its `package.json`.
+2.  Create the shell `index.js` for the service on a new port (e.g., 3005).
+3.  Update `ecosystem.json` to include the new service.
+4.  Move the time tracking logic (for `time_activities` and `time_log_entries`) from the `task-service` into the new `time-tracker-service`.
+5.  Update the `api-gateway` to fetch time tracking data from this new service, further distributing the data composition logic.
 
 * **Specific questions for AI (if any):**
     * None.
@@ -98,13 +88,16 @@ Last Updated: 2025-06-19 01:47 (EDT) ##
     * None.
 
 ## 6. Known Issues / Bugs (Related to current work or recently discovered):
-* None.
+* None. All known bugs from the refactoring session (`EADDRINUSE` and `RangeError`) were resolved.
 
 ## 7. Future/Pending Work (Overall Project - High Level):
-* **Backend Migration**: Continue migrating the Habits and Time Tracker apps to the SQLite backend.
-* **Core Features**: Refine and enhance the core remaining features based on usage.
+* **Backend Migration**: Complete the migration for the Time Tracker app.
+* **Security**: Implement API Key or JWT security on the API Gateway.
+* **Frontend Decoupling**: Begin the process of decoupling the monolithic frontend into independent applications per feature.
+* **Core Features**: Refine and enhance core features based on usage.
 * **UI/UX**: Continuously improve the user interface and experience across all apps.
 
 ## 8. Important Notes / Decisions Made:
-* **Feature Streamlining**: A decision was made to remove several complex or non-core features (Admin Panel, Ads, Sub-tasks, Dependencies, etc.) to simplify the application's focus and codebase. This allows for a more robust and maintainable core product.
-* **Database Migration Complete & Successful:** The decision to move to SQLite was made to support the user's goal of heavy, 24/7 data logging. This provides significant improvements in performance, scalability, and data integrity over the previous `lowdb` implementation.
+* **Feature Streamlining**: A decision was made to remove several complex or non-core features to simplify the application's focus and codebase.
+* **Database Migration Complete & Successful:** The decision to move to SQLite was made to support the user's goal of heavy, 24/7 data logging.
+* **Microservice Architecture Adopted**: A decision was made to proceed with a full microservice refactor over a modular monolith to ensure true decoupling and provide a stable foundation for third-party API integrations. The refactor uses an API Gateway with an API Composition pattern to avoid initial frontend code changes.
