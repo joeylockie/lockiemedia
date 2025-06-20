@@ -19,11 +19,6 @@
       "name": "time-tracker-service",
       "script": "/root/lockiemedia/services/time-tracker-service/index.js",
       "watch": false
-    },
-    {
-      "name": "lockiemedia-monolith",
-      "script": "/root/lockiemedia/server.js",
-      "watch": false
     }
   ]
 }

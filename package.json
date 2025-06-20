@@ -5,7 +5,6 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "node server.js",
     "setup": "node database-setup.js"
   },
   "dependencies": {
