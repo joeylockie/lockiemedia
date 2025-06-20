@@ -12,25 +12,14 @@ The platform is designed with a range of features, with a focus on core producti
 
 ### Platform Apps & Core Features
 
-* **Task Management**:
-    * Create, Edit, Delete Tasks.
-    * Due Dates & Times.
-    * Priority Levels (High, Medium, Low).
-    * Labels for categorization.
-    * Detailed Notes.
-    * Task Completion tracking.
-    * Smart Date Parsing (e.g., "Buy milk tomorrow").
-* **Project Organization**:
-    * Organize tasks into projects.
+* **Task Management**: Create, Edit, Delete Tasks, Due Dates & Times, Priority Levels, Labels, Detailed Notes, Task Completion tracking, and Smart Date Parsing.
+* **Project Organization**: Organize tasks into projects.
 * **Advanced Recurrence**: For tasks and events that repeat on complex schedules.
 * **Notes App**: A dedicated module for richer note-taking and document organization.
 * **Habit Tracker App**: A tool for building and tracking daily habits.
 * **Time Tracker App**: A separate app to track time spent on various activities.
 * **Shopping List**: A smart view within the Task Manager dedicated to shopping items.
-* **Search & Filtering**:
-    * **Smart Views**: Predefined filters like Inbox, Today, Upcoming, Completed.
-    * **Search**: Search tasks by title, label, notes, or project name.
-    * **Sorting**: Sort tasks by due date, priority, or label.
+* **Search & Filtering**: Predefined Smart Views, search by title, label, etc., and sorting options.
 * **Theme Management**: Light and Dark mode support.
 * **Desktop Notifications**: For reminders and application alerts.
 
@@ -56,7 +45,7 @@ The platform is designed with a range of features, with a focus on core producti
 ### Frontend
 
 * HTML5
-* CSS3 (including Tailwind CSS for utility-first styling and custom styles in `style.css`)
+* CSS3 (including Tailwind CSS for utility-first styling)
 * JavaScript (ES6 Modules) - Vanilla JS, no frameworks.
 
 ## Setup and Installation
@@ -80,6 +69,7 @@ This is a self-hosted application designed to run on a local server or container
     * **API Gateway:** `cd services/api-gateway && npm install && cd ../..`
     * **Notes Service:** `cd services/notes-service && npm install && cd ../..`
     * **Task Service:** `cd services/task-service && npm install && cd ../..`
+    * **Time Tracker Service:** `cd services/time-tracker-service && npm install && cd ../..`
 
 4.  **Initialize the Database**:
     * Run the setup script from the root directory to create the `lockiedb.sqlite` file and its tables. This only needs to be done once.

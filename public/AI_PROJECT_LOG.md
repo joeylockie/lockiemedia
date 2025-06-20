@@ -1,5 +1,5 @@
 # AI Project Curation Log: Lockie Media Platform
-Last Updated: 2025-06-20 05:03 (EDT) ##
+Last Updated: 2025-06-20 16:20 (EDT) ##
 
 ## 1. Instructions for AI (Gemini)
 **Purpose of this Document:** This document is your primary source of truth for the Lockie Media Platform project. It provides context, tracks progress, outlines current tasks, and lists future goals. Please refer to it to understand:
@@ -51,33 +51,35 @@ Last Updated: 2025-06-20 05:03 (EDT) ##
 * **Client-side Services:** Implemented services for logging, events, view management, etc.
 * **Backend Architecture Refactor:** Migrated the backend from a single monolith to a microservice architecture, creating an API Gateway and independent services for Notes, Tasks, and Time Tracking. Implemented PM2 for process management.
 * **API Security:** Implemented an API Key authentication layer (`X-API-Key` header) on the API Gateway to protect all backend services.
+* **Monolith Decommission:** The original `server.js` monolith has been fully decommissioned and removed from the project, completing the backend refactor.
 
 ## 4. Work Completed (Specific to Current Major Task):
 **Date: 2025-06-20**
 * **Task**: Architectural Refactor: Monolith to Microservices & API Security
-* **Summary**: Successfully decoupled all core application logic (Notes, Tasks, Time Tracker) from the original monolith into independent microservices. Introduced a central API Gateway to manage and route all API requests, and secured the entire API with a mandatory API Key header.
+* **Summary**: Successfully decoupled all core application logic (Notes, Tasks, Time Tracker) from the original monolith into independent microservices. Introduced a central API Gateway to manage and route all API requests, and secured the entire API with a mandatory API Key header. The original monolith server has been completely removed.
 * **Details**:
     * Installed and configured **PM2** to manage all backend processes.
-    * Created an `ecosystem.json` configuration file to define and manage all services (`api-gateway`, `notes-service`, `task-service`, `time-tracker-service`).
+    * Created an `ecosystem.json` configuration file to define and manage all services.
     * Created new, independent services for Notes, Tasks, and Time Tracking, each with its own Express server and dependencies.
+    * Created a central **API Gateway** service to act as the single, secure entry point for the frontend.
     * Implemented an **API Composition** pattern in the gateway, where it fetches data from multiple downstream services and combines it into a single response, requiring no initial frontend code changes.
-    * Moved all database logic for Notes, Tasks, and Time Tracking out of the original `server.js` and into their respective services.
-    * Reduced the original `server.js` to an empty shell, making it redundant for API logic.
+    * Moved all database logic out of the original `server.js` and into the respective services.
     * Implemented an `X-API-Key` authentication middleware on the API Gateway.
     * Updated the frontend `store.js` to send the API key with every request.
-    * Troubleshot and resolved numerous configuration issues related to PM2, module systems, `EADDRINUSE` port conflicts, and `RangeError` bugs.u
+    * Troubleshot and resolved numerous configuration issues related to PM2, module systems, `EADDRINUSE` port conflicts, and `SQLITE_CORRUPT` database errors.
+    * Performed a final cleanup by removing the obsolete `server.js` file and its references.
 
 ## 5. Current Focus / Next Steps (Specific to Current Major Task):
 **Current Major Task/Feature Being Worked On:**
-* **Name:** Solidify New Architecture & Plan Next Feature
-* **Goal for this Task:** With the major refactor complete and stable, the next goal is to decide on the next priority, which could be further cleanup, frontend work, or new feature development.
-* **Status:** Major refactor complete. Ready for the next phase.
+* **Name:** Plan Next Development Phase
+* **Goal for this Task:** With the major backend refactor complete, stable, and documented, the goal is to decide on the next major phase of the project.
+* **Status:** Ready to Begin
 
 **Current Sub-Task / Immediate Next Action:**
 * **Decision Point.** The next step is to choose from the following options:
-    1.  **Final Backend Cleanup:** The now-empty `lockiemedia-monolith` service is redundant and can be safely removed from `ecosystem.json` and deleted from the project.
-    2.  **Frontend Decoupling:** Begin the process of breaking the monolithic frontend into independent applications, starting with one of the smaller apps like Notes or Time Tracker.
-    3.  **New Feature Development:** Begin building a new feature (e.g., Reminders) on top of the new, stable architecture.
+    1.  **Frontend Decoupling:** Begin the process of breaking the monolithic frontend into independent applications, which will make the frontend code as robust as our new backend.
+    2.  **New Feature Development:** Start building a new feature (e.g., Reminders) on top of the new, stable architecture.
+    3.  **Third-Party Integration:** Leverage the new API Gateway to build a webhook or integration with an external service like Home Assistant.
 
 * **Specific questions for AI (if any):**
     * None.
