@@ -1,5 +1,5 @@
-// modal_interactions.js
-// Manages modal dialogs (Add, Edit, View, Settings, etc.)
+// tasks_modal_interactions.js
+// Manages modal dialogs for the Task Manager (Add, Edit, View, Settings, etc.)
 
 import AppStore from './store.js';
 import ModalStateService from './modalStateService.js';
@@ -9,9 +9,9 @@ import LoggingService from './loggingService.js';
 
 import {
     populateDatalist,
-} from './ui_rendering.js';
+} from './tasks_ui_rendering.js';
 
-import { handleDeleteLabel, clearTempSubTasksForAddModal } from './ui_event_handlers.js';
+import { handleDeleteLabel, clearTempSubTasksForAddModal } from './tasks_ui_event_handlers.js';
 import { ProjectsFeature } from './feature_projects.js';
 import { DesktopNotificationsFeature } from './feature_desktop_notifications.js';
 import { AdvancedRecurrenceFeature } from './feature_advanced_recurrence.js';
@@ -19,7 +19,7 @@ import { AdvancedRecurrenceFeature } from './feature_advanced_recurrence.js';
 
 export function openAddModal() {
     const functionName = 'openAddModal';
-    LoggingService.debug(`[ModalInteractions] Attempting to open Add Task Modal.`, { functionName });
+    LoggingService.debug(`[TasksModalInteractions] Attempting to open Add Task Modal.`, { functionName });
 
     const addTaskModalEl = document.getElementById('addTaskModal');
     const modalDialogAddEl = document.getElementById('modalDialogAdd');
@@ -40,7 +40,7 @@ export function openAddModal() {
 
 
     if (!addTaskModalEl || !modalDialogAddEl || !modalTaskInputAddEl || !modalTodoFormAddEl || !modalPriorityInputAddEl) { 
-        LoggingService.error("[ModalInteractions] Core Add Task modal elements not found in DOM.", new Error("DOMElementMissing"), { functionName });
+        LoggingService.error("[TasksModalInteractions] Core Add Task modal elements not found in DOM.", new Error("DOMElementMissing"), { functionName });
         return; 
     }
     addTaskModalEl.classList.remove('hidden'); 
@@ -71,30 +71,30 @@ export function openAddModal() {
 
     clearTempSubTasksForAddModal(); 
 
-    LoggingService.info(`[ModalInteractions] Add Task Modal opened.`, { functionName });
+    LoggingService.info(`[TasksModalInteractions] Add Task Modal opened.`, { functionName });
 }
 
 export function closeAddModal() {
     const functionName = 'closeAddModal';
-    LoggingService.debug(`[ModalInteractions] Attempting to close Add Task Modal.`, { functionName });
+    LoggingService.debug(`[TasksModalInteractions] Attempting to close Add Task Modal.`, { functionName });
     const addTaskModalEl = document.getElementById('addTaskModal'); 
     const modalDialogAddEl = document.getElementById('modalDialogAdd'); 
     
     if (!modalDialogAddEl || !addTaskModalEl) { 
-        LoggingService.warn(`[ModalInteractions] Add Task Modal elements not found for closing.`, { functionName });
+        LoggingService.warn(`[TasksModalInteractions] Add Task Modal elements not found for closing.`, { functionName });
         return;
     }
     modalDialogAddEl.classList.add('scale-95', 'opacity-0'); 
     setTimeout(() => { 
         addTaskModalEl.classList.add('hidden'); 
         clearTempSubTasksForAddModal(); 
-        LoggingService.info(`[ModalInteractions] Add Task Modal closed.`, { functionName });
+        LoggingService.info(`[TasksModalInteractions] Add Task Modal closed.`, { functionName });
     }, 200); 
 }
 
 export function openViewEditModal(taskId) {
     const functionName = 'openViewEditModal';
-    LoggingService.debug(`[ModalInteractions] Attempting to open View/Edit Modal for task ID: ${taskId}.`, { functionName, taskId });
+    LoggingService.debug(`[TasksModalInteractions] Attempting to open View/Edit Modal for task ID: ${taskId}.`, { functionName, taskId });
 
     const viewEditTaskModalEl = document.getElementById('viewEditTaskModal'); 
     const modalDialogViewEditEl = document.getElementById('modalDialogViewEdit'); 
@@ -117,13 +117,13 @@ export function openViewEditModal(taskId) {
 
 
     if (!AppStore || typeof AppStore.getTasks !== 'function' || !ModalStateService) { 
-        LoggingService.error("[ModalInteractions] Core dependencies (AppStore, ModalStateService) not available.", new Error("CoreDependenciesMissing"), { functionName, taskId });
+        LoggingService.error("[TasksModalInteractions] Core dependencies (AppStore, ModalStateService) not available.", new Error("CoreDependenciesMissing"), { functionName, taskId });
         return; 
     }
     const currentTasks = AppStore.getTasks(); 
     const task = currentTasks.find(t => t.id === taskId); 
     if (!task) { 
-        LoggingService.error(`[ModalInteractions] Task with ID ${taskId} not found for View/Edit Modal.`, new Error("TaskNotFound"), { functionName, taskId });
+        LoggingService.error(`[TasksModalInteractions] Task with ID ${taskId} not found for View/Edit Modal.`, new Error("TaskNotFound"), { functionName, taskId });
         return;
     }
 
@@ -199,35 +199,35 @@ export function openViewEditModal(taskId) {
     if (modalReminderDateViewEditEl) modalReminderDateViewEditEl.min = todayStr; 
 
     if (!viewEditTaskModalEl || !modalDialogViewEditEl) { 
-        LoggingService.error("[ModalInteractions] Core View/Edit modal DOM elements not found.", new Error("DOMElementMissing"), { functionName, taskId });
+        LoggingService.error("[TasksModalInteractions] Core View/Edit modal DOM elements not found.", new Error("DOMElementMissing"), { functionName, taskId });
         return;
     }
     viewEditTaskModalEl.classList.remove('hidden'); 
     setTimeout(() => { modalDialogViewEditEl.classList.remove('scale-95', 'opacity-0'); modalDialogViewEditEl.classList.add('scale-100', 'opacity-100'); }, 10); 
     if(modalTaskInputViewEditEl) modalTaskInputViewEditEl.focus(); 
-    LoggingService.info(`[ModalInteractions] View/Edit Modal opened for task ID: ${taskId}.`, { functionName, taskId });
+    LoggingService.info(`[TasksModalInteractions] View/Edit Modal opened for task ID: ${taskId}.`, { functionName, taskId });
 }
 
 export function closeViewEditModal() {
     const functionName = 'closeViewEditModal';
-    LoggingService.debug(`[ModalInteractions] Attempting to close View/Edit Modal.`, { functionName, editingTaskId: ModalStateService.getEditingTaskId() });
+    LoggingService.debug(`[TasksModalInteractions] Attempting to close View/Edit Modal.`, { functionName, editingTaskId: ModalStateService.getEditingTaskId() });
     const viewEditTaskModalEl = document.getElementById('viewEditTaskModal'); 
     const modalDialogViewEditEl = document.getElementById('modalDialogViewEdit'); 
     if (!modalDialogViewEditEl || !viewEditTaskModalEl) { 
-        LoggingService.warn(`[ModalInteractions] View/Edit Modal elements not found for closing.`, { functionName });
+        LoggingService.warn(`[TasksModalInteractions] View/Edit Modal elements not found for closing.`, { functionName });
         return;
     }
     modalDialogViewEditEl.classList.add('scale-95', 'opacity-0'); 
     setTimeout(() => { 
         viewEditTaskModalEl.classList.add('hidden'); 
         if (ModalStateService) ModalStateService.setEditingTaskId(null); 
-        LoggingService.info(`[ModalInteractions] View/Edit Modal closed.`, { functionName });
+        LoggingService.info(`[TasksModalInteractions] View/Edit Modal closed.`, { functionName });
     }, 200); 
 }
 
 export function openViewTaskDetailsModal(taskId) {
     const functionName = 'openViewTaskDetailsModal';
-    LoggingService.debug(`[ModalInteractions] Attempting to open View Task Details Modal for task ID: ${taskId}.`, { functionName, taskId });
+    LoggingService.debug(`[TasksModalInteractions] Attempting to open View Task Details Modal for task ID: ${taskId}.`, { functionName, taskId });
 
     const viewTaskDetailsModalEl = document.getElementById('viewTaskDetailsModal'); 
     const modalDialogViewDetailsEl = document.getElementById('modalDialogViewDetails'); 
@@ -247,13 +247,13 @@ export function openViewTaskDetailsModal(taskId) {
     const viewTaskReminderEmailEl = document.getElementById('viewTaskReminderEmail');
 
     if (!AppStore || typeof AppStore.getTasks !== 'function' || !ModalStateService) { 
-        LoggingService.error("[ModalInteractions] Core dependencies not available for View Task Details.", new Error("CoreDependenciesMissing"), { functionName, taskId });
+        LoggingService.error("[TasksModalInteractions] Core dependencies not available for View Task Details.", new Error("CoreDependenciesMissing"), { functionName, taskId });
         return;
     }
     const currentTasks = AppStore.getTasks(); 
     const task = currentTasks.find(t => t.id === taskId); 
     if (!task) { 
-        LoggingService.error(`[ModalInteractions] Task with ID ${taskId} not found for View Task Details Modal.`, new Error("TaskNotFound"), { functionName, taskId });
+        LoggingService.error(`[TasksModalInteractions] Task with ID ${taskId} not found for View Task Details Modal.`, new Error("TaskNotFound"), { functionName, taskId });
         return;
     }
     ModalStateService.setCurrentViewTaskId(taskId); 
@@ -290,66 +290,66 @@ export function openViewTaskDetailsModal(taskId) {
     }
 
     if (!viewTaskDetailsModalEl || !modalDialogViewDetailsEl) { 
-        LoggingService.error("[ModalInteractions] Core View Task Details modal DOM elements not found.", new Error("DOMElementMissing"), { functionName, taskId });
+        LoggingService.error("[TasksModalInteractions] Core View Task Details modal DOM elements not found.", new Error("DOMElementMissing"), { functionName, taskId });
         return;
     }
     viewTaskDetailsModalEl.classList.remove('hidden'); 
     setTimeout(() => { modalDialogViewDetailsEl.classList.remove('scale-95', 'opacity-0'); modalDialogViewDetailsEl.classList.add('scale-100', 'opacity-100'); }, 10); 
-    LoggingService.info(`[ModalInteractions] View Task Details Modal opened for task ID: ${taskId}.`, { functionName, taskId });
+    LoggingService.info(`[TasksModalInteractions] View Task Details Modal opened for task ID: ${taskId}.`, { functionName, taskId });
 }
 
 export function closeViewTaskDetailsModal() {
     const functionName = 'closeViewTaskDetailsModal';
-    LoggingService.debug(`[ModalInteractions] Attempting to close View Task Details Modal.`, { functionName, viewingTaskId: ModalStateService.getCurrentViewTaskId() });
+    LoggingService.debug(`[TasksModalInteractions] Attempting to close View Task Details Modal.`, { functionName, viewingTaskId: ModalStateService.getCurrentViewTaskId() });
     const viewTaskDetailsModalEl = document.getElementById('viewTaskDetailsModal'); 
     const modalDialogViewDetailsEl = document.getElementById('modalDialogViewDetails'); 
     if (!modalDialogViewDetailsEl || !viewTaskDetailsModalEl) { 
-        LoggingService.warn(`[ModalInteractions] View Task Details Modal elements not found for closing.`, { functionName });
+        LoggingService.warn(`[TasksModalInteractions] View Task Details Modal elements not found for closing.`, { functionName });
         return;
     }
     modalDialogViewDetailsEl.classList.add('scale-95', 'opacity-0'); 
     setTimeout(() => { 
         viewTaskDetailsModalEl.classList.add('hidden'); 
         if (ModalStateService) ModalStateService.setCurrentViewTaskId(null); 
-        LoggingService.info(`[ModalInteractions] View Task Details Modal closed.`, { functionName });
+        LoggingService.info(`[TasksModalInteractions] View Task Details Modal closed.`, { functionName });
     }, 200); 
 }
 
 export function openManageLabelsModal() {
     const functionName = 'openManageLabelsModal';
-    LoggingService.debug(`[ModalInteractions] Attempting to open Manage Labels Modal.`, { functionName });
+    LoggingService.debug(`[TasksModalInteractions] Attempting to open Manage Labels Modal.`, { functionName });
     const manageLabelsModalEl = document.getElementById('manageLabelsModal'); 
     const modalDialogManageLabelsEl = document.getElementById('modalDialogManageLabels'); 
     const newLabelInputEl = document.getElementById('newLabelInput'); 
     if (!manageLabelsModalEl || !modalDialogManageLabelsEl || !newLabelInputEl) { 
-        LoggingService.error("[ModalInteractions] Core Manage Labels modal DOM elements not found.", new Error("DOMElementMissing"), { functionName });
+        LoggingService.error("[TasksModalInteractions] Core Manage Labels modal DOM elements not found.", new Error("DOMElementMissing"), { functionName });
         return;
     }
     populateManageLabelsList(); 
     manageLabelsModalEl.classList.remove('hidden'); 
     setTimeout(() => { modalDialogManageLabelsEl.classList.remove('scale-95', 'opacity-0'); modalDialogManageLabelsEl.classList.add('scale-100', 'opacity-100'); }, 10); 
     newLabelInputEl.focus(); 
-    LoggingService.info(`[ModalInteractions] Manage Labels Modal opened.`, { functionName });
+    LoggingService.info(`[TasksModalInteractions] Manage Labels Modal opened.`, { functionName });
 }
 
 export function closeManageLabelsModal() {
     const functionName = 'closeManageLabelsModal';
-    LoggingService.debug(`[ModalInteractions] Attempting to close Manage Labels Modal.`, { functionName });
+    LoggingService.debug(`[TasksModalInteractions] Attempting to close Manage Labels Modal.`, { functionName });
     const manageLabelsModalEl = document.getElementById('manageLabelsModal'); 
     const modalDialogManageLabelsEl = document.getElementById('modalDialogManageLabels'); 
     if (!modalDialogManageLabelsEl || !manageLabelsModalEl) { 
-        LoggingService.warn(`[ModalInteractions] Manage Labels Modal elements not found for closing.`, { functionName });
+        LoggingService.warn(`[TasksModalInteractions] Manage Labels Modal elements not found for closing.`, { functionName });
         return;
     }
     modalDialogManageLabelsEl.classList.add('scale-95', 'opacity-0'); 
-    setTimeout(() => { manageLabelsModalEl.classList.add('hidden'); LoggingService.info(`[ModalInteractions] Manage Labels Modal closed.`, { functionName }); }, 200); 
+    setTimeout(() => { manageLabelsModalEl.classList.add('hidden'); LoggingService.info(`[TasksModalInteractions] Manage Labels Modal closed.`, { functionName }); }, 200); 
 }
 
 export function populateManageLabelsList() {
     const functionName = 'populateManageLabelsList';
     const existingLabelsListEl = document.getElementById('existingLabelsList'); 
     if (!existingLabelsListEl || !AppStore || typeof AppStore.getUniqueLabels !== 'function') { 
-        LoggingService.error("[ModalInteractions] Cannot populate manage labels list. Dependencies missing.", new Error("CoreDependenciesMissing"), { functionName, existingLabelsListElFound: !!existingLabelsListEl, AppStoreAvailable: !!AppStore });
+        LoggingService.error("[TasksModalInteractions] Cannot populate manage labels list. Dependencies missing.", new Error("CoreDependenciesMissing"), { functionName, existingLabelsListElFound: !!existingLabelsListEl, AppStoreAvailable: !!AppStore });
          if(existingLabelsListEl) existingLabelsListEl.innerHTML = '<li class="text-slate-500 dark:text-slate-400 text-center">Error loading labels.</li>'; 
         return; 
     }
@@ -373,43 +373,43 @@ export function populateManageLabelsList() {
     if (currentUniqueLabels.length === 0) { 
         existingLabelsListEl.innerHTML = '<li class="text-slate-500 dark:text-slate-400 text-center">No labels created yet.</li>'; 
     }
-    LoggingService.debug(`[ModalInteractions] Manage Labels list populated with ${currentUniqueLabels.length} labels.`, { functionName, labelCount: currentUniqueLabels.length });
+    LoggingService.debug(`[TasksModalInteractions] Manage Labels list populated with ${currentUniqueLabels.length} labels.`, { functionName, labelCount: currentUniqueLabels.length });
 }
 
 export function openSettingsModal() {
     const functionName = 'openSettingsModal';
-    LoggingService.debug(`[ModalInteractions] Attempting to open Settings Modal.`, { functionName });
+    LoggingService.debug(`[TasksModalInteractions] Attempting to open Settings Modal.`, { functionName });
     const settingsModalEl = document.getElementById('settingsModal'); 
     const modalDialogSettingsEl = document.getElementById('modalDialogSettings'); 
 
     if (!settingsModalEl || !modalDialogSettingsEl) { 
-        LoggingService.error("[ModalInteractions] Core Settings modal DOM elements not found.", new Error("DOMElementMissing"), { functionName });
+        LoggingService.error("[TasksModalInteractions] Core Settings modal DOM elements not found.", new Error("DOMElementMissing"), { functionName });
         return;
     }
     settingsModalEl.classList.remove('hidden'); 
     setTimeout(() => { modalDialogSettingsEl.classList.remove('scale-95', 'opacity-0'); modalDialogSettingsEl.classList.add('scale-100', 'opacity-100'); }, 10); 
-    LoggingService.info(`[ModalInteractions] Settings Modal opened.`, { functionName });
+    LoggingService.info(`[TasksModalInteractions] Settings Modal opened.`, { functionName });
 }
 
 export function closeSettingsModal() {
     const functionName = 'closeSettingsModal';
-    LoggingService.debug(`[ModalInteractions] Attempting to close Settings Modal.`, { functionName });
+    LoggingService.debug(`[TasksModalInteractions] Attempting to close Settings Modal.`, { functionName });
     const settingsModalEl = document.getElementById('settingsModal'); 
     const modalDialogSettingsEl = document.getElementById('modalDialogSettings'); 
     if (!modalDialogSettingsEl || !settingsModalEl) { 
-        LoggingService.warn(`[ModalInteractions] Settings Modal elements not found for closing.`, { functionName });
+        LoggingService.warn(`[TasksModalInteractions] Settings Modal elements not found for closing.`, { functionName });
         return;
     }
     modalDialogSettingsEl.classList.add('scale-95', 'opacity-0'); 
-    setTimeout(() => { settingsModalEl.classList.add('hidden'); LoggingService.info(`[ModalInteractions] Settings Modal closed.`, { functionName }); }, 200); 
+    setTimeout(() => { settingsModalEl.classList.add('hidden'); LoggingService.info(`[TasksModalInteractions] Settings Modal closed.`, { functionName }); }, 200); 
 }
 
 export function openDesktopNotificationsSettingsModal() {
     const functionName = 'openDesktopNotificationsSettingsModal';
-    LoggingService.debug(`[ModalInteractions] Attempting to open Desktop Notifications Settings Modal.`, { functionName });
+    LoggingService.debug(`[TasksModalInteractions] Attempting to open Desktop Notifications Settings Modal.`, { functionName });
 
     if (!window.isFeatureEnabled('desktopNotificationsFeature')) { 
-        LoggingService.warn('[ModalInteractions] Desktop Notifications feature is disabled. Cannot open settings modal.', { functionName });
+        LoggingService.warn('[TasksModalInteractions] Desktop Notifications feature is disabled. Cannot open settings modal.', { functionName });
         EventBus.publish('displayUserMessage', { text: "Desktop Notifications feature is currently disabled.", type: "info" });
         return;
     }
@@ -418,7 +418,7 @@ export function openDesktopNotificationsSettingsModal() {
     const dialogEl = document.getElementById('modalDialogDesktopNotificationsSettings');
 
     if (!modalEl || !dialogEl) {
-        LoggingService.error("[ModalInteractions] Core Desktop Notifications Settings modal DOM elements not found.", new Error("DOMElementMissing"), { functionName });
+        LoggingService.error("[TasksModalInteractions] Core Desktop Notifications Settings modal DOM elements not found.", new Error("DOMElementMissing"), { functionName });
         return;
     }
 
@@ -429,35 +429,35 @@ export function openDesktopNotificationsSettingsModal() {
         if (DesktopNotificationsFeature && typeof DesktopNotificationsFeature.refreshSettingsUIDisplay === 'function') {
             DesktopNotificationsFeature.refreshSettingsUIDisplay();
         } else {
-            LoggingService.warn('[ModalInteractions] DesktopNotificationsFeature.refreshSettingsUIDisplay is not available.', { functionName });
+            LoggingService.warn('[TasksModalInteractions] DesktopNotificationsFeature.refreshSettingsUIDisplay is not available.', { functionName });
         }
     }, 10);
-    LoggingService.info(`[ModalInteractions] Desktop Notifications Settings Modal opened.`, { functionName });
+    LoggingService.info(`[TasksModalInteractions] Desktop Notifications Settings Modal opened.`, { functionName });
 }
 
 export function closeDesktopNotificationsSettingsModal() {
     const functionName = 'closeDesktopNotificationsSettingsModal';
-    LoggingService.debug(`[ModalInteractions] Attempting to close Desktop Notifications Settings Modal.`, { functionName });
+    LoggingService.debug(`[TasksModalInteractions] Attempting to close Desktop Notifications Settings Modal.`, { functionName });
 
     const modalEl = document.getElementById('desktopNotificationsSettingsModal');
     const dialogEl = document.getElementById('modalDialogDesktopNotificationsSettings');
 
     if (!modalEl || !dialogEl) {
-        LoggingService.warn("[ModalInteractions] Desktop Notifications Settings modal DOM elements not found for closing.", { functionName });
+        LoggingService.warn("[TasksModalInteractions] Desktop Notifications Settings modal DOM elements not found for closing.", { functionName });
         return;
     }
 
     dialogEl.classList.add('scale-95', 'opacity-0');
     setTimeout(() => {
         modalEl.classList.add('hidden');
-        LoggingService.info(`[ModalInteractions] Desktop Notifications Settings Modal closed.`, { functionName });
+        LoggingService.info(`[TasksModalInteractions] Desktop Notifications Settings Modal closed.`, { functionName });
     }, 200);
 }
 
 // --- NEW Profile Modal Functions ---
 export function openProfileModal() {
-    const functionName = 'openProfileModal (ModalInteractions)';
-    LoggingService.debug(`[ModalInteractions] Attempting to open Profile Modal.`, { functionName });
+    const functionName = 'openProfileModal (TasksModalInteractions)';
+    LoggingService.debug(`[TasksModalInteractions] Attempting to open Profile Modal.`, { functionName });
 
     const profileModalEl = document.getElementById('profileModal');
     const modalDialogProfileEl = document.getElementById('modalDialogProfile');
@@ -466,7 +466,7 @@ export function openProfileModal() {
     const profileFormEl = document.getElementById('profileForm');
 
     if (!profileModalEl || !modalDialogProfileEl || !profileDisplayNameInputEl || !profileEmailInputEl || !profileFormEl) {
-        LoggingService.error("[ModalInteractions] Core Profile Modal DOM elements not found.", new Error("DOMElementMissing"), { functionName });
+        LoggingService.error("[TasksModalInteractions] Core Profile Modal DOM elements not found.", new Error("DOMElementMissing"), { functionName });
         EventBus.publish('displayUserMessage', { text: 'Could not open profile editor.', type: 'error' });
         return;
     }
@@ -482,19 +482,19 @@ export function openProfileModal() {
         modalDialogProfileEl.classList.add('scale-100', 'opacity-100');
         profileDisplayNameInputEl.focus();
     }, 10);
-    LoggingService.info(`[ModalInteractions] Profile Modal opened.`, { functionName });
+    LoggingService.info(`[TasksModalInteractions] Profile Modal opened.`, { functionName });
 }
 
 export function closeProfileModal() {
-    const functionName = 'closeProfileModal (ModalInteractions)';
-    LoggingService.debug(`[ModalInteractions] Attempting to close Profile Modal.`, { functionName });
+    const functionName = 'closeProfileModal (TasksModalInteractions)';
+    LoggingService.debug(`[TasksModalInteractions] Attempting to close Profile Modal.`, { functionName });
 
     const profileModalEl = document.getElementById('profileModal');
     const modalDialogProfileEl = document.getElementById('modalDialogProfile');
     const profileFormEl = document.getElementById('profileForm');
 
     if (!profileModalEl || !modalDialogProfileEl) {
-        LoggingService.warn("[ModalInteractions] Profile Modal DOM elements not found for closing.", { functionName });
+        LoggingService.warn("[TasksModalInteractions] Profile Modal DOM elements not found for closing.", { functionName });
         return;
     }
 
@@ -504,9 +504,9 @@ export function closeProfileModal() {
         if (profileFormEl) {
             profileFormEl.reset(); // Optional: reset form on close
         }
-        LoggingService.info(`[ModalInteractions] Profile Modal closed.`, { functionName });
+        LoggingService.info(`[TasksModalInteractions] Profile Modal closed.`, { functionName });
     }, 200);
 }
 
 
-LoggingService.debug("modal_interactions.js loaded, uses getElementById, imports, and new tempSubTask clearing.", { module: 'modal_interactions' });
+LoggingService.debug("tasks_modal_interactions.js loaded", { module: 'tasks_modal_interactions' });

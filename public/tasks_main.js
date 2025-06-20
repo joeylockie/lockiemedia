@@ -1,29 +1,25 @@
-// main.js
-// Main entry point for the application.
-// REFACTORED FOR SELF-HOSTED BACKEND
+// tasks_main.js
+// Main entry point for the Task Manager application.
 
 import EventBus from './eventBus.js';
 import AppStore from './store.js';
 import { loadAppVersion, startUpdateChecker } from './versionService.js';
 import { ProjectsFeature } from './feature_projects.js';
-import { setupEventListeners, applyActiveFeatures, setFilter } from './ui_event_handlers.js';
+import { setupEventListeners, applyActiveFeatures, setFilter } from './tasks_ui_event_handlers.js';
 import ViewManager from './viewManager.js';
 import { ReminderFeature } from './feature_reminder.js';
 import { AdvancedRecurrenceFeature } from './feature_advanced_recurrence.js';
 import { ShoppingListFeature } from './feature_shopping_list.js';
 import LoggingService from './loggingService.js';
 import { DesktopNotificationsFeature } from './feature_desktop_notifications.js';
-import * as uiRendering from './ui_rendering.js';
+import * as uiRendering from './tasks_ui_rendering.js';
 import { logPerformanceMetrics } from './performanceService.js';
-import { NotesFeature } from './feature_notes.js';
-import { refreshTaskView } from './ui_rendering.js';
-import * as ModalInteractions from './modal_interactions.js';
+import { refreshTaskView } from './tasks_ui_rendering.js';
+import * as ModalInteractions from './tasks_modal_interactions.js';
 
-// --- Simplified Feature Handling ---
-// Since we removed feature flags, we now treat every feature as enabled.
-// The `isFeatureEnabled` function is a simple true/false check.
+// --- Feature Handling ---
+// This function determines which features are active for the Task Manager.
 function isFeatureEnabled(featureName) {
-    // For now, we enable all features. You can disable one by setting it to false.
     const features = {
         reminderFeature: true,
         advancedRecurrence: true,
@@ -32,11 +28,11 @@ function isFeatureEnabled(featureName) {
         desktopNotificationsFeature: true,
         appUpdateNotificationFeature: true,
         shoppingListFeature: true,
-        notesFeature: true,
+        notesFeature: true, // Kept for potential cross-app integrations, but Notes UI is separate
         debugMode: true,
         userRoleFeature: true,
 
-        // --- REMOVED FEATURES ---
+        // Explicitly disabled features from original monolith
         fileAttachments: false,
         subTasksFeature: false,
         exportDataFeature: false,
@@ -60,23 +56,16 @@ function isFeatureEnabled(featureName) {
     return features[featureName] || false;
 }
 
-let showCriticalErrorImported = (message, errorId) => {
-    const fallbackErrorMsg = `CRITICAL ERROR (display): ${message}, ID: ${errorId}. UI for errors not yet loaded.`;
-    console.error(fallbackErrorMsg);
-    alert(fallbackErrorMsg);
-};
-
 // --- Update Notification ---
 let updateNotificationElement = null;
 
 function showUpdateNotificationBar(data) {
-    // This function remains the same as before
-    const functionName = 'showUpdateNotificationBar (main.js)';
+    const functionName = 'showUpdateNotificationBar (tasks_main.js)';
     const newVersionString = data.newVersion;
-    LoggingService.info(`[Main] Preparing update notification for version: ${newVersionString}`, { functionName, newVersionString });
+    LoggingService.info(`[TasksMain] Preparing update notification for version: ${newVersionString}`, { functionName, newVersionString });
     const dismissedKey = `updateNotificationDismissedForVersion_${newVersionString}`;
     if (localStorage.getItem(dismissedKey) === 'true') {
-        LoggingService.info(`[Main] Update notification for version ${newVersionString} was previously dismissed. Not showing.`, { functionName });
+        LoggingService.info(`[TasksMain] Update notification for version ${newVersionString} was previously dismissed. Not showing.`, { functionName });
         return;
     }
     if (updateNotificationElement && updateNotificationElement.parentNode) {
@@ -84,7 +73,7 @@ function showUpdateNotificationBar(data) {
             updateNotificationElement.parentNode.removeChild(updateNotificationElement);
             updateNotificationElement = null;
         } else {
-            LoggingService.debug(`[Main] Update notification for ${newVersionString} already visible.`, { functionName });
+            LoggingService.debug(`[TasksMain] Update notification for ${newVersionString} already visible.`, { functionName });
             return;
         }
     }
@@ -103,7 +92,7 @@ function showUpdateNotificationBar(data) {
     refreshButton.textContent = 'Refresh Now';
     refreshButton.className = 'w-full sm:w-auto px-3 py-1.5 sm:px-4 sm:py-2 bg-white text-sky-700 rounded-md hover:bg-sky-100 font-semibold text-xs sm:text-sm shadow-sm';
     refreshButton.onclick = () => {
-        LoggingService.info('[Main] User clicked refresh button for update.', { functionName });
+        LoggingService.info('[TasksMain] User clicked refresh button for update.', { functionName });
         localStorage.removeItem(dismissedKey);
         window.location.reload();
     };
@@ -111,7 +100,7 @@ function showUpdateNotificationBar(data) {
     dismissButton.textContent = 'Dismiss';
     dismissButton.className = 'w-full sm:w-auto px-3 py-1.5 sm:px-4 sm:py-2 bg-sky-500 hover:bg-sky-400 text-white rounded-md border border-sky-400 dark:border-sky-600 text-xs sm:text-sm';
     dismissButton.onclick = () => {
-        LoggingService.info(`[Main] User dismissed update notification for version: ${newVersionString}.`, { functionName, newVersion: newVersionString });
+        LoggingService.info(`[TasksMain] User dismissed update notification for version: ${newVersionString}.`, { functionName, newVersion: newVersionString });
         if (updateNotificationElement && updateNotificationElement.parentNode) {
             updateNotificationElement.classList.add('translate-y-full');
             setTimeout(() => {
@@ -138,6 +127,12 @@ function showUpdateNotificationBar(data) {
 
 
 // --- Global Error Handling ---
+let showCriticalErrorImported = (message, errorId) => {
+    const fallbackErrorMsg = `CRITICAL ERROR (display): ${message}, ID: ${errorId}. UI for errors not yet loaded.`;
+    console.error(fallbackErrorMsg);
+    alert(fallbackErrorMsg);
+};
+
 window.onerror = function(message, source, lineno, colno, error) {
     const errorId = `ERR-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
     LoggingService.critical(String(message), error || new Error(String(message)), {
@@ -165,9 +160,8 @@ window.onunhandledrejection = function(event) {
 
 // --- Main Application Initialization ---
 document.addEventListener('DOMContentLoaded', async () => {
-    // No more authentication check here
     document.body.style.visibility = 'visible';
-    LoggingService.info("[Main] Starting application initialization...");
+    LoggingService.info("[TasksMain] Starting Task Manager application initialization...");
 
     // Phase 1: Initialize UI elements and core services
     uiRendering.initializeDOMElements();
@@ -176,55 +170,56 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     await loadAppVersion();
     
-    // Phase 2: Load data from our new backend
+    // Phase 2: Load data from the backend
     if (AppStore && AppStore.initializeStore) {
         await AppStore.initializeStore();
-        LoggingService.info("[Main] Initial data load from server complete.");
+        LoggingService.info("[TasksMain] Initial data load from server complete.");
     } else {
-        LoggingService.critical('[Main] AppStore.initializeStore is not available. Cannot load data.', new Error('DataLoadFailed'));
+        LoggingService.critical('[TasksMain] AppStore.initializeStore is not available. Cannot load data.', new Error('DataLoadFailed'));
         return;
     }
 
-    // Phase 3: Initialize all feature modules now that data is present
+    // Phase 3: Initialize all feature modules relevant to the Task Manager
     window.AppFeatures = {
         LoggingService, EventBus, AppStore, ViewManager, ModalInteractions,
         ReminderFeature, AdvancedRecurrenceFeature,
         ProjectsFeature,
         ShoppingListFeature,
-        DesktopNotificationsFeature, NotesFeature,
-        isFeatureEnabled // Use our local function
+        DesktopNotificationsFeature,
+        isFeatureEnabled
     };
     
     uiRendering.initializeUiRenderingSubscriptions();
     setupEventListeners();
 
     for (const featureKey in window.AppFeatures) {
-        if (typeof window.AppFeatures[featureKey]?.initialize === 'function') {
+        if (window.AppFeatures.hasOwnProperty(featureKey) && typeof window.AppFeatures[featureKey]?.initialize === 'function') {
             try {
-                LoggingService.debug(`[Main] Initializing feature module: ${featureKey}`);
+                LoggingService.debug(`[TasksMain] Initializing feature module: ${featureKey}`);
                 window.AppFeatures[featureKey].initialize();
             } catch (e) {
-                LoggingService.error(`[Main] Error initializing feature ${featureKey}:`, e);
+                LoggingService.error(`[TasksMain] Error initializing feature ${featureKey}:`, e);
             }
         }
     }
     
     // Phase 4: Initial Render
-    applyActiveFeatures(); // This function now relies on our local isFeatureEnabled
+    applyActiveFeatures();
     setFilter(ViewManager.getCurrentFilter());
     uiRendering.setSidebarMinimized(localStorage.getItem('sidebarState') === 'minimized');
     refreshTaskView();
-    LoggingService.info("[Main] Initial UI render complete.");
+    LoggingService.info("[TasksMain] Initial UI render complete.");
     
     // Phase 5: Start background services
     if (isFeatureEnabled('appUpdateNotificationFeature')) {
         startUpdateChecker();
+        // Subscribe to the new version event to show the notification bar
+        EventBus.subscribe('newVersionAvailable', showUpdateNotificationBar);
     }
-    // No more user data streaming
     logPerformanceMetrics();
 
     LoggingService.info("---------------------------------------------------------");
-    LoggingService.info("         LockieMedia App Initialization Complete ✓");
+    LoggingService.info("     LockieMedia Task Manager Initialization Complete ✓");
     LoggingService.info("---------------------------------------------------------");
 });
 

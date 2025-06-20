@@ -1,5 +1,5 @@
-// ui_event_handlers.js
-// REFACTORED FOR SELF-HOSTED BACKEND
+// tasks_ui_event_handlers.js
+// REFACTORED FOR SELF-HOSTED BACKEND & DECOUPLING
 
 import AppStore from './store.js';
 import ViewManager from './viewManager.js';
@@ -10,10 +10,10 @@ import EventBus from './eventBus.js';
 import * as BulkActionService from './bulkActionService.js';
 import LoggingService from './loggingService.js';
 
-// Import UI rendering functions
+// Import UI rendering functions from the new tasks-specific module
 import {
     setSidebarMinimized,
-} from './ui_rendering.js';
+} from './tasks_ui_rendering.js';
 
 // Import modal interaction functions
 import {
@@ -22,17 +22,17 @@ import {
     closeViewTaskDetailsModal,
     closeViewEditModal,
     closeSettingsModal
-} from './modal_interactions.js';
+} from './tasks_modal_interactions.js';
 
 // Import form event handlers
 import {
     handleAddTaskFormSubmit,
     handleEditTaskFormSubmit,
     handleAddNewLabelFormSubmit
-} from './formEventHandlers.js';
+} from './tasks_form_handlers.js';
 
 // Import the new modal event handlers setup function
-import { setupModalEventListeners } from './modalEventHandlers.js';
+import { setupModalEventListeners } from './tasks_modal_events.js';
 
 // Import Feature Modules (some might be used by handlers still in this file)
 import { ProjectsFeature } from './feature_projects.js';
@@ -40,7 +40,7 @@ import { ProjectsFeature } from './feature_projects.js';
 export let tempSubTasksForAddModal = [];
 
 export function clearTempSubTasksForAddModal() {
-    const functionName = 'clearTempSubTasksForAddModal (ui_event_handlers)';
+    const functionName = 'clearTempSubTasksForAddModal (tasks_ui_event_handlers)';
     LoggingService.debug('[UIEventHandlers] Temporary sub-tasks for add modal cleared.', { functionName, count: tempSubTasksForAddModal.length });
     tempSubTasksForAddModal = [];
 }
@@ -83,7 +83,7 @@ export function applyActiveFeatures() {
 
 // Task action handlers (toggleComplete, deleteTask)
 function toggleComplete(taskId) {
-    const functionName = 'toggleComplete (Internal Handler in ui_event_handlers)';
+    const functionName = 'toggleComplete (Internal Handler in tasks_ui_event_handlers)';
     LoggingService.debug(`[UIEventHandlers] Handling request to toggle completion for task ID: ${taskId}.`, { functionName, taskId });
     const updatedTask = TaskService.toggleTaskComplete(taskId);
     if (updatedTask && updatedTask._blocked) {
@@ -102,7 +102,7 @@ function toggleComplete(taskId) {
 }
 
 function deleteTask(taskId) {
-    const functionName = 'deleteTask (Internal Handler in ui_event_handlers)';
+    const functionName = 'deleteTask (Internal Handler in tasks_ui_event_handlers)';
     LoggingService.info(`[UIEventHandlers] Handling request to delete task ID: ${taskId}.`, { functionName, taskId });
     if (confirm('Are you sure you want to delete this task?')) {
         if (TaskService.deleteTaskById(taskId)) {
@@ -229,7 +229,7 @@ export function setupEventListeners() {
             const taskId = ModalStateService.getCurrentViewTaskId();
             if (taskId) {
                 closeViewTaskDetailsModal();
-                const { openViewEditModal } = await import('./modal_interactions.js');
+                const { openViewEditModal } = await import('./tasks_modal_interactions.js');
                 openViewEditModal(taskId);
             }
         });

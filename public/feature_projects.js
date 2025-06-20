@@ -5,7 +5,7 @@ import EventBus from './eventBus.js';
 import { addProject, updateProjectName, deleteProjectById, getProjectById, getAllProjects } from './projectService.js';
 
 import LoggingService from './loggingService.js';
-import { setFilter } from './ui_event_handlers.js';
+import { setFilter } from './tasks_ui_event_handlers.js';
 import ViewManager from './viewManager.js'; 
 
 

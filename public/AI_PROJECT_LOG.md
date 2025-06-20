@@ -1,5 +1,5 @@
 # AI Project Curation Log: Lockie Media Platform
-Last Updated: 2025-06-20 16:20 (EDT) ##
+Last Updated: 2025-06-20 18:24 (EDT) ##
 
 ## 1. Instructions for AI (Gemini)
 **Purpose of this Document:** This document is your primary source of truth for the Lockie Media Platform project. It provides context, tracks progress, outlines current tasks, and lists future goals. Please refer to it to understand:
@@ -55,31 +55,24 @@ Last Updated: 2025-06-20 16:20 (EDT) ##
 
 ## 4. Work Completed (Specific to Current Major Task):
 **Date: 2025-06-20**
-* **Task**: Architectural Refactor: Monolith to Microservices & API Security
-* **Summary**: Successfully decoupled all core application logic (Notes, Tasks, Time Tracker) from the original monolith into independent microservices. Introduced a central API Gateway to manage and route all API requests, and secured the entire API with a mandatory API Key header. The original monolith server has been completely removed.
+* **Task**: Frontend Decoupling - Phase 1 & 2
+* **Summary**: Began and deepened the frontend decoupling process by isolating the main Task Manager application. This separates it from the other apps and creates a clearer, more modular structure by namespacing its core files.
 * **Details**:
-    * Installed and configured **PM2** to manage all backend processes.
-    * Created an `ecosystem.json` configuration file to define and manage all services.
-    * Created new, independent services for Notes, Tasks, and Time Tracking, each with its own Express server and dependencies.
-    * Created a central **API Gateway** service to act as the single, secure entry point for the frontend.
-    * Implemented an **API Composition** pattern in the gateway, where it fetches data from multiple downstream services and combines it into a single response, requiring no initial frontend code changes.
-    * Moved all database logic out of the original `server.js` and into the respective services.
-    * Implemented an `X-API-Key` authentication middleware on the API Gateway.
-    * Updated the frontend `store.js` to send the API key with every request.
-    * Troubleshot and resolved numerous configuration issues related to PM2, module systems, `EADDRINUSE` port conflicts, and `SQLITE_CORRUPT` database errors.
-    * Performed a final cleanup by removing the obsolete `server.js` file and its references.
+    * **Phase 1:** Renamed `todo.html` to `tasks.html`, created a dedicated `tasks_main.js` entry point, and deleted the old monolithic `main.js`.
+    * **Phase 2:** Renamed all generic UI, event, and modal handling files with a `tasks_` prefix (e.g., `ui_rendering.js` became `tasks_ui_rendering.js`).
+    * Updated all `import` statements within the Task Manager's JavaScript files to point to the new, namespaced modules.
 
 ## 5. Current Focus / Next Steps (Specific to Current Major Task):
 **Current Major Task/Feature Being Worked On:**
-* **Name:** Plan Next Development Phase
-* **Goal for this Task:** With the major backend refactor complete, stable, and documented, the goal is to decide on the next major phase of the project.
-* **Status:** Ready to Begin
+* **Name:** Frontend Decoupling
+* **Goal for this Task:** Continue the process of breaking the monolithic frontend into smaller, independent, and maintainable applications, mirroring the backend architecture.
+* **Status:** In Progress
 
 **Current Sub-Task / Immediate Next Action:**
-* **Decision Point.** The next step is to choose from the following options:
-    1.  **Frontend Decoupling:** Begin the process of breaking the monolithic frontend into independent applications, which will make the frontend code as robust as our new backend.
-    2.  **New Feature Development:** Start building a new feature (e.g., Reminders) on top of the new, stable architecture.
-    3.  **Third-Party Integration:** Leverage the new API Gateway to build a webhook or integration with an external service like Home Assistant.
+* **Decision Point.** The deep refactoring of the Task Manager's file structure is now complete. The next step is to decide on the next logical action:
+    1.  **Verify App Independence:** Briefly review the other apps (`notes`, `habits`, `time-tracker`) to ensure they remain fully functional and have no broken dependencies after our refactor.
+    2.  **Continue Refactoring:** Identify another area of the code that could benefit from further decoupling or cleanup.
+    3.  **Move to a New Feature:** Consider the frontend decoupling to be in a sufficiently stable state and begin work on a new user-facing feature.
 
 * **Specific questions for AI (if any):**
     * None.
@@ -87,16 +80,15 @@ Last Updated: 2025-06-20 16:20 (EDT) ##
     * None.
 
 ## 6. Known Issues / Bugs (Related to current work or recently discovered):
-* None. All known bugs from the refactoring session have been resolved.
+* None.
 
 ## 7. Future/Pending Work (Overall Project - High Level):
 * **Backend Migration**: Complete.
 * **Security**: Further enhancements could include JWT for user-level authentication in the future.
-* **Frontend Decoupling**: A major pending task is to break the frontend into independent apps.
+* **Frontend Decoupling**: In Progress.
 * **Core Features**: Refine and enhance core features based on usage.
 * **UI/UX**: Continuously improve the user interface and experience across all apps.
 
 ## 8. Important Notes / Decisions Made:
-* **Feature Streamlining**: A decision was made to remove several complex or non-core features to simplify the application's focus and codebase.
-* **Database Migration Complete & Successful:** The decision to move to SQLite was made to support the user's goal of heavy, 24/7 data logging.
-* **Microservice Architecture Adopted**: Pivoted from a simple data centralization task to a full backend refactor. Adopted a microservice architecture with an API Gateway to ensure true decoupling, improve stability, and provide a secure foundation for future third-party integrations. Implemented API Key security as the first layer of protection.
+* **Microservice Architecture Adopted**: Pivoted from a simple data centralization task to a full backend refactor. Adopted a microservice architecture with an API Gateway to ensure true decoupling, improve stability, and provide a secure foundation for third-party integrations. Implemented API Key security as the first layer of protection.
+* **Frontend Decoupling Initiated**: A decision was made to begin refactoring the frontend. The first phase isolated the Task Manager app. The second phase deepened this decoupling by namespacing all of its UI, event, and modal handling files with a `tasks_` prefix for better code isolation and clarity.

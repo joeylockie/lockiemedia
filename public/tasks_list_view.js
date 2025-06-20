@@ -1,21 +1,16 @@
-// renderTaskListView.js
+// tasks_list_view.js
 // Handles rendering the main task list view and its associated bulk action controls.
 
 import AppStore from './store.js';
 import ViewManager from './viewManager.js';
-// import { isFeatureEnabled } from './featureFlagService.js'; // REMOVED
 import * as TaskService from './taskService.js';
 import * as BulkActionService from './bulkActionService.js';
 import EventBus from './eventBus.js';
 import { formatDate, formatTime } from './utils.js';
-import { openViewTaskDetailsModal } from './modal_interactions.js'; // Assuming this is where it is
-import { ProjectsFeature } from './feature_projects.js'; // Assuming this is where it is
+import { openViewTaskDetailsModal } from './tasks_modal_interactions.js';
+import { ProjectsFeature } from './feature_projects.js';
 
-// DOM elements will be imported from ui_rendering.js or a new domElements.js
-// For now, this module assumes these elements are made available to it.
-// To make this work, ui_rendering.js will need to export these elements
-// or they need to be passed as arguments, or imported from a dedicated domElements.js.
-// We'll assume ui_rendering.js exports them for this step.
+// DOM elements are now imported from the tasks-specific rendering module.
 import {
     taskList,
     emptyState,
@@ -27,20 +22,18 @@ import {
     bulkAssignProjectDropdown,
     bulkChangePriorityDropdown,
     bulkChangeLabelInput,
-    populateDatalist // Assuming populateDatalist is also exported or moved
-} from './ui_rendering.js'; // This import path might change if ui_rendering is refactored further
+    populateDatalist
+} from './tasks_ui_rendering.js';
 
 /**
  * Renders the main list of tasks based on current filters, sort order, and search term.
  */
 export function renderTaskListView() {
-    if (!taskList || !ViewManager || !AppStore || typeof window.isFeatureEnabled !== 'function' || !TaskService || !BulkActionService) { // MODIFIED to use window
+    if (!taskList || !ViewManager || !AppStore || typeof window.isFeatureEnabled !== 'function' || !TaskService || !BulkActionService) {
         console.error("renderTaskListView: Core dependencies not found.");
         return;
     }
 
-    // This part ensures other views are hidden, which might be better handled by the orchestrator (refreshTaskView)
-    // For now, keeping it to ensure functional parity with the original ui_rendering.js
     const kanbanBoardContainer = document.getElementById('kanbanBoardContainer');
     const calendarViewContainer = document.getElementById('calendarViewContainer');
     const pomodoroTimerPageContainer = document.getElementById('pomodoroTimerPageContainer');
@@ -55,7 +48,7 @@ export function renderTaskListView() {
     const currentSortVal = ViewManager.getCurrentSort();
     const currentSearchTermVal = ViewManager.getCurrentSearchTerm();
     const currentTasks = AppStore.getTasks();
-    const currentProjects = AppStore.getProjects ? AppStore.getProjects() : []; // Handle if getProjects isn't there
+    const currentProjects = AppStore.getProjects ? AppStore.getProjects() : [];
 
     let filteredTasks = [];
     const today = new Date();
@@ -92,7 +85,7 @@ export function renderTaskListView() {
         const projectId = parseInt(currentFilterVal.split('_')[1]);
         if (!isNaN(projectId)) {
             filteredTasks = currentTasks.filter(task => task.projectId === projectId && !task.completed);
-        } else { // This might handle a "No Project" filter if its value is project_0 or similar
+        } else {
             filteredTasks = currentTasks.filter(task => (task.projectId === 0 || !task.projectId) && !task.completed);
         }
     } else { // Assume label filter
@@ -105,7 +98,7 @@ export function renderTaskListView() {
             task.text.toLowerCase().includes(searchTermLower) ||
             (task.label && task.label.toLowerCase().includes(searchTermLower)) ||
             (task.notes && task.notes.toLowerCase().includes(searchTermLower)) ||
-            (window.isFeatureEnabled('projectFeature') && task.projectId && currentProjects.find(p => p.id === task.projectId)?.name.toLowerCase().includes(searchTermLower)) // MODIFIED to use window
+            (window.isFeatureEnabled('projectFeature') && task.projectId && currentProjects.find(p => p.id === task.projectId)?.name.toLowerCase().includes(searchTermLower))
         );
     }
 
@@ -159,7 +152,7 @@ export function renderTaskListView() {
 
         const bulkSelectCheckboxContainer = document.createElement('div');
         bulkSelectCheckboxContainer.className = 'bulk-select-checkbox-container flex-shrink-0 mr-2 sm:mr-3 bulk-actions-feature-element';
-        if (window.isFeatureEnabled('bulkActionsFeature')) { // MODIFIED to use window
+        if (window.isFeatureEnabled('bulkActionsFeature')) {
             const bulkCheckbox = document.createElement('input');
             bulkCheckbox.type = 'checkbox';
             bulkCheckbox.className = 'form-checkbox h-5 w-5 text-blue-500 rounded border-slate-400 dark:border-slate-500 focus:ring-blue-400 dark:focus:ring-blue-500 mt-0.5 cursor-pointer';
@@ -190,7 +183,7 @@ export function renderTaskListView() {
         const detailsContainer = document.createElement('div');
         detailsContainer.className = 'flex items-center flex-wrap gap-x-2 gap-y-1 mt-1 sm:mt-1.5 text-xs';
 
-        if (window.isFeatureEnabled('projectFeature') && task.projectId && task.projectId !== 0) { // MODIFIED to use window
+        if (window.isFeatureEnabled('projectFeature') && task.projectId && task.projectId !== 0) {
             const project = AppStore.getProjects().find(p => p.id === task.projectId);
             if (project) {
                 const projSpan = document.createElement('span');
@@ -222,7 +215,7 @@ export function renderTaskListView() {
             dDS.innerHTML = `<i class="far fa-calendar-alt mr-1"></i> ${dD}`;
             detailsContainer.appendChild(dDS);
         }
-        if (window.isFeatureEnabled('advancedRecurrence') && task.recurrence && task.recurrence.frequency && task.recurrence.frequency !== 'none') { // MODIFIED to use window
+        if (window.isFeatureEnabled('advancedRecurrence') && task.recurrence && task.recurrence.frequency && task.recurrence.frequency !== 'none') {
             const recurrenceIcon = document.createElement('span');
             recurrenceIcon.className = 'text-slate-400 dark:text-slate-500 flex items-center advanced-recurrence-element';
             recurrenceIcon.innerHTML = `<i class="fas fa-sync-alt" title="This task repeats"></i>`;
@@ -273,7 +266,7 @@ export function renderBulkActionControls() {
     if (!bulkActionControlsContainer || !BulkActionService || !AppStore || !ViewManager) return;
 
     const selectedIds = BulkActionService.getSelectedIds();
-    const isEnabled = window.isFeatureEnabled('bulkActionsFeature') && selectedIds.length > 0; // MODIFIED to use window
+    const isEnabled = window.isFeatureEnabled('bulkActionsFeature') && selectedIds.length > 0;
     bulkActionControlsContainer.classList.toggle('hidden', !isEnabled);
 
     if (!isEnabled) return;
@@ -284,7 +277,7 @@ export function renderBulkActionControls() {
     if (bulkCompleteBtn) bulkCompleteBtn.disabled = selectedIds.length === 0;
     if (bulkDeleteBtn) bulkDeleteBtn.disabled = selectedIds.length === 0;
 
-    if (window.isFeatureEnabled('projectFeature')) { // MODIFIED to use window
+    if (window.isFeatureEnabled('projectFeature')) {
         if (bulkAssignProjectDropdown) {
             bulkAssignProjectDropdown.disabled = selectedIds.length === 0;
             if (ProjectsFeature?.populateProjectDropdowns && typeof bulkAssignProjectDropdown.dataset.populated === 'undefined') {
@@ -322,4 +315,4 @@ export function renderBulkActionControls() {
     }
 }
 
-console.log("renderTaskListView.js loaded.");
+console.log("tasks_list_view.js loaded.");

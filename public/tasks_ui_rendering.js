@@ -1,6 +1,5 @@
-// ui_rendering.js
-// Handles all direct DOM manipulation for rendering UI components and task lists.
-// Now an ES6 module.
+// tasks_ui_rendering.js
+// Handles all direct DOM manipulation for rendering UI components and task lists for the Task Manager.
 
 import AppStore from './store.js';
 import ViewManager from './viewManager.js';
@@ -13,13 +12,13 @@ import LoggingService from './loggingService.js';
 // Import functions from other UI modules
 import {
     populateManageLabelsList
-} from './modal_interactions.js';
+} from './tasks_modal_interactions.js';
 
 // Import Feature Modules needed for direct calls
 import { ProjectsFeature } from './feature_projects.js';
 
 // Import the newly created rendering functions
-import { renderTaskListView, renderBulkActionControls } from './renderTaskListView.js';
+import { renderTaskListView, renderBulkActionControls } from './tasks_list_view.js';
 
 // DOM Elements (declared with let, will be module-scoped)
 // These are initialized by initializeDOMElements()
@@ -59,7 +58,7 @@ export let appVersionAboutUsDisplayEl;
 
 
 export function initializeDOMElements() {
-    LoggingService.debug('[DOM Init] Attempting to initialize DOM elements...', { module: 'ui_rendering' }); // Changed console.log
+    LoggingService.debug('[DOM Init] Attempting to initialize DOM elements...', { module: 'tasks_ui_rendering' }); // Changed console.log
     mainContentArea = document.querySelector('main');
     smartViewButtonsContainer = document.getElementById('smartViewButtonsContainer');
     taskSidebar = document.getElementById('taskSidebar');
@@ -175,7 +174,7 @@ export function initializeDOMElements() {
     if (closeCriticalErrorBtn) {
         closeCriticalErrorBtn.addEventListener('click', hideCriticalError);
     }
-    LoggingService.debug('[DOM Init] Finished initializing DOM elements.', { module: 'ui_rendering' }); // Changed console.log
+    LoggingService.debug('[DOM Init] Finished initializing DOM elements.', { module: 'tasks_ui_rendering' }); // Changed console.log
 }
 
 // --- UI Helper Functions ---
@@ -188,7 +187,7 @@ export function renderAppVersion() {
     if (appVersionAboutUsDisplayEl) {
         appVersionAboutUsDisplayEl.textContent = versionString;
     }
-    LoggingService.debug(`[UI Rendering] App version rendered in UI: ${versionString}`, {module: 'ui_rendering'});
+    LoggingService.debug(`[UI Rendering] App version rendered in UI: ${versionString}`, {module: 'tasks_ui_rendering'});
 }
 
 export function showCriticalError(message, errorId) {
@@ -197,9 +196,9 @@ export function showCriticalError(message, errorId) {
         criticalErrorId.textContent = errorId ? `Error ID: ${errorId}` : '';
         criticalErrorDisplay.classList.remove('hidden', 'translate-y-full');
         criticalErrorDisplay.classList.add('translate-y-0');
-        LoggingService.error(`[UI Critical Error] Displayed: ${message}, ID: ${errorId}`, null, {module: 'ui_rendering'});
+        LoggingService.error(`[UI Critical Error] Displayed: ${message}, ID: ${errorId}`, null, {module: 'tasks_ui_rendering'});
     } else {
-        LoggingService.error(`[UI Critical Error] Fallback: ${message}, ID: ${errorId}`, null, {module: 'ui_rendering'});
+        LoggingService.error(`[UI Critical Error] Fallback: ${message}, ID: ${errorId}`, null, {module: 'tasks_ui_rendering'});
         alert(`CRITICAL ERROR: ${message}\nID: ${errorId}\n(UI element for error display not found)`);
     }
 }
@@ -235,17 +234,17 @@ export function populateDatalist(datalistElement) { // Exported for renderTaskLi
 
 export function setSidebarMinimized(minimize) {
     if (!taskSidebar) {
-        LoggingService.error("[UI Rendering] setSidebarMinimized: taskSidebar element not initialized. Aborting.", null, {module: 'ui_rendering'});
+        LoggingService.error("[UI Rendering] setSidebarMinimized: taskSidebar element not initialized. Aborting.", null, {module: 'tasks_ui_rendering'});
         return;
     }
     taskSidebar.classList.toggle('sidebar-minimized', minimize);
-    LoggingService.debug(`[UI Rendering] taskSidebar classList after toggle: ${taskSidebar.classList}`, {module: 'ui_rendering'});
+    LoggingService.debug(`[UI Rendering] taskSidebar classList after toggle: ${taskSidebar.classList}`, {module: 'tasks_ui_rendering'});
 
 
     if (sidebarToggleIcon) {
         sidebarToggleIcon.className = `fas ${minimize ? 'fa-chevron-right' : 'fa-chevron-left'} text-white`;
     } else {
-        LoggingService.warn("[UI Rendering] setSidebarMinimized: sidebarToggleIcon element not initialized.", {module: 'ui_rendering'});
+        LoggingService.warn("[UI Rendering] setSidebarMinimized: sidebarToggleIcon element not initialized.", {module: 'tasks_ui_rendering'});
     }
 
     const taskSearchInputContainerEl = document.getElementById('taskSearchInputContainer');
@@ -275,17 +274,17 @@ export function setSidebarMinimized(minimize) {
     if (window.isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) { 
         ProjectsFeature.populateProjectFilterList();
     }
-    LoggingService.debug(`[UI Rendering] Sidebar minimized state set to: ${minimize}. CSS should now apply relevant styles.`, {module: 'ui_rendering'});
+    LoggingService.debug(`[UI Rendering] Sidebar minimized state set to: ${minimize}. CSS should now apply relevant styles.`, {module: 'tasks_ui_rendering'});
 }
 
 // --- Task Rendering ---
 export function refreshTaskView() {
     if (!document.getElementById('taskList')) {
-        LoggingService.debug('[UI Rendering] Not on the main task page. Skipping refreshTaskView.', {module: 'ui_rendering'});
+        LoggingService.debug('[UI Rendering] Not on the main task page. Skipping refreshTaskView.', {module: 'tasks_ui_rendering'});
         return;
     }
 
-    if (!mainContentArea || !ViewManager || typeof window.isFeatureEnabled !== 'function') { LoggingService.error("[RefreshTaskView] Core dependencies not found.", null, {module: 'ui_rendering'}); return; } 
+    if (!mainContentArea || !ViewManager || typeof window.isFeatureEnabled !== 'function') { LoggingService.error("[RefreshTaskView] Core dependencies not found.", null, {module: 'tasks_ui_rendering'}); return; } 
     updateViewToggleButtonsState();
     updateYourTasksHeading();
     styleSmartViewButtons();
@@ -297,7 +296,7 @@ export function refreshTaskView() {
     
     updateClearCompletedButtonState();
     renderBulkActionControls();
-    LoggingService.debug(`[UI Rendering] Task view refreshed for mode: list`, {module: 'ui_rendering'});
+    LoggingService.debug(`[UI Rendering] Task view refreshed for mode: list`, {module: 'tasks_ui_rendering'});
 }
 
 export function styleSmartViewButtons() {
@@ -388,7 +387,7 @@ export function updateYourTasksHeading() {
 }
 
 export function initializeUiRenderingSubscriptions() {
-    if (!EventBus || !ViewManager || typeof window.isFeatureEnabled !== 'function') { LoggingService.error("[UI Rendering] Core dependencies for subscriptions not available.", null, {module: 'ui_rendering'}); return; } 
+    if (!EventBus || !ViewManager || typeof window.isFeatureEnabled !== 'function') { LoggingService.error("[UI Rendering] Core dependencies for subscriptions not available.", null, {module: 'tasks_ui_rendering'}); return; } 
 
     EventBus.subscribe('displayUserMessage', (data) => {
         if (data && data.text) {
@@ -397,47 +396,47 @@ export function initializeUiRenderingSubscriptions() {
     });
 
     EventBus.subscribe('appVersionLoaded', (versionData) => {
-        LoggingService.debug("[UI Rendering] Event received: appVersionLoaded. Re-rendering app version.", { versionData, module: 'ui_rendering' });
+        LoggingService.debug("[UI Rendering] Event received: appVersionLoaded. Re-rendering app version.", { versionData, module: 'tasks_ui_rendering' });
         renderAppVersion();
     });
 
-    EventBus.subscribe('tasksChanged', (updatedTasks) => { LoggingService.debug("[UI Rendering] Event received: tasksChanged. Refreshing view.", {module: 'ui_rendering'}); refreshTaskView(); updateClearCompletedButtonState(); });
+    EventBus.subscribe('tasksChanged', (updatedTasks) => { LoggingService.debug("[UI Rendering] Event received: tasksChanged. Refreshing view.", {module: 'tasks_ui_rendering'}); refreshTaskView(); updateClearCompletedButtonState(); });
     EventBus.subscribe('projectsChanged', (updatedProjects) => {
-        LoggingService.debug("[UI Rendering] Event received: projectsChanged. Refreshing view and project UI.", {module: 'ui_rendering'});
+        LoggingService.debug("[UI Rendering] Event received: projectsChanged. Refreshing view and project UI.", {module: 'tasks_ui_rendering'});
         refreshTaskView();
         if (window.isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) ProjectsFeature.populateProjectFilterList(); 
         if (window.isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectDropdowns) ProjectsFeature.populateProjectDropdowns(); 
         styleSmartViewButtons();
     });
     EventBus.subscribe('uniqueProjectsChanged', (newUniqueProjects) => {
-        LoggingService.debug("[UI Rendering] Event received: uniqueProjectsChanged. Repopulating project UI.", {module: 'ui_rendering'});
+        LoggingService.debug("[UI Rendering] Event received: uniqueProjectsChanged. Repopulating project UI.", {module: 'tasks_ui_rendering'});
         if (window.isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) ProjectsFeature.populateProjectFilterList(); 
         if (window.isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectDropdowns) ProjectsFeature.populateProjectDropdowns(); 
         styleSmartViewButtons();
     });
     
     EventBus.subscribe('filterChanged', (eventData) => {
-        LoggingService.debug("[UI Rendering] Event received: filterChanged. Refreshing view, heading, and button styles.", {module: 'ui_rendering'});
+        LoggingService.debug("[UI Rendering] Event received: filterChanged. Refreshing view, heading, and button styles.", {module: 'tasks_ui_rendering'});
         refreshTaskView();
         updateYourTasksHeading();
         updateSortButtonStates();
         styleSmartViewButtons();
     });
 
-    EventBus.subscribe('sortChanged', (newSort) => { LoggingService.debug("[UI Rendering] Event received: sortChanged. Refreshing view and sort buttons.", {module: 'ui_rendering'}); refreshTaskView(); updateSortButtonStates(); });
-    EventBus.subscribe('searchTermChanged', (newSearchTerm) => { LoggingService.debug("[UI Rendering] Event received: searchTermChanged. Refreshing view.", {module: 'ui_rendering'}); refreshTaskView(); });
-    EventBus.subscribe('viewModeChanged', (newViewMode) => { LoggingService.debug("[UI Rendering] Event received: viewModeChanged. Refreshing view and UI states.", {module: 'ui_rendering'}); refreshTaskView();  });
-    EventBus.subscribe('featureFlagsUpdated', (updateData) => { LoggingService.debug("[UI Rendering] Event received: featureFlagsUpdated. Certain UI states might need refresh.", {module: 'ui_rendering'}); refreshTaskView();  });
+    EventBus.subscribe('sortChanged', (newSort) => { LoggingService.debug("[UI Rendering] Event received: sortChanged. Refreshing view and sort buttons.", {module: 'tasks_ui_rendering'}); refreshTaskView(); updateSortButtonStates(); });
+    EventBus.subscribe('searchTermChanged', (newSearchTerm) => { LoggingService.debug("[UI Rendering] Event received: searchTermChanged. Refreshing view.", {module: 'tasks_ui_rendering'}); refreshTaskView(); });
+    EventBus.subscribe('viewModeChanged', (newViewMode) => { LoggingService.debug("[UI Rendering] Event received: viewModeChanged. Refreshing view and UI states.", {module: 'tasks_ui_rendering'}); refreshTaskView();  });
+    EventBus.subscribe('featureFlagsUpdated', (updateData) => { LoggingService.debug("[UI Rendering] Event received: featureFlagsUpdated. Certain UI states might need refresh.", {module: 'tasks_ui_rendering'}); refreshTaskView();  });
     EventBus.subscribe('labelsChanged', (newLabels) => {
-        LoggingService.debug("[UI Rendering] Event received: labelsChanged. Populating datalists.", {module: 'ui_rendering'});
+        LoggingService.debug("[UI Rendering] Event received: labelsChanged. Populating datalists.", {module: 'tasks_ui_rendering'});
         if(existingLabelsDatalist) populateDatalist(existingLabelsDatalist);
         if(existingLabelsEditDatalist) populateDatalist(existingLabelsEditDatalist);
         if (manageLabelsModal && !manageLabelsModal.classList.contains('hidden')) {
             populateManageLabelsList();
         }
     });
-    EventBus.subscribe('bulkSelectionChanged', (selectedIds) => { LoggingService.debug("[UI Rendering] Event received: bulkSelectionChanged. Rendering controls.", {module: 'ui_rendering'}); renderBulkActionControls(); }); 
-    LoggingService.debug("[UI Rendering] Event subscriptions initialized.", {module: 'ui_rendering'});
+    EventBus.subscribe('bulkSelectionChanged', (selectedIds) => { LoggingService.debug("[UI Rendering] Event received: bulkSelectionChanged. Rendering controls.", {module: 'tasks_ui_rendering'}); renderBulkActionControls(); }); 
+    LoggingService.debug("[UI Rendering] Event subscriptions initialized.", {module: 'tasks_ui_rendering'});
 }
 
-LoggingService.debug("ui_rendering.js loaded, using imported services and functions.", { module: 'ui_rendering' });
+LoggingService.debug("tasks_ui_rendering.js loaded, using imported services and functions.", { module: 'tasks_ui_rendering' });

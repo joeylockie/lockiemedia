@@ -1,6 +1,6 @@
-// modalEventHandlers.js
-// Handles event listeners specifically for opening and closing modals,
-// including the global Escape key listener for modals.
+// tasks_modal_events.js
+// Handles event listeners specifically for opening and closing modals for the Task Manager,
+// including the global Escape key listener.
 
 import LoggingService from './loggingService.js';
 import {
@@ -12,7 +12,7 @@ import {
     closeViewTaskDetailsModal,
     openDesktopNotificationsSettingsModal, closeDesktopNotificationsSettingsModal,
     openProfileModal, closeProfileModal
-} from './modal_interactions.js';
+} from './tasks_modal_interactions.js';
 import { ProjectsFeature } from './feature_projects.js';
 
 // Helper function to attach listeners
@@ -21,13 +21,13 @@ function attachListener(elementId, eventType, handler, handlerName) {
     if (element) {
         element.addEventListener(eventType, handler);
     } else {
-        LoggingService.warn(`[ModalEventHandlers] Element #${elementId} not found. Cannot attach ${eventType} listener for ${handlerName || handler.name || 'anonymous function'}.`, { functionName: 'attachListener', elementId, eventType });
+        LoggingService.warn(`[TasksModalEvents] Element #${elementId} not found. Cannot attach ${eventType} listener for ${handlerName || handler.name || 'anonymous function'}.`, { functionName: 'attachListener', elementId, eventType });
     }
 }
 
 export function setupModalEventListeners() {
     const functionName = 'setupModalEventListeners';
-    LoggingService.info('[ModalEventHandlers] Setting up modal event listeners.', { functionName });
+    LoggingService.info('[TasksModalEvents] Setting up modal event listeners.', { functionName });
 
     // Modal Openers
     attachListener('openAddModalButton', 'click', openAddModal, 'openAddModal');
@@ -69,9 +69,9 @@ export function setupModalEventListeners() {
 
     // Keydown listener for Escape to close modals
     document.addEventListener('keydown', (event) => {
-        const keydownHandlerName = 'documentKeydownHandler (ModalEventHandlers)';
+        const keydownHandlerName = 'documentKeydownHandler (TasksModalEvents)';
         if (event.key === 'Escape') {
-            LoggingService.debug('[ModalEventHandlers] Escape key pressed, attempting to close modals.', { functionName: keydownHandlerName, key: event.key });
+            LoggingService.debug('[TasksModalEvents] Escape key pressed, attempting to close modals.', { functionName: keydownHandlerName, key: event.key });
             const profileModalEl = document.getElementById('profileModal');
             const projModal = document.getElementById('manageProjectsModal');
 
@@ -90,9 +90,9 @@ export function setupModalEventListeners() {
             }
         }
     });
-    LoggingService.debug(`[ModalEventHandlers] Document keydown listener for modals attached.`, { functionName });
+    LoggingService.debug(`[TasksModalEvents] Document keydown listener for modals attached.`, { functionName });
 
-    LoggingService.info("[ModalEventHandlers] Modal event listeners setup process completed.", { functionName });
+    LoggingService.info("[TasksModalEvents] Modal event listeners setup process completed.", { functionName });
 }
 
-console.log("modalEventHandlers.js loaded.");
+console.log("tasks_modal_events.js loaded.");

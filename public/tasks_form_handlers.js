@@ -1,6 +1,5 @@
-// formEventHandlers.js
-// Handles form submission logic for various forms in the application.
-// REFACTORED FOR SELF-HOSTED BACKEND
+// tasks_form_handlers.js
+// Handles form submission logic for various forms in the Task Manager.
 
 import AppStore from './store.js';
 import ViewManager from './viewManager.js';
@@ -8,14 +7,14 @@ import * as TaskService from './taskService.js';
 import * as LabelService from './labelService.js';
 import EventBus from './eventBus.js';
 import LoggingService from './loggingService.js';
-import { clearTempSubTasksForAddModal, tempSubTasksForAddModal } from './ui_event_handlers.js';
+import { clearTempSubTasksForAddModal, tempSubTasksForAddModal } from './tasks_ui_event_handlers.js';
 
-// Import UI and Modal functions
+// Import UI and Modal functions from their new tasks-specific locations
 import {
     closeAddModal,
     closeViewEditModal
-} from './modal_interactions.js';
-import { refreshTaskView } from './ui_rendering.js';
+} from './tasks_modal_interactions.js';
+import { refreshTaskView } from './tasks_ui_rendering.js';
 
 // A local helper function to use, since the global one is in main.js
 function isFeatureEnabled(featureName) {
@@ -25,7 +24,7 @@ function isFeatureEnabled(featureName) {
 export async function handleAddTaskFormSubmit(event) {
     const functionName = 'handleAddTaskFormSubmit';
     event.preventDefault();
-    LoggingService.info('[FormEventHandlers] Attempting to add task.', { functionName });
+    LoggingService.info('[TasksFormHandlers] Attempting to add task.', { functionName });
 
     const modalTaskInputAddEl = document.getElementById('modalTaskInputAdd');
     const modalDueDateInputAddEl = document.getElementById('modalDueDateInputAdd');
@@ -80,7 +79,7 @@ export async function handleAddTaskFormSubmit(event) {
         reminderTime = modalReminderTimeAddEl.value;
         reminderEmail = modalReminderEmailAddEl.value.trim();
         if (!reminderDate || !reminderTime || !reminderEmail) {
-            LoggingService.warn('[FormEventHandlers] Reminder fields not completely filled for new task.', { functionName, reminderDate, reminderTime, reminderEmail });
+            LoggingService.warn('[TasksFormHandlers] Reminder fields not completely filled for new task.', { functionName, reminderDate, reminderTime, reminderEmail });
             EventBus.publish('displayUserMessage', { text: 'Please fill all reminder fields or disable the reminder.', type: 'error' });
             return;
         }
@@ -121,7 +120,7 @@ export async function handleEditTaskFormSubmit(event) {
     event.preventDefault();
     const modalViewEditTaskIdEl = document.getElementById('modalViewEditTaskId');
     const taskId = parseInt(modalViewEditTaskIdEl.value);
-    LoggingService.info(`[FormEventHandlers] Attempting to edit task ID: ${taskId}.`, { functionName, taskId });
+    LoggingService.info(`[TasksFormHandlers] Attempting to edit task ID: ${taskId}.`, { functionName, taskId });
 
     const modalTaskInputViewEditEl = document.getElementById('modalTaskInputViewEdit');
     const modalDueDateInputViewEditEl = document.getElementById('modalDueDateInputViewEdit');
@@ -204,11 +203,11 @@ export async function handleAddNewLabelFormSubmit(event) {
     event.preventDefault();
     const newLabelInputEl = document.getElementById('newLabelInput');
     const labelName = newLabelInputEl.value.trim();
-    LoggingService.info(`[FormEventHandlers] Attempting to add new label: "${labelName}".`, { functionName, labelName });
+    LoggingService.info(`[TasksFormHandlers] Attempting to add new label: "${labelName}".`, { functionName, labelName });
 
     if (LabelService.addConceptualLabel(labelName)) {
         newLabelInputEl.value = '';
-        const { populateManageLabelsList } = await import('./modal_interactions.js');
+        const { populateManageLabelsList } = await import('./tasks_modal_interactions.js');
         const manageLabelsModalEl = document.getElementById('manageLabelsModal');
         if (manageLabelsModalEl && !manageLabelsModalEl.classList.contains('hidden')) {
              populateManageLabelsList();
