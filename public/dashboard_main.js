@@ -189,7 +189,7 @@ function renderQuickLinksWidget() {
     if (!quickLinksContent) return;
 
     const links = [
-        { href: 'todo.html', icon: 'fa-check-double', title: 'Task Manager', color: 'text-sky-400' },
+        { href: 'tasks.html', icon: 'fa-check-double', title: 'Task Manager', color: 'text-sky-400' },
         { href: 'notes.html', icon: 'fa-sticky-note', title: 'Notes', color: 'text-amber-400' },
         { href: 'habits.html', icon: 'fa-calendar-check', title: 'Habit Tracker', color: 'text-green-400' },
         { href: 'time-tracker.html', icon: 'fa-clock', title: 'Time Tracker', color: 'text-indigo-400' },
@@ -293,7 +293,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderAllWidgets();
 
         // Listen for data changes that might come from other tabs (via server polling in a more advanced setup)
-        // For now, we mainly re-render if tasks change on the todo.html page and come back.
+        // For now, we mainly re-render if tasks change on the tasks.html page and come back.
         EventBus.subscribe('tasksChanged', () => {
             renderMyDayWidget();
             renderUpcomingWidget();
