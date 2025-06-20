@@ -1,12 +1,21 @@
 # Node dependencies
-node_modules/
+/node_modules/
 
-# Database files
-db.json
+# SQLite Database Files
+# The main database file
 lockiedb.sqlite
+# Write-Ahead Log file
+lockiedb.sqlite-wal
+# Shared Memory file
+lockiedb.sqlite-shm
 
 # Log files
 *.log
+npm-debug.log*
 
 # Environment variables
 .env
+.env.*
+
+# macOS specific
+.DS_Store
