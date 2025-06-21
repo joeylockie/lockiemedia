@@ -8,7 +8,7 @@ import TimeTrackerService from './timeTrackerService.js';
 import { formatDate, formatMillisecondsToHMS } from './utils.js';
 
 // --- DOM Element References ---
-let greetingHeader, myDayContent, habitContent, timeTrackerContent, upcomingContent, notesContent, quickLinksContent;
+let greetingHeader, myDayContent, habitContent, timeTrackerContent, upcomingContent, notesContent, quickLinksContent, exportDataBtn;
 let timeTrackerInterval = null; 
 
 // --- Helper Functions to Get Data ---
@@ -44,6 +44,48 @@ function getDashboardData() {
         .slice(0, 3);
 
     return { overdueTasks, todayTasks, upcomingTasks, recentNotes };
+}
+
+// --- NEW Data Export Function ---
+async function handleExportData() {
+    LoggingService.info('[Dashboard] Data export initiated by user.', { functionName: 'handleExportData' });
+    
+    try {
+        // We can leverage the AppStore's initial fetch mechanism or just get the current state
+        const allData = {
+            tasks: AppStore.getTasks(),
+            projects: AppStore.getProjects(),
+            userProfile: AppStore.getUserProfile(),
+            userPreferences: AppStore.getUserPreferences(),
+            notebooks: AppStore.getNotebooks(),
+            notes: AppStore.getNotes(),
+            time_activities: AppStore.getTimeActivities(),
+            time_log_entries: AppStore.getTimeLogEntries()
+        };
+
+        const dataStr = JSON.stringify(allData, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        
+        const date = new Date();
+        const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        a.download = `lockiemedia_backup_${dateString}.json`;
+        a.href = url;
+        
+        document.body.appendChild(a);
+        a.click();
+        
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            LoggingService.info('[Dashboard] Data export successful.', { functionName: 'handleExportData' });
+        }, 100);
+
+    } catch (error) {
+        LoggingService.error('[Dashboard] Failed to export data.', error, { functionName: 'handleExportData' });
+        alert('An error occurred while preparing the data for download. Please check the console for details.');
+    }
 }
 
 
@@ -287,9 +329,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         upcomingContent = document.getElementById('upcomingContent');
         notesContent = document.getElementById('notesContent');
         quickLinksContent = document.getElementById('quickLinksContent');
+        exportDataBtn = document.getElementById('exportDataBtn'); // Get the button
 
         document.body.style.visibility = 'visible';
         
+        // Add the event listener for the export button
+        if (exportDataBtn) {
+            exportDataBtn.addEventListener('click', handleExportData);
+        }
+
         renderAllWidgets();
 
         // Listen for data changes that might come from other tabs (via server polling in a more advanced setup)
