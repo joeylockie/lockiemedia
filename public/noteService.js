@@ -40,6 +40,34 @@ export function addNotebook(name) {
     return newNotebook;
 }
 
+export function deleteNotebook(notebookId) {
+    const functionName = 'deleteNotebook (NoteService)';
+    if (!notebookId || notebookId === 'all') {
+        LoggingService.warn('[NoteService] Invalid notebook ID provided for deletion.', { functionName, notebookId });
+        return false;
+    }
+
+    let notebooks = getNotebooks();
+    let notes = getNotes(); // Get all notes
+
+    const notebookExists = notebooks.some(nb => nb.id === notebookId);
+    if (!notebookExists) {
+        LoggingService.warn(`[NoteService] Notebook with ID ${notebookId} not found for deletion.`, { functionName, notebookId });
+        return false;
+    }
+
+    const updatedNotebooks = notebooks.filter(nb => nb.id !== notebookId);
+    const updatedNotes = notes.filter(note => note.notebookId !== notebookId);
+
+    // Persist both changes. The AppStore's save method persists the entire state,
+    // so we update both stores locally before the final save is triggered by the second call.
+    AppStore.setNotebooks(updatedNotebooks, `${functionName}:notebooks`);
+    AppStore.setNotes(updatedNotes, `${functionName}:notes`);
+
+    LoggingService.info(`[NoteService] Notebook with ID ${notebookId} and its associated notes have been deleted.`, { functionName, notebookId });
+    return true;
+}
+
 
 // --- Note Functions ---
 

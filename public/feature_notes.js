@@ -37,20 +37,42 @@ function renderNotebooks() {
     allNotesItem.appendChild(allNotesLink);
     notebooksListEl.appendChild(allNotesItem);
 
-    // Render actual notebooks
+    // --- MODIFICATION START ---
+    // Render actual notebooks with delete buttons
     notebooks.forEach(nb => {
         const li = document.createElement('li');
+        li.className = 'group'; // Add group for hover effects on children
+
         const link = document.createElement('a');
         link.href = '#';
-        link.className = `notebook-item flex items-center px-4 py-2.5 rounded-lg transition-colors duration-200 hover:bg-slate-700 ${_activeNotebookId === nb.id ? 'active' : ''}`;
-        link.innerHTML = `<i class="fas fa-book w-5 mr-3"></i><span>${nb.name}</span>`;
+        link.className = `relative notebook-item flex items-center justify-between px-4 py-2.5 rounded-lg transition-colors duration-200 hover:bg-slate-700 ${_activeNotebookId === nb.id ? 'active' : ''}`;
+        
+        const contentSpan = document.createElement('span');
+        contentSpan.className = 'flex items-center truncate';
+        contentSpan.innerHTML = `<i class="fas fa-book w-5 mr-3"></i><span class="truncate">${nb.name}</span>`;
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity z-10';
+        deleteBtn.innerHTML = '<i class="fas fa-trash-alt fa-xs"></i>';
+        deleteBtn.title = `Delete notebook "${nb.name}"`;
+        deleteBtn.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation(); // Prevent link's onclick from firing
+            handleDeleteNotebook(nb.id, nb.name);
+        };
+
+        link.appendChild(contentSpan);
+        link.appendChild(deleteBtn);
+        
         link.onclick = (e) => {
             e.preventDefault();
             setActiveNotebook(nb.id);
         };
+
         li.appendChild(link);
         notebooksListEl.appendChild(li);
     });
+    // --- MODIFICATION END ---
 }
 
 function renderNotesList() {
@@ -189,6 +211,27 @@ function handleDeleteNote() {
         renderAll();
     }
 }
+
+// --- MODIFICATION START ---
+// Add a handler for deleting notebooks
+function handleDeleteNotebook(notebookId, notebookName) {
+    if (!notebookId) return;
+
+    if (confirm(`Are you sure you want to delete the notebook "${notebookName}"?\n\nAll notes within this notebook will also be permanently deleted.`)) {
+        const success = NoteService.deleteNotebook(notebookId);
+        if (success) {
+            // If the deleted notebook was the active one, switch to "All Notes" view
+            if (_activeNotebookId === notebookId) {
+                setActiveNotebook('all');
+            } else {
+                // Otherwise, just re-render to update the lists
+                renderAll();
+            }
+        }
+    }
+}
+// --- MODIFICATION END ---
+
 
 async function initialize() { 
     const functionName = 'initialize (NotesFeature)';
