@@ -1,108 +1,134 @@
 import express from 'express';
 import cors from 'cors';
-import axios from 'axios';
-import http from 'http'; // Changed from 'https'
 import path from 'path';
 import { fileURLToPath } from 'url';
+import Database from 'better-sqlite3';
 
-// --- Configuration ---
-const PORT = 3000;
-const serviceTargets = {
-    notesService: 'http://localhost:3002',
-    taskService: 'http://localhost:3004',
-    timeTrackerService: 'http://localhost:3005',
-};
-
-// --- Security Configuration ---
-const VALID_API_KEYS = new Set([
-    "THeYYjPRRvQ6CjJFPL0T6cpAyfWbIMFm9U0Lo4d+saQ="
-]);
-
-// --- Authentication Middleware ---
-const authenticateKey = (req, res, next) => {
-    // --- NEW: Handle browser pre-flight requests ---
-    // If the request method is OPTIONS, it's a pre-flight check.
-    // We let it pass without checking for a key.
-    if (req.method === 'OPTIONS') {
-        return next();
-    }
-    // --- End of new code ---
-
-    const apiKey = req.get('X-API-Key')?.trim();
-    console.log(`[API Gateway] Authenticating request...`);
-
-    if (apiKey && VALID_API_KEYS.has(apiKey)) {
-        console.log(`[API Gateway] API Key validated successfully.`);
-        next();
-    } else {
-        console.error(`[API Gateway] Authentication failed. Invalid or missing API Key.`);
-        res.status(401).json({ error: 'Unauthorized' });
-    }
-};
-
-// --- Express App Setup ---
-const app = express();
-app.use(cors());
-app.use(express.json({ limit: '10mb' }));
-// Note: __dirname is not available in ES modules by default. This is the workaround.
+// -- Setup --
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-app.use(express.static(path.join(__dirname, '../../public'))); 
+const app = express();
+const PORT = 3004;
 
-// --- API Routes ---
-app.use('/api', authenticateKey);
+// --- Database Connection ---
+const dbFile = path.resolve(__dirname, '../../lockiedb.sqlite');
+const db = new Database(dbFile, { verbose: console.log });
+db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON');
+console.log(`[Task Service] Connected to SQLite database at ${dbFile}`);
 
-app.get('/api/data', async (req, res) => {
-    console.log('[API Gateway] GET /api/data received. Composing response from services...');
-    try {
-        const [taskServiceResponse, notesResponse, timeTrackerResponse] = await Promise.all([
-            axios.get(`${serviceTargets.taskService}/api/core-data`),
-            axios.get(`${serviceTargets.notesService}/api/notes-data`),
-            axios.get(`${serviceTargets.timeTrackerService}/api/time-data`)
-        ]);
+// -- Middleware --
+app.use(cors());
+app.use(express.json({ limit: '10mb' }));
 
-        const combinedData = { ...taskServiceResponse.data, ...notesResponse.data, ...timeTrackerResponse.data };
-        res.json(combinedData);
-        console.log('[API Gateway] Successfully composed and sent response for GET /api/data.');
-    } catch (error) {
-        console.error('[API Gateway] Error composing GET /api/data:', error.message);
-        res.status(500).json({ error: 'Failed to retrieve data from backend services.' });
-    }
+// -- Helper Functions --
+const parseTask = (task) => ({
+  ...task,
+  completed: task.completed === 1,
+  isReminderSet: task.isReminderSet === 1,
+  recurrence: task.recurrence ? JSON.parse(task.recurrence) : null,
 });
 
-app.post('/api/data', async (req, res) => {
-    console.log('[API Gateway] POST /api/data received. Distributing data to services...');
-    const incomingData = req.body;
-    try {
-        const notesPayload = { notes: incomingData.notes, notebooks: incomingData.notebooks };
-        
-        // --- MODIFICATION START ---
-        // Be specific about what the task-service receives.
-        const taskServicePayload = {
-            tasks: incomingData.tasks,
-            projects: incomingData.projects,
-            userProfile: incomingData.userProfile,
-            userPreferences: incomingData.userPreferences,
-            kanbanColumns: incomingData.kanbanColumns || [] // Ensure it exists
-        };
-        // --- MODIFICATION END ---
-        
-        const timeTrackerPayload = { time_activities: incomingData.time_activities, time_log_entries: incomingData.time_log_entries };
-        
-        await Promise.all([
-            axios.post(`${serviceTargets.taskService}/api/core-data`, taskServicePayload),
-            axios.post(`${serviceTargets.notesService}/api/notes-data`, notesPayload),
-            axios.post(`${serviceTargets.timeTrackerService}/api/time-data`, timeTrackerPayload)
-        ]);
-        res.status(200).json({ message: 'Data saved successfully across all services!' });
-        console.log('[API Gateway] Successfully distributed POST /api/data to all services.');
-    } catch (error) {
-        console.error('[API Gateway] Error distributing POST /api/data:', error.message);
-        res.status(500).json({ error: 'Failed to save data to backend services.' });
-    }
+const stringifyTask = (task) => ({
+    ...task,
+    completed: task.completed ? 1 : 0,
+    isReminderSet: task.isReminderSet ? 1 : 0,
+    recurrence: JSON.stringify(task.recurrence || null),
 });
 
-// -- Start HTTP Server --
+// REMOVED time log helper functions as they are no longer needed here
+
+// -- API Routes --
+app.get('/api/core-data', (req, res) => {
+  console.log('[Task Service] GET /api/core-data request received');
+  try {
+    const tasks = db.prepare('SELECT * FROM tasks').all().map(parseTask);
+    const projects = db.prepare('SELECT * FROM projects').all();
+    const userProfile = db.prepare('SELECT * FROM user_profile WHERE id = 1').get();
+    const prefsArray = db.prepare('SELECT * FROM user_preferences').all();
+    const userPreferences = prefsArray.reduce((acc, pref) => {
+        try {
+            // Attempt to parse the value as JSON if it looks like an object/array
+            if (pref.value.startsWith('{') || pref.value.startsWith('[')) {
+                acc[pref.key] = JSON.parse(pref.value);
+            } else {
+                acc[pref.key] = pref.value;
+            }
+        } catch (e) {
+            acc[pref.key] = pref.value; // Fallback to raw text if parsing fails
+        }
+        return acc;
+    }, {});
+
+
+    // REMOVED fetching time_activities and time_log_entries
+
+    const responseData = {
+      tasks,
+      projects,
+      userProfile,
+      userPreferences,
+      kanbanColumns: [],
+    };
+    res.json(responseData);
+  } catch (error) {
+    console.error('[Task Service] Error in GET /api/core-data:', error);
+    res.status(500).json({ error: 'Failed to retrieve core data.' });
+  }
+});
+
+app.post('/api/core-data', (req, res) => {
+  console.log('[Task Service] POST /api/core-data request received');
+  const incomingData = req.body;
+
+  if (typeof incomingData !== 'object' || incomingData === null) {
+    return res.status(400).json({ error: 'Invalid data format.' });
+  }
+
+  const transaction = db.transaction(() => {
+    db.prepare('DELETE FROM tasks').run();
+    db.prepare('DELETE FROM projects WHERE id != 0').run();
+    db.prepare('DELETE FROM user_preferences').run();
+
+    // REMOVED deleting time_activities and time_log_entries
+
+    const insertTask = db.prepare('INSERT INTO tasks (id, text, notes, completed, creationDate, completedDate, dueDate, time, priority, label, projectId, isReminderSet, reminderDate, reminderTime, reminderEmail, recurrence) VALUES (@id, @text, @notes, @completed, @creationDate, @completedDate, @dueDate, @time, @priority, @label, @projectId, @isReminderSet, @reminderDate, @reminderTime, @reminderEmail, @recurrence)');
+    const insertProject = db.prepare('INSERT INTO projects (id, name, creationDate) VALUES (@id, @name, @creationDate)');
+    const insertPreference = db.prepare('INSERT INTO user_preferences (key, value) VALUES (@key, @value)');
+    const updateUserProfile = db.prepare('UPDATE user_profile SET displayName = @displayName, email = @email, role = @role WHERE id = 1');
+
+    // REMOVED insert statements for time_activities and time_log_entries
+
+    if (incomingData.tasks) for (const task of incomingData.tasks) insertTask.run(stringifyTask(task));
+    if (incomingData.projects) for (const project of incomingData.projects) { if (project.id !== 0) insertProject.run(project); }
+    
+    // --- MODIFICATION START ---
+    if (incomingData.userPreferences) {
+        for (const [key, value] of Object.entries(incomingData.userPreferences)) {
+            // If the value is an object, stringify it before inserting into the TEXT column.
+            const valueToInsert = typeof value === 'object' && value !== null ? JSON.stringify(value) : value;
+            insertPreference.run({ key: key, value: valueToInsert });
+        }
+    }
+    // --- MODIFICATION END ---
+
+    if (incomingData.userProfile) {
+        const existingProfile = db.prepare('SELECT * FROM user_profile WHERE id = 1').get();
+        const updatedProfile = { ...existingProfile, ...incomingData.userProfile };
+        updateUserProfile.run(updatedProfile);
+    }
+  });
+
+  try {
+    transaction();
+    res.status(200).json({ message: 'Core data saved successfully!' });
+  } catch (error) {
+    console.error('[Task Service] Error in POST /api/core-data transaction:', error);
+    res.status(500).json({ error: 'Failed to save core data.' });
+  }
+});
+
+// -- Start Server --
 app.listen(PORT, () => {
-    console.log(`[HTTP API Gateway] Listening on port ${PORT}`);
+  console.log(`[Task Service] Listening on port ${PORT}`);
 });
