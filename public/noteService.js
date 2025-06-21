@@ -59,10 +59,12 @@ export function deleteNotebook(notebookId) {
     const updatedNotebooks = notebooks.filter(nb => nb.id !== notebookId);
     const updatedNotes = notes.filter(note => note.notebookId !== notebookId);
 
-    // Persist both changes. The AppStore's save method persists the entire state,
-    // so we update both stores locally before the final save is triggered by the second call.
-    AppStore.setNotebooks(updatedNotebooks, `${functionName}:notebooks`);
+    // --- MODIFICATION START ---
+    // Update the notes list FIRST to remove references to the notebook.
     AppStore.setNotes(updatedNotes, `${functionName}:notes`);
+    // THEN, update the notebooks list now that no notes depend on it.
+    AppStore.setNotebooks(updatedNotebooks, `${functionName}:notebooks`);
+    // --- MODIFICATION END ---
 
     LoggingService.info(`[NoteService] Notebook with ID ${notebookId} and its associated notes have been deleted.`, { functionName, notebookId });
     return true;
