@@ -1,8 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import axios from 'axios';
-import https from 'https';
-import fs from 'fs';
+import http from 'http'; // Changed from 'https'
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -91,19 +90,7 @@ app.post('/api/data', async (req, res) => {
     }
 });
 
-// -- Start HTTPS Server --
-
-// Construct paths to the key and certificate files in the project root
-const keyPath = path.resolve(__dirname, '../../key.pem');
-const certPath = path.resolve(__dirname, '../../cert.pem');
-
-// Create HTTPS server options
-const httpsOptions = {
-    key: fs.readFileSync(keyPath),
-    cert: fs.readFileSync(certPath)
-};
-
-// Create and start the HTTPS server
-https.createServer(httpsOptions, app).listen(PORT, () => {
-    console.log(`[HTTPS API Gateway] Securely listening on port ${PORT}`);
+// -- Start HTTP Server --
+app.listen(PORT, () => {
+    console.log(`[HTTP API Gateway] Listening on port ${PORT}`);
 });
