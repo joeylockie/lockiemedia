@@ -85,6 +85,7 @@ function setupDatabase() {
   db.exec(createNotebooksTable);
 
   // --- Notes Table ---
+  // --- MODIFICATION: Added isMarkdown column ---
   const createNotesTable = `
   CREATE TABLE IF NOT EXISTS notes (
     id TEXT PRIMARY KEY,
@@ -93,6 +94,7 @@ function setupDatabase() {
     notebookId TEXT,
     createdAt TEXT NOT NULL,
     updatedAt TEXT NOT NULL,
+    isMarkdown BOOLEAN DEFAULT 0, 
     FOREIGN KEY (notebookId) REFERENCES notebooks (id)
   );`;
   db.exec(createNotesTable);

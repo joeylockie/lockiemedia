@@ -8,19 +8,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     LoggingService.info('[NotesMain] Initializing Notes page...', { functionName });
 
     try {
+        // Expose the main feature object on the window for inter-module communication.
+        // This allows notes_event_handlers.js to call functions like getActiveNoteId().
+        window.NotesApp = NotesFeature;
+
         // Initialize the AppStore to load all data from the backend
         await AppStore.initializeStore();
 
-        // Initialize the Notes feature UI, which will attach event listeners
+        // Initialize the Notes feature UI, which will now orchestrate the other modules
         if (NotesFeature && typeof NotesFeature.initialize === 'function') {
             NotesFeature.initialize();
         } else {
             LoggingService.error('[NotesMain] NotesFeature or its initialize function is not available.', null, { functionName });
         }
         
-        // Listen for changes and re-render the UI
-        EventBus.subscribe('notesChanged', NotesFeature.initialize);
-        EventBus.subscribe('notebooksChanged', NotesFeature.initialize);
+        // Listen for changes and re-render the UI.
+        // The renderAll function is now part of the exported NotesFeature object.
+        EventBus.subscribe('notesChanged', NotesFeature.renderAll);
+        EventBus.subscribe('notebooksChanged', NotesFeature.renderAll);
 
         LoggingService.info('[NotesMain] Notes page initialization complete.', { functionName });
 
