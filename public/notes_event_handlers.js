@@ -3,9 +3,16 @@
 
 import LoggingService from './loggingService.js';
 import * as NoteService from './noteService.js';
-import { setActiveNote, setActiveNotebook, renderNoteDetail } from './feature_notes.js';
+// --- MODIFICATION START ---
+// Import orchestrator functions from feature_notes
+import { setActiveNote, setActiveNotebook, renderAll } from './feature_notes.js';
+// Import the specific rendering function we need from notes_rendering
+import { renderNoteDetail } from './notes_rendering.js';
+// --- MODIFICATION END ---
+
 
 // --- DOM Element References ---
+// We'll get these elements within the setup function to ensure they exist.
 let newNoteBtn, newNotebookBtn, noteTitleInput, noteContentTextarea, deleteNoteBtn;
 let markdownToggle, markdownViewToggles, editorViewBtn, splitViewBtn, previewViewBtn;
 let markdownEditorArea, markdownPreviewArea;
@@ -14,6 +21,7 @@ let markdownEditorArea, markdownPreviewArea;
 // --- Event Handler Functions ---
 
 function handleNewNote() {
+    // The active notebook is managed in feature_notes.js, so we need to get it from there.
     const activeNotebookId = window.NotesApp.getActiveNotebookId(); 
     const newNote = NoteService.addNote({ 
         title: 'New Note', 
@@ -53,6 +61,8 @@ function handleNoteUpdate() {
 
     NoteService.updateNote(activeNoteId, { title, content });
     
+    // We only need to re-render the notes list to update the timestamp/snippet,
+    // not the whole UI, which is more efficient.
     window.NotesApp.renderNotesList();
 }
 
@@ -62,6 +72,7 @@ function handleDeleteNote() {
 
     if (confirm(`Are you sure you want to delete this note?`)) {
         NoteService.deleteNote(activeNoteId);
+        // Setting activeNoteId to null is handled by setActiveNote
         setActiveNote(null);
     }
 }
@@ -95,25 +106,28 @@ function handleViewModeChange(mode) {
     const buttons = [editorViewBtn, splitViewBtn, previewViewBtn];
     buttons.forEach(btn => btn.classList.remove('bg-sky-500', 'text-white'));
     
+    const editorPane = markdownEditorArea.parentElement;
+    const previewPane = markdownPreviewArea.parentElement;
+
     if (mode === 'editor') {
-        markdownEditorArea.parentElement.classList.remove('w-1/2');
-        markdownEditorArea.parentElement.classList.add('w-full');
-        markdownPreviewArea.parentElement.classList.add('hidden');
+        editorPane.classList.remove('hidden', 'w-1/2');
+        editorPane.classList.add('w-full');
+        previewPane.classList.add('hidden');
         editorViewBtn.classList.add('bg-sky-500', 'text-white');
     } else if (mode === 'preview') {
-        markdownEditorArea.parentElement.classList.add('hidden');
-        markdownPreviewArea.parentElement.classList.remove('w-1/2');
-        markdownPreviewArea.parentElement.classList.add('w-full');
-        markdownPreviewArea.parentElement.classList.remove('hidden');
+        editorPane.classList.add('hidden');
+        previewPane.classList.remove('hidden', 'w-1/2');
+        previewPane.classList.add('w-full');
         previewViewBtn.classList.add('bg-sky-500', 'text-white');
     } else { // Split view
-        markdownEditorArea.parentElement.classList.remove('hidden', 'w-full');
-        markdownEditorArea.parentElement.classList.add('w-1/2');
-        markdownPreviewArea.parentElement.classList.remove('hidden', 'w-full');
-        markdownPreviewArea.parentElement.classList.add('w-1/2');
+        editorPane.classList.remove('hidden', 'w-full');
+        editorPane.classList.add('w-1/2');
+        previewPane.classList.remove('hidden', 'w-full');
+        previewPane.classList.add('w-1/2');
         splitViewBtn.classList.add('bg-sky-500', 'text-white');
     }
 }
+
 
 /**
  * Attaches all the necessary event listeners to the DOM elements.
