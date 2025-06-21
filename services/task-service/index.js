@@ -47,9 +47,19 @@ app.get('/api/core-data', (req, res) => {
     const userProfile = db.prepare('SELECT * FROM user_profile WHERE id = 1').get();
     const prefsArray = db.prepare('SELECT * FROM user_preferences').all();
     const userPreferences = prefsArray.reduce((acc, pref) => {
-        acc[pref.key] = pref.value;
+        try {
+            // Attempt to parse the value as JSON if it looks like an object/array
+            if (pref.value.startsWith('{') || pref.value.startsWith('[')) {
+                acc[pref.key] = JSON.parse(pref.value);
+            } else {
+                acc[pref.key] = pref.value;
+            }
+        } catch (e) {
+            acc[pref.key] = pref.value; // Fallback to raw text if parsing fails
+        }
         return acc;
     }, {});
+
 
     // REMOVED fetching time_activities and time_log_entries
 
@@ -91,7 +101,16 @@ app.post('/api/core-data', (req, res) => {
 
     if (incomingData.tasks) for (const task of incomingData.tasks) insertTask.run(stringifyTask(task));
     if (incomingData.projects) for (const project of incomingData.projects) { if (project.id !== 0) insertProject.run(project); }
-    if (incomingData.userPreferences) for (const [key, value] of Object.entries(incomingData.userPreferences)) insertPreference.run({ key, value });
+    
+    // --- MODIFICATION START ---
+    if (incomingData.userPreferences) {
+        for (const [key, value] of Object.entries(incomingData.userPreferences)) {
+            // If the value is an object, stringify it before inserting into the TEXT column.
+            const valueToInsert = typeof value === 'object' && value !== null ? JSON.stringify(value) : value;
+            insertPreference.run({ key: key, value: valueToInsert });
+        }
+    }
+    // --- MODIFICATION END ---
 
     if (incomingData.userProfile) {
         const existingProfile = db.prepare('SELECT * FROM user_profile WHERE id = 1').get();
