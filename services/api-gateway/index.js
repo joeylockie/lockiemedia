@@ -1,6 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import axios from 'axios';
+import https from 'https';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 // --- Configuration ---
 const PORT = 3000;
@@ -41,7 +45,10 @@ const authenticateKey = (req, res, next) => {
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
-app.use(express.static('public')); 
+// Note: __dirname is not available in ES modules by default. This is the workaround.
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+app.use(express.static(path.join(__dirname, '../../public'))); 
 
 // --- API Routes ---
 app.use('/api', authenticateKey);
@@ -84,7 +91,19 @@ app.post('/api/data', async (req, res) => {
     }
 });
 
-// -- Start Server --
-app.listen(PORT, () => {
-    console.log(`[API Gateway] Listening on port ${PORT}`);
+// -- Start HTTPS Server --
+
+// Construct paths to the key and certificate files in the project root
+const keyPath = path.resolve(__dirname, '../../key.pem');
+const certPath = path.resolve(__dirname, '../../cert.pem');
+
+// Create HTTPS server options
+const httpsOptions = {
+    key: fs.readFileSync(keyPath),
+    cert: fs.readFileSync(certPath)
+};
+
+// Create and start the HTTPS server
+https.createServer(httpsOptions, app).listen(PORT, () => {
+    console.log(`[HTTPS API Gateway] Securely listening on port ${PORT}`);
 });
