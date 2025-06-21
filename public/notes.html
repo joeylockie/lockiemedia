@@ -7,6 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -23,16 +25,30 @@
             border-color: #0ea5e9; /* sky-500 */
         }
         /* Make the note editor textarea look seamless */
-        #noteContentTextarea {
+        #noteContentTextarea, #markdownEditorArea {
             background: transparent;
             border: none;
             resize: none;
             color: inherit;
         }
-        #noteContentTextarea:focus {
+        #noteContentTextarea:focus, #markdownEditorArea:focus {
             outline: none;
             box-shadow: none;
         }
+        /* Style for the rendered markdown preview */
+        #markdownPreviewArea h1, #markdownPreviewArea h2, #markdownPreviewArea h3 {
+            border-bottom: 1px solid #4b5563;
+            padding-bottom: 0.5rem;
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        #markdownPreviewArea p { margin-bottom: 1rem; }
+        #markdownPreviewArea a { color: #38bdf8; text-decoration: underline; }
+        #markdownPreviewArea ul, #markdownPreviewArea ol { margin-left: 1.5rem; margin-bottom: 1rem; }
+        #markdownPreviewArea li { margin-bottom: 0.25rem; }
+        #markdownPreviewArea blockquote { border-left: 4px solid #4b5563; padding-left: 1rem; color: #9ca3af; margin-bottom: 1rem; }
+        #markdownPreviewArea code { background-color: #1f2937; padding: 0.1rem 0.3rem; border-radius: 0.25rem; font-family: monospace; }
+        #markdownPreviewArea pre { background-color: #1f2937; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin-bottom: 1rem; }
     </style>
 </head>
 <body id="notesPage" class="bg-gradient-to-br from-slate-900 to-slate-700 min-h-screen">
@@ -73,23 +89,39 @@
 
         <main id="noteEditor" class="flex-1 bg-slate-900 p-8 flex flex-col overflow-y-hidden hidden">
             <div class="max-w-3xl mx-auto h-full flex flex-col w-full">
-                <div class="flex justify-between items-center mb-6 flex-shrink-0">
+                <div class="flex justify-between items-center mb-4 flex-shrink-0">
                     <div id="noteMeta" class="text-sm text-slate-400">
+                        <div id="editorToolbar" class="flex items-center gap-4">
+                            <div class="flex items-center gap-2">
+                                <label for="markdownToggle" class="text-sm font-medium">Markdown</label>
+                                <input type="checkbox" id="markdownToggle" class="toggle-checkbox" />
+                                <label for="markdownToggle" class="toggle-label"></label>
+                            </div>
+                            <div id="markdownViewToggles" class="hidden items-center gap-1 p-1 bg-slate-800 rounded-md">
+                                <button id="editorViewBtn" class="px-2 py-1 text-xs rounded-md bg-sky-500 text-white" title="Show Editor Only"><i class="fas fa-pencil-alt"></i></button>
+                                <button id="splitViewBtn" class="px-2 py-1 text-xs rounded-md" title="Show Split View"><i class="fas fa-columns"></i></button>
+                                <button id="previewViewBtn" class="px-2 py-1 text-xs rounded-md" title="Show Preview Only"><i class="fas fa-eye"></i></button>
+                            </div>
                         </div>
+                    </div>
                     <div>
-                        <button class="text-slate-400 hover:text-white px-3 py-2 rounded-md" title="Share (coming soon)">
-                            <i class="fas fa-share-alt"></i>
-                        </button>
                         <button id="deleteNoteBtn" class="text-slate-400 hover:text-red-500 px-3 py-2 rounded-md" title="Delete Note">
                             <i class="fas fa-trash-alt"></i>
                         </button>
                     </div>
                 </div>
                 
-                <input id="noteTitleInput" type="text" value="Select a note" class="w-full bg-transparent text-4xl font-bold text-white focus:outline-none mb-6 flex-shrink-0">
+                <input id="noteTitleInput" type="text" value="Select a note" class="w-full bg-transparent text-4xl font-bold text-white focus:outline-none mb-4 flex-shrink-0 border-b border-slate-700 pb-4">
 
-                <div class="flex-grow w-full">
-                    <textarea id="noteContentTextarea" class="w-full h-full text-slate-300 text-lg leading-relaxed focus:outline-none bg-transparent border-none resize-none"></textarea>
+                <div class="flex-grow w-full overflow-y-hidden">
+                    <div id="editorContainer" class="w-full h-full">
+                        <textarea id="noteContentTextarea" class="w-full h-full text-slate-300 text-lg leading-relaxed focus:outline-none bg-transparent border-none resize-none"></textarea>
+
+                        <div id="markdownEditorContainer" class="hidden w-full h-full flex gap-4">
+                            <textarea id="markdownEditorArea" class="w-1/2 h-full text-slate-300 text-lg leading-relaxed focus:outline-none bg-transparent border-none resize-none p-2"></textarea>
+                            <div id="markdownPreviewArea" class="w-1/2 h-full text-slate-300 text-lg leading-relaxed overflow-y-auto border-l border-slate-700 p-2"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </main>
@@ -99,7 +131,6 @@
     <script src="eventBus.js" type="module"></script>
     <script src="store.js" type="module"></script>
     <script src="noteService.js" type="module"></script>
-
     <script src="notes_rendering.js" type="module"></script>
     <script src="notes_event_handlers.js" type="module"></script>
     <script src="feature_notes.js" type="module"></script> 

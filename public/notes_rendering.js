@@ -5,8 +5,9 @@ import * as NoteService from './noteService.js';
 import LoggingService from './loggingService.js';
 
 // --- DOM Element References ---
-// These will be populated by initializeDOMElements()
-let notebooksListEl, notesListEl, noteEditorEl, noteTitleInput, noteContentTextarea, currentNotebookTitleEl, notesCountEl;
+let notebooksListEl, notesListEl, noteEditorEl, noteTitleInput;
+let plainTextEditor, markdownEditorContainer, markdownEditorArea, markdownPreviewArea;
+let markdownToggle, markdownViewToggles, currentNotebookTitleEl, notesCountEl;
 
 /**
  * Initializes and caches the core DOM elements for the notes feature.
@@ -16,9 +17,17 @@ export function initializeDOMElements() {
     notesListEl = document.getElementById('notesList');
     noteEditorEl = document.getElementById('noteEditor');
     noteTitleInput = document.getElementById('noteTitleInput');
-    noteContentTextarea = document.getElementById('noteContentTextarea');
     currentNotebookTitleEl = document.getElementById('currentNotebookTitle');
     notesCountEl = document.getElementById('notesCount');
+
+    // Editor-specific elements
+    plainTextEditor = document.getElementById('noteContentTextarea');
+    markdownEditorContainer = document.getElementById('markdownEditorContainer');
+    markdownEditorArea = document.getElementById('markdownEditorArea');
+    markdownPreviewArea = document.getElementById('markdownPreviewArea');
+    markdownToggle = document.getElementById('markdownToggle');
+    markdownViewToggles = document.getElementById('markdownViewToggles');
+    
     LoggingService.debug('[NotesRendering] DOM elements initialized.', { module: 'notes_rendering' });
 }
 
@@ -32,9 +41,8 @@ export function renderNotebooks(activeNotebookId, onNotebookSelect, onNotebookDe
     if (!notebooksListEl) return;
 
     const notebooks = NoteService.getNotebooks();
-    notebooksListEl.innerHTML = ''; // Clear existing list
+    notebooksListEl.innerHTML = '';
 
-    // "All Notes" item
     const allNotesItem = document.createElement('li');
     const allNotesLink = document.createElement('a');
     allNotesLink.href = '#';
@@ -47,10 +55,9 @@ export function renderNotebooks(activeNotebookId, onNotebookSelect, onNotebookDe
     allNotesItem.appendChild(allNotesLink);
     notebooksListEl.appendChild(allNotesItem);
 
-    // Render actual notebooks with delete buttons
     notebooks.forEach(nb => {
         const li = document.createElement('li');
-        li.className = 'group'; // Add group for hover effects on children
+        li.className = 'group';
 
         const link = document.createElement('a');
         link.href = '#';
@@ -66,7 +73,7 @@ export function renderNotebooks(activeNotebookId, onNotebookSelect, onNotebookDe
         deleteBtn.title = `Delete notebook "${nb.name}"`;
         deleteBtn.onclick = (e) => {
             e.preventDefault();
-            e.stopPropagation(); // Prevent link's onclick from firing
+            e.stopPropagation();
             onNotebookDelete(nb.id, nb.name);
         };
 
@@ -139,7 +146,7 @@ export function renderNotesList(activeNotebookId, activeNoteId, onNoteSelect) {
 }
 
 /**
- * Renders the details of the active note in the editor pane.
+ * Renders the details of the active note, showing the correct editor.
  * @param {string} activeNoteId - The ID of the currently selected note.
  */
 export function renderNoteDetail(activeNoteId) {
@@ -150,14 +157,35 @@ export function renderNoteDetail(activeNoteId) {
         return;
     }
 
-    noteEditorEl.classList.remove('hidden');
     const note = NoteService.getNoteById(activeNoteId);
-
     if (!note) {
         noteEditorEl.classList.add('hidden');
         return;
     }
 
+    // Show the main editor pane
+    noteEditorEl.classList.remove('hidden');
+
+    // Set the title and the Markdown toggle state
     if (noteTitleInput) noteTitleInput.value = note.title;
-    if (noteContentTextarea) noteContentTextarea.value = note.content;
+    if (markdownToggle) markdownToggle.checked = note.isMarkdown;
+
+    // Show or hide the correct editor based on the note's state
+    if (note.isMarkdown) {
+        plainTextEditor.classList.add('hidden');
+        markdownEditorContainer.classList.remove('hidden');
+        markdownViewToggles.classList.remove('hidden');
+        
+        // Populate the markdown editor and trigger the initial render
+        markdownEditorArea.value = note.content || '';
+        const dirtyHtml = marked.parse(note.content || '');
+        markdownPreviewArea.innerHTML = DOMPurify.sanitize(dirtyHtml);
+    } else {
+        plainTextEditor.classList.remove('hidden');
+        markdownEditorContainer.classList.add('hidden');
+        markdownViewToggles.classList.add('hidden');
+
+        // Populate the plain text editor
+        plainTextEditor.value = note.content || '';
+    }
 }

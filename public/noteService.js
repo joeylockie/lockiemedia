@@ -1,13 +1,8 @@
 // noteService.js
-// This service handles all logic related to managing notes and notebooks,
-// including local storage persistence.
+// This service handles all logic related to managing notes and notebooks.
 
 import LoggingService from './loggingService.js';
 import AppStore from './store.js';
-
-// --- Private Helper Functions ---
-
-// The _loadData and _saveData functions are no longer needed as AppStore handles persistence.
 
 // --- Notebook Functions ---
 
@@ -25,7 +20,6 @@ export function addNotebook(name) {
     const notebooks = getNotebooks();
     if (notebooks.some(nb => nb.name.toLowerCase() === name.trim().toLowerCase())) {
         LoggingService.warn(`[NoteService] Notebook with name "${name.trim()}" already exists.`, { functionName });
-        // Optionally publish a user message via EventBus if desired
         return null;
     }
 
@@ -48,7 +42,7 @@ export function deleteNotebook(notebookId) {
     }
 
     let notebooks = getNotebooks();
-    let notes = getNotes(); // Get all notes
+    let notes = getNotes();
 
     const notebookExists = notebooks.some(nb => nb.id === notebookId);
     if (!notebookExists) {
@@ -59,12 +53,8 @@ export function deleteNotebook(notebookId) {
     const updatedNotebooks = notebooks.filter(nb => nb.id !== notebookId);
     const updatedNotes = notes.filter(note => note.notebookId !== notebookId);
 
-    // --- MODIFICATION START ---
-    // Update the notes list FIRST to remove references to the notebook.
     AppStore.setNotes(updatedNotes, `${functionName}:notes`);
-    // THEN, update the notebooks list now that no notes depend on it.
     AppStore.setNotebooks(updatedNotebooks, `${functionName}:notebooks`);
-    // --- MODIFICATION END ---
 
     LoggingService.info(`[NoteService] Notebook with ID ${notebookId} and its associated notes have been deleted.`, { functionName, notebookId });
     return true;
@@ -87,7 +77,7 @@ export function getNoteById(noteId) {
     return notes.find(note => note.id === noteId);
 }
 
-export function addNote({ title, content, notebookId }) {
+export function addNote({ title, content, notebookId, isMarkdown = false }) {
     const functionName = 'addNote (NoteService)';
     if (!title || !title.trim()) {
         LoggingService.warn('[NoteService] Attempted to add a note with an empty title.', { functionName });
@@ -100,15 +90,16 @@ export function addNote({ title, content, notebookId }) {
         content: content || '',
         notebookId: notebookId || null,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        isMarkdown: isMarkdown, // Add the new property
     };
-    notes.unshift(newNote); // Add to the beginning of the array
+    notes.unshift(newNote);
     AppStore.setNotes(notes, functionName);
     LoggingService.info(`[NoteService] Note added: "${newNote.title}"`, { functionName, newNote });
     return newNote;
 }
 
-export function updateNote(noteId, { title, content, notebookId }) {
+export function updateNote(noteId, updateData) {
     const functionName = 'updateNote (NoteService)';
     const notes = getNotes();
     const noteIndex = notes.findIndex(note => note.id === noteId);
@@ -116,15 +107,19 @@ export function updateNote(noteId, { title, content, notebookId }) {
         LoggingService.error(`[NoteService] Note with ID ${noteId} not found for update.`, new Error("NoteNotFound"), { functionName, noteId });
         return null;
     }
+    
+    // Create the updated note object
     const updatedNote = {
         ...notes[noteIndex],
-        title: title.trim(),
-        content: content,
-        // The notebookId is not typically updated from the note editor itself,
-        // but we include it for completeness.
-        notebookId: notebookId, 
+        ...updateData, // Spread the incoming update data (which can include 'isMarkdown')
         updatedAt: new Date().toISOString()
     };
+    
+    // Ensure title is trimmed if it was part of the update
+    if (updateData.title) {
+        updatedNote.title = updateData.title.trim();
+    }
+
     notes[noteIndex] = updatedNote;
     AppStore.setNotes(notes, functionName);
     LoggingService.info(`[NoteService] Note updated: "${updatedNote.title}"`, { functionName, updatedNote });
