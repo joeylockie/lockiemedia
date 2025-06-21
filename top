@@ -1,0 +1,235 @@
+[33m2232937[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m https  update
+[33m3b7ce71[m ssl stuff
+[33mcca113e[m icon fix
+[33m01099bf[m icons
+[33mab1db70[m modle app
+[33mf3e1ffb[m todo to task rename
+[33m17b86b0[m phase 3 of decoupling
+[33m996ec8e[m doc update
+[33m4fb67bd[m Final Backend Cleanup
+[33m2da754a[m gitnmore update
+[33me8a9c19[m test
+[33m2c69960[m feat: Complete backend refactor to microservices and add API security
+[33m5791fe0[m doc update 2
+[33mcca8c37[m doc update
+[33m91bcf1b[m read me and log update
+[33m6a560ef[m fix 2
+[33mf20f9a6[m fix 1
+[33mbada4dc[m feature removed
+[33md6d8c85[m time fix 2
+[33mf1631df[m server file fix 2
+[33ma6c4549[m server file fix 1
+[33mc4fb97a[m time fix
+[33mdd5115b[m Notes fix 1
+[33me1357a4[m test
+[33mf0a1436[m database setup 2
+[33m3f49ecd[m Merge branch 'main' of https://github.com/joeylockie/lockiemedia
+[33m763b7fd[m doc update
+[33m71fe374[m Merge branch 'main' of https://github.com/joeylockie/lockiemedia
+[33m9aee379[m feat: Migrate database from lowdb to SQLite
+[33m4ea1d43[m server work
+[33m67d6ac8[m server change
+[33m6bb4ef7[m fix 5
+[33m5f7d5a2[m fix 4
+[33mbddbcff[m fix 3
+[33m682dc6b[m fix 2
+[33m78caef8[m fix
+[33m703dde8[m click button grayed out issue
+[33mb71fcc5[m rework
+[33m8c00c8a[m ip
+[33m1d36ec5[m Merge pull request #13 from joeylockie/dev
+[33m07cd030[m More rework for self hosting
+[33mbf0b6ce[m Merge pull request #12 from joeylockie/dev
+[33m4bfacc1[m bacnend removal
+[33mc3fc785[m rework1
+[33ma2afa15[m Merge pull request #11 from joeylockie/dev
+[33m0f373f7[m test
+[33mdda316b[m[33m ([m[1;31morigin/dev1[m[33m, [m[1;32mdev1[m[33m)[m task list fix 2
+[33m810e98e[m task fix 1
+[33m1b854f9[m rebrand
+[33m7abbfd8[m ad platform update
+[33m4adfd4e[m dashboard rework 2
+[33m675606d[m dashboard rework 1
+[33m4750424[m place holder app added to the platform
+[33m2c851ee[m building out the time tracking app
+[33m48034e3[m time fix
+[33mcbb3432[m fix maybe?
+[33m3d4ee4a[m test1
+[33m3fea834[m time tracking extened 1
+[33m05874e4[m reminders turned on
+[33me22436b[m more ad work
+[33mdd415be[m ad placement
+[33m39e9835[m sign in rework fix 2
+[33mcfea383[m early sign in rework 1
+[33mf99bfc6[m ad work
+[33m0f44305[m log
+[33md44c67c[m habits besic
+[33mfd58728[m basic  time tracking
+[33m7410dd9[m notes fix
+[33m67054d0[m notes fix 1
+[33md7352b3[m added home icon to to do app
+[33mb247c72[m update log
+[33m1c4bf74[m adding temp pages
+[33mbcf20f5[m created index page
+[33m67511ec[m shoping list fix
+[33m43a1dcd[m shopping list
+[33m31af0d8[m 1
+[33mf6d8886[m repeat icon
+[33m2e20e4e[m advancedRecurrence 3
+[33ma6ddbe8[m log and version update
+[33mcf05bea[m advancedRecurrence 2
+[33maaaa715[m advancedRecurrence 1
+[33mb14eb64[m Merge pull request #10 from joeylockie/firebase
+[33mdb31db3[m api calls
+[33ma77ca29[m admin panel link
+[33m40a2b50[m admin panel
+[33m81649ef[m reband
+[33m1af849a[m fixes
+[33m38ca60a[m version update
+[33m14aea70[m fix and update
+[33m07ec630[m fix
+[33m7903ebb[m fix
+[33mfdade4d[m updated AI doc
+[33m3379807[m admin panel, and AI work
+[33m6e0a4fb[m[33m ([m[1;31morigin/admin[m[33m)[m line
+[33m267b5da[m file break down again
+[33ma7ecfcd[m file breakdown
+[33m92e194d[m roles
+[33m73793d9[m version update
+[33m5e66dbf[m profile setup
+[33m5c1f42f[m fixes
+[33me61d4c4[m fix favicon error
+[33m909b4a4[m fix about us
+[33m5b1b65b[m Merge pull request #9 from joeylockie/firebase
+[33mad1458b[m version test
+[33mb2e99f9[m fix
+[33m67d5df8[m update again
+[33m4967c44[m push test
+[33mfad0da6[m update
+[33mc6ea6de[m not manue fix
+[33m1e483aa[m notifaction menu and settings database
+[33m589cec1[m add noteifcations to firebase database
+[33m54f4db6[m desktop notification
+[33m239cfdb[m refactor
+[33m50d5db5[m fix
+[33m1b7750d[m refactor of showmessage
+[33m95677ca[m refactor
+[33md7f27ec[m bug fixes
+[33mb0051ca[m remove extra comment that showed up on page
+[33m195990c[m data base hookup 1
+[33m8785eec[m database first step (broken build)
+[33m54bca1e[m version update
+[33mb9b1c11[m moved sign out button to menu
+[33mb9c320c[m sign in and create account popup added
+[33m9f2bf5c[m enable accounts
+[33m68b6ca3[m First step of sign and sign up and backend
+[33m59131de[m Merge pull request #7 from joeylockie/dev
+[33m9286f38[m version update
+[33m90ce76a[m turning on debug
+[33me8af06a[m fix
+[33m887373f[m Merge pull request #6 from joeylockie/dev
+[33ma488224[m app version
+[33m830cdb8[m data version system
+[33m62dd194[m about us feature
+[33m622bcad[m links
+[33md9b6b72[m contact us button
+[33mcec00f5[m Merge pull request #5 from joeylockie/dev
+[33m92eddbb[m error
+[33m69efdb2[m more error code added
+[33m149f9fc[m more error logging
+[33mc42901c[m error logging
+[33m4ba3ec7[m Merge pull request #4 from joeylockie/background
+[33m8f2431f[m[33m ([m[1;31morigin/background[m[33m)[m reamme file update
+[33mfd8db85[m adding placeholder background feature
+[33m13b8eda[m test
+[33m6de09dd[m test edit
+[33mb2b09ab[m feature flag visabitly fix
+[33mdb81666[m test button fix
+[33m1cfdd9f[m s
+[33m7d48520[m side bar 3
+[33mdd81caf[m side bar fix 2
+[33mce4ea74[m side bar issue
+[33m03bc1b0[m fixes
+[33m6f654d3[m kjhjhjh
+[33me546f0f[m dsd
+[33mb559d6c[m dsafsdf
+[33mc9289ce[m dsadsa
+[33meb8609f[m fgdrg
+[33m030e78e[m dfhth
+[33m7b2faac[m htfght
+[33m4a92cae[m ewer
+[33mfb274a0[m ghgfhfg
+[33m7ba73be[m bcvbvcb
+[33m9f4371c[m dfsdfs
+[33mdf44b1b[m gfhfgh
+[33m773e456[m jukhg
+[33m1192595[m Update feature_kanban_board.js
+[33mb3d9cb7[m remove tags
+[33mff03a1b[m efsdfsd
+[33m0e55a09[m dafadsfa
+[33m3245e8c[m sdfsdf
+[33me33b10f[m ES6 module update
+[33md5c4beb[m ES6 module update
+[33m63c0e0e[m adv
+[33m7e4add3[m Update main.js
+[33m1a96c2c[m Update todo.html
+[33m38f11a0[m Update feature_reminder.js
+[33m88c0d75[m Update main.js
+[33m143a1b9[m Update todo.html
+[33m9c8eb79[m Update feature_test_button.js
+[33mc10e063[m Update main.js
+[33m1b47b9d[m Update todo.html
+[33mb7b3c9f[m Update modal_interactions.js
+[33mc444093[m Update main.js
+[33m9f4f6e0[m Update todo.html
+[33m8865a48[m Update tooltipService.js
+[33m68d8c86[m Update main.js
+[33m00ac969[m Update modalStateService.js
+[33m1fae9fb[m Update main.js
+[33m39ebbc2[m Update todo.html
+[33m0457238[m Update bulkActionService.js
+[33m7f8ff65[m Update main.js
+[33md0e5265[m Update todo.html
+[33m175b64b[m Update viewManager.js
+[33m693a16b[m Update main.js
+[33m0e1f7a9[m Update labelService.js
+[33mba08414[m Update main.js
+[33ma3f5897[m Update todo.html
+[33m1ec2acb[m Update feature_projects.js
+[33mad7ea24[m Update projectService.js
+[33me20e17a[m Update todo.html
+[33m46b2d8e[m Update main.js
+[33ma1f977e[m Update taskService.js
+[33m4783d78[m Update todo.html
+[33mf72e365[m Update featureFlagService.js
+[33m0c8e339[m Update todo.html
+[33m541618a[m Update store.js
+[33mc7ce7a2[m Update todo.html
+[33m0ec893f[m Update eventBus.js
+[33m2af2f94[m Update todo.html
+[33m38ac101[m Update ui_event_handlers.js
+[33m2c9a958[m Update ui_rendering.js
+[33m9d3c0d3[m Update store.js
+[33mbb4fcbb[m Create tooltipService.js
+[33mac86667[m Update todo.html
+[33m1910187[m Update taskService.js
+[33m7f9d6e7[m Update todo.html
+[33mc38d532[m Update utils.js
+[33mc5de10e[m Update ui_rendering.js
+[33md8da17b[m Update ui_event_handlers.js
+[33m23ce485[m Update store.js
+[33m44bac4d[m Update pomodoro_timer.js
+[33mfb06436[m Update ui_rendering.js
+[33mffaf4b0[m Update ui_event_handlers.js
+[33mf3cf480[m Update modal_interactions.js
+[33m4479e4b[m Update todo.html
+[33mc3111f5[m Update store.js
+[33ma9cd725[m Create modalStateService.js
+[33md8d0994[m Update ui_rendering.js
+[33m5e4d0e6[m Update store.js
+[33m0d35d75[m Update pomodoro_timer.js
+[33m6981e18[m Update store.js
+[33m45275c8[m Update bulkActionService.js
+[33m3a3a3c3[m Update ui_rendering.js
+[33m2d32939[m Update store.js
+
