@@ -3,7 +3,7 @@
 
 import AppStore from './store.js';
 import ViewManager from './viewManager.js';
-import { getAppVersionString } from './versionService.js';
+// import { getAppVersionString } from './versionService.js'; // REMOVED
 import ModalStateService from './modalStateService.js';
 import EventBus from './eventBus.js';
 import { formatDate, formatTime, formatDuration, formatMillisecondsToHMS } from './utils.js';
@@ -50,8 +50,7 @@ export let manageProjectsModal, modalDialogManageProjects, closeManageProjectsMo
 export let modalProjectSelectAdd, modalProjectSelectViewEdit;
 export let projectFilterContainer;
 export let viewTaskProject;
-export let bulkActionControlsContainer, selectAllTasksCheckbox, bulkCompleteBtn, bulkDeleteBtn; // These are needed by renderTaskListView.js
-export let bulkAssignProjectDropdown, bulkChangePriorityDropdown, bulkChangeLabelInput; // Needed by renderTaskListView.js
+// REMOVED bulk action element declarations
 export let criticalErrorDisplay, criticalErrorMessage, criticalErrorId, closeCriticalErrorBtn;
 export let appVersionFooterEl;
 export let appVersionAboutUsDisplayEl;
@@ -157,13 +156,7 @@ export function initializeDOMElements() {
     modalProjectSelectViewEdit = document.getElementById('modalProjectSelectViewEdit');
     projectFilterContainer = document.getElementById('projectFilterContainer');
     viewTaskProject = document.getElementById('viewTaskProject');
-    bulkActionControlsContainer = document.getElementById('bulkActionControlsContainer'); // Exported
-    selectAllTasksCheckbox = document.getElementById('selectAllTasksCheckbox'); // Exported
-    bulkCompleteBtn = document.getElementById('bulkCompleteBtn'); // Exported
-    bulkDeleteBtn = document.getElementById('bulkDeleteBtn'); // Exported
-    bulkAssignProjectDropdown = document.getElementById('bulkAssignProjectDropdown'); // Exported
-    bulkChangePriorityDropdown = document.getElementById('bulkChangePriorityDropdown'); // Exported
-    bulkChangeLabelInput = document.getElementById('bulkChangeLabelInput'); // Exported
+    // REMOVED bulk action element initializations
     criticalErrorDisplay = document.getElementById('criticalErrorDisplay');
     criticalErrorMessage = document.getElementById('criticalErrorMessage');
     criticalErrorId = document.getElementById('criticalErrorId');
@@ -180,14 +173,15 @@ export function initializeDOMElements() {
 // --- UI Helper Functions ---
 
 export function renderAppVersion() {
-    const versionString = getAppVersionString();
+    // const versionString = getAppVersionString(); // REMOVED
+    const versionString = ''; // Set to empty
     if (appVersionFooterEl) {
         appVersionFooterEl.textContent = versionString;
     }
     if (appVersionAboutUsDisplayEl) {
         appVersionAboutUsDisplayEl.textContent = versionString;
     }
-    LoggingService.debug(`[UI Rendering] App version rendered in UI: ${versionString}`, {module: 'tasks_ui_rendering'});
+    // LoggingService.debug(`[UI Rendering] App version rendered in UI: ${versionString}`, {module: 'tasks_ui_rendering'}); // Can be removed
 }
 
 export function showCriticalError(message, errorId) {
@@ -435,7 +429,7 @@ export function initializeUiRenderingSubscriptions() {
             populateManageLabelsList();
         }
     });
-    EventBus.subscribe('bulkSelectionChanged', (selectedIds) => { LoggingService.debug("[UI Rendering] Event received: bulkSelectionChanged. Rendering controls.", {module: 'tasks_ui_rendering'}); renderBulkActionControls(); }); 
+    // EventBus.subscribe('bulkSelectionChanged', (selectedIds) => { LoggingService.debug("[UI Rendering] Event received: bulkSelectionChanged. Rendering controls.", {module: 'tasks_ui_rendering'}); renderBulkActionControls(); }); // REMOVED
     LoggingService.debug("[UI Rendering] Event subscriptions initialized.", {module: 'tasks_ui_rendering'});
 }
 

@@ -4,7 +4,7 @@
 import AppStore from './store.js';
 import ViewManager from './viewManager.js';
 import * as TaskService from './taskService.js';
-import * as BulkActionService from './bulkActionService.js';
+// import * as BulkActionService from './bulkActionService.js'; // REMOVED
 import EventBus from './eventBus.js';
 import { formatDate, formatTime } from './utils.js';
 import { openViewTaskDetailsModal } from './tasks_modal_interactions.js';
@@ -15,13 +15,7 @@ import {
     taskList,
     emptyState,
     noMatchingTasks,
-    bulkActionControlsContainer,
-    selectAllTasksCheckbox,
-    bulkCompleteBtn,
-    bulkDeleteBtn,
-    bulkAssignProjectDropdown,
-    bulkChangePriorityDropdown,
-    bulkChangeLabelInput,
+    // REMOVED bulk action imports
     populateDatalist
 } from './tasks_ui_rendering.js';
 
@@ -29,7 +23,7 @@ import {
  * Renders the main list of tasks based on current filters, sort order, and search term.
  */
 export function renderTaskListView() {
-    if (!taskList || !ViewManager || !AppStore || typeof window.isFeatureEnabled !== 'function' || !TaskService || !BulkActionService) {
+    if (!taskList || !ViewManager || !AppStore || typeof window.isFeatureEnabled !== 'function' || !TaskService) { // REMOVED BulkActionService check
         console.error("renderTaskListView: Core dependencies not found.");
         return;
     }
@@ -146,25 +140,11 @@ export function renderTaskListView() {
         const mainContentClickableArea = document.createElement('div');
         mainContentClickableArea.className = 'task-item-clickable-area flex items-start flex-grow min-w-0 mr-2 rounded-l-lg';
         mainContentClickableArea.addEventListener('click', (event) => {
-            if (event.target.type === 'checkbox' || event.target.closest('.task-actions') || event.target.closest('.bulk-select-checkbox-container')) return;
+            if (event.target.type === 'checkbox' || event.target.closest('.task-actions')) return; // REMOVED bulk-select-checkbox-container check
             openViewTaskDetailsModal(task.id);
         });
 
-        const bulkSelectCheckboxContainer = document.createElement('div');
-        bulkSelectCheckboxContainer.className = 'bulk-select-checkbox-container flex-shrink-0 mr-2 sm:mr-3 bulk-actions-feature-element';
-        if (window.isFeatureEnabled('bulkActionsFeature')) {
-            const bulkCheckbox = document.createElement('input');
-            bulkCheckbox.type = 'checkbox';
-            bulkCheckbox.className = 'form-checkbox h-5 w-5 text-blue-500 rounded border-slate-400 dark:border-slate-500 focus:ring-blue-400 dark:focus:ring-blue-500 mt-0.5 cursor-pointer';
-            bulkCheckbox.checked = BulkActionService.getSelectedIds().includes(task.id);
-            bulkCheckbox.title = "Select for bulk action";
-            bulkCheckbox.addEventListener('change', () => {
-                BulkActionService.toggleTaskSelection(task.id);
-            });
-            bulkSelectCheckboxContainer.appendChild(bulkCheckbox);
-        } else {
-            bulkSelectCheckboxContainer.classList.add('hidden');
-        }
+        // REMOVED bulk select checkbox container
 
         const completeCheckbox = document.createElement('input');
         completeCheckbox.type = 'checkbox';
@@ -226,7 +206,7 @@ export function renderTaskListView() {
             textDetailsDiv.appendChild(detailsContainer);
         }
 
-        mainContentClickableArea.appendChild(bulkSelectCheckboxContainer);
+        // mainContentClickableArea.appendChild(bulkSelectCheckboxContainer); // REMOVED
         mainContentClickableArea.appendChild(completeCheckbox);
         mainContentClickableArea.appendChild(textDetailsDiv);
 
@@ -263,56 +243,7 @@ export function renderTaskListView() {
  * Renders the bulk action controls based on current selections and feature flags.
  */
 export function renderBulkActionControls() {
-    if (!bulkActionControlsContainer || !BulkActionService || !AppStore || !ViewManager) return;
-
-    const selectedIds = BulkActionService.getSelectedIds();
-    const isEnabled = window.isFeatureEnabled('bulkActionsFeature') && selectedIds.length > 0;
-    bulkActionControlsContainer.classList.toggle('hidden', !isEnabled);
-
-    if (!isEnabled) return;
-
-    const selectionCountEl = document.getElementById('bulkActionSelectionCount');
-    if (selectionCountEl) selectionCountEl.textContent = `${selectedIds.length} selected`;
-
-    if (bulkCompleteBtn) bulkCompleteBtn.disabled = selectedIds.length === 0;
-    if (bulkDeleteBtn) bulkDeleteBtn.disabled = selectedIds.length === 0;
-
-    if (window.isFeatureEnabled('projectFeature')) {
-        if (bulkAssignProjectDropdown) {
-            bulkAssignProjectDropdown.disabled = selectedIds.length === 0;
-            if (ProjectsFeature?.populateProjectDropdowns && typeof bulkAssignProjectDropdown.dataset.populated === 'undefined') {
-                // Populate project dropdown for bulk actions
-                const currentProjects = AppStore.getProjects().filter(p=>p.id !==0); // Exclude "No Project"
-                bulkAssignProjectDropdown.innerHTML = '<option value="">Assign Project...</option>'; // Reset
-                currentProjects.forEach(project => {
-                    const option = document.createElement('option');
-                    option.value = project.id;
-                    option.textContent = project.name;
-                    bulkAssignProjectDropdown.appendChild(option);
-                });
-                bulkAssignProjectDropdown.dataset.populated = "true"; // Mark as populated to avoid re-populating unnecessarily
-            }
-        }
-    } else {
-        if (bulkAssignProjectDropdown) bulkAssignProjectDropdown.closest('div.relative.project-feature-element')?.classList.add('hidden');
-    }
-
-
-    if (bulkChangePriorityDropdown) bulkChangePriorityDropdown.disabled = selectedIds.length === 0;
-    if (bulkChangeLabelInput) {
-        bulkChangeLabelInput.disabled = selectedIds.length === 0;
-        const datalistEl = document.getElementById('existingLabelsBulkAction');
-        if (datalistEl && typeof populateDatalist === 'function') populateDatalist(datalistEl); // Ensure populateDatalist is available
-    }
-
-    if (selectAllTasksCheckbox) {
-        const currentTasksInView = ViewManager.getFilteredTasksForBulkAction ?
-                                   ViewManager.getFilteredTasksForBulkAction() :
-                                   [];
-
-        const allInViewSelected = currentTasksInView.length > 0 && currentTasksInView.every(task => selectedIds.includes(task.id));
-        selectAllTasksCheckbox.checked = allInViewSelected;
-    }
+    // This function is now empty as the feature is removed.
 }
 
 console.log("tasks_list_view.js loaded.");

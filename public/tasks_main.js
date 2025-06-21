@@ -3,7 +3,7 @@
 
 import EventBus from './eventBus.js';
 import AppStore from './store.js';
-import { loadAppVersion, startUpdateChecker } from './versionService.js';
+// import { loadAppVersion, startUpdateChecker } from './versionService.js'; // REMOVED
 import { ProjectsFeature } from './feature_projects.js';
 import { setupEventListeners, applyActiveFeatures, setFilter } from './tasks_ui_event_handlers.js';
 import ViewManager from './viewManager.js';
@@ -13,7 +13,7 @@ import { ShoppingListFeature } from './feature_shopping_list.js';
 import LoggingService from './loggingService.js';
 import { DesktopNotificationsFeature } from './feature_desktop_notifications.js';
 import * as uiRendering from './tasks_ui_rendering.js';
-import { logPerformanceMetrics } from './performanceService.js';
+// import { logPerformanceMetrics } from './performanceService.js'; // REMOVED
 import { refreshTaskView } from './tasks_ui_rendering.js';
 import * as ModalInteractions from './tasks_modal_interactions.js';
 
@@ -24,9 +24,9 @@ function isFeatureEnabled(featureName) {
         reminderFeature: true,
         advancedRecurrence: true,
         projectFeature: true,
-        bulkActionsFeature: true,
+        bulkActionsFeature: false, // REMOVED
         desktopNotificationsFeature: true,
-        appUpdateNotificationFeature: true,
+        appUpdateNotificationFeature: false, // REMOVED
         shoppingListFeature: true,
         notesFeature: true, // Kept for potential cross-app integrations, but Notes UI is separate
         debugMode: true,
@@ -57,74 +57,7 @@ function isFeatureEnabled(featureName) {
 }
 
 // --- Update Notification ---
-let updateNotificationElement = null;
-
-function showUpdateNotificationBar(data) {
-    const functionName = 'showUpdateNotificationBar (tasks_main.js)';
-    const newVersionString = data.newVersion;
-    LoggingService.info(`[TasksMain] Preparing update notification for version: ${newVersionString}`, { functionName, newVersionString });
-    const dismissedKey = `updateNotificationDismissedForVersion_${newVersionString}`;
-    if (localStorage.getItem(dismissedKey) === 'true') {
-        LoggingService.info(`[TasksMain] Update notification for version ${newVersionString} was previously dismissed. Not showing.`, { functionName });
-        return;
-    }
-    if (updateNotificationElement && updateNotificationElement.parentNode) {
-        if (updateNotificationElement.dataset.version !== newVersionString) {
-            updateNotificationElement.parentNode.removeChild(updateNotificationElement);
-            updateNotificationElement = null;
-        } else {
-            LoggingService.debug(`[TasksMain] Update notification for ${newVersionString} already visible.`, { functionName });
-            return;
-        }
-    }
-    updateNotificationElement = document.createElement('div');
-    updateNotificationElement.id = 'updateNotificationBanner';
-    updateNotificationElement.dataset.version = newVersionString;
-    updateNotificationElement.className = 'fixed bottom-0 left-0 right-0 bg-sky-600 dark:bg-sky-700 text-white p-3 sm:p-4 text-center z-[300] shadow-lg transition-transform duration-300 ease-out transform translate-y-full';
-    const containerDiv = document.createElement('div');
-    containerDiv.className = 'max-w-4xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-4';
-    const messageP = document.createElement('p');
-    messageP.className = 'text-sm sm:text-base text-left sm:text-center flex-grow';
-    messageP.innerHTML = `&#x1F680; A new version (<strong>v${newVersionString}</strong>) is available! Refresh to get the latest features and improvements.`;
-    const buttonsDiv = document.createElement('div');
-    buttonsDiv.className = 'flex-shrink-0 flex flex-col sm:flex-row gap-2 sm:gap-3 items-center mt-2 sm:mt-0';
-    const refreshButton = document.createElement('button');
-    refreshButton.textContent = 'Refresh Now';
-    refreshButton.className = 'w-full sm:w-auto px-3 py-1.5 sm:px-4 sm:py-2 bg-white text-sky-700 rounded-md hover:bg-sky-100 font-semibold text-xs sm:text-sm shadow-sm';
-    refreshButton.onclick = () => {
-        LoggingService.info('[TasksMain] User clicked refresh button for update.', { functionName });
-        localStorage.removeItem(dismissedKey);
-        window.location.reload();
-    };
-    const dismissButton = document.createElement('button');
-    dismissButton.textContent = 'Dismiss';
-    dismissButton.className = 'w-full sm:w-auto px-3 py-1.5 sm:px-4 sm:py-2 bg-sky-500 hover:bg-sky-400 text-white rounded-md border border-sky-400 dark:border-sky-600 text-xs sm:text-sm';
-    dismissButton.onclick = () => {
-        LoggingService.info(`[TasksMain] User dismissed update notification for version: ${newVersionString}.`, { functionName, newVersion: newVersionString });
-        if (updateNotificationElement && updateNotificationElement.parentNode) {
-            updateNotificationElement.classList.add('translate-y-full');
-            setTimeout(() => {
-                if (updateNotificationElement && updateNotificationElement.parentNode) {
-                    updateNotificationElement.parentNode.removeChild(updateNotificationElement);
-                }
-                updateNotificationElement = null;
-            }, 300);
-        }
-        localStorage.setItem(dismissedKey, 'true');
-    };
-    buttonsDiv.appendChild(dismissButton);
-    buttonsDiv.appendChild(refreshButton);
-    containerDiv.appendChild(messageP);
-    containerDiv.appendChild(buttonsDiv);
-    updateNotificationElement.appendChild(containerDiv);
-    document.body.appendChild(updateNotificationElement);
-    setTimeout(() => {
-        if (updateNotificationElement) {
-            updateNotificationElement.classList.remove('translate-y-full');
-        }
-    }, 50);
-}
-
+// REMOVED: showUpdateNotificationBar function and its element declaration
 
 // --- Global Error Handling ---
 let showCriticalErrorImported = (message, errorId) => {
@@ -168,7 +101,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (uiRendering.showCriticalError) {
         showCriticalErrorImported = uiRendering.showCriticalError;
     }
-    await loadAppVersion();
+    // await loadAppVersion(); // REMOVED
     
     // Phase 2: Load data from the backend
     if (AppStore && AppStore.initializeStore) {
@@ -211,12 +144,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     LoggingService.info("[TasksMain] Initial UI render complete.");
     
     // Phase 5: Start background services
-    if (isFeatureEnabled('appUpdateNotificationFeature')) {
-        startUpdateChecker();
-        // Subscribe to the new version event to show the notification bar
-        EventBus.subscribe('newVersionAvailable', showUpdateNotificationBar);
-    }
-    logPerformanceMetrics();
+    // REMOVED update checker block
+    // logPerformanceMetrics(); // REMOVED
 
     LoggingService.info("---------------------------------------------------------");
     LoggingService.info("     LockieMedia Task Manager Initialization Complete ✓");

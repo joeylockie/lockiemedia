@@ -7,7 +7,7 @@ import * as TaskService from './taskService.js';
 import * as LabelService from './labelService.js';
 import ModalStateService from './modalStateService.js';
 import EventBus from './eventBus.js';
-import * as BulkActionService from './bulkActionService.js';
+// import * as BulkActionService from './bulkActionService.js'; // REMOVED
 import LoggingService from './loggingService.js';
 
 // Import UI rendering functions from the new tasks-specific module
@@ -62,13 +62,7 @@ export function applyActiveFeatures() {
         }
     }
 
-    const bulkControls = document.getElementById('bulkActionControlsContainer');
-    if (bulkControls) {
-        if (!window.isFeatureEnabled('bulkActionsFeature')) {
-            if (BulkActionService && BulkActionService.clearSelections) BulkActionService.clearSelections();
-            bulkControls.classList.add('hidden');
-        }
-    }
+    // REMOVED Bulk Actions check
     
     const userProfile = AppStore.getUserProfile();
     const isAdmin = userProfile && userProfile.role === 'admin';
@@ -295,18 +289,7 @@ export function setupEventListeners() {
         }
     });
 
-    // Bulk Action Listeners
-    const selectAllTasksCheckboxEl = document.getElementById('selectAllTasksCheckbox');
-    if (selectAllTasksCheckboxEl && window.isFeatureEnabled('bulkActionsFeature')) {
-        selectAllTasksCheckboxEl.addEventListener('change', (e) => {
-            const tasksToSelect = ViewManager.getFilteredTasksForBulkAction();
-            if (e.target.checked) {
-                tasksToSelect.forEach(task => BulkActionService.selectTaskIfNotSelected(task.id));
-            } else {
-                tasksToSelect.forEach(task => BulkActionService.deselectTaskIfSelected(task.id));
-            }
-        });
-    }
+    // REMOVED Bulk Action Listeners
 
     LoggingService.info("[UIEventHandlers] All non-modal, non-form event listeners setup process completed.", { functionName });
 }
