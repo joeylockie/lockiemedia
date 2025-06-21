@@ -75,8 +75,20 @@ app.post('/api/data', async (req, res) => {
     const incomingData = req.body;
     try {
         const notesPayload = { notes: incomingData.notes, notebooks: incomingData.notebooks };
-        const taskServicePayload = incomingData;
+        
+        // --- MODIFICATION START ---
+        // Be specific about what the task-service receives.
+        const taskServicePayload = {
+            tasks: incomingData.tasks,
+            projects: incomingData.projects,
+            userProfile: incomingData.userProfile,
+            userPreferences: incomingData.userPreferences,
+            kanbanColumns: incomingData.kanbanColumns || [] // Ensure it exists
+        };
+        // --- MODIFICATION END ---
+        
         const timeTrackerPayload = { time_activities: incomingData.time_activities, time_log_entries: incomingData.time_log_entries };
+        
         await Promise.all([
             axios.post(`${serviceTargets.taskService}/api/core-data`, taskServicePayload),
             axios.post(`${serviceTargets.notesService}/api/notes-data`, notesPayload),
