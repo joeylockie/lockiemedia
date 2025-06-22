@@ -242,8 +242,79 @@ body { font-family: 'Inter', sans-serif; }
     color: #94a3b8; /* slate-400 */
 }
 
-/* ===== NEW DEBUGGING RULE ===== */
-/* This rule forcefully centers all sidebar buttons */
+/* ===== TASK APP Sidebar Minimization ===== */
 #taskSidebar .sidebar-button-icon-only {
     justify-content: center !important;
+}
+
+/* ===== NOTES APP Feature Styles ===== */
+
+/* --- Collapsible Sidebars (Shrink, Don't Disappear) --- */
+.notes-sidebar-collapsed {
+    width: 4rem !important; /* w-16 */
+    padding-left: 0.5rem !important; /* px-2 */
+    padding-right: 0.5rem !important;
+}
+
+.notes-sidebar-collapsed .sidebar-text-content {
+    display: none;
+}
+/* Center buttons when sidebar is collapsed */
+.notes-sidebar-collapsed #newNotebookBtn,
+.notes-sidebar-collapsed #newNoteBtn {
+    justify-content: center;
+}
+.notes-sidebar-collapsed #newNotebookBtn i,
+.notes-sidebar-collapsed #newNoteBtn i {
+    margin-right: 0;
+}
+.notes-sidebar-collapsed .notebook-item-content {
+    justify-content: center;
+}
+.notes-sidebar-collapsed .notebook-item-content span {
+    display: none;
+}
+
+/* --- General Sidebar Styles --- */
+.sidebar-toggle-rotated {
+    transform: rotate(180deg);
+}
+
+/* --- Resizable Split View --- */
+#markdownEditorContainer:not(:has(#markdownEditorArea.w-1\/2)) #markdownResizer {
+    display: none;
+}
+
+#markdownResizer {
+    flex-shrink: 0;
+    width: 0.5rem;
+    cursor: col-resize;
+    background-color: #374151;
+    transition: background-color 0.2s ease-in-out;
+}
+
+#markdownResizer:hover,
+#markdownResizer.is-resizing {
+    background-color: #0ea5e9;
+}
+
+/* --- Text Wrapping Fix --- */
+#markdownEditorArea, #markdownPreviewArea {
+    min-width: 0; /* Allows flex items to shrink and wrap */
+}
+#noteContentTextarea,
+#markdownEditorArea,
+#markdownPreviewArea,
+#markdownPreviewArea pre,
+#markdownPreviewArea code {
+    white-space: pre-wrap !important;
+    overflow-wrap: break-word !important;
+}
+
+/* Prevent text selection while resizing */
+body.is-resizing-notes * {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
 }

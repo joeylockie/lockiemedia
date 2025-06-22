@@ -3,25 +3,21 @@
 
 import LoggingService from './loggingService.js';
 import * as NoteService from './noteService.js';
-// --- MODIFICATION START ---
-// Import orchestrator functions from feature_notes
 import { setActiveNote, setActiveNotebook, renderAll } from './feature_notes.js';
-// Import the specific rendering function we need from notes_rendering
 import { renderNoteDetail } from './notes_rendering.js';
-// --- MODIFICATION END ---
-
 
 // --- DOM Element References ---
-// We'll get these elements within the setup function to ensure they exist.
 let newNoteBtn, newNotebookBtn, noteTitleInput, noteContentTextarea, deleteNoteBtn;
-let markdownToggle, markdownViewToggles, editorViewBtn, splitViewBtn, previewViewBtn;
+let markdownToggle, editorViewBtn, splitViewBtn, previewViewBtn;
 let markdownEditorArea, markdownPreviewArea;
+let mainSidebar, mainSidebarToggle;
+let notesListSidebar, notesListToggle;
+let markdownResizer;
 
 
 // --- Event Handler Functions ---
 
 function handleNewNote() {
-    // The active notebook is managed in feature_notes.js, so we need to get it from there.
     const activeNotebookId = window.NotesApp.getActiveNotebookId(); 
     const newNote = NoteService.addNote({ 
         title: 'New Note', 
@@ -52,7 +48,6 @@ function handleNoteUpdate() {
     const note = NoteService.getNoteById(activeNoteId);
     if (!note) return;
     
-    // Determine which text area is active
     const content = note.isMarkdown 
         ? markdownEditorArea.value 
         : noteContentTextarea.value;
@@ -61,8 +56,6 @@ function handleNoteUpdate() {
 
     NoteService.updateNote(activeNoteId, { title, content });
     
-    // We only need to re-render the notes list to update the timestamp/snippet,
-    // not the whole UI, which is more efficient.
     window.NotesApp.renderNotesList();
 }
 
@@ -72,60 +65,116 @@ function handleDeleteNote() {
 
     if (confirm(`Are you sure you want to delete this note?`)) {
         NoteService.deleteNote(activeNoteId);
-        // Setting activeNoteId to null is handled by setActiveNote
         setActiveNote(null);
     }
 }
 
-// --- NEW Markdown Editor Handlers ---
-
 function handleMarkdownToggleChange(event) {
     const activeNoteId = window.NotesApp.getActiveNoteId();
     if (!activeNoteId) {
-        event.target.checked = !event.target.checked; // Revert the toggle
+        event.target.checked = !event.target.checked; 
         return;
     }
     const isMarkdown = event.target.checked;
     NoteService.updateNote(activeNoteId, { isMarkdown });
-    // Re-render the detail pane to switch between plain and markdown editors
+    
     renderNoteDetail(activeNoteId); 
+    
+    if (isMarkdown) {
+        handleViewModeChange('editor');
+    }
 }
 
 function handleMarkdownInput() {
     if (!markdownEditorArea || !markdownPreviewArea) return;
     const rawMarkdown = markdownEditorArea.value;
-    // Use the libraries we added to notes.html
     const dirtyHtml = marked.parse(rawMarkdown);
     const cleanHtml = DOMPurify.sanitize(dirtyHtml);
     markdownPreviewArea.innerHTML = cleanHtml;
 }
 
 function handleViewModeChange(mode) {
-    if (!markdownEditorArea || !markdownPreviewArea) return;
+    handleNoteUpdate();
+
+    if (!markdownEditorArea || !markdownPreviewArea || !editorViewBtn || !splitViewBtn || !previewViewBtn) return;
     
     const buttons = [editorViewBtn, splitViewBtn, previewViewBtn];
     buttons.forEach(btn => btn.classList.remove('bg-sky-500', 'text-white'));
     
-    const editorPane = markdownEditorArea.parentElement;
-    const previewPane = markdownPreviewArea.parentElement;
+    const editorPane = markdownEditorArea;
+    const previewPane = markdownPreviewArea;
+    const resizer = markdownResizer;
+
+    resizer.classList.add('hidden');
+    editorPane.classList.remove('hidden', 'w-full', 'w-1/2');
+    previewPane.classList.remove('hidden', 'w-full', 'w-1/2');
 
     if (mode === 'editor') {
-        editorPane.classList.remove('hidden', 'w-1/2');
         editorPane.classList.add('w-full');
         previewPane.classList.add('hidden');
         editorViewBtn.classList.add('bg-sky-500', 'text-white');
     } else if (mode === 'preview') {
         editorPane.classList.add('hidden');
-        previewPane.classList.remove('hidden', 'w-1/2');
         previewPane.classList.add('w-full');
         previewViewBtn.classList.add('bg-sky-500', 'text-white');
     } else { // Split view
-        editorPane.classList.remove('hidden', 'w-full');
         editorPane.classList.add('w-1/2');
-        previewPane.classList.remove('hidden', 'w-full');
         previewPane.classList.add('w-1/2');
+        resizer.classList.remove('hidden');
         splitViewBtn.classList.add('bg-sky-500', 'text-white');
     }
+}
+
+// --- Simplified and Corrected Sidebar Handlers ---
+
+function toggleSidebar(sidebarEl, buttonEl, storageKey) {
+    if (!sidebarEl || !buttonEl) return;
+    const icon = buttonEl.querySelector('i');
+    
+    const isNowCollapsed = sidebarEl.classList.toggle('notes-sidebar-collapsed');
+    if (icon) icon.classList.toggle('sidebar-toggle-rotated');
+    
+    localStorage.setItem(storageKey, isNowCollapsed);
+    LoggingService.debug(`[NotesEventHandlers] Toggled sidebar ${storageKey}. Collapsed: ${isNowCollapsed}`);
+}
+
+function initResizer(resizer, leftPane, rightPane) {
+    let x = 0;
+    let leftWidth = 0;
+
+    const mouseDownHandler = function (e) {
+        x = e.clientX;
+        leftWidth = leftPane.getBoundingClientRect().width;
+
+        document.addEventListener('mousemove', mouseMoveHandler);
+        document.addEventListener('mouseup', mouseUpHandler);
+        
+        document.body.classList.add('is-resizing-notes');
+        resizer.classList.add('is-resizing');
+    };
+
+    const mouseMoveHandler = function (e) {
+        const dx = e.clientX - x;
+        const newLeftWidth = leftWidth + dx;
+        const totalWidth = leftPane.parentElement.getBoundingClientRect().width;
+        
+        let newLeftPercent = (newLeftWidth / totalWidth) * 100;
+        
+        if (newLeftPercent < 10) newLeftPercent = 10;
+        if (newLeftPercent > 90) newLeftPercent = 90;
+
+        leftPane.style.width = `${newLeftPercent}%`;
+        rightPane.style.width = `${100 - newLeftPercent}%`;
+    };
+
+    const mouseUpHandler = function () {
+        document.body.classList.remove('is-resizing-notes');
+        resizer.classList.remove('is-resizing');
+        document.removeEventListener('mousemove', mouseMoveHandler);
+        document.removeEventListener('mouseup', mouseUpHandler);
+    };
+
+    resizer.addEventListener('mousedown', mouseDownHandler);
 }
 
 
@@ -149,20 +198,45 @@ export function setupEventListeners() {
     if (noteContentTextarea) noteContentTextarea.addEventListener('blur', handleNoteUpdate);
     if (deleteNoteBtn) deleteNoteBtn.addEventListener('click', handleDeleteNote);
 
-    // --- NEW Markdown Editor Elements ---
-    markdownToggle = document.getElementById('markdownToggle');
-    markdownViewToggles = document.getElementById('markdownViewToggles');
+    // --- Markdown Editor Elements ---
+    markdownToggle = document.getElementById('markdownToggle'); // FIX: Re-added this line
+    markdownEditorArea = document.getElementById('markdownEditorArea');
+    markdownPreviewArea = document.getElementById('markdownPreviewArea');
     editorViewBtn = document.getElementById('editorViewBtn');
     splitViewBtn = document.getElementById('splitViewBtn');
     previewViewBtn = document.getElementById('previewViewBtn');
-    markdownEditorArea = document.getElementById('markdownEditorArea');
-    markdownPreviewArea = document.getElementById('markdownPreviewArea');
 
-    if(markdownToggle) markdownToggle.addEventListener('change', handleMarkdownToggleChange);
+    if (markdownToggle) markdownToggle.addEventListener('change', handleMarkdownToggleChange); // FIX: Re-added this line
+    if(markdownEditorArea) markdownEditorArea.addEventListener('blur', handleNoteUpdate);
     if(markdownEditorArea) markdownEditorArea.addEventListener('input', handleMarkdownInput);
     if(editorViewBtn) editorViewBtn.addEventListener('click', () => handleViewModeChange('editor'));
     if(splitViewBtn) splitViewBtn.addEventListener('click', () => handleViewModeChange('split'));
     if(previewViewBtn) previewViewBtn.addEventListener('click', () => handleViewModeChange('preview'));
     
+    // --- Collapsible and Resizable UI Elements ---
+    mainSidebar = document.getElementById('notesMainSidebar');
+    mainSidebarToggle = document.getElementById('mainSidebarToggle');
+    notesListSidebar = document.getElementById('notesListSidebar');
+    notesListToggle = document.getElementById('notesListToggle');
+    markdownResizer = document.getElementById('markdownResizer');
+
+    if (mainSidebarToggle && mainSidebar) {
+        mainSidebarToggle.addEventListener('click', () => toggleSidebar(mainSidebar, mainSidebarToggle, 'notesMainSidebarCollapsed'));
+    }
+    if (notesListToggle && notesListSidebar) {
+        notesListToggle.addEventListener('click', () => toggleSidebar(notesListSidebar, notesListToggle, 'notesListSidebarCollapsed'));
+    }
+
+    if (localStorage.getItem('notesMainSidebarCollapsed') === 'true') {
+        toggleSidebar(mainSidebar, mainSidebarToggle, 'notesMainSidebarCollapsed');
+    }
+    if (localStorage.getItem('notesListSidebarCollapsed') === 'true') {
+        toggleSidebar(notesListSidebar, notesListToggle, 'notesListSidebarCollapsed');
+    }
+
+    if (markdownResizer && markdownEditorArea && markdownPreviewArea) {
+        initResizer(markdownResizer, markdownEditorArea, markdownPreviewArea);
+    }
+
     LoggingService.info('[NotesEventHandlers] Event listeners setup complete.', { functionName });
 }

@@ -9,86 +9,54 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js"></script>
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #1a1a2e;
-            color: #e0e0e0;
-            overflow: hidden; /* Prevent body scroll with flex columns */
-        }
-        .notebook-item.active {
-            background-color: #0ea5e9; /* sky-500 */
-            color: white;
-        }
-        .note-item.active {
-            background-color: #374151; /* slate-700 */
-            border-color: #0ea5e9; /* sky-500 */
-        }
-        /* Make the note editor textarea look seamless */
-        #noteContentTextarea, #markdownEditorArea {
-            background: transparent;
-            border: none;
-            resize: none;
-            color: inherit;
-        }
-        #noteContentTextarea:focus, #markdownEditorArea:focus {
-            outline: none;
-            box-shadow: none;
-        }
-        /* Style for the rendered markdown preview */
-        #markdownPreviewArea h1, #markdownPreviewArea h2, #markdownPreviewArea h3 {
-            border-bottom: 1px solid #4b5563;
-            padding-bottom: 0.5rem;
-            margin-top: 1.5rem;
-            margin-bottom: 1rem;
-        }
-        #markdownPreviewArea p { margin-bottom: 1rem; }
-        #markdownPreviewArea a { color: #38bdf8; text-decoration: underline; }
-        #markdownPreviewArea ul, #markdownPreviewArea ol { margin-left: 1.5rem; margin-bottom: 1rem; }
-        #markdownPreviewArea li { margin-bottom: 0.25rem; }
-        #markdownPreviewArea blockquote { border-left: 4px solid #4b5563; padding-left: 1rem; color: #9ca3af; margin-bottom: 1rem; }
-        #markdownPreviewArea code { background-color: #1f2937; padding: 0.1rem 0.3rem; border-radius: 0.25rem; font-family: monospace; }
-        #markdownPreviewArea pre { background-color: #1f2937; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin-bottom: 1rem; }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body id="notesPage" class="bg-gradient-to-br from-slate-900 to-slate-700 min-h-screen">
 
     <div class="flex h-screen text-slate-200">
-        <aside class="w-64 bg-slate-800 p-6 flex-shrink-0 border-r border-slate-700 flex flex-col">
-            <div class="flex items-center justify-between mb-8">
-                <h1 class="text-2xl font-bold text-sky-400">My Notes</h1>
-                <a href="dashboard.html" class="text-slate-400 hover:text-white" title="Back to Dashboard">
-                    <i class="fas fa-home"></i>
-                </a>
+        <aside id="notesMainSidebar" class="w-64 bg-slate-800 p-4 flex-shrink-0 border-r border-slate-700 flex flex-col transition-all duration-300">
+            <div class="flex items-center justify-between mb-6">
+                <h1 class="text-xl font-bold text-sky-400 sidebar-text-content">My Notes</h1>
+                <div class="flex items-center gap-2">
+                    <a href="dashboard.html" class="text-slate-400 hover:text-white" title="Back to Dashboard">
+                        <i class="fas fa-home"></i>
+                    </a>
+                    <button id="mainSidebarToggle" class="text-slate-400 hover:text-white" title="Toggle Notebooks">
+                        <i class="fas fa-chevron-left transition-transform duration-300"></i>
+                    </button>
+                </div>
             </div>
             <nav class="flex-grow overflow-y-auto">
-                <h2 class="text-xs font-semibold uppercase text-slate-400 tracking-wider mb-3">Notebooks</h2>
-                <ul id="notebooksList" class="space-y-2">
-                    </ul>
+                <h2 class="text-xs font-semibold uppercase text-slate-400 tracking-wider mb-2 sidebar-text-content">Notebooks</h2>
+                <ul id="notebooksList" class="space-y-1"></ul>
             </nav>
             <div class="mt-auto pt-4 space-y-2 flex-shrink-0">
                  <button id="newNotebookBtn" class="w-full flex items-center justify-center px-4 py-2.5 rounded-lg transition-colors duration-200 bg-slate-700 hover:bg-slate-600 text-white font-semibold">
                     <i class="fas fa-plus-square mr-2"></i>
-                    <span>New Notebook</span>
+                    <span class="sidebar-text-content">New Notebook</span>
                 </button>
                  <button id="newNoteBtn" class="w-full flex items-center justify-center px-4 py-2.5 rounded-lg transition-colors duration-200 bg-sky-500 hover:bg-sky-600 text-white font-semibold">
                     <i class="fas fa-plus mr-2"></i>
-                    <span>New Note</span>
+                    <span class="sidebar-text-content">New Note</span>
                 </button>
             </div>
         </aside>
 
-        <div class="w-80 bg-slate-900/50 p-6 flex-shrink-0 border-r border-slate-700 flex flex-col">
-            <div class="flex items-center justify-between mb-6 flex-shrink-0">
-                 <h2 id="currentNotebookTitle" class="text-xl font-semibold text-slate-100">All Notes</h2>
-                 <span id="notesCount" class="text-sm text-slate-400">0 notes</span>
+        <div id="notesListSidebar" class="w-80 bg-slate-900/50 p-4 flex-shrink-0 border-r border-slate-700 flex flex-col transition-all duration-300">
+            <div class="flex items-center justify-between mb-4 flex-shrink-0">
+                 <h2 id="currentNotebookTitle" class="text-xl font-semibold text-slate-100 truncate sidebar-text-content">All Notes</h2>
+                 <div class="flex items-center gap-2">
+                    <span id="notesCount" class="text-sm text-slate-400 sidebar-text-content">0 notes</span>
+                    <button id="notesListToggle" class="text-slate-400 hover:text-white" title="Toggle Notes List">
+                        <i class="fas fa-chevron-left transition-transform duration-300"></i>
+                    </button>
+                 </div>
             </div>
-            <div id="notesList" class="space-y-3 overflow-y-auto">
-                </div>
+            <div id="notesList" class="space-y-2 overflow-y-auto"></div>
         </div>
 
-        <main id="noteEditor" class="flex-1 bg-slate-900 p-8 flex flex-col overflow-y-hidden hidden">
-            <div class="max-w-3xl mx-auto h-full flex flex-col w-full">
+        <main id="noteEditor" class="flex-1 bg-slate-900 p-6 flex flex-col overflow-y-hidden hidden">
+            <div class="max-w-4xl mx-auto h-full flex flex-col w-full">
                 <div class="flex justify-between items-center mb-4 flex-shrink-0">
                     <div id="noteMeta" class="text-sm text-slate-400">
                         <div id="editorToolbar" class="flex items-center gap-4">
@@ -117,9 +85,10 @@
                     <div id="editorContainer" class="w-full h-full">
                         <textarea id="noteContentTextarea" class="w-full h-full text-slate-300 text-lg leading-relaxed focus:outline-none bg-transparent border-none resize-none"></textarea>
 
-                        <div id="markdownEditorContainer" class="hidden w-full h-full flex gap-4">
-                            <textarea id="markdownEditorArea" class="w-1/2 h-full text-slate-300 text-lg leading-relaxed focus:outline-none bg-transparent border-none resize-none p-2"></textarea>
-                            <div id="markdownPreviewArea" class="w-1/2 h-full text-slate-300 text-lg leading-relaxed overflow-y-auto border-l border-slate-700 p-2"></div>
+                        <div id="markdownEditorContainer" class="hidden w-full h-full flex gap-0">
+                            <textarea id="markdownEditorArea" class="h-full text-slate-300 text-lg leading-relaxed focus:outline-none bg-transparent border-none resize-none p-2"></textarea>
+                            <div id="markdownResizer" class="w-2 flex-shrink-0 cursor-col-resize bg-slate-700 hover:bg-sky-500 transition-colors"></div>
+                            <div id="markdownPreviewArea" class="h-full text-slate-300 text-lg leading-relaxed overflow-y-auto p-2"></div>
                         </div>
                     </div>
                 </div>
