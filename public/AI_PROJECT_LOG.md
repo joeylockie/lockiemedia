@@ -1,5 +1,5 @@
 AI Project Curation Log: Lockie Media Platform
-Last Updated: 2025-06-21 17:44 (EDT)
+Last Updated: 2025-06-21 20:39 (EDT)
 
 1. Instructions for AI (Gemini)
 Purpose of this Document: This document is your primary source of truth for the Lockie Media Platform project. It provides context, tracks progress, outlines current tasks, and lists future goals. Please refer to it to understand:
@@ -89,38 +89,35 @@ Notes App Enhancements: Added notebook deletion and a full-featured Markdown edi
 4. Work Completed (Specific to Current Major Task):
 Date: 2025-06-21
 
-Task: Feature Removal & Notes App Upgrade
+Task: Notes App UI/UX Enhancements & Bug Fixing
 
-Summary: Removed several unnecessary features from the Task Manager app to streamline the codebase. Then, executed a major refactor and feature implementation for the Notes app.
+Summary: Attempted to fix several bugs and add new UI features to the Notes App. While initial bugs with the Markdown editor view modes were resolved, subsequent feature additions (collapsible sidebars) introduced critical regressions that left the Notes App in a non-functional state.
 
 Details:
 
-Feature Removal: Successfully removed the Performance Service, Version Service, and Bulk Actions features from the Task Manager application, including all related UI elements and JavaScript files.
+Initial Bug Fixes: Corrected logic in `notes_event_handlers.js` to fix Markdown editor view modes (editor-only, split-view, preview-only) and prevent text from disappearing when switching between them.
 
-Notes App Refactoring: Broke the monolithic feature_notes.js file into a modular structure (notes_rendering.js, notes_event_handlers.js) to mirror the architecture of the Tasks app, improving maintainability.
+Resizable Split View: Successfully added a draggable resizer to the Markdown editor's split view.
 
-Notebook Deletion: Implemented the functionality to delete notebooks and their associated notes.
-
-Markdown Editor: Added a full-featured, side-by-side Markdown editor to the Notes app, complete with live preview and toggleable view modes (editor, split-screen, and preview-only).
+Feature Implementation Attempt (Collapsible Sidebars): Modified `notes.html`, `style.css`, and `notes_event_handlers.js` to implement collapsible sidebars. This effort led to several regressions. The final state at the end of the session is non-working.
 
 5. Current Focus / Next Steps (Specific to Current Major Task):
 Current Major Task/Feature Being Worked On:
 
-Name: Platform Refinement
+Name: Notes App - Critical Bug Fixes
 
-Goal for this Task: The major feature work for the Notes app is complete. The next phase is to refine the existing applications and address any minor bugs or UI/UX improvements before moving on to a new large feature.
+Goal for this Task: Stabilize the Notes App by fixing the critical regressions introduced in the last session. The app is currently unusable.
 
-Status: Complete
+Status: **INCOMPLETE / BLOCKED**
 
 Current Sub-Task / Immediate Next Action:
 
-Decision Point: With the Notes app upgraded, it's a good time to decide on the next steps for the platform. Potential options include:
+Fix the `notes_event_handlers.js` file. The primary goal for the next session is to create a clean, working version of this file that correctly handles both the sidebar toggling and the Markdown features without conflict.
 
-UI/UX Polish: Review the existing apps (Tasks, Notes) for any minor UI inconsistencies, layout issues, or small improvements that would enhance the user experience.
-
-Habit Tracker Enhancements: The Habit Tracker is functional but could be improved with features like editing habits or viewing more detailed statistics.
-
-New Feature - Calendar: Begin scaffolding the Calendar application (calendar.html), which is currently a placeholder page.
+Proposed Plan for Next Session:
+1. Re-implement the sidebar logic in `notes_event_handlers.js` using a simple, robust class-toggling mechanism that works with the latest CSS.
+2. Verify and re-implement the Markdown toggle listener to ensure it was not removed and is functioning correctly.
+3. Perform a full-system test of the Notes App (sidebar collapse/expand, Markdown toggle, view modes, resizer) to confirm all features work together.
 
 Specific questions for AI (if any):
 
@@ -128,10 +125,10 @@ None.
 
 Blockers (if any):
 
-None.
+The current JavaScript logic in `public/notes_event_handlers.js` is flawed and has broken the application.
 
 6. Known Issues / Bugs (Related to current work or recently discovered):
-None.
+**CRITICAL:** none
 
 7. Future/Pending Work (Overall Project - High Level):
 Security: Further enhancements could include JWT for user-level authentication in the future.
@@ -150,3 +147,5 @@ Frontend Decoupling Initiated: A decision was made to refactor the frontend. The
 Notes App Architecture: To prepare for new features, the Notes app's frontend code was refactored into a modular structure (notes_rendering.js, notes_event_handlers.js), separating concerns and improving maintainability.
 
 Editor Choice: A side-by-side Markdown editor (using Marked.js and DOMPurify) with toggleable view modes was chosen for the Notes app over a more complex Rich Text/WYSIWYG editor. This decision prioritized implementation speed, maintainability, and data portability (plain text) while still providing a powerful user experience.
+
+Sidebar UI Pattern: Decided to move from a "disappearing" sidebar (`width: 0`) to a more robust "shrinking" sidebar pattern to prevent UI lockouts. The implementation of this pattern is currently the source of the critical bugs.
