@@ -4,26 +4,39 @@ import LoggingService from './loggingService.js';
 import AppStore from './store.js';
 import TimeTrackerService from './timeTrackerService.js';
 import NotificationService from './notificationService.js';
+import { formatTime } from './utils.js';
 
 // --- DOM Element References ---
 let modalEl, dialogEl, closeBtn, doneBtn, manageRemindersBtn,
-    enableAllToggle, settingsContainer,
-    noTimerToggle, noTimerTimeInput,
-    longTimerToggle, longTimerMinutesInput;
+    remindersListContainerEl, addReminderBtnEl, testReminderBtnEl, enableAllToggle;
+
+// --- NEW: Editor Modal DOM References ---
+let editorModalEl, editorDialogEl, editorTitleEl, editorFormEl, editingReminderIdInput,
+    reminderTypeSelect, cancelReminderEditBtn, reminderMessageInput, reminderDaysContainer;
 
 // --- Internal State & Constants ---
 let _checkInterval = null;
-const CHECK_INTERVAL_MS = 60 * 1000; // Check every minute
+const CHECK_INTERVAL_MS = 60 * 1000;
 const defaultSettings = {
     enabled: false,
-    noTimerReminder: {
-        enabled: false,
-        time: '09:00', // Default to 9:00 AM
-    },
-    longTimerReminder: {
-        enabled: false,
-        minutes: 120, // Default to 2 hours
-    },
+    reminders: [
+        {
+            id: 'rem_default_1',
+            type: 'no_timer_running',
+            time: '09:30',
+            days: ['mon', 'tue', 'wed', 'thu', 'fri'],
+            message: 'Time to start the day! Don\'t forget to track your time.',
+            enabled: true
+        },
+        {
+            id: 'rem_default_2',
+            type: 'long_timer',
+            duration: 120,
+            days: [],
+            message: 'Your timer has been running for over 2 hours. Time for a break?',
+            enabled: true
+        }
+    ]
 };
 let currentSettings = { ...defaultSettings };
 
@@ -38,12 +51,16 @@ function _loadSettings() {
     }
     const prefs = AppStore.getUserPreferences();
     if (prefs && prefs.timeTrackerReminders) {
-        currentSettings = {
-            ...defaultSettings,
-            ...prefs.timeTrackerReminders,
-            noTimerReminder: { ...defaultSettings.noTimerReminder, ...prefs.timeTrackerReminders.noTimerReminder },
-            longTimerReminder: { ...defaultSettings.longTimerReminder, ...prefs.timeTrackerReminders.longTimerReminder }
-        };
+        if (prefs.timeTrackerReminders.noTimerReminder || prefs.timeTrackerReminders.longTimerReminder) {
+             LoggingService.info('[TimeReminderFeature] Old settings format detected. Migrating to new structure.', { functionName });
+             currentSettings = { ...defaultSettings };
+        } else {
+             currentSettings = {
+                ...defaultSettings,
+                ...prefs.timeTrackerReminders,
+                reminders: prefs.timeTrackerReminders.reminders || []
+            };
+        }
         LoggingService.info('[TimeReminderFeature] Loaded settings from AppStore.', { functionName, loaded: currentSettings });
     } else {
         currentSettings = { ...defaultSettings };
@@ -58,19 +75,101 @@ async function _saveSettings() {
         return;
     }
     await AppStore.setUserPreferences({ timeTrackerReminders: currentSettings }, functionName);
-    LoggingService.info('[TimeReminderFeature] Settings saved.', { functionName, saved: currentSettings });
+    _renderReminderList();
+    LoggingService.info('[TimeReminderFeature] Settings saved & UI refreshed.', { functionName, saved: currentSettings });
 }
 
-function _updateSettingsUI() {
-    if (!modalEl) return;
-    enableAllToggle.checked = currentSettings.enabled;
-    noTimerToggle.checked = currentSettings.noTimerReminder.enabled;
-    noTimerTimeInput.value = currentSettings.noTimerReminder.time;
-    longTimerToggle.checked = currentSettings.longTimerReminder.enabled;
-    longTimerMinutesInput.value = currentSettings.longTimerReminder.minutes;
-    const isMasterEnabled = currentSettings.enabled;
-    settingsContainer.style.opacity = isMasterEnabled ? '1' : '0.5';
-    settingsContainer.style.pointerEvents = isMasterEnabled ? 'auto' : 'none';
+function _renderReminderList() {
+    if (!remindersListContainerEl) return;
+
+    remindersListContainerEl.innerHTML = '';
+
+    if (!currentSettings.reminders || currentSettings.reminders.length === 0) {
+        remindersListContainerEl.innerHTML = `<p class="text-center text-slate-400 p-4">No custom reminders yet. Click "Add New Reminder" to create one.</p>`;
+        return;
+    }
+
+    currentSettings.reminders.forEach(reminder => {
+        const item = document.createElement('div');
+        item.className = 'p-3 rounded-lg bg-slate-900/50 flex flex-col sm:flex-row justify-between sm:items-center gap-3';
+
+        let title = 'Custom Reminder';
+        let description = 'A custom reminder.';
+        const days = reminder.days && reminder.days.length > 0 ? reminder.days.join(', ').toUpperCase() : 'Every day';
+
+        if (reminder.type === 'no_timer_running') {
+            title = 'Start Timer Reminder';
+            description = `At ${formatTime(reminder.time)}. Active on: ${days}.`;
+        } else if (reminder.type === 'long_timer') {
+            title = 'Long-Running Timer';
+            description = `After ${reminder.duration} minutes. Active on: ${days}.`;
+        }
+
+        item.innerHTML = `
+            <div class="flex-grow">
+                <p class="font-medium text-slate-200">${title}</p>
+                <p class="text-xs text-slate-400">${description}</p>
+            </div>
+            <div class="flex items-center gap-4 flex-shrink-0">
+                <input type="checkbox" data-reminder-id="${reminder.id}" class="toggle-checkbox reminder-toggle" ${reminder.enabled ? 'checked' : ''} />
+                <label for="toggle-${reminder.id}" class="toggle-label"></label>
+                <button title="Edit Reminder" data-reminder-id="${reminder.id}" class="edit-reminder-btn text-slate-400 hover:text-sky-400 transition-colors"><i class="fas fa-pencil-alt"></i></button>
+                <button title="Delete Reminder" data-reminder-id="${reminder.id}" class="delete-reminder-btn text-slate-400 hover:text-red-500 transition-colors"><i class="fas fa-trash-alt"></i></button>
+            </div>
+        `;
+
+        const toggle = item.querySelector('.reminder-toggle');
+        toggle.id = `toggle-${reminder.id}`;
+        toggle.nextElementSibling.setAttribute('for', toggle.id);
+        toggle.addEventListener('change', (e) => {
+            _updateReminder(reminder.id, { enabled: e.target.checked });
+        });
+        
+        const deleteBtn = item.querySelector('.delete-reminder-btn');
+        deleteBtn.addEventListener('click', () => {
+             if (confirm('Are you sure you want to delete this reminder?')) {
+                _deleteReminder(reminder.id);
+            }
+        });
+
+        const editBtn = item.querySelector('.edit-reminder-btn');
+        editBtn.addEventListener('click', () => _openReminderEditorModal(reminder.id));
+
+        remindersListContainerEl.appendChild(item);
+    });
+}
+
+function _addReminder(reminderData) {
+    const newReminder = {
+        id: `rem_${Date.now()}`,
+        enabled: true,
+        ...reminderData,
+    };
+    currentSettings.reminders.push(newReminder);
+    _saveSettings();
+}
+
+function _updateReminder(reminderId, updateData) {
+    const reminderIndex = currentSettings.reminders.findIndex(r => r.id === reminderId);
+    if (reminderIndex > -1) {
+        currentSettings.reminders[reminderIndex] = { ...currentSettings.reminders[reminderIndex], ...updateData };
+        _saveSettings();
+    }
+}
+
+function _deleteReminder(reminderId) {
+    currentSettings.reminders = currentSettings.reminders.filter(r => r.id !== reminderId);
+    _saveSettings();
+}
+
+function _fireTestReminder() {
+    const functionName = '_fireTestReminder (TimeReminderFeature)';
+    LoggingService.info('[TimeReminderFeature] Firing test reminder.', { functionName });
+    NotificationService.showNotification('Test Reminder', {
+        body: 'This is a test notification from the Time Tracker.',
+        icon: './icon-32x32.png'
+    });
+    alert('Test notification has been sent! Check your system notifications.');
 }
 
 function _runChecks() {
@@ -78,38 +177,55 @@ function _runChecks() {
     if (!currentSettings.enabled || !NotificationService.isSupported() || NotificationService.getPermissionStatus() !== 'granted') {
         return;
     }
+    
     const now = new Date();
     const activeTimer = TimeTrackerService.getActiveTimer();
     const todayStr = now.toISOString().split('T')[0];
-    if (currentSettings.noTimerReminder.enabled && !activeTimer) {
-        const reminderTime = currentSettings.noTimerReminder.time;
-        const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-        const notifiedKey = `notified_start_timer_${todayStr}`;
-        if (currentTime === reminderTime && !localStorage.getItem(notifiedKey)) {
-            LoggingService.info('[TimeReminderFeature] Firing "start timer" notification.', { functionName });
-            NotificationService.showNotification('Time to Get Tracking!', {
-                body: `It's ${reminderTime}. Don't forget to start a timer for your work!`,
-                icon: './icon-32x32.png'
-            });
-            localStorage.setItem(notifiedKey, 'true');
+    const dayOfWeek = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][now.getDay()];
+
+    (currentSettings.reminders || []).forEach(reminder => {
+        if (!reminder.enabled || (reminder.days && reminder.days.length > 0 && !reminder.days.includes(dayOfWeek))) {
+            return;
         }
-    }
-    if (currentSettings.longTimerReminder.enabled && activeTimer) {
-        const durationMinutes = (now.getTime() - new Date(activeTimer.startTime).getTime()) / 60000;
-        const reminderMinutes = currentSettings.longTimerReminder.minutes;
-        const notifiedKey = `notified_long_timer_${activeTimer.startTime}`;
-        if (durationMinutes >= reminderMinutes && !localStorage.getItem(notifiedKey)) {
-            const activity = TimeTrackerService.getActivities().find(a => a.id === activeTimer.activityId);
-            const activityName = activity ? activity.name : 'your current task';
-            LoggingService.info(`[TimeReminderFeature] Firing "long-running timer" notification for ${activityName}.`, { functionName });
-            NotificationService.showNotification('Still Working On This?', {
-                body: `Your timer for "${activityName}" has been running for over ${reminderMinutes} minutes. Time for a break?`,
-                icon: './icon-32x32.png',
-                tag: `long_timer_${activeTimer.startTime}`
-            });
-            localStorage.setItem(notifiedKey, 'true');
+
+        const notifiedKey = `notified_${reminder.id}_${todayStr}`;
+
+        switch (reminder.type) {
+            case 'no_timer_running':
+                if (!activeTimer) {
+                    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                    if (currentTime === reminder.time && !localStorage.getItem(notifiedKey)) {
+                        LoggingService.info(`[TimeReminderFeature] Firing "${reminder.type}" notification.`, { functionName, reminderId: reminder.id });
+                        NotificationService.showNotification('Time to Get Tracking!', {
+                            body: reminder.message || `It's ${formatTime(reminder.time)}. Don't forget to start a timer!`,
+                            icon: './icon-32x32.png'
+                        });
+                        localStorage.setItem(notifiedKey, 'true');
+                    }
+                }
+                break;
+
+            case 'long_timer':
+                if (activeTimer) {
+                    const durationMinutes = (now.getTime() - new Date(activeTimer.startTime).getTime()) / 60000;
+                    const reminderMinutes = reminder.duration || 120;
+                    const longTimerNotifiedKey = `notified_${reminder.id}_${activeTimer.startTime}`;
+
+                    if (durationMinutes >= reminderMinutes && !localStorage.getItem(longTimerNotifiedKey)) {
+                        const activity = TimeTrackerService.getActivities().find(a => a.id === activeTimer.activityId);
+                        const activityName = activity ? activity.name : 'your current task';
+                        LoggingService.info(`[TimeReminderFeature] Firing "${reminder.type}" notification for ${activityName}.`, { functionName, reminderId: reminder.id });
+                        NotificationService.showNotification('Still Working On This?', {
+                            body: reminder.message || `Your timer for "${activityName}" has been running for over ${reminderMinutes} minutes.`,
+                            icon: './icon-32x32.png',
+                            tag: `long_timer_${activeTimer.startTime}`
+                        });
+                        localStorage.setItem(longTimerNotifiedKey, 'true');
+                    }
+                }
+                break;
         }
-    }
+    });
 }
 
 function _manageReminderChecks() {
@@ -121,44 +237,21 @@ function _manageReminderChecks() {
         _checkInterval = setInterval(_runChecks, CHECK_INTERVAL_MS);
         LoggingService.info('[TimeReminderFeature] Reminder check interval started.', { functionName: '_manageReminderChecks' });
         _runChecks();
-    } else {
-         LoggingService.info('[TimeReminderFeature] Reminder checks are disabled or permissions not granted.', { 
-             functionName: '_manageReminderChecks', 
-             settingsEnabled: currentSettings.enabled,
-             permission: NotificationService.getPermissionStatus() 
-        });
     }
 }
 
-// --- Modal Management ---
-
 function openReminderSettingsModal() {
-    const functionName = 'openReminderSettingsModal (DEBUG)';
-    LoggingService.info(`[DEBUG] 1. Entered ${functionName}.`);
-    
-    if (!modalEl) LoggingService.error(`[DEBUG] 2. FAILED: modalEl is null or undefined.`);
-    else LoggingService.info(`[DEBUG] 2. SUCCESS: modalEl found.`);
-    
-    if (!dialogEl) LoggingService.error(`[DEBUG] 3. FAILED: dialogEl is null or undefined.`);
-    else LoggingService.info(`[DEBUG] 3. SUCCESS: dialogEl found.`);
-
     if (!modalEl || !dialogEl) {
-        LoggingService.error(`[DEBUG] 4. Aborting modal open because a key element is missing.`);
+        LoggingService.error(`[TimeReminderFeature] Aborting modal open because a key element is missing.`);
         return;
     }
-
-    LoggingService.info(`[DEBUG] 5. Calling _loadSettings() and _updateSettingsUI().`);
     _loadSettings();
-    _updateSettingsUI();
-
-    LoggingService.info(`[DEBUG] 6. Removing 'hidden' class from modalEl.`);
+    if (enableAllToggle) enableAllToggle.checked = currentSettings.enabled;
+    _renderReminderList();
     modalEl.classList.remove('hidden');
-
     requestAnimationFrame(() => {
-        LoggingService.info(`[DEBUG] 7. In requestAnimationFrame. Removing animation classes.`);
         modalEl.classList.remove('opacity-0');
         dialogEl.classList.remove('scale-95', 'opacity-0');
-        LoggingService.info(`[DEBUG] 8. Modal should now be visible.`);
     });
 }
 
@@ -172,59 +265,140 @@ function closeReminderSettingsModal() {
 }
 
 
+// --- NEW: Reminder Editor Modal Logic ---
+
+function _updateEditorOptionsVisibility() {
+    const selectedType = reminderTypeSelect.value;
+    document.querySelectorAll('.reminder-options-container').forEach(container => {
+        container.classList.toggle('hidden', container.id !== `options_${selectedType}`);
+    });
+}
+
+function _openReminderEditorModal(reminderId = null) {
+    editorFormEl.reset();
+    if (reminderId) {
+        const reminder = currentSettings.reminders.find(r => r.id === reminderId);
+        if (!reminder) return;
+        editorTitleEl.textContent = 'Edit Reminder';
+        editingReminderIdInput.value = reminder.id;
+        reminderTypeSelect.value = reminder.type;
+        reminderMessageInput.value = reminder.message || '';
+        document.getElementById('reminderTimeInput').value = reminder.time || '09:00';
+        document.getElementById('reminderDurationInput').value = reminder.duration || 60;
+        
+        const dayCheckboxes = reminderDaysContainer.querySelectorAll('input[type="checkbox"]');
+        dayCheckboxes.forEach(cb => {
+            cb.checked = reminder.days && reminder.days.includes(cb.value);
+        });
+
+    } else {
+        editorTitleEl.textContent = 'Add New Reminder';
+        editingReminderIdInput.value = '';
+    }
+
+    _updateEditorOptionsVisibility();
+    editorModalEl.classList.remove('hidden');
+    requestAnimationFrame(() => {
+        editorModalEl.classList.remove('opacity-0');
+        editorDialogEl.classList.remove('scale-95', 'opacity-0');
+    });
+}
+
+function _closeReminderEditorModal() {
+    if (!editorModalEl) return;
+    editorModalEl.classList.add('opacity-0');
+    editorDialogEl.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => {
+        editorModalEl.classList.add('hidden');
+    }, 300);
+}
+
+function _handleReminderFormSubmit(event) {
+    event.preventDefault();
+    const id = editingReminderIdInput.value;
+    const type = reminderTypeSelect.value;
+    const selectedDays = Array.from(reminderDaysContainer.querySelectorAll('input:checked')).map(cb => cb.value);
+
+    const reminderData = {
+        type: type,
+        message: reminderMessageInput.value.trim(),
+        days: selectedDays
+    };
+
+    if (type === 'no_timer_running') {
+        reminderData.time = document.getElementById('reminderTimeInput').value;
+    } else if (type === 'long_timer') {
+        reminderData.duration = parseInt(document.getElementById('reminderDurationInput').value) || 60;
+    }
+
+    if (id) {
+        _updateReminder(id, reminderData);
+    } else {
+        _addReminder(reminderData);
+    }
+    _closeReminderEditorModal();
+}
+
 function initialize() {
     const functionName = 'initialize (TimeReminderFeature)';
-    LoggingService.info(`[DEBUG] Initializing ${functionName}...`);
-    
     if (!document.getElementById('timeTrackerHeader')) {
         LoggingService.debug('[TimeReminderFeature] Not on time-tracker page. Skipping initialization.', { functionName });
         return;
     }
 
+    // Main modal
     modalEl = document.getElementById('timeReminderSettingsModal');
     dialogEl = document.getElementById('timeReminderSettingsDialog');
     closeBtn = document.getElementById('closeTimeReminderSettingsModalBtn');
     doneBtn = document.getElementById('timeReminderSettingsDoneBtn');
     manageRemindersBtn = document.getElementById('manageRemindersBtn');
     enableAllToggle = document.getElementById('enableAllRemindersToggle');
-    settingsContainer = document.getElementById('reminderSettingsContainer');
-    noTimerToggle = document.getElementById('noTimerReminderToggle');
-    noTimerTimeInput = document.getElementById('noTimerReminderTime');
-    longTimerToggle = document.getElementById('longTimerReminderToggle');
-    longTimerMinutesInput = document.getElementById('longTimerReminderMinutes');
+    remindersListContainerEl = document.getElementById('remindersListContainer');
+    addReminderBtnEl = document.getElementById('addReminderBtn');
+    testReminderBtnEl = document.getElementById('testReminderBtn');
 
+    // Editor modal
+    editorModalEl = document.getElementById('reminderEditorModal');
+    editorDialogEl = document.getElementById('reminderEditorDialog');
+    editorTitleEl = document.getElementById('reminderEditorTitle');
+    editorFormEl = document.getElementById('reminderEditorForm');
+    editingReminderIdInput = document.getElementById('editingReminderId');
+    reminderTypeSelect = document.getElementById('reminderTypeSelect');
+    cancelReminderEditBtn = document.getElementById('cancelReminderEditBtn');
+    reminderMessageInput = document.getElementById('reminderMessageInput');
+    reminderDaysContainer = document.getElementById('reminderDaysContainer');
+    
     if (!manageRemindersBtn) {
-        LoggingService.error(`[DEBUG] CRITICAL FAILURE in ${functionName}: 'Manage Reminders' button not found! Cannot attach listener.`, null, {functionName});
+        LoggingService.error(`[TimeReminderFeature] 'Manage Reminders' button not found! Cannot attach listener.`, null, {functionName});
         return;
     }
-    LoggingService.info(`[DEBUG] 'Manage Reminders' button was found. Attaching click listener...`);
 
+    // Main modal listeners
     manageRemindersBtn.addEventListener('click', openReminderSettingsModal);
-    closeBtn.addEventListener('click', closeReminderSettingsModal);
-    doneBtn.addEventListener('click', closeReminderSettingsModal);
+    if(closeBtn) closeBtn.addEventListener('click', closeReminderSettingsModal);
+    if(doneBtn) doneBtn.addEventListener('click', closeReminderSettingsModal);
+    if(testReminderBtnEl) testReminderBtnEl.addEventListener('click', _fireTestReminder);
+    if(addReminderBtnEl) addReminderBtnEl.addEventListener('click', () => _openReminderEditorModal());
 
-    const inputs = [enableAllToggle, noTimerToggle, noTimerTimeInput, longTimerToggle, longTimerMinutesInput];
-    inputs.forEach(input => {
-        if(input) {
-            input.addEventListener('change', async () => {
-                if (enableAllToggle.checked && NotificationService.getPermissionStatus() === 'default') {
+    if (enableAllToggle) {
+        enableAllToggle.addEventListener('change', async (e) => {
+             if (e.target.checked && NotificationService.getPermissionStatus() === 'default') {
                     await NotificationService.requestPermission();
                 }
-                currentSettings.enabled = enableAllToggle.checked;
-                currentSettings.noTimerReminder.enabled = noTimerToggle.checked;
-                currentSettings.noTimerReminder.time = noTimerTimeInput.value;
-                currentSettings.longTimerReminder.enabled = longTimerToggle.checked;
-                currentSettings.longTimerReminder.minutes = parseInt(longTimerMinutesInput.value, 10) || 60;
-                _updateSettingsUI();
-                await _saveSettings();
-                _manageReminderChecks();
-            });
-        }
-    });
+            currentSettings.enabled = e.target.checked;
+            await _saveSettings();
+            _manageReminderChecks();
+        });
+    }
+
+    // Editor modal listeners
+    if (editorFormEl) editorFormEl.addEventListener('submit', _handleReminderFormSubmit);
+    if (cancelReminderEditBtn) cancelReminderEditBtn.addEventListener('click', _closeReminderEditorModal);
+    if (reminderTypeSelect) reminderTypeSelect.addEventListener('change', _updateEditorOptionsVisibility);
 
     _loadSettings();
     _manageReminderChecks();
-    LoggingService.info(`[DEBUG] Finished ${functionName}.`);
+    LoggingService.info(`[TimeReminderFeature] Initialization complete.`);
 }
 
 export const TimeTrackerRemindersFeature = {

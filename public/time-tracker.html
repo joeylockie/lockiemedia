@@ -155,45 +155,94 @@
         </div>
     </div>
     <div id="timeReminderSettingsModal" class="fixed inset-0 bg-slate-900 bg-opacity-80 flex items-center justify-center z-50 hidden opacity-0 dark">
-        <div id="timeReminderSettingsDialog" class="bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-lg border border-slate-700 transform scale-95 opacity-0">
+        <div id="timeReminderSettingsDialog" class="bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-2xl border border-slate-700 transform scale-95 opacity-0">
             <div class="flex justify-between items-center mb-4 pb-4 border-b border-slate-700">
                 <h3 class="text-2xl font-semibold text-slate-100">Time Tracker Reminders</h3>
                 <button id="closeTimeReminderSettingsModalBtn" class="text-slate-400 hover:text-white">&times;</button>
             </div>
+
             <div class="space-y-6">
                 <div class="flex items-center justify-between p-3 rounded-lg bg-slate-700/50">
-                    <label for="enableAllRemindersToggle" class="font-medium text-slate-200">Enable Time Tracker Reminders</label>
+                    <label for="enableAllRemindersToggle" class="font-medium text-slate-200">Enable All Time Tracker Reminders</label>
                     <input type="checkbox" id="enableAllRemindersToggle" class="toggle-checkbox" /><label for="enableAllRemindersToggle" class="toggle-label"></label>
                 </div>
 
-                <div id="reminderSettingsContainer" class="space-y-4 pt-4 border-t border-slate-700">
-                    <div class="flex flex-col sm:flex-row justify-between sm:items-center p-3 rounded-lg bg-slate-900/50">
-                        <div class="mb-2 sm:mb-0">
-                            <label for="noTimerReminderToggle" class="font-medium text-slate-300">Remind me to start a timer</label>
-                            <p class="text-xs text-slate-400">Get a notification if no timer is running at a specific time.</p>
-                        </div>
-                        <div class="flex items-center gap-4">
-                            <input type="time" id="noTimerReminderTime" class="p-2 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none dark:[color-scheme:dark]">
-                            <input type="checkbox" id="noTimerReminderToggle" class="toggle-checkbox" /><label for="noTimerReminderToggle" class="toggle-label"></label>
-                        </div>
-                    </div>
+                <div id="remindersListContainer" class="space-y-3 max-h-96 overflow-y-auto pr-2">
+                    <p class="text-center text-slate-400">No custom reminders yet.</p>
+                </div>
 
-                    <div class="flex flex-col sm:flex-row justify-between sm:items-center p-3 rounded-lg bg-slate-900/50">
-                        <div class="mb-2 sm:mb-0">
-                            <label for="longTimerReminderToggle" class="font-medium text-slate-300">Remind me to check my timer</label>
-                            <p class="text-xs text-slate-400">Get a notification if a timer runs for too long.</p>
-                        </div>
-                         <div class="flex items-center gap-4">
-                            <input type="number" id="longTimerReminderMinutes" value="120" min="1" class="w-24 p-2 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none">
-                            <span class="text-sm text-slate-400">minutes</span>
-                            <input type="checkbox" id="longTimerReminderToggle" class="toggle-checkbox" /><label for="longTimerReminderToggle" class="toggle-label"></label>
-                        </div>
-                    </div>
+                <div class="flex justify-between items-center pt-4 border-t border-slate-700">
+                    <button id="testReminderBtn" type="button" class="px-4 py-2 bg-sky-500 text-white rounded-md hover:bg-sky-600 font-semibold transition-colors flex items-center gap-2">
+                        <i class="fas fa-paper-plane"></i>
+                        <span>Send Test Notification</span>
+                    </button>
+                    <button id="addReminderBtn" class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 font-semibold transition-colors flex items-center gap-2">
+                        <i class="fas fa-plus"></i>
+                        <span>Add New Reminder</span>
+                    </button>
                 </div>
             </div>
+
             <div class="mt-8 flex justify-end">
                  <button type="button" id="timeReminderSettingsDoneBtn" class="px-5 py-2.5 bg-slate-600 text-slate-200 rounded-lg hover:bg-slate-500 transition-colors font-medium">Done</button>
             </div>
+        </div>
+    </div>
+
+    <div id="reminderEditorModal" class="fixed inset-0 bg-slate-900 bg-opacity-80 flex items-center justify-center z-[60] hidden opacity-0 dark">
+        <div id="reminderEditorDialog" class="bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-lg border border-slate-700 transform scale-95 opacity-0">
+            <h3 id="reminderEditorTitle" class="text-2xl font-semibold text-slate-100 mb-4">Add Reminder</h3>
+            <form id="reminderEditorForm">
+                <input type="hidden" id="editingReminderId">
+                <div class="space-y-4">
+                    <div>
+                        <label for="reminderTypeSelect" class="block text-sm font-medium text-slate-300">Reminder Type</label>
+                        <select id="reminderTypeSelect" class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none">
+                            <option value="no_timer_running">When no timer is running at a specific time</option>
+                            <option value="long_timer">When a timer runs for too long</option>
+                        </select>
+                    </div>
+
+                    <div id="options_no_timer_running" class="reminder-options-container space-y-4 pt-4 border-t border-slate-700">
+                        <div>
+                           <label for="reminderTimeInput" class="block text-sm font-medium text-slate-300">Time to check</label>
+                           <input type="time" id="reminderTimeInput" class="mt-1 w-full p-2 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none dark:[color-scheme:dark]">
+                        </div>
+                    </div>
+
+                    <div id="options_long_timer" class="reminder-options-container space-y-4 pt-4 border-t border-slate-700 hidden">
+                         <div>
+                           <label for="reminderDurationInput" class="block text-sm font-medium text-slate-300">Notify after (minutes)</label>
+                           <input type="number" id="reminderDurationInput" min="1" value="60" class="mt-1 w-full p-2 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none">
+                        </div>
+                    </div>
+
+                    <div class="space-y-4 pt-4 border-t border-slate-700">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300">Days to run</label>
+                            <div id="reminderDaysContainer" class="mt-2 grid grid-cols-4 sm:grid-cols-7 gap-2">
+                                <label class="flex items-center gap-2 p-2 rounded-md bg-slate-700/50"><input type="checkbox" name="reminder-day" value="sun" class="form-checkbox"> Sun</label>
+                                <label class="flex items-center gap-2 p-2 rounded-md bg-slate-700/50"><input type="checkbox" name="reminder-day" value="mon" class="form-checkbox"> Mon</label>
+                                <label class="flex items-center gap-2 p-2 rounded-md bg-slate-700/50"><input type="checkbox" name="reminder-day" value="tue" class="form-checkbox"> Tue</label>
+                                <label class="flex items-center gap-2 p-2 rounded-md bg-slate-700/50"><input type="checkbox" name="reminder-day" value="wed" class="form-checkbox"> Wed</label>
+                                <label class="flex items-center gap-2 p-2 rounded-md bg-slate-700/50"><input type="checkbox" name="reminder-day" value="thu" class="form-checkbox"> Thu</label>
+                                <label class="flex items-center gap-2 p-2 rounded-md bg-slate-700/50"><input type="checkbox" name="reminder-day" value="fri" class="form-checkbox"> Fri</label>
+                                <label class="flex items-center gap-2 p-2 rounded-md bg-slate-700/50"><input type="checkbox" name="reminder-day" value="sat" class="form-checkbox"> Sat</label>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-1">If no days are selected, the reminder will run every day.</p>
+                        </div>
+                        <div>
+                           <label for="reminderMessageInput" class="block text-sm font-medium text-slate-300">Custom message (optional)</label>
+                           <textarea id="reminderMessageInput" rows="2" class="mt-1 w-full p-2 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none" placeholder="Enter a custom notification message..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-8 flex justify-end gap-3">
+                    <button type="button" id="cancelReminderEditBtn" class="px-5 py-2.5 bg-slate-600 text-slate-200 rounded-lg hover:bg-slate-500 transition-colors font-medium">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-semibold">Save Reminder</button>
+                </div>
+            </form>
         </div>
     </div>
 
