@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-gradient-to-br from-slate-900 to-slate-700 min-h-screen">
+<body class="bg-gradient-to-br from-slate-900 to-slate-700 min-h-screen dark">
 
     <div class="flex h-screen">
         <aside class="w-72 bg-slate-800 p-6 flex-shrink-0 border-r border-slate-700 flex flex-col">
@@ -76,7 +76,7 @@
         </main>
     </div>
 
-    <div id="manageActivitiesModal" class="fixed inset-0 bg-slate-900 bg-opacity-75 flex items-center justify-center z-50 hidden opacity-0">
+    <div id="manageActivitiesModal" class="fixed inset-0 bg-slate-900 bg-opacity-75 flex items-center justify-center z-50 hidden opacity-0 dark">
         <div id="manageActivitiesDialog" class="bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-md border border-slate-700 transform scale-95 opacity-0">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-2xl font-semibold text-slate-100">Manage Activities</h3>
@@ -87,20 +87,20 @@
                 <div class="space-y-3">
                     <div>
                         <label for="activityNameInput" class="block text-sm font-medium text-slate-300">Name</label>
-                        <input type="text" id="activityNameInput" required class="mt-1 w-full p-2 bg-slate-700 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none" placeholder="e.g., Development">
+                        <input type="text" id="activityNameInput" required class="mt-1 w-full p-2 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none" placeholder="e.g., Development">
                     </div>
                     <div>
                         <label for="activityIconSelect" class="block text-sm font-medium text-slate-300">Select an Icon</label>
-                        <select id="activityIconSelect" class="mt-1 w-full p-2 bg-slate-700 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none"></select>
+                        <select id="activityIconSelect" class="mt-1 w-full p-2 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none"></select>
                     </div>
                     <div>
                         <label for="activityIconInput" class="block text-sm font-medium text-slate-300">Or Enter Custom Icon Class</label>
-                        <input type="text" id="activityIconInput" class="mt-1 w-full p-2 bg-slate-700 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none" placeholder="e.g., fas fa-code">
+                        <input type="text" id="activityIconInput" class="mt-1 w-full p-2 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none" placeholder="e.g., fas fa-code">
                         <p class="text-xs text-slate-400 mt-1">Find more icons at <a href="https://fontawesome.com/v6/search?o=r&m=free" target="_blank" class="text-sky-400 hover:underline">Font Awesome <i class="fas fa-external-link-alt fa-xs"></i></a>.</p>
                     </div>
                     <div>
                         <label for="activityColorInput" class="block text-sm font-medium text-slate-300">Color</label>
-                        <select id="activityColorInput" class="mt-1 w-full p-2 bg-slate-700 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none">
+                        <select id="activityColorInput" class="mt-1 w-full p-2 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none">
                             <option value="sky">Sky Blue</option><option value="green">Green</option><option value="yellow">Yellow</option><option value="purple">Purple</option><option value="pink">Pink</option><option value="red">Red</option><option value="indigo">Indigo</option><option value="blue">Blue</option>
                         </select>
                     </div>
@@ -113,7 +113,7 @@
             </div>
         </div>
     </div>
-    <div id="timeEntryModal" class="fixed inset-0 bg-slate-900 bg-opacity-75 flex items-center justify-center z-50 hidden opacity-0">
+    <div id="timeEntryModal" class="fixed inset-0 bg-slate-900 bg-opacity-75 flex items-center justify-center z-50 hidden opacity-0 dark">
         <div id="timeEntryDialog" class="bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-lg border border-slate-700 transform scale-95 opacity-0">
             <div class="flex justify-between items-center mb-6">
                 <h3 id="timeEntryModalTitle" class="text-2xl font-semibold text-slate-100">Add Time Entry</h3>
@@ -124,27 +124,27 @@
                 <div class="space-y-4">
                     <div>
                         <label for="timeEntryActivitySelect" class="block text-sm font-medium text-slate-300">Activity</label>
-                        <select id="timeEntryActivitySelect" required class="mt-1 w-full p-2.5 bg-slate-700 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none"></select>
+                        <select id="timeEntryActivitySelect" required class="mt-1 w-full p-2.5 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none"></select>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label for="timeEntryDate" class="block text-sm font-medium text-slate-300">Date</label>
-                            <input type="date" id="timeEntryDate" required class="mt-1 w-full p-2 bg-slate-700 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none" style="color-scheme: dark;">
+                            <input type="date" id="timeEntryDate" required class="mt-1 w-full p-2 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none dark:[color-scheme:dark]">
                         </div>
                         <div class="grid grid-cols-2 gap-2">
                              <div>
                                 <label for="timeEntryStartTime" class="block text-sm font-medium text-slate-300">Start Time</label>
-                                <input type="time" id="timeEntryStartTime" required class="mt-1 w-full p-2 bg-slate-700 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none" style="color-scheme: dark;">
+                                <input type="time" id="timeEntryStartTime" required class="mt-1 w-full p-2 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none dark:[color-scheme:dark]">
                             </div>
                             <div>
                                 <label for="timeEntryEndTime" class="block text-sm font-medium text-slate-300">End Time</label>
-                                <input type="time" id="timeEntryEndTime" required class="mt-1 w-full p-2 bg-slate-700 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none" style="color-scheme: dark;">
+                                <input type="time" id="timeEntryEndTime" required class="mt-1 w-full p-2 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none dark:[color-scheme:dark]">
                             </div>
                         </div>
                     </div>
                     <div>
                         <label for="timeEntryNotes" class="block text-sm font-medium text-slate-300">Notes (optional)</label>
-                        <textarea id="timeEntryNotes" rows="3" class="mt-1 w-full p-2 bg-slate-700 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none" placeholder="What did you work on?"></textarea>
+                        <textarea id="timeEntryNotes" rows="3" class="mt-1 w-full p-2 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none" placeholder="What did you work on?"></textarea>
                     </div>
                 </div>
                 <div class="mt-6 flex justify-end gap-3">
@@ -154,7 +154,7 @@
             </form>
         </div>
     </div>
-    <div id="timeReminderSettingsModal" class="fixed inset-0 bg-slate-900 bg-opacity-80 flex items-center justify-center z-50 hidden opacity-0">
+    <div id="timeReminderSettingsModal" class="fixed inset-0 bg-slate-900 bg-opacity-80 flex items-center justify-center z-50 hidden opacity-0 dark">
         <div id="timeReminderSettingsDialog" class="bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-lg border border-slate-700 transform scale-95 opacity-0">
             <div class="flex justify-between items-center mb-4 pb-4 border-b border-slate-700">
                 <h3 class="text-2xl font-semibold text-slate-100">Time Tracker Reminders</h3>
@@ -173,7 +173,7 @@
                             <p class="text-xs text-slate-400">Get a notification if no timer is running at a specific time.</p>
                         </div>
                         <div class="flex items-center gap-4">
-                            <input type="time" id="noTimerReminderTime" class="p-2 bg-slate-700 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none" style="color-scheme: dark;">
+                            <input type="time" id="noTimerReminderTime" class="p-2 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none dark:[color-scheme:dark]">
                             <input type="checkbox" id="noTimerReminderToggle" class="toggle-checkbox" /><label for="noTimerReminderToggle" class="toggle-label"></label>
                         </div>
                     </div>
@@ -184,7 +184,7 @@
                             <p class="text-xs text-slate-400">Get a notification if a timer runs for too long.</p>
                         </div>
                          <div class="flex items-center gap-4">
-                            <input type="number" id="longTimerReminderMinutes" value="120" min="1" class="w-24 p-2 bg-slate-700 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none">
+                            <input type="number" id="longTimerReminderMinutes" value="120" min="1" class="w-24 p-2 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none">
                             <span class="text-sm text-slate-400">minutes</span>
                             <input type="checkbox" id="longTimerReminderToggle" class="toggle-checkbox" /><label for="longTimerReminderToggle" class="toggle-label"></label>
                         </div>

@@ -247,7 +247,7 @@ function renderActivityButtons() {
             <div class="w-16 h-16 flex items-center justify-center">
                  <i class="${activity.icon || 'fas fa-stopwatch'} ${colorMap[activity.color] || 'text-slate-400'} text-3xl"></i>
             </div>
-            <p class="text-xs mt-1">${activity.name}</p>
+            <p class="text-xs mt-1 text-slate-300">${activity.name}</p>
         `;
         card.onclick = () => {
             TimeTrackerService.startTracking(activity.id);
