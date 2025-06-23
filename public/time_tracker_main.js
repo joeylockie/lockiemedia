@@ -1,11 +1,11 @@
-// time_tracker_main.js
+// public/time_tracker_main.js
 // Main entry point for the Time Tracker page.
-// REFACTORED FOR SELF-HOSTED BACKEND
 
 import LoggingService from './loggingService.js';
 import { TimeTrackerFeature } from './feature_time_tracker.js';
-import AppStore from './store.js'; // Import AppStore
-import EventBus from './eventBus.js'; // Import EventBus
+import { TimeTrackerRemindersFeature } from './feature_time_tracker_reminders.js'; // Import the new feature
+import AppStore from './store.js';
+import EventBus from './eventBus.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     const functionName = 'DOMContentLoaded (TimeTrackerMain)';
@@ -19,11 +19,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Initialize the AppStore to load all data from the backend. This is the critical step.
         await AppStore.initializeStore();
         
-        // Initialize the feature module, which in turn initializes its dependencies.
+        // Initialize the main time tracker feature module
         if (TimeTrackerFeature && typeof TimeTrackerFeature.initialize === 'function') {
             TimeTrackerFeature.initialize();
         } else {
             LoggingService.error('[TimeTrackerMain] TimeTrackerFeature or its initialize function is not available.', null, { functionName });
+        }
+
+        // Initialize our new reminder feature
+        if (TimeTrackerRemindersFeature && typeof TimeTrackerRemindersFeature.initialize === 'function') {
+            TimeTrackerRemindersFeature.initialize();
+        } else {
+            LoggingService.error('[TimeTrackerMain] TimeTrackerRemindersFeature or its initialize function is not available.', null, { functionName });
         }
         
         LoggingService.info('[TimeTrackerMain] Time Tracker page initialization complete.', { functionName });

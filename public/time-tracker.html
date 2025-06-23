@@ -7,31 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #1a1a2e;
-            color: #e0e0e0;
-            visibility: hidden;
-        }
-        .tracked-item.active {
-            background-color: #374151;
-            border-color: #0ea5e9;
-        }
-        #manageActivitiesModal, #timeEntryModal {
-            transition: opacity 0.3s ease-in-out;
-        }
-        #manageActivitiesDialog, #timeEntryDialog {
-            transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
-        }
-        .tracked-item-actions {
-            opacity: 0;
-            transition: opacity 0.2s ease-in-out;
-        }
-        .tracked-item:hover .tracked-item-actions {
-            opacity: 1;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body class="bg-gradient-to-br from-slate-900 to-slate-700 min-h-screen">
 
@@ -59,7 +35,11 @@
                     </li>
                 </ul>
             </nav>
-            <div class="mt-auto">
+            <div class="mt-auto space-y-2">
+                 <button id="manageRemindersBtn" class="w-full flex items-center justify-center px-4 py-3 rounded-lg transition-colors duration-200 bg-slate-700 hover:bg-slate-600 text-white font-semibold">
+                    <i class="fas fa-bell mr-2"></i>
+                    <span>Manage Reminders</span>
+                </button>
                  <button id="manageActivitiesBtn" class="w-full flex items-center justify-center px-4 py-3 rounded-lg transition-colors duration-200 bg-slate-700 hover:bg-slate-600 text-white font-semibold">
                     <i class="fas fa-cog mr-2"></i>
                     <span>Manage Activities</span>
@@ -79,15 +59,14 @@
                 </button>
             </header>
             
-            <div class="flex gap-4 overflow-x-auto pb-4">
+            <div id="activityButtonsContainer" class="flex gap-4 overflow-x-auto pb-4">
             </div>
             
-            <div class="bg-slate-800 p-4 rounded-lg mb-6 flex-wrap justify-between items-center hidden">
-                <span class="font-medium text-lg text-white">Currently tracking: ...</span>
+            <div id="trackingDisplayContainer" class="bg-slate-800 p-4 rounded-lg mb-6 flex-wrap justify-between items-center hidden">
+                <span id="trackingStatusText" class="font-medium text-lg text-white">Currently tracking: ...</span>
                 <div class="flex items-center gap-4 mt-2 sm:mt-0">
-                    <span class="text-2xl font-mono font-bold text-sky-400">00:00:00</span>
-                    <button class="text-slate-400 hover:text-white hidden" title="Pause"><i class="fas fa-pause"></i></button>
-                    <button class="text-slate-400 hover:text-white" title="Stop"><i class="fas fa-stop"></i></button>
+                    <span id="trackingTimeDisplay" class="text-2xl font-mono font-bold text-sky-400">00:00:00</span>
+                    <button id="stopBtn" class="text-slate-400 hover:text-white" title="Stop"><i class="fas fa-stop"></i></button>
                 </div>
             </div>
 
@@ -111,20 +90,18 @@
                         <input type="text" id="activityNameInput" required class="mt-1 w-full p-2 bg-slate-700 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none" placeholder="e.g., Development">
                     </div>
                     <div>
-                        <label for="activityIconInput" class="block text-sm font-medium text-slate-300">Icon (Font Awesome)</label>
+                        <label for="activityIconSelect" class="block text-sm font-medium text-slate-300">Select an Icon</label>
+                        <select id="activityIconSelect" class="mt-1 w-full p-2 bg-slate-700 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none"></select>
+                    </div>
+                    <div>
+                        <label for="activityIconInput" class="block text-sm font-medium text-slate-300">Or Enter Custom Icon Class</label>
                         <input type="text" id="activityIconInput" class="mt-1 w-full p-2 bg-slate-700 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none" placeholder="e.g., fas fa-code">
+                        <p class="text-xs text-slate-400 mt-1">Find more icons at <a href="https://fontawesome.com/v6/search?o=r&m=free" target="_blank" class="text-sky-400 hover:underline">Font Awesome <i class="fas fa-external-link-alt fa-xs"></i></a>.</p>
                     </div>
                     <div>
                         <label for="activityColorInput" class="block text-sm font-medium text-slate-300">Color</label>
                         <select id="activityColorInput" class="mt-1 w-full p-2 bg-slate-700 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none">
-                            <option value="sky">Sky Blue</option>
-                            <option value="green">Green</option>
-                            <option value="yellow">Yellow</option>
-                            <option value="purple">Purple</option>
-                            <option value="pink">Pink</option>
-                            <option value="red">Red</option>
-                            <option value="indigo">Indigo</option>
-                            <option value="blue">Blue</option>
+                            <option value="sky">Sky Blue</option><option value="green">Green</option><option value="yellow">Yellow</option><option value="purple">Purple</option><option value="pink">Pink</option><option value="red">Red</option><option value="indigo">Indigo</option><option value="blue">Blue</option>
                         </select>
                     </div>
                 </div>
@@ -132,12 +109,10 @@
             </form>
             <div>
                 <h4 class="text-lg font-medium text-slate-100 mb-3">Existing Activities</h4>
-                <div id="existingActivitiesList" class="space-y-2 max-h-60 overflow-y-auto">
-                </div>
+                <div id="existingActivitiesList" class="space-y-2 max-h-60 overflow-y-auto"></div>
             </div>
         </div>
     </div>
-
     <div id="timeEntryModal" class="fixed inset-0 bg-slate-900 bg-opacity-75 flex items-center justify-center z-50 hidden opacity-0">
         <div id="timeEntryDialog" class="bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-lg border border-slate-700 transform scale-95 opacity-0">
             <div class="flex justify-between items-center mb-6">
@@ -154,16 +129,16 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label for="timeEntryDate" class="block text-sm font-medium text-slate-300">Date</label>
-                            <input type="date" id="timeEntryDate" required class="mt-1 w-full p-2 bg-slate-700 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none dark:[color-scheme:dark]">
+                            <input type="date" id="timeEntryDate" required class="mt-1 w-full p-2 bg-slate-700 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none" style="color-scheme: dark;">
                         </div>
                         <div class="grid grid-cols-2 gap-2">
                              <div>
                                 <label for="timeEntryStartTime" class="block text-sm font-medium text-slate-300">Start Time</label>
-                                <input type="time" id="timeEntryStartTime" required class="mt-1 w-full p-2 bg-slate-700 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none dark:[color-scheme:dark]">
+                                <input type="time" id="timeEntryStartTime" required class="mt-1 w-full p-2 bg-slate-700 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none" style="color-scheme: dark;">
                             </div>
                             <div>
                                 <label for="timeEntryEndTime" class="block text-sm font-medium text-slate-300">End Time</label>
-                                <input type="time" id="timeEntryEndTime" required class="mt-1 w-full p-2 bg-slate-700 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none dark:[color-scheme:dark]">
+                                <input type="time" id="timeEntryEndTime" required class="mt-1 w-full p-2 bg-slate-700 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none" style="color-scheme: dark;">
                             </div>
                         </div>
                     </div>
@@ -177,6 +152,48 @@
                     <button type="submit" id="saveTimeEntryBtn" class="px-5 py-2.5 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors font-semibold">Save Entry</button>
                 </div>
             </form>
+        </div>
+    </div>
+    <div id="timeReminderSettingsModal" class="fixed inset-0 bg-slate-900 bg-opacity-80 flex items-center justify-center z-50 hidden opacity-0">
+        <div id="timeReminderSettingsDialog" class="bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-lg border border-slate-700 transform scale-95 opacity-0">
+            <div class="flex justify-between items-center mb-4 pb-4 border-b border-slate-700">
+                <h3 class="text-2xl font-semibold text-slate-100">Time Tracker Reminders</h3>
+                <button id="closeTimeReminderSettingsModalBtn" class="text-slate-400 hover:text-white">&times;</button>
+            </div>
+            <div class="space-y-6">
+                <div class="flex items-center justify-between p-3 rounded-lg bg-slate-700/50">
+                    <label for="enableAllRemindersToggle" class="font-medium text-slate-200">Enable Time Tracker Reminders</label>
+                    <input type="checkbox" id="enableAllRemindersToggle" class="toggle-checkbox" /><label for="enableAllRemindersToggle" class="toggle-label"></label>
+                </div>
+
+                <div id="reminderSettingsContainer" class="space-y-4 pt-4 border-t border-slate-700">
+                    <div class="flex flex-col sm:flex-row justify-between sm:items-center p-3 rounded-lg bg-slate-900/50">
+                        <div class="mb-2 sm:mb-0">
+                            <label for="noTimerReminderToggle" class="font-medium text-slate-300">Remind me to start a timer</label>
+                            <p class="text-xs text-slate-400">Get a notification if no timer is running at a specific time.</p>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <input type="time" id="noTimerReminderTime" class="p-2 bg-slate-700 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none" style="color-scheme: dark;">
+                            <input type="checkbox" id="noTimerReminderToggle" class="toggle-checkbox" /><label for="noTimerReminderToggle" class="toggle-label"></label>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row justify-between sm:items-center p-3 rounded-lg bg-slate-900/50">
+                        <div class="mb-2 sm:mb-0">
+                            <label for="longTimerReminderToggle" class="font-medium text-slate-300">Remind me to check my timer</label>
+                            <p class="text-xs text-slate-400">Get a notification if a timer runs for too long.</p>
+                        </div>
+                         <div class="flex items-center gap-4">
+                            <input type="number" id="longTimerReminderMinutes" value="120" min="1" class="w-24 p-2 bg-slate-700 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none">
+                            <span class="text-sm text-slate-400">minutes</span>
+                            <input type="checkbox" id="longTimerReminderToggle" class="toggle-checkbox" /><label for="longTimerReminderToggle" class="toggle-label"></label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-8 flex justify-end">
+                 <button type="button" id="timeReminderSettingsDoneBtn" class="px-5 py-2.5 bg-slate-600 text-slate-200 rounded-lg hover:bg-slate-500 transition-colors font-medium">Done</button>
+            </div>
         </div>
     </div>
 
@@ -193,8 +210,10 @@
     <script src="eventBus.js" type="module"></script>
     <script src="store.js" type="module"></script>
     <script src="utils.js" type="module"></script>
+    <script src="notificationService.js" type="module"></script>
     <script src="timeTrackerService.js" type="module"></script>
     <script src="feature_time_tracker.js" type="module"></script>
+    <script src="feature_time_tracker_reminders.js" type="module"></script>
     <script src="time_tracker_main.js" type="module"></script>
 </body>
 </html>

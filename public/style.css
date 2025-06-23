@@ -299,9 +299,6 @@ body { font-family: 'Inter', sans-serif; }
 }
 
 /* --- Text Wrapping Fix --- */
-#markdownEditorArea, #markdownPreviewArea {
-    min-width: 0; /* Allows flex items to shrink and wrap */
-}
 #noteContentTextarea,
 #markdownEditorArea,
 #markdownPreviewArea,
@@ -317,4 +314,39 @@ body.is-resizing-notes * {
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
+}
+
+/* ===== DEFINITIVE FIX FOR BLACK TEXT IN DARK MODE INPUTS ===== */
+/* This rule forces the text color of native date/time inputs to be white in dark mode. */
+.dark input[type="time"],
+.dark input[type="date"] {
+    color: white !important;
+}
+
+/* ===== STYLES FOR CUSTOM ICON DROPDOWN ===== */
+#customIconDropdownPanel {
+    max-height: 200px;
+    overflow-y: auto;
+    background-color: #1f2937; /* gray-800 */
+    border: 1px solid #4b5563; /* gray-600 */
+    border-radius: 0.375rem; /* rounded-md */
+    margin-top: 0.25rem; /* mt-1 */
+}
+
+.custom-icon-option {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0.75rem; /* py-2 px-3 */
+    cursor: pointer;
+    transition: background-color 0.15s ease-in-out;
+}
+
+.custom-icon-option:hover {
+    background-color: #374151; /* gray-700 */
+}
+
+.custom-icon-option i {
+    width: 1.5rem; /* w-6 */
+    margin-right: 0.75rem; /* mr-3 */
+    text-align: center;
 }
