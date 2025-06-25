@@ -271,6 +271,37 @@ export async function addComment(ticketId, comment) {
     }
 }
 
+/**
+ * Deletes a comment from a ticket via API.
+ * @param {number} ticketId
+ * @param {number} commentId
+ */
+export async function deleteComment(ticketId, commentId) {
+    const functionName = 'deleteComment (DevTrackerService)';
+    try {
+        const response = await fetch(`${API_URL}/tickets/${ticketId}/comments/${commentId}`, {
+            method: 'DELETE',
+            headers: API_HEADERS,
+        });
+
+        if (!response.ok) {
+            throw new Error(await response.text());
+        }
+        
+        // After a successful deletion, we can just remove it from the local store
+        // instead of doing a full refresh. This is more efficient.
+        const comments = AppStore.getDevTicketComments().filter(c => c.id !== commentId);
+        AppStore.setDevTicketComments(comments, functionName);
+        
+        return await response.json();
+        
+    } catch (error) {
+        LoggingService.error(`[DevTrackerService] Failed to delete comment ${commentId} from ticket ${ticketId}`, error, { functionName });
+        alert(`Error deleting comment: ${error.message}`);
+        return null;
+    }
+}
+
 
 /**
  * Updates a ticket's status via API.

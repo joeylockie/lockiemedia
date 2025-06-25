@@ -8,13 +8,14 @@ import * as DevTrackerService from './dev_tracker_service.js';
 const DevTrackerUI = (() => {
     // --- Module-level State ---
     let _activeEpicId = 'all_issues';
+    let _activeTicketFilter = 'all'; // 'all', 'open', or 'done'
     let _activeSearchTerm = '';
     let _activeSettingsCategory = 'statuses';
     let _activeTicketIdForDetailModal = null;
 
     // --- DOM Element References ---
     let epicsListEl, ticketsListEl, newEpicBtn, newTicketBtn, settingsBtn, ticketSearchInput, allIssuesFilterBtn;
-    let currentEpicTitleEl, currentEpicDescriptionEl;
+    let currentEpicTitleEl, currentEpicDescriptionEl, ticketFilterControls;
     let epicModalEl, ticketModalEl, settingsModalEl, ticketDetailModal, epicDetailModal;
     let epicFormEl, epicIdInput, epicKeyInput, epicTitleInput, epicStatusSelect, epicPrioritySelect, epicDescriptionInput, epicReleaseVersionInput, cancelEpicBtn, epicModalTitleEl;
     let ticketFormEl, ticketIdInput, ticketEpicIdInput, ticketTitleInput, ticketStatusSelect, ticketPrioritySelect,
@@ -37,6 +38,7 @@ const DevTrackerUI = (() => {
         currentEpicDescriptionEl = document.getElementById('currentEpicDescription');
         ticketSearchInput = document.getElementById('ticketSearchInput');
         allIssuesFilterBtn = document.getElementById('allIssuesFilter');
+        ticketFilterControls = document.getElementById('ticketFilterControls');
         epicModalEl = document.getElementById('epicModal');
         ticketModalEl = document.getElementById('ticketModal');
         settingsModalEl = document.getElementById('settingsModal');
@@ -198,13 +200,14 @@ const DevTrackerUI = (() => {
         }
         comments.forEach(comment => {
             const commentDiv = document.createElement('div');
-            commentDiv.className = 'bg-slate-700/50 p-3 rounded-md';
+            commentDiv.className = 'bg-slate-700/50 p-3 rounded-md group relative';
             commentDiv.innerHTML = `
                 <div class="flex justify-between items-center text-xs text-slate-400 mb-1">
                     <strong>${comment.author || 'User'}</strong>
                     <span>${new Date(comment.createdAt).toLocaleString()}</span>
                 </div>
                 <p class="text-slate-200 whitespace-pre-wrap">${comment.comment}</p>
+                <button data-comment-id="${comment.id}" class="delete-comment-btn absolute top-1 right-1 text-slate-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">&times;</button>
             `;
             commentsList.appendChild(commentDiv);
         });
@@ -337,14 +340,28 @@ const DevTrackerUI = (() => {
             return;
         }
 
+        // Apply status filter
+        if (_activeTicketFilter === 'open') {
+            filteredTickets = filteredTickets.filter(t => t.status !== 'Done');
+        } else if (_activeTicketFilter === 'done') {
+            filteredTickets = filteredTickets.filter(t => t.status === 'Done');
+        }
+        
+        // Apply search term
         if (_activeSearchTerm) {
             filteredTickets = filteredTickets.filter(t => t.title.toLowerCase().includes(_activeSearchTerm));
         }
+
+        // Update active class on filter buttons
+        ticketFilterControls.querySelectorAll('.ticket-filter-btn').forEach(btn => {
+            btn.classList.toggle('bg-sky-600', btn.dataset.filter === _activeTicketFilter);
+            btn.classList.toggle('text-white', btn.dataset.filter === _activeTicketFilter);
+        });
         
         filteredTickets.sort((a, b) => b.createdAt - a.createdAt);
 
         if (filteredTickets.length === 0) {
-            ticketsListEl.innerHTML = `<p class="text-center text-slate-500 pt-10">${_activeSearchTerm ? 'No tickets match your search.' : 'This epic has no tickets.'}</p>`;
+            ticketsListEl.innerHTML = `<p class="text-center text-slate-500 pt-10">${_activeSearchTerm ? 'No tickets match your search.' : 'No tickets match the current filter.'}</p>`;
             return;
         }
 
@@ -392,7 +409,7 @@ const DevTrackerUI = (() => {
             epicDiv.className = `p-3 rounded-lg cursor-pointer group relative hover:bg-slate-700/70 ${isActive ? 'bg-purple-600/30 ring-1 ring-purple-500' : 'bg-slate-700/30'}`;
             
             const mainContent = document.createElement('div');
-            mainContent.onclick = () => { _activeEpicId = epic.id; renderAll(); };
+            mainContent.onclick = () => { _activeEpicId = epic.id; renderTicketsList(); };
 
             mainContent.innerHTML = `
                 <div class="flex justify-between items-center">
@@ -432,6 +449,7 @@ const DevTrackerUI = (() => {
     const handleDeleteTicket = async (ticketId) => { if (confirm('Are you sure you want to delete this ticket?')) await DevTrackerService.deleteTicket(ticketId); };
     const handleAddOption = async (e) => { e.preventDefault(); const input = e.target.querySelector('input'); const value = input.value.trim(); if (!value) return; if (_activeSettingsCategory === 'release_versions') { await DevTrackerService.addReleaseVersion(value); } else { const options = getOptions(); const currentCategoryOptions = options[_activeSettingsCategory]; if (!currentCategoryOptions.includes(value)) { currentCategoryOptions.push(value); await AppStore.setUserPreferences({ dev_tracker_options: options }); } } input.value = ''; };
     const handleAddComment = async (e) => { e.preventDefault(); const commentText = newCommentInput.value.trim(); if (commentText && _activeTicketIdForDetailModal) { await DevTrackerService.addComment(_activeTicketIdForDetailModal, commentText); newCommentInput.value = ''; } };
+    const handleDeleteComment = async (e) => { const button = e.target.closest('.delete-comment-btn'); if (!button) return; const commentId = Number(button.dataset.commentId); if (confirm('Are you sure you want to delete this comment?')) { await DevTrackerService.deleteComment(_activeTicketIdForDetailModal, commentId); }};
     const handleStatusChange = async (e) => { const newStatus = e.target.value; if (newStatus && _activeTicketIdForDetailModal) { await DevTrackerService.updateTicketStatus(_activeTicketIdForDetailModal, newStatus); } };
     const handleToggleHistory = (e) => { e.preventDefault(); ticketHistoryContainer.classList.toggle('hidden'); e.target.textContent = ticketHistoryContainer.classList.contains('hidden') ? 'Show History' : 'Hide History'; };
     
@@ -440,11 +458,8 @@ const DevTrackerUI = (() => {
         const optionToDelete = e.target.dataset.option;
         if (confirm(`Are you sure you want to delete "${optionToDelete}"?`)) {
             if (_activeSettingsCategory === 'release_versions') {
-                // To delete a version, we need its ID. We find it in the store.
                 const versionToDelete = AppStore.getDevReleaseVersions().find(v => v.version === optionToDelete);
                 if (versionToDelete) {
-                    // This assumes a delete service function exists. If not, this part needs implementation.
-                    // For now, let's just remove from the store for UI demonstration.
                     let versions = AppStore.getDevReleaseVersions().filter(v => v.id !== versionToDelete.id);
                     await AppStore.setDevReleaseVersions(versions);
                 }
@@ -461,6 +476,7 @@ const DevTrackerUI = (() => {
         newTicketBtn.addEventListener('click', () => openTicketModal());
         settingsBtn.addEventListener('click', openSettingsModal);
         allIssuesFilterBtn.addEventListener('click', () => { _activeEpicId = 'all_issues'; renderAll(); });
+        ticketFilterControls.addEventListener('click', (e) => { const button = e.target.closest('.ticket-filter-btn'); if (button) { _activeTicketFilter = button.dataset.filter; renderTicketsList(); }});
         ticketSearchInput.addEventListener('input', (e) => { _activeSearchTerm = e.target.value.toLowerCase(); renderTicketsList(); });
         cancelEpicBtn.addEventListener('click', closeEpicModal);
         epicFormEl.addEventListener('submit', handleEpicFormSubmit);
@@ -473,6 +489,7 @@ const DevTrackerUI = (() => {
         addOptionForm.addEventListener('submit', handleAddOption);
         optionsList.addEventListener('click', handleDeleteOption);
         addCommentForm.addEventListener('submit', handleAddComment);
+        commentsList.addEventListener('click', handleDeleteComment);
         ticketDetailStatusSelect.addEventListener('change', handleStatusChange);
         toggleHistoryLink.addEventListener('click', handleToggleHistory);
 

@@ -49,15 +49,22 @@
         </aside>
 
         <main class="flex-1 bg-slate-900/70 p-6 flex flex-col">
-            <header class="flex justify-between items-center mb-6 flex-shrink-0">
+            <header class="flex justify-between items-start mb-4 flex-shrink-0 flex-wrap">
                 <div>
                     <h2 id="currentEpicTitle" class="text-3xl font-bold text-white">Select an Epic</h2>
                     <p id="currentEpicDescription" class="text-slate-400 mt-1">Choose an epic from the left to view its tickets.</p>
                 </div>
-                <button id="newTicketBtn" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                    <i class="fas fa-plus mr-2"></i>
-                    <span>New Ticket</span>
-                </button>
+                <div class="flex flex-col items-end gap-3 mt-2 sm:mt-0">
+                    <button id="newTicketBtn" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        <i class="fas fa-plus mr-2"></i>
+                        <span>New Ticket</span>
+                    </button>
+                    <div id="ticketFilterControls" class="flex items-center bg-slate-800 p-1 rounded-md border border-slate-700">
+                        <button data-filter="all" class="ticket-filter-btn px-3 py-1 text-sm rounded-md">All</button>
+                        <button data-filter="open" class="ticket-filter-btn px-3 py-1 text-sm rounded-md">Open</button>
+                        <button data-filter="done" class="ticket-filter-btn px-3 py-1 text-sm rounded-md">Done</button>
+                    </div>
+                </div>
             </header>
 
             <div id="ticketsContainer" class="flex-grow overflow-y-auto">

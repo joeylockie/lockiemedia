@@ -141,7 +141,6 @@ app.post('/api/dev-release-versions', async (req, res) => {
     }
 });
 
-// --- THIS IS THE FIX ---
 // Add route handlers for ticket-specific actions.
 app.post('/api/tickets/:ticketId/comments', async (req, res) => {
     const { ticketId } = req.params;
@@ -155,6 +154,21 @@ app.post('/api/tickets/:ticketId/comments', async (req, res) => {
         res.status(status).json(data);
     }
 });
+
+// --- NEW: Route for deleting a comment ---
+app.delete('/api/tickets/:ticketId/comments/:commentId', async (req, res) => {
+    const { ticketId, commentId } = req.params;
+    console.log(`[API Gateway] DELETE /api/tickets/${ticketId}/comments/${commentId} received. Forwarding...`);
+    try {
+        const response = await axios.delete(`${serviceTargets.devTrackerService}/api/tickets/${ticketId}/comments/${commentId}`);
+        res.status(response.status).json(response.data);
+    } catch (error) {
+        const status = error.response ? error.response.status : 500;
+        const data = error.response ? error.response.data : { error: 'Internal gateway error' };
+        res.status(status).json(data);
+    }
+});
+
 
 app.patch('/api/tickets/:ticketId/status', async (req, res) => {
     const { ticketId } = req.params;

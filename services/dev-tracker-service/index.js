@@ -147,6 +147,26 @@ app.post('/api/tickets/:ticketId/comments', (req, res) => {
     }
 });
 
+// --- NEW: Delete a comment from a ticket ---
+app.delete('/api/tickets/:ticketId/comments/:commentId', (req, res) => {
+    const { commentId } = req.params;
+    console.log(`[Dev Tracker Service] DELETE /api/tickets/comments/${commentId} request received`);
+    try {
+        const stmt = db.prepare('DELETE FROM dev_ticket_comments WHERE id = ?');
+        const result = stmt.run(commentId);
+
+        if (result.changes > 0) {
+            res.status(200).json({ message: 'Comment deleted successfully.' });
+        } else {
+            res.status(404).json({ error: 'Comment not found.' });
+        }
+    } catch (error) {
+        console.error(`[Dev Tracker Service] Error deleting comment ${commentId}:`, error);
+        res.status(500).json({ error: 'Failed to delete comment.' });
+    }
+});
+
+
 // Update a ticket's status and record history
 app.patch('/api/tickets/:ticketId/status', (req, res) => {
     const { ticketId } = req.params;
