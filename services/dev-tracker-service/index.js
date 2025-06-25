@@ -11,7 +11,7 @@ console.log('[Dev Tracker Service] Starting up...');
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
-const PORT = 3006;
+const PORT = 3006; // New port for this service
 
 // --- Database Connection ---
 let db;
@@ -64,7 +64,8 @@ app.post('/api/dev-data', (req, res) => {
 
         // Prepare insert statements
         const insertEpic = db.prepare('INSERT INTO dev_epics (id, title, description, status, priority, createdAt) VALUES (@id, @title, @description, @status, @priority, @createdAt)');
-        const insertTicket = db.prepare('INSERT INTO dev_tickets (id, epicId, title, description, status, priority, type, createdAt) VALUES (@id, @epicId, @title, @description, @status, @priority, @type, @createdAt)');
+        // MODIFIED: Added 'component' to the INSERT statement
+        const insertTicket = db.prepare('INSERT INTO dev_tickets (id, epicId, title, description, status, priority, type, component, createdAt) VALUES (@id, @epicId, @title, @description, @status, @priority, @type, @component, @createdAt)');
 
         // Insert data
         if (incomingData.dev_epics) for (const epic of incomingData.dev_epics) insertEpic.run(epic);

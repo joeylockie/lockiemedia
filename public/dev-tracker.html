@@ -23,10 +23,14 @@
             </div>
             <div id="epicsList" class="space-y-2 overflow-y-auto flex-grow">
                 </div>
-            <div class="mt-auto pt-4 flex-shrink-0">
+            <div class="mt-auto pt-4 flex-shrink-0 space-y-2">
                 <button id="newEpicBtn" class="w-full flex items-center justify-center px-4 py-2.5 rounded-lg transition-colors duration-200 bg-purple-600 hover:bg-purple-700 text-white font-semibold">
                     <i class="fas fa-plus mr-2"></i>
                     <span>New Epic</span>
+                </button>
+                <button id="settingsBtn" class="w-full flex items-center justify-center px-4 py-2.5 rounded-lg transition-colors duration-200 bg-slate-600 hover:bg-slate-500 text-white font-medium">
+                    <i class="fas fa-cog mr-2"></i>
+                    <span>Settings</span>
                 </button>
             </div>
         </aside>
@@ -100,34 +104,27 @@
                 <input type="hidden" id="ticketEpicId">
                 <div class="space-y-4">
                     <div>
-                        <label for="ticketTitle" class="block text-sm font-medium text-slate-300">Ticket Title</label>
+                        <label for="ticketTitle" class="block text-sm font-medium text-slate-300">Summary</label>
                         <input type="text" id="ticketTitle" required class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-green-500 outline-none">
                     </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label for="ticketStatus" class="block text-sm font-medium text-slate-300">Status</label>
-                            <select id="ticketStatus" class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-green-500 outline-none">
-                                <option>Open</option>
-                                <option>In Progress</option>
-                                <option>In Review</option>
-                                <option>Done</option>
-                            </select>
+                            <select id="ticketStatus" class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-green-500 outline-none"></select>
                         </div>
                         <div>
                             <label for="ticketPriority" class="block text-sm font-medium text-slate-300">Priority</label>
-                            <select id="ticketPriority" class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-green-500 outline-none">
-                                <option>Low</option>
-                                <option>Medium</option>
-                                <option>High</option>
-                            </select>
+                            <select id="ticketPriority" class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-green-500 outline-none"></select>
                         </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label for="ticketType" class="block text-sm font-medium text-slate-300">Type</label>
-                            <select id="ticketType" class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-green-500 outline-none">
-                                <option>Feature</option>
-                                <option>Bug</option>
-                                <option>Chore</option>
-                            </select>
+                            <select id="ticketType" class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-green-500 outline-none"></select>
+                        </div>
+                         <div>
+                            <label for="ticketComponent" class="block text-sm font-medium text-slate-300">Component</label>
+                            <select id="ticketComponent" class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-green-500 outline-none"></select>
                         </div>
                     </div>
                     <div>
@@ -142,6 +139,50 @@
             </form>
         </div>
     </div>
+    
+    <div id="settingsModal" class="fixed inset-0 bg-slate-900 bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div id="settingsModalDialog" class="bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-4xl border border-slate-700">
+             <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-semibold text-slate-100">Dev Tracker Settings</h3>
+                <button id="closeSettingsBtn" class="text-slate-400 hover:text-white">&times;</button>
+            </div>
+            <div id="settingsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                 <div class="setting-column space-y-3" data-type="statuses">
+                    <h4 class="text-lg font-bold text-sky-400">Statuses</h4>
+                    <ul class="options-list space-y-2"></ul>
+                    <form class="add-option-form flex gap-2">
+                        <input type="text" placeholder="New Status" class="flex-grow p-2 bg-slate-700 border border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500">
+                        <button type="submit" class="p-2 bg-sky-600 hover:bg-sky-700 rounded-md"><i class="fas fa-plus"></i></button>
+                    </form>
+                </div>
+                <div class="setting-column space-y-3" data-type="priorities">
+                    <h4 class="text-lg font-bold text-yellow-400">Priorities</h4>
+                    <ul class="options-list space-y-2"></ul>
+                    <form class="add-option-form flex gap-2">
+                        <input type="text" placeholder="New Priority" class="flex-grow p-2 bg-slate-700 border border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                        <button type="submit" class="p-2 bg-yellow-600 hover:bg-yellow-700 rounded-md"><i class="fas fa-plus"></i></button>
+                    </form>
+                </div>
+                <div class="setting-column space-y-3" data-type="types">
+                    <h4 class="text-lg font-bold text-blue-400">Types</h4>
+                    <ul class="options-list space-y-2"></ul>
+                    <form class="add-option-form flex gap-2">
+                        <input type="text" placeholder="New Type" class="flex-grow p-2 bg-slate-700 border border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button type="submit" class="p-2 bg-blue-600 hover:bg-blue-700 rounded-md"><i class="fas fa-plus"></i></button>
+                    </form>
+                </div>
+                <div class="setting-column space-y-3" data-type="components">
+                    <h4 class="text-lg font-bold text-indigo-400">Components</h4>
+                    <ul class="options-list space-y-2"></ul>
+                    <form class="add-option-form flex gap-2">
+                        <input type="text" placeholder="New Component" class="flex-grow p-2 bg-slate-700 border border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <button type="submit" class="p-2 bg-indigo-600 hover:bg-indigo-700 rounded-md"><i class="fas fa-plus"></i></button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
     <script src="loggingService.js" type="module"></script>
     <script src="eventBus.js" type="module"></script>

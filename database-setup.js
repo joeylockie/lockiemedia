@@ -124,7 +124,7 @@ function setupDatabase() {
   );`;
   db.exec(createTimeLogEntriesTable);
 
-  // --- NEW: Dev Tracker Epics Table ---
+  // --- Dev Tracker Epics Table ---
   const createDevEpicsTable = `
   CREATE TABLE IF NOT EXISTS dev_epics (
     id INTEGER PRIMARY KEY,
@@ -136,7 +136,7 @@ function setupDatabase() {
   );`;
   db.exec(createDevEpicsTable);
 
-  // --- NEW: Dev Tracker Tickets Table ---
+  // --- Dev Tracker Tickets Table (MODIFIED) ---
   const createDevTicketsTable = `
   CREATE TABLE IF NOT EXISTS dev_tickets (
     id INTEGER PRIMARY KEY,
@@ -146,6 +146,7 @@ function setupDatabase() {
     status TEXT DEFAULT 'Open',
     priority TEXT DEFAULT 'Medium',
     type TEXT DEFAULT 'Feature',
+    component TEXT,
     createdAt INTEGER,
     FOREIGN KEY (epicId) REFERENCES dev_epics (id) ON DELETE CASCADE
   );`;
@@ -175,6 +176,16 @@ function setupDatabase() {
   for (const activity of defaultActivities) {
     insertActivity.run(activity);
   }
+
+  // NEW: Insert default settings for the Dev Tracker dropdowns
+  const insertPreference = db.prepare('INSERT OR IGNORE INTO user_preferences (key, value) VALUES (?, ?)');
+  const devTrackerOptions = {
+    statuses: ['Open', 'In Progress', 'In Review', 'Done'],
+    priorities: ['Low', 'Medium', 'High'],
+    types: ['Feature', 'Bug', 'Chore'],
+    components: ['Backend', 'Frontend', 'Database', 'UI/UX']
+  };
+  insertPreference.run('dev_tracker_options', JSON.stringify(devTrackerOptions));
 
 
   console.log('Database setup complete.');

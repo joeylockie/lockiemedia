@@ -86,6 +86,7 @@ export async function addTicket(ticketData) {
         status: ticketData.status,
         priority: ticketData.priority,
         type: ticketData.type,
+        component: ticketData.component, // MODIFIED
     };
     tickets.unshift(newTicket);
     await AppStore.setDevTickets(tickets, functionName);
@@ -109,6 +110,7 @@ export async function updateTicket(ticketId, updateData) {
         return null;
     }
 
+    // The spread operator here automatically handles the new 'component' field if it exists in updateData
     tickets[ticketIndex] = { ...tickets[ticketIndex], ...updateData };
     await AppStore.setDevTickets(tickets, functionName);
     LoggingService.info(`[DevTrackerService] Ticket updated: ${ticketId}`, { updatedData: tickets[ticketIndex] });

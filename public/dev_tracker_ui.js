@@ -10,7 +10,7 @@ import * as DevTrackerService from './dev_tracker_service.js';
 let _activeEpicId = null;
 
 // --- DOM Element References ---
-let epicsListEl, ticketsListEl, newEpicBtn, newTicketBtn;
+let epicsListEl, ticketsListEl, newEpicBtn, newTicketBtn, settingsBtn;
 let currentEpicTitleEl, currentEpicDescriptionEl;
 // Epic Modal
 let epicModalEl, epicModalDialogEl, epicModalTitleEl, epicFormEl, epicIdInput,
@@ -19,7 +19,10 @@ let epicModalEl, epicModalDialogEl, epicModalTitleEl, epicFormEl, epicIdInput,
 // Ticket Modal
 let ticketModalEl, ticketModalDialogEl, ticketModalTitleEl, ticketFormEl, ticketIdInput,
     ticketEpicIdInput, ticketTitleInput, ticketStatusSelect, ticketPrioritySelect,
-    ticketTypeSelect, ticketDescriptionInput, cancelTicketBtn;
+    ticketTypeSelect, ticketComponentSelect, ticketDescriptionInput, cancelTicketBtn;
+// Settings Modal
+let settingsModalEl, settingsModalDialogEl, closeSettingsBtn, settingsContainer;
+
 
 /**
  * Caches all necessary DOM elements for the feature.
@@ -29,6 +32,7 @@ function _getDOMElements() {
     ticketsListEl = document.getElementById('ticketsList');
     newEpicBtn = document.getElementById('newEpicBtn');
     newTicketBtn = document.getElementById('newTicketBtn');
+    settingsBtn = document.getElementById('settingsBtn');
     currentEpicTitleEl = document.getElementById('currentEpicTitle');
     currentEpicDescriptionEl = document.getElementById('currentEpicDescription');
 
@@ -55,15 +59,25 @@ function _getDOMElements() {
     ticketStatusSelect = document.getElementById('ticketStatus');
     ticketPrioritySelect = document.getElementById('ticketPriority');
     ticketTypeSelect = document.getElementById('ticketType');
+    ticketComponentSelect = document.getElementById('ticketComponent');
     ticketDescriptionInput = document.getElementById('ticketDescription');
     cancelTicketBtn = document.getElementById('cancelTicketBtn');
+
+    // Settings Modal
+    settingsModalEl = document.getElementById('settingsModal');
+    settingsModalDialogEl = document.getElementById('settingsModalDialog');
+    closeSettingsBtn = document.getElementById('closeSettingsBtn');
+    settingsContainer = document.getElementById('settingsContainer');
 }
 
 // --- Rendering Functions ---
 
-/**
- * Renders the list of epics in the sidebar.
- */
+function renderAll() {
+    renderEpicsList();
+    renderTicketsList();
+    populateAllDropdowns();
+}
+
 function renderEpicsList() {
     if (!epicsListEl) return;
     const epics = AppStore.getDevEpics().sort((a, b) => b.createdAt - a.createdAt);
@@ -97,7 +111,6 @@ function renderEpicsList() {
         epicsListEl.appendChild(epicDiv);
     });
 
-    // Attach event listeners after rendering
     epicsListEl.querySelectorAll('.edit-epic-btn').forEach(btn => btn.addEventListener('click', (e) => {
         e.stopPropagation();
         openEpicModal(Number(e.currentTarget.dataset.epicId));
@@ -108,9 +121,6 @@ function renderEpicsList() {
     }));
 }
 
-/**
- * Renders the list of tickets for the currently active epic.
- */
 function renderTicketsList() {
     if (!ticketsListEl) return;
     ticketsListEl.innerHTML = '';
@@ -125,7 +135,7 @@ function renderTicketsList() {
 
     const activeEpic = AppStore.getDevEpics().find(e => e.id === _activeEpicId);
     if (!activeEpic) {
-        _activeEpicId = null; // Reset if the active epic was deleted
+        _activeEpicId = null;
         renderAll();
         return;
     }
@@ -158,10 +168,11 @@ function renderTicketsList() {
                 </div>
             </div>
             <div class="mt-3 pt-3 border-t border-slate-700 flex justify-between items-center text-xs">
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-3 flex-wrap">
                     <span class="font-mono px-2 py-0.5 rounded-full ${getStatusBadgeClass(ticket.status)}">${ticket.status}</span>
                     <span class="font-mono px-2 py-0.5 rounded-full ${getPriorityBadgeClass(ticket.priority)}">${ticket.priority}</span>
                     <span class="font-mono px-2 py-0.5 rounded-full ${getTypeBadgeClass(ticket.type)}">${ticket.type}</span>
+                    ${ticket.component ? `<span class="font-mono px-2 py-0.5 rounded-full ${getComponentBadgeClass(ticket.component)}">${ticket.component}</span>` : ''}
                 </div>
                 <span class="text-slate-500">ID: T-${ticket.id}</span>
             </div>
@@ -169,7 +180,6 @@ function renderTicketsList() {
         ticketsListEl.appendChild(ticketDiv);
     });
 
-    // Attach event listeners
     ticketsListEl.querySelectorAll('.edit-ticket-btn').forEach(btn => btn.addEventListener('click', (e) => {
         e.stopPropagation();
         openTicketModal(Number(e.currentTarget.dataset.ticketId));
@@ -180,10 +190,6 @@ function renderTicketsList() {
     }));
 }
 
-function renderAll() {
-    renderEpicsList();
-    renderTicketsList();
-}
 
 // --- Badge Coloring Helper Functions ---
 function getStatusBadgeClass(status) {
@@ -211,9 +217,20 @@ function getTypeBadgeClass(type) {
         default: return 'bg-blue-600 text-blue-100';
     }
 }
+function getComponentBadgeClass(component) {
+    // simple hash function for consistent coloring
+    let hash = 0;
+    for (let i = 0; i < component.length; i++) {
+        hash = component.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const colors = ['teal', 'cyan', 'fuchsia', 'rose', 'lime'];
+    const color = colors[Math.abs(hash) % colors.length];
+    return `bg-${color}-600 text-${color}-100`;
+}
 
 
-// --- Modal Functions ---
+// --- Modal & Settings Functions ---
+
 function openEpicModal(epicId = null) {
     epicFormEl.reset();
     if (epicId) {
@@ -235,6 +252,7 @@ function closeEpicModal() { epicModalEl.classList.add('hidden'); }
 
 function openTicketModal(ticketId = null) {
     ticketFormEl.reset();
+    populateAllDropdowns();
     if (ticketId) {
         const ticket = AppStore.getDevTickets().find(t => t.id === ticketId);
         if (!ticket) return;
@@ -245,6 +263,7 @@ function openTicketModal(ticketId = null) {
         ticketStatusSelect.value = ticket.status;
         ticketPrioritySelect.value = ticket.priority;
         ticketTypeSelect.value = ticket.type;
+        ticketComponentSelect.value = ticket.component;
         ticketDescriptionInput.value = ticket.description;
     } else {
         ticketModalTitleEl.textContent = 'Create New Ticket';
@@ -254,6 +273,95 @@ function openTicketModal(ticketId = null) {
     ticketModalEl.classList.remove('hidden');
 }
 function closeTicketModal() { ticketModalEl.classList.add('hidden'); }
+
+function openSettingsModal() {
+    renderAllSettings();
+    settingsModalEl.classList.remove('hidden');
+}
+function closeSettingsModal() { settingsModalEl.classList.add('hidden'); }
+
+
+// --- Settings Management ---
+
+function getOptions() {
+    const prefs = AppStore.getUserPreferences();
+    return prefs.dev_tracker_options || { statuses: [], priorities: [], types: [], components: [] };
+}
+
+async function saveOptions(newOptions) {
+    await AppStore.setUserPreferences({ dev_tracker_options: newOptions });
+}
+
+function renderSettingsColumn(type) {
+    const options = getOptions();
+    const columnEl = settingsContainer.querySelector(`[data-type="${type}"]`);
+    const listEl = columnEl.querySelector('.options-list');
+    listEl.innerHTML = '';
+    options[type].forEach(option => {
+        const li = document.createElement('li');
+        li.className = 'flex justify-between items-center p-2 bg-slate-700 rounded-md';
+        li.innerHTML = `
+            <span>${option}</span>
+            <button data-option="${option}" class="delete-option-btn text-slate-400 hover:text-red-500">&times;</button>
+        `;
+        listEl.appendChild(li);
+    });
+}
+
+function renderAllSettings() {
+    renderSettingsColumn('statuses');
+    renderSettingsColumn('priorities');
+    renderSettingsColumn('types');
+    renderSettingsColumn('components');
+}
+
+async function handleAddOption(e) {
+    e.preventDefault();
+    const form = e.target;
+    const input = form.querySelector('input');
+    const type = form.closest('.setting-column').dataset.type;
+    const value = input.value.trim();
+
+    if (value) {
+        const options = getOptions();
+        if (!options[type].includes(value)) {
+            options[type].push(value);
+            await saveOptions(options);
+            input.value = '';
+        }
+    }
+}
+
+async function handleDeleteOption(e) {
+    if (!e.target.classList.contains('delete-option-btn')) return;
+    const option = e.target.dataset.option;
+    const type = e.target.closest('.setting-column').dataset.type;
+    
+    if (confirm(`Are you sure you want to delete "${option}"? This will not affect existing tickets.`)) {
+        const options = getOptions();
+        options[type] = options[type].filter(o => o !== option);
+        await saveOptions(options);
+    }
+}
+
+function populateDropdown(selectEl, optionsArray) {
+    selectEl.innerHTML = '';
+    optionsArray.forEach(opt => {
+        const optionEl = document.createElement('option');
+        optionEl.value = opt;
+        optionEl.textContent = opt;
+        selectEl.appendChild(optionEl);
+    });
+}
+
+function populateAllDropdowns() {
+    const options = getOptions();
+    populateDropdown(ticketStatusSelect, options.statuses);
+    populateDropdown(ticketPrioritySelect, options.priorities);
+    populateDropdown(ticketTypeSelect, options.types);
+    populateDropdown(ticketComponentSelect, options.components);
+}
+
 
 // --- Event Handlers ---
 async function handleEpicFormSubmit(e) {
@@ -281,6 +389,7 @@ async function handleTicketFormSubmit(e) {
         status: ticketStatusSelect.value,
         priority: ticketPrioritySelect.value,
         type: ticketTypeSelect.value,
+        component: ticketComponentSelect.value,
         description: ticketDescriptionInput.value,
     };
     const id = Number(ticketIdInput.value);
@@ -297,6 +406,7 @@ async function handleDeleteEpic(epicId) {
         await DevTrackerService.deleteEpic(epicId);
         if (_activeEpicId === epicId) {
             _activeEpicId = null;
+            renderAll(); // Rerender to show the "no epic selected" state
         }
     }
 }
@@ -307,22 +417,29 @@ async function handleDeleteTicket(ticketId) {
     }
 }
 
-/**
- * Attaches all primary event listeners for the page.
- */
 function _setupEventListeners() {
     newEpicBtn.addEventListener('click', () => openEpicModal());
     newTicketBtn.addEventListener('click', () => openTicketModal());
+    settingsBtn.addEventListener('click', openSettingsModal);
     
     // Modals
     cancelEpicBtn.addEventListener('click', closeEpicModal);
     epicFormEl.addEventListener('submit', handleEpicFormSubmit);
     cancelTicketBtn.addEventListener('click', closeTicketModal);
     ticketFormEl.addEventListener('submit', handleTicketFormSubmit);
+    closeSettingsBtn.addEventListener('click', closeSettingsModal);
+
+    // Settings options
+    settingsContainer.addEventListener('submit', handleAddOption);
+    settingsContainer.addEventListener('click', handleDeleteOption);
 
     // Event Bus Subscriptions
     EventBus.subscribe('devEpicsChanged', renderAll);
     EventBus.subscribe('devTicketsChanged', renderTicketsList);
+    EventBus.subscribe('userPreferencesChanged', () => {
+        renderAllSettings();
+        populateAllDropdowns();
+    });
 }
 
 
