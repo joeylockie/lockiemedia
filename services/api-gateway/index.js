@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import axios from 'axios';
-import http from 'http'; // Changed from 'https'
+import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -11,7 +11,7 @@ const serviceTargets = {
     notesService: 'http://localhost:3002',
     taskService: 'http://localhost:3004',
     timeTrackerService: 'http://localhost:3005',
-    devTrackerService: 'http://localhost:3006', // NEW
+    devTrackerService: 'http://localhost:3006',
 };
 
 // --- Security Configuration ---
@@ -21,17 +21,11 @@ const VALID_API_KEYS = new Set([
 
 // --- Authentication Middleware ---
 const authenticateKey = (req, res, next) => {
-    // --- NEW: Handle browser pre-flight requests ---
-    // If the request method is OPTIONS, it's a pre-flight check.
-    // We let it pass without checking for a key.
     if (req.method === 'OPTIONS') {
         return next();
     }
-    // --- End of new code ---
-
     const apiKey = req.get('X-API-Key')?.trim();
     console.log(`[API Gateway] Authenticating request...`);
-
     if (apiKey && VALID_API_KEYS.has(apiKey)) {
         console.log(`[API Gateway] API Key validated successfully.`);
         next();
@@ -45,10 +39,9 @@ const authenticateKey = (req, res, next) => {
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
-// Note: __dirname is not available in ES modules by default. This is the workaround.
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-app.use(express.static(path.join(__dirname, '../../public'))); 
+app.use(express.static(path.join(__dirname, '../../public')));
 
 // --- API Routes ---
 app.use('/api', authenticateKey);
@@ -56,23 +49,39 @@ app.use('/api', authenticateKey);
 app.get('/api/data', async (req, res) => {
     console.log('[API Gateway] GET /api/data received. Composing response from services...');
     try {
-        const [taskServiceResponse, notesResponse, timeTrackerResponse, devTrackerResponse] = await Promise.all([ // NEW
+        const [taskServiceResponse, notesResponse, timeTrackerResponse, devTrackerResponse] = await Promise.all([
             axios.get(`${serviceTargets.taskService}/api/core-data`),
             axios.get(`${serviceTargets.notesService}/api/notes-data`),
             axios.get(`${serviceTargets.timeTrackerService}/api/time-data`),
-            axios.get(`${serviceTargets.devTrackerService}/api/dev-data`) // NEW
+            axios.get(`${serviceTargets.devTrackerService}/api/dev-data`)
         ]);
 
         const combinedData = { 
             ...taskServiceResponse.data, 
             ...notesResponse.data, 
             ...timeTrackerResponse.data,
-            ...devTrackerResponse.data // NEW
+            ...devTrackerResponse.data
         };
         res.json(combinedData);
         console.log('[API Gateway] Successfully composed and sent response for GET /api/data.');
     } catch (error) {
-        console.error('[API Gateway] Error composing GET /api/data:', error.message);
+        // --- IMPROVED ERROR LOGGING ---
+        console.error('[API Gateway] Error composing GET /api/data.');
+        if (error.response) {
+            // The request was made and the server responded with a status code
+            // that falls out of the range of 2xx
+            console.error('Error Data:', error.response.data);
+            console.error('Error Status:', error.response.status);
+            console.error('Error Headers:', error.response.headers);
+        } else if (error.request) {
+            // The request was made but no response was received
+            console.error('Error Request:', error.request);
+        } else {
+            // Something happened in setting up the request that triggered an Error
+            console.error('Error Message:', error.message);
+        }
+        console.error('Full Error Config:', error.config);
+        // --- END OF IMPROVED LOGGING ---
         res.status(500).json({ error: 'Failed to retrieve data from backend services.' });
     }
 });
@@ -82,31 +91,35 @@ app.post('/api/data', async (req, res) => {
     const incomingData = req.body;
     try {
         const notesPayload = { notes: incomingData.notes, notebooks: incomingData.notebooks };
-        
-        // --- MODIFICATION START ---
-        // Be specific about what the task-service receives.
         const taskServicePayload = {
             tasks: incomingData.tasks,
             projects: incomingData.projects,
             userProfile: incomingData.userProfile,
             userPreferences: incomingData.userPreferences,
-            kanbanColumns: incomingData.kanbanColumns || [] // Ensure it exists
+            kanbanColumns: incomingData.kanbanColumns || []
         };
-        // --- MODIFICATION END ---
-        
         const timeTrackerPayload = { time_activities: incomingData.time_activities, time_log_entries: incomingData.time_log_entries };
-        const devTrackerPayload = { dev_epics: incomingData.dev_epics, dev_tickets: incomingData.dev_tickets }; // NEW
+        const devTrackerPayload = { dev_epics: incomingData.dev_epics, dev_tickets: incomingData.dev_tickets };
         
         await Promise.all([
             axios.post(`${serviceTargets.taskService}/api/core-data`, taskServicePayload),
             axios.post(`${serviceTargets.notesService}/api/notes-data`, notesPayload),
             axios.post(`${serviceTargets.timeTrackerService}/api/time-data`, timeTrackerPayload),
-            axios.post(`${serviceTargets.devTrackerService}/api/dev-data`, devTrackerPayload) // NEW
+            axios.post(`${serviceTargets.devTrackerService}/api/dev-data`, devTrackerPayload)
         ]);
         res.status(200).json({ message: 'Data saved successfully across all services!' });
         console.log('[API Gateway] Successfully distributed POST /api/data to all services.');
     } catch (error) {
-        console.error('[API Gateway] Error distributing POST /api/data:', error.message);
+        // Also adding improved logging here for consistency
+        console.error('[API Gateway] Error distributing POST /api/data.');
+        if (error.response) {
+            console.error('Error Data:', error.response.data);
+            console.error('Error Status:', error.response.status);
+        } else if (error.request) {
+            console.error('Error Request:', error.request);
+        } else {
+            console.error('Error Message:', error.message);
+        }
         res.status(500).json({ error: 'Failed to save data to backend services.' });
     }
 });
