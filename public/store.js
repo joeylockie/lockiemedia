@@ -86,12 +86,9 @@ async function _saveAllData(source = 'unknown') {
         time_log_entries: _time_log_entries,
         dev_epics: _dev_epics,
         dev_tickets: _dev_tickets,
-        dev_release_versions: _dev_release_versions, // NEW
-        // History and comments are saved via dedicated endpoints, not in this bulk save
-        // to avoid race conditions and ensure atomicity. We still send them if needed
-        // by the backend on initial setup, but our app logic will use specific APIs.
-        dev_ticket_history: _dev_ticket_history,     // NEW
-        dev_ticket_comments: _dev_ticket_comments,   // NEW
+        dev_release_versions: _dev_release_versions,
+        dev_ticket_history: _dev_ticket_history,
+        dev_ticket_comments: _dev_ticket_comments,
     };
 
     try {
@@ -131,9 +128,9 @@ const AppStore = {
     getTimeLogEntries: () => JSON.parse(JSON.stringify(_time_log_entries)),
     getDevEpics: () => JSON.parse(JSON.stringify(_dev_epics)),
     getDevTickets: () => JSON.parse(JSON.stringify(_dev_tickets)),
-    getDevReleaseVersions: () => JSON.parse(JSON.stringify(_dev_release_versions)), // NEW
-    getDevTicketHistory: () => JSON.parse(JSON.stringify(_dev_ticket_history)),     // NEW
-    getDevTicketComments: () => JSON.parse(JSON.stringify(_dev_ticket_comments)),    // NEW
+    getDevReleaseVersions: () => JSON.parse(JSON.stringify(_dev_release_versions)),
+    getDevTicketHistory: () => JSON.parse(JSON.stringify(_dev_ticket_history)),
+    getDevTicketComments: () => JSON.parse(JSON.stringify(_dev_ticket_comments)),
 
     setTasks: async (newTasksArray, source = 'setTasks') => {
         _tasks = JSON.parse(JSON.stringify(newTasksArray));
@@ -187,19 +184,23 @@ const AppStore = {
         await _saveAllData(source);
         _publish('devTicketsChanged', [..._dev_tickets]);
     },
-    setDevReleaseVersions: async (newVersionsArray, source = 'setDevReleaseVersions') => { // NEW
+    setDevReleaseVersions: async (newVersionsArray, source = 'setDevReleaseVersions') => {
         _dev_release_versions = JSON.parse(JSON.stringify(newVersionsArray));
         await _saveAllData(source);
         _publish('devReleaseVersionsChanged', [..._dev_release_versions]);
     },
     setDevTicketHistory: async (newHistoryArray, source = 'setDevTicketHistory') => { // NEW
         _dev_ticket_history = JSON.parse(JSON.stringify(newHistoryArray));
-        await _saveAllData(source);
+        // --- THIS IS THE FIX ---
+        // Do NOT save all data here. The history is saved via specific API calls.
+        // We only need to update the local state and notify the UI.
         _publish('devTicketHistoryChanged', [..._dev_ticket_history]);
     },
     setDevTicketComments: async (newCommentsArray, source = 'setDevTicketComments') => { // NEW
         _dev_ticket_comments = JSON.parse(JSON.stringify(newCommentsArray));
-        await _saveAllData(source);
+        // --- THIS IS THE FIX ---
+        // Do NOT save all data here. The comment is already saved via its specific API call.
+        // We only need to update the local state and notify the UI.
         _publish('devTicketCommentsChanged', [..._dev_ticket_comments]);
     },
 
@@ -244,9 +245,9 @@ const AppStore = {
             _time_log_entries = data.time_log_entries ? data.time_log_entries.map(entry => ({...entry, startTime: new Date(entry.startTime), endTime: new Date(entry.endTime)})) : [];
             _dev_epics = data.dev_epics || [];
             _dev_tickets = data.dev_tickets || [];
-            _dev_release_versions = data.dev_release_versions || []; // NEW
-            _dev_ticket_history = data.dev_ticket_history || []; // NEW
-            _dev_ticket_comments = data.dev_ticket_comments || []; // NEW
+            _dev_release_versions = data.dev_release_versions || [];
+            _dev_ticket_history = data.dev_ticket_history || [];
+            _dev_ticket_comments = data.dev_ticket_comments || [];
 
             _updateUniqueLabelsInternal();
             _updateUniqueProjectsInternal();
@@ -264,9 +265,9 @@ const AppStore = {
             _publish('timeLogEntriesChanged', [..._time_log_entries]);
             _publish('devEpicsChanged', [..._dev_epics]);
             _publish('devTicketsChanged', [..._dev_tickets]);
-            _publish('devReleaseVersionsChanged', [..._dev_release_versions]); // NEW
-            _publish('devTicketHistoryChanged', [..._dev_ticket_history]);   // NEW
-            _publish('devTicketCommentsChanged', [..._dev_ticket_comments]);    // NEW
+            _publish('devReleaseVersionsChanged', [..._dev_release_versions]);
+            _publish('devTicketHistoryChanged', [..._dev_ticket_history]);
+            _publish('devTicketCommentsChanged', [..._dev_ticket_comments]);
 
         } catch (error) {
             LoggingService.critical('[AppStore] Could not load data from backend server. The app may not function correctly.', error, { functionName });
