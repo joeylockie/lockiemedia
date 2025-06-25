@@ -13,15 +13,28 @@
 
     <div class="flex h-screen">
         <aside class="w-80 bg-slate-800 p-4 flex-shrink-0 border-r border-slate-700 flex flex-col">
-            <div class="flex items-center justify-between mb-6">
-                <h1 class="text-xl font-bold text-purple-400">Epics</h1>
+            <div class="flex items-center justify-between mb-4">
+                <h1 class="text-xl font-bold text-purple-400">Dev Tracker</h1>
                 <div class="flex items-center gap-2">
                     <a href="dashboard.html" class="text-slate-400 hover:text-white" title="Back to Dashboard">
                         <i class="fas fa-home"></i>
                     </a>
                 </div>
             </div>
-            <div id="epicsList" class="space-y-2 overflow-y-auto flex-grow">
+            
+            <div class="mb-4 space-y-2">
+                <div class="relative">
+                    <input type="text" id="ticketSearchInput" placeholder="Search summaries..." class="w-full p-2 pl-8 bg-slate-700 border border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                </div>
+                <button id="allIssuesFilter" class="w-full text-left p-2 rounded-md font-semibold text-slate-200 bg-slate-700 hover:bg-slate-600 flex items-center">
+                    <i class="fas fa-list-ul w-5 mr-3"></i>
+                    <span>All Issues</span>
+                </button>
+            </div>
+
+            <h2 class="text-xs font-semibold uppercase text-slate-400 tracking-wider mb-2">Epics</h2>
+            <div id="epicsList" class="space-y-1 overflow-y-auto flex-grow">
                 </div>
             <div class="mt-auto pt-4 flex-shrink-0 space-y-2">
                 <button id="newEpicBtn" class="w-full flex items-center justify-center px-4 py-2.5 rounded-lg transition-colors duration-200 bg-purple-600 hover:bg-purple-700 text-white font-semibold">
@@ -48,9 +61,8 @@
             </header>
 
             <div id="ticketsContainer" class="flex-grow overflow-y-auto">
-                <div id="ticketsList" class="space-y-3">
-                    <p class="text-center text-slate-500 pt-10">No epic selected.</p>
-                </div>
+                <div id="ticketsList" class="space-y-2">
+                    </div>
             </div>
         </main>
     </div>
@@ -61,26 +73,24 @@
             <form id="epicForm">
                 <input type="hidden" id="epicId">
                 <div class="space-y-4">
-                    <div>
-                        <label for="epicTitle" class="block text-sm font-medium text-slate-300">Epic Title</label>
-                        <input type="text" id="epicTitle" required class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-purple-500 outline-none">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                         <div class="sm:col-span-2">
+                            <label for="epicTitle" class="block text-sm font-medium text-slate-300">Epic Title</label>
+                            <input type="text" id="epicTitle" required class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-purple-500 outline-none">
+                        </div>
+                        <div>
+                             <label for="epicKey" class="block text-sm font-medium text-slate-300">Key</label>
+                            <input type="text" id="epicKey" required placeholder="PROJ" class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-purple-500 outline-none uppercase">
+                        </div>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label for="epicStatus" class="block text-sm font-medium text-slate-300">Status</label>
-                            <select id="epicStatus" class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-purple-500 outline-none">
-                                <option>To Do</option>
-                                <option>In Progress</option>
-                                <option>Done</option>
-                            </select>
+                            <select id="epicStatus" class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-purple-500 outline-none"></select>
                         </div>
                         <div>
                             <label for="epicPriority" class="block text-sm font-medium text-slate-300">Priority</label>
-                            <select id="epicPriority" class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-purple-500 outline-none">
-                                <option>Low</option>
-                                <option>Medium</option>
-                                <option>High</option>
-                            </select>
+                            <select id="epicPriority" class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-purple-500 outline-none"></select>
                         </div>
                     </div>
                     <div>
@@ -128,7 +138,7 @@
                         </div>
                     </div>
                     <div>
-                        <label for="ticketDescription" class="block text-sm font-medium text-slate-300">Description</label>
+                        <label for="ticketDescription" class="block text-sm font-medium text-slate-300">Description (Plain Text)</label>
                         <textarea id="ticketDescription" rows="4" class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-green-500 outline-none"></textarea>
                     </div>
                 </div>
@@ -167,6 +177,70 @@
         </div>
     </div>
 
+    <div id="ticketDetailModal" class="fixed inset-0 bg-slate-900 bg-opacity-75 flex items-center justify-center z-[60] hidden">
+        <div id="ticketDetailDialog" class="bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-2xl border border-slate-700">
+            <div class="flex justify-between items-center mb-4 pb-4 border-b border-slate-700">
+                <h3 id="ticketDetailKey" class="text-2xl font-semibold text-slate-100">PROJ-1</h3>
+                <button id="closeTicketDetailBtn" class="text-slate-400 hover:text-white">&times;</button>
+            </div>
+            <div class="space-y-4">
+                <h4 id="ticketDetailTitle" class="text-xl font-bold text-white">Ticket Summary Here</h4>
+                <div>
+                    <strong class="text-sm font-bold uppercase text-slate-400">Details</strong>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
+                        <div>
+                            <p class="text-xs text-slate-500">Status</p>
+                            <p id="ticketDetailStatus" class="font-semibold"></p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-500">Priority</p>
+                            <p id="ticketDetailPriority" class="font-semibold"></p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-500">Type</p>
+                            <p id="ticketDetailType" class="font-semibold"></p>
+                        </div>
+                         <div>
+                            <p class="text-xs text-slate-500">Component</p>
+                            <p id="ticketDetailComponent" class="font-semibold"></p>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <strong class="text-sm font-bold uppercase text-slate-400">Description</strong>
+                    <p id="ticketDetailDescription" class="mt-2 text-slate-300 whitespace-pre-wrap"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="epicDetailModal" class="fixed inset-0 bg-slate-900 bg-opacity-75 flex items-center justify-center z-[60] hidden">
+         <div id="epicDetailDialog" class="bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-xl border border-slate-700">
+            <div class="flex justify-between items-center mb-4 pb-4 border-b border-slate-700">
+                <h3 id="epicDetailKey" class="text-2xl font-semibold text-slate-100">PROJ</h3>
+                <button id="closeEpicDetailBtn" class="text-slate-400 hover:text-white">&times;</button>
+            </div>
+            <div class="space-y-4">
+                <h4 id="epicDetailTitle" class="text-xl font-bold text-white">Epic Title Here</h4>
+                 <div class="grid grid-cols-2 gap-4 mt-2">
+                    <div>
+                        <p class="text-xs text-slate-500">Status</p>
+                        <p id="epicDetailStatus" class="font-semibold"></p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500">Priority</p>
+                        <p id="epicDetailPriority" class="font-semibold"></p>
+                    </div>
+                 </div>
+                <div>
+                    <strong class="text-sm font-bold uppercase text-slate-400">Description</strong>
+                    <p id="epicDetailDescription" class="mt-2 text-slate-300 whitespace-pre-wrap"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
     <script src="loggingService.js" type="module"></script>
     <script src="eventBus.js" type="module"></script>
     <script src="store.js" type="module"></script>
@@ -175,7 +249,6 @@
     <script src="dev_tracker_ui.js" type="module"></script>
     <script src="dev_tracker_main.js" type="module"></script>
     <script>
-        // Make the page visible immediately since there is no auth check
         document.body.style.visibility = 'visible';
     </script>
 </body>

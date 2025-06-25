@@ -43,25 +43,20 @@ app.post('/api/dev-data', (req, res) => {
     console.log('[Dev Tracker Service] POST /api/dev-data request received');
     const incomingData = req.body;
 
-    // --- NEW: Detailed logging of incoming data ---
     console.log('[Dev Tracker Service] Data received for saving:');
     console.log('Epics Count:', incomingData.dev_epics ? incomingData.dev_epics.length : 0);
     console.log('Tickets Count:', incomingData.dev_tickets ? incomingData.dev_tickets.length : 0);
-    if (incomingData.dev_tickets && incomingData.dev_tickets.length > 0) {
-        console.log('Sample Ticket Data:', JSON.stringify(incomingData.dev_tickets[0], null, 2));
-    }
-    // --- End of new logging ---
 
     if (!incomingData || typeof incomingData.dev_epics === 'undefined' || typeof incomingData.dev_tickets === 'undefined') {
-        return res.status(400).json({ error: 'Invalid data format. Expected an object with dev_epics and dev_tickets arrays.' });
+        return res.status(400).json({ error: 'Invalid data format.' });
     }
 
     const transaction = db.transaction(() => {
         db.prepare('DELETE FROM dev_tickets').run();
         db.prepare('DELETE FROM dev_epics').run();
 
-        const insertEpic = db.prepare('INSERT INTO dev_epics (id, title, description, status, priority, createdAt) VALUES (@id, @title, @description, @status, @priority, @createdAt)');
-        const insertTicket = db.prepare('INSERT INTO dev_tickets (id, epicId, title, description, status, priority, type, component, createdAt) VALUES (@id, @epicId, @title, @description, @status, @priority, @type, @component, @createdAt)');
+        const insertEpic = db.prepare('INSERT INTO dev_epics (id, key, title, description, status, priority, ticketCounter, createdAt) VALUES (@id, @key, @title, @description, @status, @priority, @ticketCounter, @createdAt)');
+        const insertTicket = db.prepare('INSERT INTO dev_tickets (id, fullKey, epicId, title, description, status, priority, type, component, createdAt) VALUES (@id, @fullKey, @epicId, @title, @description, @status, @priority, @type, @component, @createdAt)');
 
         if (incomingData.dev_epics) for (const epic of incomingData.dev_epics) insertEpic.run(epic);
         if (incomingData.dev_tickets) for (const ticket of incomingData.dev_tickets) insertTicket.run(ticket);
