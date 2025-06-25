@@ -252,19 +252,27 @@ export async function addComment(ticketId, comment) {
             headers: API_HEADERS,
             body: JSON.stringify({ comment, author: AppStore.getUserProfile().displayName }),
         });
-        if (!response.ok) throw new Error(await response.text());
+        if (!response.ok) {
+            throw new Error(await response.text());
+        }
         const newComment = await response.json();
 
+        // --- THIS IS THE FIX ---
+        // After successfully saving to the server, update the local AppStore state.
         const comments = AppStore.getDevTicketComments();
         comments.push(newComment);
+        // We use setDevTicketComments to trigger a UI update.
         await AppStore.setDevTicketComments(comments, functionName);
+        
         return newComment;
+
     } catch (error) {
         LoggingService.error(`[DevTrackerService] Failed to add comment to ticket ${ticketId}`, error, { functionName });
         alert(`Error adding comment: ${error.message}`);
         return null;
     }
 }
+
 
 /**
  * Updates a ticket's status via API.
