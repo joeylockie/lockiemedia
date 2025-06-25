@@ -85,7 +85,6 @@ function setupDatabase() {
   db.exec(createNotebooksTable);
 
   // --- Notes Table ---
-  // --- MODIFICATION: Added isMarkdown column ---
   const createNotesTable = `
   CREATE TABLE IF NOT EXISTS notes (
     id TEXT PRIMARY KEY,
@@ -124,14 +123,16 @@ function setupDatabase() {
   );`;
   db.exec(createTimeLogEntriesTable);
 
-  // --- Dev Tracker Epics Table ---
+  // --- Dev Tracker Epics Table (MODIFIED) ---
   const createDevEpicsTable = `
   CREATE TABLE IF NOT EXISTS dev_epics (
     id INTEGER PRIMARY KEY,
+    key TEXT UNIQUE,
     title TEXT NOT NULL,
     description TEXT,
     status TEXT DEFAULT 'To Do',
     priority TEXT DEFAULT 'Medium',
+    ticketCounter INTEGER DEFAULT 0,
     createdAt INTEGER
   );`;
   db.exec(createDevEpicsTable);
@@ -140,6 +141,7 @@ function setupDatabase() {
   const createDevTicketsTable = `
   CREATE TABLE IF NOT EXISTS dev_tickets (
     id INTEGER PRIMARY KEY,
+    fullKey TEXT UNIQUE,
     epicId INTEGER,
     title TEXT NOT NULL,
     description TEXT,
@@ -157,15 +159,12 @@ function setupDatabase() {
   // Here, we ensure that some essential default data exists.
   // We use INSERT OR IGNORE to prevent errors if the data is already there.
 
-  // Ensure the "No Project" project exists with ID 0.
   const insertDefaultProject = db.prepare('INSERT OR IGNORE INTO projects (id, name, creationDate) VALUES (?, ?, ?)');
   insertDefaultProject.run(0, 'No Project', Date.now());
 
-  // Ensure a default user profile exists.
   const insertDefaultProfile = db.prepare('INSERT OR IGNORE INTO user_profile (id, displayName, role) VALUES (?, ?, ?)');
   insertDefaultProfile.run(1, 'User', 'admin');
 
-  // Insert default time tracking activities
   const defaultActivities = [
     { id: 'activity_1', name: 'Development', icon: 'fas fa-code', color: 'sky', createdAt: new Date().toISOString() },
     { id: 'activity_2', name: 'Meeting', icon: 'fas fa-users', color: 'purple', createdAt: new Date().toISOString() },
@@ -177,7 +176,6 @@ function setupDatabase() {
     insertActivity.run(activity);
   }
 
-  // NEW: Insert default settings for the Dev Tracker dropdowns
   const insertPreference = db.prepare('INSERT OR IGNORE INTO user_preferences (key, value) VALUES (?, ?)');
   const devTrackerOptions = {
     statuses: ['Open', 'In Progress', 'In Review', 'Done'],
@@ -197,7 +195,6 @@ try {
 } catch (err) {
   console.error('Error during database setup:', err);
 } finally {
-  // Always close the database connection.
   db.close();
   console.log('Database connection closed.');
 }
