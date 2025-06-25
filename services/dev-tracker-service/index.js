@@ -62,7 +62,14 @@ app.post('/api/dev-data', (req, res) => {
         if (incomingData.dev_release_versions) {
             db.prepare('DELETE FROM dev_release_versions').run();
             const insertVersion = db.prepare('INSERT INTO dev_release_versions (id, version, createdAt) VALUES (@id, @version, @createdAt)');
-            for (const version of incomingData.dev_release_versions) insertVersion.run(version);
+            // --- THIS IS THE CRITICAL FIX ---
+            // We ensure every version object has a `createdAt` property before inserting.
+            for (const version of incomingData.dev_release_versions) {
+                insertVersion.run({
+                    ...version,
+                    createdAt: version.createdAt || Date.now() 
+                });
+            }
         }
         if (incomingData.dev_epics) {
             db.prepare('DELETE FROM dev_epics').run();
@@ -81,14 +88,12 @@ app.post('/api/dev-data', (req, res) => {
             db.prepare('DELETE FROM dev_tickets').run();
             const insertTicket = db.prepare('INSERT INTO dev_tickets (id, fullKey, epicId, title, description, status, priority, type, component, releaseVersion, affectedVersion, createdAt) VALUES (@id, @fullKey, @epicId, @title, @description, @status, @priority, @type, @component, @releaseVersion, @affectedVersion, @createdAt)');
             for (const ticket of incomingData.dev_tickets) {
-                // This is the critical fix: ensure any potentially undefined or empty string fields are explicitly set to null
-                // so the database driver can handle them correctly, especially for Foreign Keys.
                 insertTicket.run({
                     ...ticket,
                     description: ticket.description || null,
                     component: ticket.component || null,
                     releaseVersion: ticket.releaseVersion || null,
-                    affectedVersion: ticket.affectedVersion || null // This line is the most important fix
+                    affectedVersion: ticket.affectedVersion || null
                 });
             }
         }
@@ -98,7 +103,6 @@ app.post('/api/dev-data', (req, res) => {
         transaction();
         res.status(200).json({ message: 'Dev tracker data saved successfully!' });
     } catch (error) {
-        // More detailed logging on failure
         console.error('[Dev Tracker Service] Error in POST /api/dev-data transaction:', error);
         console.error('[Dev Tracker Service] Failing Data:', JSON.stringify(incomingData, null, 2));
         res.status(500).json({ error: 'Failed to save dev tracker data.', details: error.message });
