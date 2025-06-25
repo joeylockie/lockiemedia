@@ -4,18 +4,29 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import Database from 'better-sqlite3';
 
+// --- NEW: Confirmation Log ---
+console.log('[Dev Tracker Service] Starting up...');
+
 // -- Setup --
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
-const PORT = 3006; // New port for this service
+const PORT = 3006;
 
 // --- Database Connection ---
-const dbFile = path.resolve(__dirname, '../../lockiedb.sqlite');
-const db = new Database(dbFile, { verbose: console.log });
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
-console.log(`[Dev Tracker Service] Connected to SQLite database at ${dbFile}`);
+let db;
+try {
+    const dbFile = path.resolve(__dirname, '../../lockiedb.sqlite');
+    db = new Database(dbFile, { verbose: console.log });
+    db.pragma('journal_mode = WAL');
+    db.pragma('foreign_keys = ON');
+    console.log(`[Dev Tracker Service] Connected to SQLite database at ${dbFile}`);
+} catch (error) {
+    console.error('[Dev Tracker Service] FATAL: Could not connect to the database.');
+    console.error(error);
+    process.exit(1); // Exit if we can't connect to the DB
+}
+
 
 // -- Middleware --
 app.use(cors());
