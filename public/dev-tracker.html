@@ -141,48 +141,31 @@
     </div>
     
     <div id="settingsModal" class="fixed inset-0 bg-slate-900 bg-opacity-75 flex items-center justify-center z-50 hidden">
-        <div id="settingsModalDialog" class="bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-4xl border border-slate-700">
-             <div class="flex justify-between items-center mb-6">
-                <h3 class="text-2xl font-semibold text-slate-100">Dev Tracker Settings</h3>
-                <button id="closeSettingsBtn" class="text-slate-400 hover:text-white">&times;</button>
-            </div>
-            <div id="settingsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                 <div class="setting-column space-y-3" data-type="statuses">
-                    <h4 class="text-lg font-bold text-sky-400">Statuses</h4>
-                    <ul class="options-list space-y-2"></ul>
-                    <form class="add-option-form flex gap-2">
-                        <input type="text" placeholder="New Status" class="flex-grow p-2 bg-slate-700 border border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500">
+        <div id="settingsModalDialog" class="bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-2xl border border-slate-700 flex gap-6">
+             <div class="w-1/4 border-r border-slate-700 pr-6">
+                <h3 class="text-xl font-semibold text-slate-100 mb-4">Settings</h3>
+                <nav id="settingsNav" class="space-y-1">
+                    <button data-type="statuses" class="w-full text-left p-2 rounded-md hover:bg-slate-700 settings-nav-item">Statuses</button>
+                    <button data-type="priorities" class="w-full text-left p-2 rounded-md hover:bg-slate-700 settings-nav-item">Priorities</button>
+                    <button data-type="types" class="w-full text-left p-2 rounded-md hover:bg-slate-700 settings-nav-item">Types</button>
+                    <button data-type="components" class="w-full text-left p-2 rounded-md hover:bg-slate-700 settings-nav-item">Components</button>
+                </nav>
+             </div>
+             <div class="w-3/4">
+                <div class="flex justify-between items-center mb-4">
+                    <h4 id="settingsContentTitle" class="text-lg font-bold">Statuses</h4>
+                    <button id="closeSettingsBtn" class="text-slate-400 hover:text-white">&times;</button>
+                </div>
+                <div id="settingsContent" class="space-y-3">
+                    <ul id="optionsList" class="options-list space-y-2 max-h-60 overflow-y-auto pr-2"></ul>
+                    <form id="addOptionForm" class="add-option-form flex gap-2">
+                        <input type="text" placeholder="New Option" class="flex-grow p-2 bg-slate-700 border border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500">
                         <button type="submit" class="p-2 bg-sky-600 hover:bg-sky-700 rounded-md"><i class="fas fa-plus"></i></button>
                     </form>
                 </div>
-                <div class="setting-column space-y-3" data-type="priorities">
-                    <h4 class="text-lg font-bold text-yellow-400">Priorities</h4>
-                    <ul class="options-list space-y-2"></ul>
-                    <form class="add-option-form flex gap-2">
-                        <input type="text" placeholder="New Priority" class="flex-grow p-2 bg-slate-700 border border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500">
-                        <button type="submit" class="p-2 bg-yellow-600 hover:bg-yellow-700 rounded-md"><i class="fas fa-plus"></i></button>
-                    </form>
-                </div>
-                <div class="setting-column space-y-3" data-type="types">
-                    <h4 class="text-lg font-bold text-blue-400">Types</h4>
-                    <ul class="options-list space-y-2"></ul>
-                    <form class="add-option-form flex gap-2">
-                        <input type="text" placeholder="New Type" class="flex-grow p-2 bg-slate-700 border border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <button type="submit" class="p-2 bg-blue-600 hover:bg-blue-700 rounded-md"><i class="fas fa-plus"></i></button>
-                    </form>
-                </div>
-                <div class="setting-column space-y-3" data-type="components">
-                    <h4 class="text-lg font-bold text-indigo-400">Components</h4>
-                    <ul class="options-list space-y-2"></ul>
-                    <form class="add-option-form flex gap-2">
-                        <input type="text" placeholder="New Component" class="flex-grow p-2 bg-slate-700 border border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <button type="submit" class="p-2 bg-indigo-600 hover:bg-indigo-700 rounded-md"><i class="fas fa-plus"></i></button>
-                    </form>
-                </div>
-            </div>
+             </div>
         </div>
     </div>
-
 
     <script src="loggingService.js" type="module"></script>
     <script src="eventBus.js" type="module"></script>

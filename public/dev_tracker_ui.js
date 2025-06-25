@@ -8,6 +8,7 @@ import * as DevTrackerService from './dev_tracker_service.js';
 
 // --- Internal State ---
 let _activeEpicId = null;
+let _activeSettingsCategory = 'statuses'; // Default settings tab
 
 // --- DOM Element References ---
 let epicsListEl, ticketsListEl, newEpicBtn, newTicketBtn, settingsBtn;
@@ -21,8 +22,8 @@ let ticketModalEl, ticketModalDialogEl, ticketModalTitleEl, ticketFormEl, ticket
     ticketEpicIdInput, ticketTitleInput, ticketStatusSelect, ticketPrioritySelect,
     ticketTypeSelect, ticketComponentSelect, ticketDescriptionInput, cancelTicketBtn;
 // Settings Modal
-let settingsModalEl, settingsModalDialogEl, closeSettingsBtn, settingsContainer;
-
+let settingsModalEl, settingsModalDialogEl, closeSettingsBtn, settingsNav,
+    settingsContentTitle, optionsList, addOptionForm;
 
 /**
  * Caches all necessary DOM elements for the feature.
@@ -67,7 +68,10 @@ function _getDOMElements() {
     settingsModalEl = document.getElementById('settingsModal');
     settingsModalDialogEl = document.getElementById('settingsModalDialog');
     closeSettingsBtn = document.getElementById('closeSettingsBtn');
-    settingsContainer = document.getElementById('settingsContainer');
+    settingsNav = document.getElementById('settingsNav');
+    settingsContentTitle = document.getElementById('settingsContentTitle');
+    optionsList = document.getElementById('optionsList');
+    addOptionForm = document.getElementById('addOptionForm');
 }
 
 // --- Rendering Functions ---
@@ -218,7 +222,6 @@ function getTypeBadgeClass(type) {
     }
 }
 function getComponentBadgeClass(component) {
-    // simple hash function for consistent coloring
     let hash = 0;
     for (let i = 0; i < component.length; i++) {
         hash = component.charCodeAt(i) + ((hash << 5) - hash);
@@ -275,58 +278,63 @@ function openTicketModal(ticketId = null) {
 function closeTicketModal() { ticketModalEl.classList.add('hidden'); }
 
 function openSettingsModal() {
-    renderAllSettings();
+    setActiveSettingsCategory('statuses'); // Default to first tab
     settingsModalEl.classList.remove('hidden');
 }
 function closeSettingsModal() { settingsModalEl.classList.add('hidden'); }
 
+function setActiveSettingsCategory(category) {
+    _activeSettingsCategory = category;
+    
+    // Update active class on nav buttons
+    settingsNav.querySelectorAll('.settings-nav-item').forEach(btn => {
+        if (btn.dataset.type === category) {
+            btn.classList.add('bg-slate-700');
+        } else {
+            btn.classList.remove('bg-slate-700');
+        }
+    });
+    
+    renderActiveSettingsContent();
+}
 
-// --- Settings Management ---
-
+// --- FIX IS HERE: `getOptions` is now defined ---
 function getOptions() {
     const prefs = AppStore.getUserPreferences();
     return prefs.dev_tracker_options || { statuses: [], priorities: [], types: [], components: [] };
 }
 
-async function saveOptions(newOptions) {
-    await AppStore.setUserPreferences({ dev_tracker_options: newOptions });
-}
+function renderActiveSettingsContent() {
+    const options = getOptions(); // This call will now work
+    const currentOptions = options[_activeSettingsCategory] || [];
+    const title = _activeSettingsCategory.charAt(0).toUpperCase() + _activeSettingsCategory.slice(1);
 
-function renderSettingsColumn(type) {
-    const options = getOptions();
-    const columnEl = settingsContainer.querySelector(`[data-type="${type}"]`);
-    const listEl = columnEl.querySelector('.options-list');
-    listEl.innerHTML = '';
-    options[type].forEach(option => {
+    settingsContentTitle.textContent = `Manage ${title}`;
+    optionsList.innerHTML = '';
+    currentOptions.forEach(option => {
         const li = document.createElement('li');
         li.className = 'flex justify-between items-center p-2 bg-slate-700 rounded-md';
         li.innerHTML = `
             <span>${option}</span>
             <button data-option="${option}" class="delete-option-btn text-slate-400 hover:text-red-500">&times;</button>
         `;
-        listEl.appendChild(li);
+        optionsList.appendChild(li);
     });
-}
 
-function renderAllSettings() {
-    renderSettingsColumn('statuses');
-    renderSettingsColumn('priorities');
-    renderSettingsColumn('types');
-    renderSettingsColumn('components');
+    addOptionForm.querySelector('input').placeholder = `New ${title.slice(0, -1)}`;
 }
 
 async function handleAddOption(e) {
     e.preventDefault();
-    const form = e.target;
-    const input = form.querySelector('input');
-    const type = form.closest('.setting-column').dataset.type;
+    const input = e.target.querySelector('input');
     const value = input.value.trim();
 
     if (value) {
         const options = getOptions();
-        if (!options[type].includes(value)) {
-            options[type].push(value);
-            await saveOptions(options);
+        const currentCategoryOptions = options[_activeSettingsCategory];
+        if (!currentCategoryOptions.includes(value)) {
+            currentCategoryOptions.push(value);
+            await AppStore.setUserPreferences({ dev_tracker_options: options });
             input.value = '';
         }
     }
@@ -334,17 +342,19 @@ async function handleAddOption(e) {
 
 async function handleDeleteOption(e) {
     if (!e.target.classList.contains('delete-option-btn')) return;
-    const option = e.target.dataset.option;
-    const type = e.target.closest('.setting-column').dataset.type;
+    const optionToDelete = e.target.dataset.option;
     
-    if (confirm(`Are you sure you want to delete "${option}"? This will not affect existing tickets.`)) {
+    if (confirm(`Are you sure you want to delete "${optionToDelete}"? This will not affect existing tickets.`)) {
         const options = getOptions();
-        options[type] = options[type].filter(o => o !== option);
-        await saveOptions(options);
+        options[_activeSettingsCategory] = options[_activeSettingsCategory].filter(o => o !== optionToDelete);
+        await AppStore.setUserPreferences({ dev_tracker_options: options });
     }
 }
 
+
+// --- Dropdown Population ---
 function populateDropdown(selectEl, optionsArray) {
+    const currentValue = selectEl.value;
     selectEl.innerHTML = '';
     optionsArray.forEach(opt => {
         const optionEl = document.createElement('option');
@@ -352,10 +362,13 @@ function populateDropdown(selectEl, optionsArray) {
         optionEl.textContent = opt;
         selectEl.appendChild(optionEl);
     });
+    if (optionsArray.includes(currentValue)) {
+        selectEl.value = currentValue;
+    }
 }
 
 function populateAllDropdowns() {
-    const options = getOptions();
+    const options = getOptions(); // This call will now work
     populateDropdown(ticketStatusSelect, options.statuses);
     populateDropdown(ticketPrioritySelect, options.priorities);
     populateDropdown(ticketTypeSelect, options.types);
@@ -406,7 +419,7 @@ async function handleDeleteEpic(epicId) {
         await DevTrackerService.deleteEpic(epicId);
         if (_activeEpicId === epicId) {
             _activeEpicId = null;
-            renderAll(); // Rerender to show the "no epic selected" state
+            renderAll();
         }
     }
 }
@@ -429,15 +442,21 @@ function _setupEventListeners() {
     ticketFormEl.addEventListener('submit', handleTicketFormSubmit);
     closeSettingsBtn.addEventListener('click', closeSettingsModal);
 
-    // Settings options
-    settingsContainer.addEventListener('submit', handleAddOption);
-    settingsContainer.addEventListener('click', handleDeleteOption);
+    // Settings
+    settingsNav.addEventListener('click', (e) => {
+        if (e.target.matches('.settings-nav-item')) {
+            setActiveSettingsCategory(e.target.dataset.type);
+        }
+    });
+    addOptionForm.addEventListener('submit', handleAddOption);
+    optionsList.addEventListener('click', handleDeleteOption);
+
 
     // Event Bus Subscriptions
     EventBus.subscribe('devEpicsChanged', renderAll);
     EventBus.subscribe('devTicketsChanged', renderTicketsList);
     EventBus.subscribe('userPreferencesChanged', () => {
-        renderAllSettings();
+        renderActiveSettingsContent();
         populateAllDropdowns();
     });
 }
