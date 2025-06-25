@@ -93,27 +93,139 @@ async function handleExportData() {
 // --- Rendering Functions ---
 
 function renderGreeting() {
-    // ... (same as before)
+    const profile = AppStore.getUserProfile();
+    const displayName = profile?.displayName?.split(' ')[0] || 'there';
+    const hour = new Date().getHours();
+    let greeting = "Welcome";
+    if (hour < 12) greeting = "Good morning";
+    else if (hour < 18) greeting = "Good afternoon";
+    else greeting = "Good evening";
+
+    if (greetingHeader) {
+        greetingHeader.textContent = `${greeting}, ${displayName}!`;
+    }
 }
 
 function renderMyDayWidget() {
-    // ... (same as before)
+    if (!myDayContent) return;
+    const { overdueTasks, todayTasks } = getDashboardData();
+    
+    myDayContent.innerHTML = '';
+
+    if (overdueTasks.length === 0 && todayTasks.length === 0) {
+        myDayContent.innerHTML = '<p class="text-slate-400">Nothing due today. You\'re all caught up!</p>';
+        return;
+    }
+
+    if (overdueTasks.length > 0) {
+        const overdueHeader = document.createElement('h3');
+        overdueHeader.className = 'text-sm font-semibold text-red-400 mb-1';
+        overdueHeader.textContent = 'Overdue';
+        myDayContent.appendChild(overdueHeader);
+        overdueTasks.forEach(task => myDayContent.appendChild(createTaskRow(task)));
+    }
+
+    if (todayTasks.length > 0) {
+        const todayHeader = document.createElement('h3');
+        todayHeader.className = 'text-sm font-semibold text-sky-400 mt-3 mb-1';
+        todayHeader.textContent = 'Today';
+        myDayContent.appendChild(todayHeader);
+        todayTasks.forEach(task => myDayContent.appendChild(createTaskRow(task)));
+    }
 }
 
 function renderUpcomingWidget() {
-    // ... (same as before)
+    if (!upcomingContent) return;
+    const { upcomingTasks } = getDashboardData();
+    upcomingContent.innerHTML = '';
+
+    if (upcomingTasks.length === 0) {
+        upcomingContent.innerHTML = '<p class="text-slate-400">No tasks due in the next 7 days.</p>';
+        return;
+    }
+    
+    const list = document.createElement('ul');
+    list.className = 'space-y-2';
+    upcomingTasks.forEach(task => {
+         const li = document.createElement('li');
+         li.className = 'text-sm text-slate-300 flex justify-between items-center';
+         li.innerHTML = `
+            <span>${task.text}</span>
+            <span class="text-xs text-slate-400">${formatDate(task.dueDate)}</span>
+         `;
+         list.appendChild(li);
+    });
+    upcomingContent.appendChild(list);
 }
 
 function renderNotesWidget() {
-    // ... (same as before)
+    if (!notesContent) return;
+    const { recentNotes } = getDashboardData();
+    notesContent.innerHTML = '';
+
+     if (recentNotes.length === 0) {
+        notesContent.innerHTML = '<p class="text-slate-400 text-sm">No recent notes.</p>';
+        return;
+    }
+    
+    const list = document.createElement('ul');
+    list.className = 'space-y-3';
+    recentNotes.forEach(note => {
+        const li = document.createElement('li');
+        li.className = 'text-sm text-slate-300 hover:text-sky-400 transition-colors cursor-pointer';
+        li.textContent = note.title;
+        li.onclick = () => window.location.href = 'notes.html'; 
+        list.appendChild(li);
+    });
+    notesContent.appendChild(list);
 }
 
 function renderHabitWidget() {
-    // ... (same as before)
+    if (!habitContent) return;
+    
+    const habits = HabitTrackerService.getHabits();
+    const completions = HabitTrackerService.getCompletionsForYear(new Date().getFullYear());
+    const todayString = new Date().toISOString().split('T')[0];
+
+    habitContent.innerHTML = '';
+    if (habits.length === 0) {
+        habitContent.innerHTML = '<p class="text-slate-400 text-sm">No habits configured.</p>';
+        return;
+    }
+
+    habits.forEach(habit => {
+        const isCompletedToday = completions.some(c => c.habitId === habit.id && c.date === todayString);
+        habitContent.appendChild(createHabitRow(habit, isCompletedToday));
+    });
 }
 
 function renderTimeTrackerWidget() {
-    // ... (same as before)
+    if (!timeTrackerContent) return;
+    if (timeTrackerInterval) clearInterval(timeTrackerInterval);
+
+    const activeTimer = TimeTrackerService.getActiveTimer();
+
+    if (activeTimer) {
+        const activity = (TimeTrackerService.getActivities() || []).find(a => a.id === activeTimer.activityId);
+        timeTrackerContent.innerHTML = `
+            <p class="text-sm text-slate-400">Currently Tracking:</p>
+            <p class="font-semibold text-slate-100 truncate">${activity ? activity.name : '...'}</p>
+            <p id="dashboardLiveTimer" class="text-2xl font-mono font-bold text-sky-300 mt-2">00:00:00</p>
+        `;
+        const timerDisplay = document.getElementById('dashboardLiveTimer');
+        const updateTime = () => {
+            const elapsedMs = Date.now() - new Date(activeTimer.startTime).getTime();
+            if (timerDisplay) timerDisplay.textContent = formatMillisecondsToHMS(elapsedMs);
+        };
+        timeTrackerInterval = setInterval(updateTime, 1000);
+        updateTime();
+    } else {
+        const totalMs = TimeTrackerService.getTodaysTotalTrackedMs();
+        timeTrackerContent.innerHTML = `
+            <p class="text-sm text-slate-400">Time Tracked Today:</p>
+            <p class="text-3xl font-bold text-slate-100 mt-2">${formatMillisecondsToHMS(totalMs)}</p>
+        `;
+    }
 }
 
 function renderQuickLinksWidget() {
@@ -146,12 +258,51 @@ function renderQuickLinksWidget() {
     });
 }
 
+
 function createTaskRow(task) {
-    // ... (same as before)
+    const taskRow = document.createElement('div');
+    taskRow.className = 'flex items-center p-2 rounded-md hover:bg-slate-700 transition-colors';
+    
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.className = 'form-checkbox h-5 w-5 text-sky-500 rounded border-slate-500 focus:ring-sky-400 mr-3 cursor-pointer flex-shrink-0';
+    checkbox.onchange = () => {
+        TaskService.toggleTaskComplete(task.id);
+    };
+
+    const taskText = document.createElement('span');
+    taskText.className = 'text-slate-300 flex-grow';
+    taskText.textContent = task.text;
+
+    taskRow.appendChild(checkbox);
+    taskRow.appendChild(taskText);
+    return taskRow;
 }
 
 function createHabitRow(habit, isCompleted) {
-    // ... (same as before)
+    const habitRow = document.createElement('div');
+    habitRow.className = 'flex items-center p-1.5 rounded-md';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = isCompleted;
+    checkbox.className = 'form-checkbox h-5 w-5 text-green-500 rounded border-slate-500 focus:ring-green-400 mr-3 cursor-pointer flex-shrink-0';
+    checkbox.onchange = () => {
+        const todayString = new Date().toISOString().split('T')[0];
+        HabitTrackerService.toggleCompletion(habit.id, todayString);
+        renderHabitWidget();
+    };
+
+    const habitText = document.createElement('span');
+    habitText.className = 'text-slate-300';
+    if (isCompleted) {
+        habitText.classList.add('line-through', 'text-slate-500');
+    }
+    habitText.textContent = habit.name;
+
+    habitRow.appendChild(checkbox);
+    habitRow.appendChild(habitText);
+    return habitRow;
 }
 
 
