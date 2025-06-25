@@ -1,7 +1,7 @@
 {
-  "name": "time-tracker-service",
+  "name": "notes-service",
   "version": "1.0.0",
-  "description": "Microservice for handling time tracking activities and log entries.",
+  "description": "Microservice for handling notes and notebooks.",
   "main": "index.js",
   "type": "module",
   "scripts": {

@@ -1,7 +1,7 @@
 {
-  "name": "time-tracker-service",
+  "name": "task-service",
   "version": "1.0.0",
-  "description": "Microservice for handling time tracking activities and log entries.",
+  "description": "Microservice for handling tasks and projects.",
   "main": "index.js",
   "type": "module",
   "scripts": {
