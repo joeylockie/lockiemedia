@@ -1,3 +1,5 @@
+// database-setup.js
+
 import Database from 'better-sqlite3';
 
 // Define the name of the database file.
@@ -123,6 +125,15 @@ function setupDatabase() {
   );`;
   db.exec(createTimeLogEntriesTable);
 
+  // --- Dev Tracker Release Versions Table (NEW) ---
+  const createDevReleaseVersionsTable = `
+  CREATE TABLE IF NOT EXISTS dev_release_versions (
+      id INTEGER PRIMARY KEY,
+      version TEXT NOT NULL UNIQUE,
+      createdAt INTEGER
+  );`;
+  db.exec(createDevReleaseVersionsTable);
+
   // --- Dev Tracker Epics Table (MODIFIED) ---
   const createDevEpicsTable = `
   CREATE TABLE IF NOT EXISTS dev_epics (
@@ -132,6 +143,7 @@ function setupDatabase() {
     description TEXT,
     status TEXT DEFAULT 'To Do',
     priority TEXT DEFAULT 'Medium',
+    releaseVersion TEXT,
     ticketCounter INTEGER DEFAULT 0,
     createdAt INTEGER
   );`;
@@ -149,10 +161,38 @@ function setupDatabase() {
     priority TEXT DEFAULT 'Medium',
     type TEXT DEFAULT 'Feature',
     component TEXT,
+    releaseVersion TEXT,
+    affectedVersion TEXT,
     createdAt INTEGER,
-    FOREIGN KEY (epicId) REFERENCES dev_epics (id) ON DELETE CASCADE
+    FOREIGN KEY (epicId) REFERENCES dev_epics (id) ON DELETE CASCADE,
+    FOREIGN KEY (affectedVersion) REFERENCES dev_release_versions (version) ON DELETE SET NULL
   );`;
   db.exec(createDevTicketsTable);
+
+  // --- Dev Tracker Ticket History Table (NEW) ---
+  const createDevTicketHistoryTable = `
+  CREATE TABLE IF NOT EXISTS dev_ticket_history (
+      id INTEGER PRIMARY KEY,
+      ticketId INTEGER NOT NULL,
+      field TEXT NOT NULL,
+      oldValue TEXT,
+      newValue TEXT,
+      changedAt INTEGER,
+      FOREIGN KEY (ticketId) REFERENCES dev_tickets (id) ON DELETE CASCADE
+  );`;
+  db.exec(createDevTicketHistoryTable);
+
+  // --- Dev Tracker Ticket Comments Table (NEW) ---
+  const createDevTicketCommentsTable = `
+  CREATE TABLE IF NOT EXISTS dev_ticket_comments (
+      id INTEGER PRIMARY KEY,
+      ticketId INTEGER NOT NULL,
+      comment TEXT NOT NULL,
+      author TEXT,
+      createdAt INTEGER,
+      FOREIGN KEY (ticketId) REFERENCES dev_tickets (id) ON DELETE CASCADE
+  );`;
+  db.exec(createDevTicketCommentsTable);
 
 
   // --- Insert Default Data ---
@@ -184,7 +224,6 @@ function setupDatabase() {
     components: ['Backend', 'Frontend', 'Database', 'UI/UX']
   };
   insertPreference.run('dev_tracker_options', JSON.stringify(devTrackerOptions));
-
 
   console.log('Database setup complete.');
 }
