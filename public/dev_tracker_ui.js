@@ -1,5 +1,4 @@
 // public/dev_tracker_ui.js
-// Manages all UI rendering and event handling for the Dev Tracker.
 
 import AppStore from './store.js';
 import EventBus from './eventBus.js';
@@ -16,9 +15,9 @@ const DevTrackerUI = (() => {
     let epicsListEl, ticketsListEl, newEpicBtn, newTicketBtn, settingsBtn, ticketSearchInput, allIssuesFilterBtn;
     let currentEpicTitleEl, currentEpicDescriptionEl;
     let epicModalEl, ticketModalEl, settingsModalEl, ticketDetailModal, epicDetailModal;
-    let epicFormEl, epicIdInput, epicKeyInput, epicTitleInput, epicStatusSelect, epicPrioritySelect, epicDescriptionInput, cancelEpicBtn;
+    let epicFormEl, epicIdInput, epicKeyInput, epicTitleInput, epicStatusSelect, epicPrioritySelect, epicDescriptionInput, cancelEpicBtn, epicModalTitleEl;
     let ticketFormEl, ticketIdInput, ticketEpicIdInput, ticketTitleInput, ticketStatusSelect, ticketPrioritySelect,
-        ticketTypeSelect, ticketComponentSelect, ticketDescriptionInput, cancelTicketBtn;
+        ticketTypeSelect, ticketComponentSelect, ticketDescriptionInput, cancelTicketBtn, ticketModalTitleEl;
     let closeSettingsBtn, settingsNav, settingsContentTitle, optionsList, addOptionForm;
     let closeTicketDetailBtn, ticketDetailKey, ticketDetailTitle, ticketDetailStatus, ticketDetailPriority, ticketDetailType, ticketDetailComponent, ticketDetailDescription;
     let closeEpicDetailBtn, epicDetailKey, epicDetailTitle, epicDetailStatus, epicDetailPriority, epicDetailDescription;
@@ -48,6 +47,7 @@ const DevTrackerUI = (() => {
         epicPrioritySelect = document.getElementById('epicPriority');
         epicDescriptionInput = document.getElementById('epicDescription');
         cancelEpicBtn = document.getElementById('cancelEpicBtn');
+        epicModalTitleEl = document.getElementById('epicModalTitle');
         ticketFormEl = document.getElementById('ticketForm');
         ticketIdInput = document.getElementById('ticketId');
         ticketEpicIdInput = document.getElementById('ticketEpicId');
@@ -58,6 +58,7 @@ const DevTrackerUI = (() => {
         ticketComponentSelect = document.getElementById('ticketComponent');
         ticketDescriptionInput = document.getElementById('ticketDescription');
         cancelTicketBtn = document.getElementById('cancelTicketBtn');
+        ticketModalTitleEl = document.getElementById('ticketModalTitle');
         closeSettingsBtn = document.getElementById('closeSettingsBtn');
         settingsNav = document.getElementById('settingsNav');
         settingsContentTitle = document.getElementById('settingsContentTitle');
