@@ -65,23 +65,17 @@ app.get('/api/data', async (req, res) => {
         res.json(combinedData);
         console.log('[API Gateway] Successfully composed and sent response for GET /api/data.');
     } catch (error) {
-        // --- IMPROVED ERROR LOGGING ---
         console.error('[API Gateway] Error composing GET /api/data.');
         if (error.response) {
-            // The request was made and the server responded with a status code
-            // that falls out of the range of 2xx
             console.error('Error Data:', error.response.data);
             console.error('Error Status:', error.response.status);
             console.error('Error Headers:', error.response.headers);
         } else if (error.request) {
-            // The request was made but no response was received
             console.error('Error Request:', error.request);
         } else {
-            // Something happened in setting up the request that triggered an Error
             console.error('Error Message:', error.message);
         }
         console.error('Full Error Config:', error.config);
-        // --- END OF IMPROVED LOGGING ---
         res.status(500).json({ error: 'Failed to retrieve data from backend services.' });
     }
 });
@@ -90,16 +84,30 @@ app.post('/api/data', async (req, res) => {
     console.log('[API Gateway] POST /api/data received. Distributing data to services...');
     const incomingData = req.body;
     try {
-        const notesPayload = { notes: incomingData.notes, notebooks: incomingData.notebooks };
+        // --- THIS IS THE FIX ---
+        // Each payload is now specific and complete for its target service.
+        const notesPayload = {
+            notes: incomingData.notes,
+            notebooks: incomingData.notebooks
+        };
         const taskServicePayload = {
             tasks: incomingData.tasks,
             projects: incomingData.projects,
             userProfile: incomingData.userProfile,
             userPreferences: incomingData.userPreferences,
-            kanbanColumns: incomingData.kanbanColumns || []
         };
-        const timeTrackerPayload = { time_activities: incomingData.time_activities, time_log_entries: incomingData.time_log_entries };
-        const devTrackerPayload = { dev_epics: incomingData.dev_epics, dev_tickets: incomingData.dev_tickets };
+        const timeTrackerPayload = {
+            time_activities: incomingData.time_activities,
+            time_log_entries: incomingData.time_log_entries
+        };
+        // The devTrackerPayload now correctly includes all of its required fields.
+        const devTrackerPayload = {
+            dev_epics: incomingData.dev_epics,
+            dev_tickets: incomingData.dev_tickets,
+            dev_release_versions: incomingData.dev_release_versions,
+            dev_ticket_history: incomingData.dev_ticket_history,
+            dev_ticket_comments: incomingData.dev_ticket_comments,
+        };
         
         await Promise.all([
             axios.post(`${serviceTargets.taskService}/api/core-data`, taskServicePayload),
@@ -110,7 +118,6 @@ app.post('/api/data', async (req, res) => {
         res.status(200).json({ message: 'Data saved successfully across all services!' });
         console.log('[API Gateway] Successfully distributed POST /api/data to all services.');
     } catch (error) {
-        // Also adding improved logging here for consistency
         console.error('[API Gateway] Error distributing POST /api/data.');
         if (error.response) {
             console.error('Error Data:', error.response.data);
@@ -123,6 +130,7 @@ app.post('/api/data', async (req, res) => {
         res.status(500).json({ error: 'Failed to save data to backend services.' });
     }
 });
+
 
 // -- Start HTTP Server --
 app.listen(PORT, () => {
