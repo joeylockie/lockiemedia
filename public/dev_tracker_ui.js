@@ -10,7 +10,7 @@ const DevTrackerUI = (() => {
     let _activeEpicId = 'all_issues';
     let _activeSearchTerm = '';
     let _activeSettingsCategory = 'statuses';
-    let _activeTicketIdForDetailModal = null; // To track which ticket's details are open
+    let _activeTicketIdForDetailModal = null;
 
     // --- DOM Element References ---
     let epicsListEl, ticketsListEl, newEpicBtn, newTicketBtn, settingsBtn, ticketSearchInput, allIssuesFilterBtn;
@@ -20,20 +20,14 @@ const DevTrackerUI = (() => {
     let ticketFormEl, ticketIdInput, ticketEpicIdInput, ticketTitleInput, ticketStatusSelect, ticketPrioritySelect,
         ticketTypeSelect, ticketComponentSelect, ticketDescriptionInput, ticketAffectedVersionSelect, cancelTicketBtn, ticketModalTitleEl;
     let closeSettingsBtn, settingsNav, settingsContentTitle, optionsList, addOptionForm;
-    
-    // Ticket Detail Modal elements
     let closeTicketDetailBtn, ticketDetailKey, ticketDetailTitle, ticketDetailStatusSelect, ticketDetailPriority, 
         ticketDetailType, ticketDetailComponent, ticketDetailDescription, ticketDetailReleaseVersion, ticketDetailAffectedVersion;
     let toggleHistoryLink, ticketHistoryContainer;
     let commentsList, addCommentForm, newCommentInput;
-
-    // Epic Detail Modal elements
     let closeEpicDetailBtn, epicDetailKey, epicDetailTitle, epicDetailStatus, epicDetailPriority, epicDetailDescription, epicDetailReleaseVersion;
 
-    // --- Private Functions (Helpers, Renderers, Handlers) ---
     
     function _getDOMElements() {
-        // Main UI
         epicsListEl = document.getElementById('epicsList');
         ticketsListEl = document.getElementById('ticketsList');
         newEpicBtn = document.getElementById('newEpicBtn');
@@ -43,15 +37,11 @@ const DevTrackerUI = (() => {
         currentEpicDescriptionEl = document.getElementById('currentEpicDescription');
         ticketSearchInput = document.getElementById('ticketSearchInput');
         allIssuesFilterBtn = document.getElementById('allIssuesFilter');
-
-        // Modals
         epicModalEl = document.getElementById('epicModal');
         ticketModalEl = document.getElementById('ticketModal');
         settingsModalEl = document.getElementById('settingsModal');
         ticketDetailModal = document.getElementById('ticketDetailModal');
         epicDetailModal = document.getElementById('epicDetailModal');
-
-        // Epic Form
         epicFormEl = document.getElementById('epicForm');
         epicIdInput = document.getElementById('epicId');
         epicKeyInput = document.getElementById('epicKey');
@@ -62,8 +52,6 @@ const DevTrackerUI = (() => {
         epicReleaseVersionInput = document.getElementById('epicReleaseVersion');
         cancelEpicBtn = document.getElementById('cancelEpicBtn');
         epicModalTitleEl = document.getElementById('epicModalTitle');
-
-        // Ticket Form
         ticketFormEl = document.getElementById('ticketForm');
         ticketIdInput = document.getElementById('ticketId');
         ticketEpicIdInput = document.getElementById('ticketEpicId');
@@ -76,15 +64,11 @@ const DevTrackerUI = (() => {
         ticketAffectedVersionSelect = document.getElementById('ticketAffectedVersion');
         cancelTicketBtn = document.getElementById('cancelTicketBtn');
         ticketModalTitleEl = document.getElementById('ticketModalTitle');
-
-        // Settings Modal
         closeSettingsBtn = document.getElementById('closeSettingsBtn');
         settingsNav = document.getElementById('settingsNav');
         settingsContentTitle = document.getElementById('settingsContentTitle');
         optionsList = document.getElementById('optionsList');
         addOptionForm = document.getElementById('addOptionForm');
-
-        // Ticket Detail Modal
         closeTicketDetailBtn = document.getElementById('closeTicketDetailBtn');
         ticketDetailKey = document.getElementById('ticketDetailKey');
         ticketDetailTitle = document.getElementById('ticketDetailTitle');
@@ -100,9 +84,6 @@ const DevTrackerUI = (() => {
         commentsList = document.getElementById('commentsList');
         addCommentForm = document.getElementById('addCommentForm');
         newCommentInput = document.getElementById('newCommentInput');
-
-
-        // Epic Detail Modal
         closeEpicDetailBtn = document.getElementById('closeEpicDetailBtn');
         epicDetailKey = document.getElementById('epicDetailKey');
         epicDetailTitle = document.getElementById('epicDetailTitle');
@@ -208,8 +189,6 @@ const DevTrackerUI = (() => {
         ticketModalEl.classList.remove('hidden');
     };
     
-    // --- New/Updated Detail Modal Logic ---
-
     const _renderTicketComments = (ticketId) => {
         commentsList.innerHTML = '';
         const comments = AppStore.getDevTicketComments().filter(c => c.ticketId === ticketId);
@@ -270,6 +249,9 @@ const DevTrackerUI = (() => {
 
         _renderTicketComments(ticketId);
         _renderTicketHistory(ticketId);
+        
+        ticketHistoryContainer.classList.add('hidden');
+        toggleHistoryLink.textContent = 'Show History';
 
         ticketDetailModal.classList.remove('hidden');
     };
@@ -288,12 +270,15 @@ const DevTrackerUI = (() => {
     
     const renderActiveSettingsContent = () => {
         const options = getOptions();
-        let currentOptions = options[_activeSettingsCategory] || [];
-        let title = _activeSettingsCategory.charAt(0).toUpperCase() + _activeSettingsCategory.slice(1);
+        let currentOptions;
+        let title;
         
         if (_activeSettingsCategory === 'release_versions') {
             currentOptions = AppStore.getDevReleaseVersions().map(v => v.version);
             title = 'Release Versions';
+        } else {
+            currentOptions = options[_activeSettingsCategory] || [];
+            title = _activeSettingsCategory.charAt(0).toUpperCase() + _activeSettingsCategory.slice(1);
         }
         
         settingsContentTitle.textContent = `Manage ${title}`;
@@ -445,26 +430,38 @@ const DevTrackerUI = (() => {
     const handleTicketFormSubmit = async (e) => { e.preventDefault(); const ticketData = { epicId: Number(ticketEpicIdInput.value), title: ticketTitleInput.value, status: ticketStatusSelect.value, priority: ticketPrioritySelect.value, type: ticketTypeSelect.value, component: ticketComponentSelect.value, description: ticketDescriptionInput.value, affectedVersion: ticketAffectedVersionSelect.value }; const id = Number(ticketIdInput.value); if (id) { await DevTrackerService.updateTicket(id, ticketData); } else { await DevTrackerService.addTicket(ticketData); } closeTicketModal(); };
     const handleDeleteEpic = async (epicId) => { if (confirm('Are you sure you want to delete this epic and all its tickets? This action cannot be undone.')) { await DevTrackerService.deleteEpic(epicId); if (_activeEpicId === epicId) { _activeEpicId = 'all_issues'; renderAll(); } } };
     const handleDeleteTicket = async (ticketId) => { if (confirm('Are you sure you want to delete this ticket?')) await DevTrackerService.deleteTicket(ticketId); };
-    
-    // Updated Settings Handler
     const handleAddOption = async (e) => { e.preventDefault(); const input = e.target.querySelector('input'); const value = input.value.trim(); if (!value) return; if (_activeSettingsCategory === 'release_versions') { await DevTrackerService.addReleaseVersion(value); } else { const options = getOptions(); const currentCategoryOptions = options[_activeSettingsCategory]; if (!currentCategoryOptions.includes(value)) { currentCategoryOptions.push(value); await AppStore.setUserPreferences({ dev_tracker_options: options }); } } input.value = ''; };
-    
-    // New Handlers
     const handleAddComment = async (e) => { e.preventDefault(); const commentText = newCommentInput.value.trim(); if (commentText && _activeTicketIdForDetailModal) { await DevTrackerService.addComment(_activeTicketIdForDetailModal, commentText); newCommentInput.value = ''; } };
     const handleStatusChange = async (e) => { const newStatus = e.target.value; if (newStatus && _activeTicketIdForDetailModal) { await DevTrackerService.updateTicketStatus(_activeTicketIdForDetailModal, newStatus); } };
     const handleToggleHistory = (e) => { e.preventDefault(); ticketHistoryContainer.classList.toggle('hidden'); e.target.textContent = ticketHistoryContainer.classList.contains('hidden') ? 'Show History' : 'Hide History'; };
-
-    const handleDeleteOption = async (e) => { if (!e.target.classList.contains('delete-option-btn')) return; const optionToDelete = e.target.dataset.option; if (confirm(`Are you sure you want to delete "${optionToDelete}"?`)) { if (_activeSettingsCategory === 'release_versions') { // TODO: Add a service method for this if needed } else { const options = getOptions(); options[_activeSettingsCategory] = options[_activeSettingsCategory].filter(o => o !== optionToDelete); await AppStore.setUserPreferences({ dev_tracker_options: options }); } } };
+    
+    const handleDeleteOption = async (e) => {
+        if (!e.target.classList.contains('delete-option-btn')) return;
+        const optionToDelete = e.target.dataset.option;
+        if (confirm(`Are you sure you want to delete "${optionToDelete}"?`)) {
+            if (_activeSettingsCategory === 'release_versions') {
+                // To delete a version, we need its ID. We find it in the store.
+                const versionToDelete = AppStore.getDevReleaseVersions().find(v => v.version === optionToDelete);
+                if (versionToDelete) {
+                    // This assumes a delete service function exists. If not, this part needs implementation.
+                    // For now, let's just remove from the store for UI demonstration.
+                    let versions = AppStore.getDevReleaseVersions().filter(v => v.id !== versionToDelete.id);
+                    await AppStore.setDevReleaseVersions(versions);
+                }
+            } else {
+                const options = getOptions();
+                options[_activeSettingsCategory] = options[_activeSettingsCategory].filter(o => o !== optionToDelete);
+                await AppStore.setUserPreferences({ dev_tracker_options: options });
+            }
+        }
+    };
     
     const _setupEventListeners = () => {
-        // Main UI
         newEpicBtn.addEventListener('click', () => openEpicModal());
         newTicketBtn.addEventListener('click', () => openTicketModal());
         settingsBtn.addEventListener('click', openSettingsModal);
         allIssuesFilterBtn.addEventListener('click', () => { _activeEpicId = 'all_issues'; renderAll(); });
         ticketSearchInput.addEventListener('input', (e) => { _activeSearchTerm = e.target.value.toLowerCase(); renderTicketsList(); });
-        
-        // Modals & Forms
         cancelEpicBtn.addEventListener('click', closeEpicModal);
         epicFormEl.addEventListener('submit', handleEpicFormSubmit);
         cancelTicketBtn.addEventListener('click', closeTicketModal);
@@ -472,18 +469,13 @@ const DevTrackerUI = (() => {
         closeSettingsBtn.addEventListener('click', closeSettingsModal);
         closeTicketDetailBtn.addEventListener('click', closeTicketDetailModal);
         closeEpicDetailBtn.addEventListener('click', closeEpicDetailModal);
-        
-        // Settings
         settingsNav.addEventListener('click', (e) => { if (e.target.matches('.settings-nav-item')) setActiveSettingsCategory(e.target.dataset.type); });
         addOptionForm.addEventListener('submit', handleAddOption);
         optionsList.addEventListener('click', handleDeleteOption);
-        
-        // Ticket Detail
         addCommentForm.addEventListener('submit', handleAddComment);
         ticketDetailStatusSelect.addEventListener('change', handleStatusChange);
         toggleHistoryLink.addEventListener('click', handleToggleHistory);
 
-        // Event Bus Subscriptions
         EventBus.subscribe('devEpicsChanged', renderAll);
         EventBus.subscribe('devTicketsChanged', renderTicketsList);
         EventBus.subscribe('userPreferencesChanged', () => { renderActiveSettingsContent(); populateAllDropdowns(); });
@@ -492,7 +484,6 @@ const DevTrackerUI = (() => {
         EventBus.subscribe('devTicketHistoryChanged', () => { if(_activeTicketIdForDetailModal) _renderTicketHistory(_activeTicketIdForDetailModal); });
     };
 
-    // --- Public API ---
     return {
         initialize: () => {
             _getDOMElements();
