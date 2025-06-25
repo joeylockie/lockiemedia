@@ -71,7 +71,7 @@ app.post('/api/dev-data', (req, res) => {
                 insertEpic.run({
                     ...epic,
                     description: epic.description ?? null,
-                    releaseVersion: epic.releaseVersion ?? null
+                    releaseVersion: epic.releaseVersion || null
                 });
             }
         }
@@ -81,14 +81,14 @@ app.post('/api/dev-data', (req, res) => {
             db.prepare('DELETE FROM dev_tickets').run();
             const insertTicket = db.prepare('INSERT INTO dev_tickets (id, fullKey, epicId, title, description, status, priority, type, component, releaseVersion, affectedVersion, createdAt) VALUES (@id, @fullKey, @epicId, @title, @description, @status, @priority, @type, @component, @releaseVersion, @affectedVersion, @createdAt)');
             for (const ticket of incomingData.dev_tickets) {
-                // This is the critical fix: ensure any potentially undefined fields are explicitly set to null
-                // so the database driver can handle them correctly.
+                // This is the critical fix: ensure any potentially undefined or empty string fields are explicitly set to null
+                // so the database driver can handle them correctly, especially for Foreign Keys.
                 insertTicket.run({
                     ...ticket,
-                    description: ticket.description ?? null,
-                    component: ticket.component ?? null,
-                    releaseVersion: ticket.releaseVersion ?? null,
-                    affectedVersion: ticket.affectedVersion ?? null
+                    description: ticket.description || null,
+                    component: ticket.component || null,
+                    releaseVersion: ticket.releaseVersion || null,
+                    affectedVersion: ticket.affectedVersion || null // This line is the most important fix
                 });
             }
         }

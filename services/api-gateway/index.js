@@ -41,9 +41,8 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-app.use(express.static(path.join(__dirname, '../../public')));
 
-// --- API Routes ---
+// --- API Routes (MUST be defined before static file serving) ---
 app.use('/api', authenticateKey);
 
 app.get('/api/data', async (req, res) => {
@@ -56,9 +55,9 @@ app.get('/api/data', async (req, res) => {
             axios.get(`${serviceTargets.devTrackerService}/api/dev-data`)
         ]);
 
-        const combinedData = { 
-            ...taskServiceResponse.data, 
-            ...notesResponse.data, 
+        const combinedData = {
+            ...taskServiceResponse.data,
+            ...notesResponse.data,
             ...timeTrackerResponse.data,
             ...devTrackerResponse.data
         };
@@ -84,8 +83,6 @@ app.post('/api/data', async (req, res) => {
     console.log('[API Gateway] POST /api/data received. Distributing data to services...');
     const incomingData = req.body;
     try {
-        // --- THIS IS THE FIX ---
-        // Each payload is now specific and complete for its target service.
         const notesPayload = {
             notes: incomingData.notes,
             notebooks: incomingData.notebooks
@@ -100,7 +97,6 @@ app.post('/api/data', async (req, res) => {
             time_activities: incomingData.time_activities,
             time_log_entries: incomingData.time_log_entries
         };
-        // The devTrackerPayload now correctly includes all of its required fields.
         const devTrackerPayload = {
             dev_epics: incomingData.dev_epics,
             dev_tickets: incomingData.dev_tickets,
@@ -108,7 +104,7 @@ app.post('/api/data', async (req, res) => {
             dev_ticket_history: incomingData.dev_ticket_history,
             dev_ticket_comments: incomingData.dev_ticket_comments,
         };
-        
+
         await Promise.all([
             axios.post(`${serviceTargets.taskService}/api/core-data`, taskServicePayload),
             axios.post(`${serviceTargets.notesService}/api/notes-data`, notesPayload),
@@ -130,6 +126,26 @@ app.post('/api/data', async (req, res) => {
         res.status(500).json({ error: 'Failed to save data to backend services.' });
     }
 });
+
+// --- THIS IS THE FIX ---
+// Add a new route handler specifically for creating release versions.
+// It will forward the request to the dev-tracker-service.
+app.post('/api/dev-release-versions', async (req, res) => {
+    console.log('[API Gateway] POST /api/dev-release-versions received. Forwarding to dev-tracker-service...');
+    try {
+        const response = await axios.post(`${serviceTargets.devTrackerService}/api/dev-release-versions`, req.body);
+        res.status(response.status).json(response.data);
+    } catch (error) {
+        console.error('[API Gateway] Error forwarding POST /api/dev-release-versions.');
+        const status = error.response ? error.response.status : 500;
+        const data = error.response ? error.response.data : { error: 'Internal gateway error' };
+        res.status(status).json(data);
+    }
+});
+
+// --- Static File Serving ---
+// This must come *after* all API routes.
+app.use(express.static(path.join(__dirname, '../../public')));
 
 
 // -- Start HTTP Server --
