@@ -36,7 +36,30 @@ const stringifyTask = (task) => ({
     recurrence: JSON.stringify(task.recurrence || null),
 });
 
-// REMOVED time log helper functions as they are no longer needed here
+// --- NEW ---
+// This function sanitizes a task object to ensure it only contains columns
+// that actually exist in the 'tasks' table. This makes the service more robust.
+const sanitizeTaskForDB = (task) => {
+    return {
+        id: task.id,
+        text: task.text,
+        notes: task.notes,
+        completed: task.completed,
+        creationDate: task.creationDate,
+        completedDate: task.completedDate,
+        dueDate: task.dueDate,
+        time: task.time,
+        priority: task.priority,
+        label: task.label,
+        projectId: task.projectId,
+        isReminderSet: task.isReminderSet,
+        reminderDate: task.reminderDate,
+        reminderTime: task.reminderTime,
+        reminderEmail: task.reminderEmail,
+        recurrence: task.recurrence,
+    };
+};
+
 
 // -- API Routes --
 app.get('/api/core-data', (req, res) => {
@@ -48,20 +71,16 @@ app.get('/api/core-data', (req, res) => {
     const prefsArray = db.prepare('SELECT * FROM user_preferences').all();
     const userPreferences = prefsArray.reduce((acc, pref) => {
         try {
-            // Attempt to parse the value as JSON if it looks like an object/array
             if (pref.value.startsWith('{') || pref.value.startsWith('[')) {
                 acc[pref.key] = JSON.parse(pref.value);
             } else {
                 acc[pref.key] = pref.value;
             }
         } catch (e) {
-            acc[pref.key] = pref.value; // Fallback to raw text if parsing fails
+            acc[pref.key] = pref.value;
         }
         return acc;
     }, {});
-
-
-    // REMOVED fetching time_activities and time_log_entries
 
     const responseData = {
       tasks,
@@ -90,27 +109,28 @@ app.post('/api/core-data', (req, res) => {
     db.prepare('DELETE FROM projects WHERE id != 0').run();
     db.prepare('DELETE FROM user_preferences').run();
 
-    // REMOVED deleting time_activities and time_log_entries
-
     const insertTask = db.prepare('INSERT INTO tasks (id, text, notes, completed, creationDate, completedDate, dueDate, time, priority, label, projectId, isReminderSet, reminderDate, reminderTime, reminderEmail, recurrence) VALUES (@id, @text, @notes, @completed, @creationDate, @completedDate, @dueDate, @time, @priority, @label, @projectId, @isReminderSet, @reminderDate, @reminderTime, @reminderEmail, @recurrence)');
     const insertProject = db.prepare('INSERT INTO projects (id, name, creationDate) VALUES (@id, @name, @creationDate)');
     const insertPreference = db.prepare('INSERT INTO user_preferences (key, value) VALUES (@key, @value)');
     const updateUserProfile = db.prepare('UPDATE user_profile SET displayName = @displayName, email = @email, role = @role WHERE id = 1');
 
-    // REMOVED insert statements for time_activities and time_log_entries
+    if (incomingData.tasks) {
+        for (const task of incomingData.tasks) {
+            // --- MODIFICATION ---
+            // Sanitize the task before attempting to stringify and insert it.
+            const sanitizedTask = sanitizeTaskForDB(task);
+            insertTask.run(stringifyTask(sanitizedTask));
+        }
+    }
 
-    if (incomingData.tasks) for (const task of incomingData.tasks) insertTask.run(stringifyTask(task));
     if (incomingData.projects) for (const project of incomingData.projects) { if (project.id !== 0) insertProject.run(project); }
     
-    // --- MODIFICATION START ---
     if (incomingData.userPreferences) {
         for (const [key, value] of Object.entries(incomingData.userPreferences)) {
-            // If the value is an object, stringify it before inserting into the TEXT column.
             const valueToInsert = typeof value === 'object' && value !== null ? JSON.stringify(value) : value;
             insertPreference.run({ key: key, value: valueToInsert });
         }
     }
-    // --- MODIFICATION END ---
 
     if (incomingData.userProfile) {
         const existingProfile = db.prepare('SELECT * FROM user_profile WHERE id = 1').get();
