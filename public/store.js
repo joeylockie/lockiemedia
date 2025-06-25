@@ -25,8 +25,12 @@ let _notebooks = [];
 let _notes = [];
 let _time_activities = [];
 let _time_log_entries = [];
-let _dev_epics = []; // NEW
-let _dev_tickets = []; // NEW
+let _dev_epics = [];
+let _dev_tickets = [];
+let _dev_release_versions = []; // NEW
+let _dev_ticket_history = []; // NEW
+let _dev_ticket_comments = []; // NEW
+
 
 // --- Private Helper Functions ---
 function _publish(eventName, data) {
@@ -80,8 +84,14 @@ async function _saveAllData(source = 'unknown') {
         notes: _notes,
         time_activities: _time_activities,
         time_log_entries: _time_log_entries,
-        dev_epics: _dev_epics, // NEW
-        dev_tickets: _dev_tickets, // NEW
+        dev_epics: _dev_epics,
+        dev_tickets: _dev_tickets,
+        dev_release_versions: _dev_release_versions, // NEW
+        // History and comments are saved via dedicated endpoints, not in this bulk save
+        // to avoid race conditions and ensure atomicity. We still send them if needed
+        // by the backend on initial setup, but our app logic will use specific APIs.
+        dev_ticket_history: _dev_ticket_history,     // NEW
+        dev_ticket_comments: _dev_ticket_comments,   // NEW
     };
 
     try {
@@ -119,8 +129,11 @@ const AppStore = {
     getNotes: () => JSON.parse(JSON.stringify(_notes)),
     getTimeActivities: () => JSON.parse(JSON.stringify(_time_activities)),
     getTimeLogEntries: () => JSON.parse(JSON.stringify(_time_log_entries)),
-    getDevEpics: () => JSON.parse(JSON.stringify(_dev_epics)), // NEW
-    getDevTickets: () => JSON.parse(JSON.stringify(_dev_tickets)), // NEW
+    getDevEpics: () => JSON.parse(JSON.stringify(_dev_epics)),
+    getDevTickets: () => JSON.parse(JSON.stringify(_dev_tickets)),
+    getDevReleaseVersions: () => JSON.parse(JSON.stringify(_dev_release_versions)), // NEW
+    getDevTicketHistory: () => JSON.parse(JSON.stringify(_dev_ticket_history)),     // NEW
+    getDevTicketComments: () => JSON.parse(JSON.stringify(_dev_ticket_comments)),    // NEW
 
     setTasks: async (newTasksArray, source = 'setTasks') => {
         _tasks = JSON.parse(JSON.stringify(newTasksArray));
@@ -164,16 +177,32 @@ const AppStore = {
         await _saveAllData(source);
         _publish('timeLogEntriesChanged', [..._time_log_entries]);
     },
-    setDevEpics: async (newEpicsArray, source = 'setDevEpics') => { // NEW
+    setDevEpics: async (newEpicsArray, source = 'setDevEpics') => {
         _dev_epics = JSON.parse(JSON.stringify(newEpicsArray));
         await _saveAllData(source);
         _publish('devEpicsChanged', [..._dev_epics]);
     },
-    setDevTickets: async (newTicketsArray, source = 'setDevTickets') => { // NEW
+    setDevTickets: async (newTicketsArray, source = 'setDevTickets') => {
         _dev_tickets = JSON.parse(JSON.stringify(newTicketsArray));
         await _saveAllData(source);
         _publish('devTicketsChanged', [..._dev_tickets]);
     },
+    setDevReleaseVersions: async (newVersionsArray, source = 'setDevReleaseVersions') => { // NEW
+        _dev_release_versions = JSON.parse(JSON.stringify(newVersionsArray));
+        await _saveAllData(source);
+        _publish('devReleaseVersionsChanged', [..._dev_release_versions]);
+    },
+    setDevTicketHistory: async (newHistoryArray, source = 'setDevTicketHistory') => { // NEW
+        _dev_ticket_history = JSON.parse(JSON.stringify(newHistoryArray));
+        await _saveAllData(source);
+        _publish('devTicketHistoryChanged', [..._dev_ticket_history]);
+    },
+    setDevTicketComments: async (newCommentsArray, source = 'setDevTicketComments') => { // NEW
+        _dev_ticket_comments = JSON.parse(JSON.stringify(newCommentsArray));
+        await _saveAllData(source);
+        _publish('devTicketCommentsChanged', [..._dev_ticket_comments]);
+    },
+
 
     deleteTimeActivity: async (activityId, source = 'deleteTimeActivity') => {
         const initialActivityCount = _time_activities.length;
@@ -213,8 +242,11 @@ const AppStore = {
             _notes = data.notes || [];
             _time_activities = data.time_activities || [];
             _time_log_entries = data.time_log_entries ? data.time_log_entries.map(entry => ({...entry, startTime: new Date(entry.startTime), endTime: new Date(entry.endTime)})) : [];
-            _dev_epics = data.dev_epics || []; // NEW
-            _dev_tickets = data.dev_tickets || []; // NEW
+            _dev_epics = data.dev_epics || [];
+            _dev_tickets = data.dev_tickets || [];
+            _dev_release_versions = data.dev_release_versions || []; // NEW
+            _dev_ticket_history = data.dev_ticket_history || []; // NEW
+            _dev_ticket_comments = data.dev_ticket_comments || []; // NEW
 
             _updateUniqueLabelsInternal();
             _updateUniqueProjectsInternal();
@@ -230,8 +262,11 @@ const AppStore = {
             _publish('notesChanged', [..._notes]);
             _publish('timeActivitiesChanged', [..._time_activities]);
             _publish('timeLogEntriesChanged', [..._time_log_entries]);
-            _publish('devEpicsChanged', [..._dev_epics]); // NEW
-            _publish('devTicketsChanged', [..._dev_tickets]); // NEW
+            _publish('devEpicsChanged', [..._dev_epics]);
+            _publish('devTicketsChanged', [..._dev_tickets]);
+            _publish('devReleaseVersionsChanged', [..._dev_release_versions]); // NEW
+            _publish('devTicketHistoryChanged', [..._dev_ticket_history]);   // NEW
+            _publish('devTicketCommentsChanged', [..._dev_ticket_comments]);    // NEW
 
         } catch (error) {
             LoggingService.critical('[AppStore] Could not load data from backend server. The app may not function correctly.', error, { functionName });

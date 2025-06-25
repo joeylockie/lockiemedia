@@ -4,9 +4,17 @@
 import AppStore from './store.js';
 import LoggingService from './loggingService.js';
 
+const API_URL = 'http://192.168.2.200:3000/api';
+const API_KEY = "THeYYjPRRvQ6CjJFPL0T6cpAyfWbIMFm9U0Lo4d+saQ=";
+const API_HEADERS = {
+    'Content-Type': 'application/json',
+    'X-API-Key': API_KEY,
+};
+
+
 /**
  * Adds a new epic to the store.
- * @param {object} epicData - The data for the new epic (title, key, priority, status, description).
+ * @param {object} epicData - The data for the new epic (title, key, priority, status, description, releaseVersion).
  * @returns {object} The newly created epic object.
  */
 export async function addEpic(epicData) {
@@ -28,7 +36,8 @@ export async function addEpic(epicData) {
         description: epicData.description,
         status: epicData.status,
         priority: epicData.priority,
-        ticketCounter: 0, // Initialize counter
+        releaseVersion: epicData.releaseVersion,
+        ticketCounter: 0,
     };
     epics.unshift(newEpic);
     await AppStore.setDevEpics(epics, functionName);
@@ -52,7 +61,6 @@ export async function updateEpic(epicId, updateData) {
         return null;
     }
 
-    // Check for duplicate key if the key is being changed
     if (updateData.key && epics.some(e => e.key.toUpperCase() === updateData.key.toUpperCase() && e.id !== epicId)) {
         alert(`Error: Epic Key "${updateData.key}" already exists. Please choose a unique key.`);
         LoggingService.warn(`[DevTrackerService] Attempted to update epic with duplicate key: ${updateData.key}`);
@@ -63,7 +71,20 @@ export async function updateEpic(epicId, updateData) {
         updateData.key = updateData.key.toUpperCase();
     }
 
-    epics[epicIndex] = { ...epics[epicIndex], ...updateData };
+    const originalEpic = epics[epicIndex];
+    epics[epicIndex] = { ...originalEpic, ...updateData };
+
+    // If the epic's release version changes, update all its tickets
+    if (updateData.releaseVersion && updateData.releaseVersion !== originalEpic.releaseVersion) {
+        let tickets = AppStore.getDevTickets();
+        tickets.forEach(ticket => {
+            if (ticket.epicId === epicId) {
+                ticket.releaseVersion = updateData.releaseVersion;
+            }
+        });
+        await AppStore.setDevTickets(tickets, `${functionName}:tickets`);
+    }
+
     await AppStore.setDevEpics(epics, functionName);
     LoggingService.info(`[DevTrackerService] Epic updated: ${epicId}`, { updatedData: epics[epicIndex] });
     return epics[epicIndex];
@@ -83,7 +104,6 @@ export async function deleteEpic(epicId) {
 
     if (epics.length < initialEpicCount) {
         tickets = tickets.filter(t => t.epicId !== epicId);
-        // Save both datasets
         await AppStore.setDevTickets(tickets, `${functionName}:tickets`);
         await AppStore.setDevEpics(epics, `${functionName}:epics`);
         LoggingService.info(`[DevTrackerService] Epic ${epicId} and its tickets deleted.`, { epicId });
@@ -91,7 +111,7 @@ export async function deleteEpic(epicId) {
 }
 
 /**
- * Adds a new ticket to the store, generating a unique key.
+ * Adds a new ticket to the store, inheriting the release version from its epic.
  * @param {object} ticketData - The data for the new ticket.
  * @returns {object|null} The newly created ticket object or null on error.
  */
@@ -106,7 +126,6 @@ export async function addTicket(ticketData) {
         return null;
     }
 
-    // Atomically update the counter and generate the key
     const parentEpic = epics[parentEpicIndex];
     const newTicketNumber = (parentEpic.ticketCounter || 0) + 1;
     parentEpic.ticketCounter = newTicketNumber;
@@ -123,11 +142,12 @@ export async function addTicket(ticketData) {
         priority: ticketData.priority,
         type: ticketData.type,
         component: ticketData.component,
+        affectedVersion: ticketData.affectedVersion,
+        releaseVersion: parentEpic.releaseVersion, // Inherit from epic
     };
     
     tickets.unshift(newTicket);
 
-    // Save both the updated epics array (with the new counter) and the new tickets array
     await AppStore.setDevEpics(epics, `${functionName}:epics`);
     await AppStore.setDevTickets(tickets, `${functionName}:tickets`);
     
@@ -136,7 +156,7 @@ export async function addTicket(ticketData) {
 }
 
 /**
- * Updates an existing ticket.
+ * Updates an existing ticket and logs changes to history.
  * @param {number} ticketId - The ID of the ticket to update.
  * @param {object} updateData - The data to update.
  * @returns {object|null} The updated ticket object or null if not found.
@@ -151,11 +171,35 @@ export async function updateTicket(ticketId, updateData) {
         return null;
     }
 
-    tickets[ticketIndex] = { ...tickets[ticketIndex], ...updateData };
+    const originalTicket = { ...tickets[ticketIndex] };
+    const updatedTicket = { ...originalTicket, ...updateData };
+
+    // Check for changes and record history
+    const fieldsToTrack = ['title', 'description', 'status', 'priority', 'type', 'component', 'affectedVersion', 'releaseVersion'];
+    fieldsToTrack.forEach(field => {
+        if (originalTicket[field] !== updatedTicket[field]) {
+            // This would call the new API endpoint in a real scenario
+            console.log(`HISTORY: Field '${field}' changed from '${originalTicket[field]}' to '${updatedTicket[field]}'`);
+            // We'll manage history in the store for now for simplicity, but an API call is better
+            const history = AppStore.getDevTicketHistory();
+            history.push({
+                id: Date.now(),
+                ticketId: ticketId,
+                field: field,
+                oldValue: originalTicket[field],
+                newValue: updatedTicket[field],
+                changedAt: Date.now()
+            });
+            AppStore.setDevTicketHistory(history);
+        }
+    });
+    
+    tickets[ticketIndex] = updatedTicket;
     await AppStore.setDevTickets(tickets, functionName);
     LoggingService.info(`[DevTrackerService] Ticket updated: ${ticketId}`, { updatedData: tickets[ticketIndex] });
     return tickets[ticketIndex];
 }
+
 
 /**
  * Deletes a ticket by its ID.
@@ -164,11 +208,84 @@ export async function updateTicket(ticketId, updateData) {
 export async function deleteTicket(ticketId) {
     const functionName = 'deleteTicket (DevTrackerService)';
     let tickets = AppStore.getDevTickets();
-    const initialTicketCount = tickets.length;
     tickets = tickets.filter(t => t.id !== ticketId);
+    await AppStore.setDevTickets(tickets, functionName);
+    LoggingService.info(`[DevTrackerService] Ticket ${ticketId} deleted.`, { ticketId });
+}
 
-    if (tickets.length < initialTicketCount) {
-        await AppStore.setDevTickets(tickets, functionName);
-        LoggingService.info(`[DevTrackerService] Ticket ${ticketId} deleted.`, { ticketId });
+/**
+ * Adds a new release version via API.
+ * @param {string} version - The version string.
+ */
+export async function addReleaseVersion(version) {
+    const functionName = 'addReleaseVersion (DevTrackerService)';
+    try {
+        const response = await fetch(`${API_URL}/dev-release-versions`, {
+            method: 'POST',
+            headers: API_HEADERS,
+            body: JSON.stringify({ version }),
+        });
+        if (!response.ok) throw new Error(await response.text());
+        const newVersion = await response.json();
+
+        const versions = AppStore.getDevReleaseVersions();
+        versions.unshift(newVersion);
+        await AppStore.setDevReleaseVersions(versions, functionName);
+        return newVersion;
+    } catch (error) {
+        LoggingService.error(`[DevTrackerService] Failed to add release version: ${version}`, error, { functionName });
+        alert(`Error adding version: ${error.message}`);
+        return null;
+    }
+}
+
+/**
+ * Adds a comment to a ticket via API.
+ * @param {number} ticketId
+ * @param {string} comment
+ */
+export async function addComment(ticketId, comment) {
+    const functionName = 'addComment (DevTrackerService)';
+    try {
+        const response = await fetch(`${API_URL}/tickets/${ticketId}/comments`, {
+            method: 'POST',
+            headers: API_HEADERS,
+            body: JSON.stringify({ comment, author: AppStore.getUserProfile().displayName }),
+        });
+        if (!response.ok) throw new Error(await response.text());
+        const newComment = await response.json();
+
+        const comments = AppStore.getDevTicketComments();
+        comments.push(newComment);
+        await AppStore.setDevTicketComments(comments, functionName);
+        return newComment;
+    } catch (error) {
+        LoggingService.error(`[DevTrackerService] Failed to add comment to ticket ${ticketId}`, error, { functionName });
+        alert(`Error adding comment: ${error.message}`);
+        return null;
+    }
+}
+
+/**
+ * Updates a ticket's status via API.
+ * @param {number} ticketId
+ * @param {string} newStatus
+ */
+export async function updateTicketStatus(ticketId, newStatus) {
+    const functionName = 'updateTicketStatus (DevTrackerService)';
+    try {
+        const response = await fetch(`${API_URL}/tickets/${ticketId}/status`, {
+            method: 'PATCH',
+            headers: API_HEADERS,
+            body: JSON.stringify({ status: newStatus, author: AppStore.getUserProfile().displayName }),
+        });
+        if (!response.ok) throw new Error(await response.text());
+
+        // Refresh local data to get history and status update
+        await AppStore.initializeStore();
+        
+    } catch (error) {
+        LoggingService.error(`[DevTrackerService] Failed to update status for ticket ${ticketId}`, error, { functionName });
+        alert(`Error updating status: ${error.message}`);
     }
 }
