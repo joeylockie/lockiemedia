@@ -62,8 +62,6 @@ app.post('/api/dev-data', (req, res) => {
         if (incomingData.dev_release_versions) {
             db.prepare('DELETE FROM dev_release_versions').run();
             const insertVersion = db.prepare('INSERT INTO dev_release_versions (id, version, createdAt) VALUES (@id, @version, @createdAt)');
-            // --- THIS IS THE CRITICAL FIX ---
-            // We ensure every version object has a `createdAt` property before inserting.
             for (const version of incomingData.dev_release_versions) {
                 insertVersion.run({
                     ...version,
@@ -139,9 +137,10 @@ app.post('/api/tickets/:ticketId/comments', (req, res) => {
     }
 
     try {
+        const createdAt = Date.now();
         const stmt = db.prepare('INSERT INTO dev_ticket_comments (ticketId, comment, author, createdAt) VALUES (?, ?, ?, ?)');
-        const result = stmt.run(ticketId, comment, author || 'User', Date.now());
-        res.status(201).json({ id: result.lastInsertRowid, ticketId, comment, author: author || 'User' });
+        const result = stmt.run(ticketId, comment, author || 'User', createdAt);
+        res.status(201).json({ id: result.lastInsertRowid, ticketId: Number(ticketId), comment, author: author || 'User', createdAt });
     } catch (error) {
         console.error(`[Dev Tracker Service] Error adding comment to ticket ${ticketId}:`, error);
         res.status(500).json({ error: 'Failed to add comment.' });
