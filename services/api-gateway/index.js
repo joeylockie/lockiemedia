@@ -42,6 +42,7 @@ app.use(express.json({ limit: '10mb' }));
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+
 // --- API Routes (MUST be defined before static file serving) ---
 app.use('/api', authenticateKey);
 
@@ -127,9 +128,6 @@ app.post('/api/data', async (req, res) => {
     }
 });
 
-// --- THIS IS THE FIX ---
-// Add a new route handler specifically for creating release versions.
-// It will forward the request to the dev-tracker-service.
 app.post('/api/dev-release-versions', async (req, res) => {
     console.log('[API Gateway] POST /api/dev-release-versions received. Forwarding to dev-tracker-service...');
     try {
@@ -142,6 +140,35 @@ app.post('/api/dev-release-versions', async (req, res) => {
         res.status(status).json(data);
     }
 });
+
+// --- THIS IS THE FIX ---
+// Add route handlers for ticket-specific actions.
+app.post('/api/tickets/:ticketId/comments', async (req, res) => {
+    const { ticketId } = req.params;
+    console.log(`[API Gateway] POST /api/tickets/${ticketId}/comments received. Forwarding...`);
+    try {
+        const response = await axios.post(`${serviceTargets.devTrackerService}/api/tickets/${ticketId}/comments`, req.body);
+        res.status(response.status).json(response.data);
+    } catch (error) {
+        const status = error.response ? error.response.status : 500;
+        const data = error.response ? error.response.data : { error: 'Internal gateway error' };
+        res.status(status).json(data);
+    }
+});
+
+app.patch('/api/tickets/:ticketId/status', async (req, res) => {
+    const { ticketId } = req.params;
+    console.log(`[API Gateway] PATCH /api/tickets/${ticketId}/status received. Forwarding...`);
+    try {
+        const response = await axios.patch(`${serviceTargets.devTrackerService}/api/tickets/${ticketId}/status`, req.body);
+        res.status(response.status).json(response.data);
+    } catch (error) {
+        const status = error.response ? error.response.status : 500;
+        const data = error.response ? error.response.data : { error: 'Internal gateway error' };
+        res.status(status).json(data);
+    }
+});
+
 
 // --- Static File Serving ---
 // This must come *after* all API routes.
