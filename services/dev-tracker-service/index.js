@@ -41,8 +41,6 @@ app.get('/api/dev-data', (req, res) => {
     const dev_tickets = db.prepare('SELECT * FROM dev_tickets').all();
     const dev_release_versions = db.prepare('SELECT * FROM dev_release_versions ORDER BY createdAt DESC').all();
     
-    // For simplicity, we'll fetch all comments and history and let the frontend map them.
-    // For a larger application, you might fetch these on a per-ticket basis.
     const dev_ticket_history = db.prepare('SELECT * FROM dev_ticket_history ORDER BY changedAt ASC').all();
     const dev_ticket_comments = db.prepare('SELECT * FROM dev_ticket_comments ORDER BY createdAt ASC').all();
 
@@ -57,31 +55,32 @@ app.post('/api/dev-data', (req, res) => {
     console.log('[Dev Tracker Service] POST /api/dev-data request received');
     const incomingData = req.body;
 
-    console.log('[Dev Tracker Service] Data received for saving:');
-    console.log('Epics Count:', incomingData.dev_epics ? incomingData.dev_epics.length : 0);
-    console.log('Tickets Count:', incomingData.dev_tickets ? incomingData.dev_tickets.length : 0);
-    console.log('Versions Count:', incomingData.dev_release_versions ? incomingData.dev_release_versions.length : 0);
-
-    if (!incomingData || typeof incomingData.dev_epics === 'undefined' || typeof incomingData.dev_tickets === 'undefined' || typeof incomingData.dev_release_versions === 'undefined') {
-        return res.status(400).json({ error: 'Invalid data format. Must include epics, tickets, and release versions.' });
+    // --- THIS IS THE FIX ---
+    // Instead of failing, we now gracefully handle cases where parts of the data aren't sent.
+    if (!incomingData) {
+        return res.status(400).json({ error: 'Invalid data format. No data received.' });
     }
 
     const transaction = db.transaction(() => {
-        // Clear all dev-related tables before saving
-        db.prepare('DELETE FROM dev_ticket_comments').run();
-        db.prepare('DELETE FROM dev_ticket_history').run();
-        db.prepare('DELETE FROM dev_tickets').run();
-        db.prepare('DELETE FROM dev_epics').run();
-        db.prepare('DELETE FROM dev_release_versions').run();
-
         const insertEpic = db.prepare('INSERT INTO dev_epics (id, key, title, description, status, priority, releaseVersion, ticketCounter, createdAt) VALUES (@id, @key, @title, @description, @status, @priority, @releaseVersion, @ticketCounter, @createdAt)');
         const insertTicket = db.prepare('INSERT INTO dev_tickets (id, fullKey, epicId, title, description, status, priority, type, component, releaseVersion, affectedVersion, createdAt) VALUES (@id, @fullKey, @epicId, @title, @description, @status, @priority, @type, @component, @releaseVersion, @affectedVersion, @createdAt)');
         const insertVersion = db.prepare('INSERT INTO dev_release_versions (id, version, createdAt) VALUES (@id, @version, @createdAt)');
-        // We will handle history and comments via dedicated endpoints, so no inserts here.
-
-        if (incomingData.dev_release_versions) for (const version of incomingData.dev_release_versions) insertVersion.run(version);
-        if (incomingData.dev_epics) for (const epic of incomingData.dev_epics) insertEpic.run(epic);
-        if (incomingData.dev_tickets) for (const ticket of incomingData.dev_tickets) insertTicket.run(ticket);
+        
+        // Only clear and insert data if it's actually provided in the request.
+        if (incomingData.dev_release_versions) {
+            db.prepare('DELETE FROM dev_release_versions').run();
+            for (const version of incomingData.dev_release_versions) insertVersion.run(version);
+        }
+        if (incomingData.dev_epics) {
+            db.prepare('DELETE FROM dev_epics').run();
+            for (const epic of incomingData.dev_epics) insertEpic.run(epic);
+        }
+        if (incomingData.dev_tickets) {
+             db.prepare('DELETE FROM dev_ticket_comments').run();
+             db.prepare('DELETE FROM dev_ticket_history').run();
+             db.prepare('DELETE FROM dev_tickets').run();
+            for (const ticket of incomingData.dev_tickets) insertTicket.run(ticket);
+        }
     });
 
     try {
@@ -93,7 +92,6 @@ app.post('/api/dev-data', (req, res) => {
     }
 });
 
-// --- NEW Endpoints for managing specific resources ---
 
 // Add a new release version
 app.post('/api/dev-release-versions', (req, res) => {
