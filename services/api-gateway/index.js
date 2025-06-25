@@ -11,6 +11,7 @@ const serviceTargets = {
     notesService: 'http://localhost:3002',
     taskService: 'http://localhost:3004',
     timeTrackerService: 'http://localhost:3005',
+    devTrackerService: 'http://localhost:3006', // NEW
 };
 
 // --- Security Configuration ---
@@ -55,13 +56,19 @@ app.use('/api', authenticateKey);
 app.get('/api/data', async (req, res) => {
     console.log('[API Gateway] GET /api/data received. Composing response from services...');
     try {
-        const [taskServiceResponse, notesResponse, timeTrackerResponse] = await Promise.all([
+        const [taskServiceResponse, notesResponse, timeTrackerResponse, devTrackerResponse] = await Promise.all([ // NEW
             axios.get(`${serviceTargets.taskService}/api/core-data`),
             axios.get(`${serviceTargets.notesService}/api/notes-data`),
-            axios.get(`${serviceTargets.timeTrackerService}/api/time-data`)
+            axios.get(`${serviceTargets.timeTrackerService}/api/time-data`),
+            axios.get(`${serviceTargets.devTrackerService}/api/dev-data`) // NEW
         ]);
 
-        const combinedData = { ...taskServiceResponse.data, ...notesResponse.data, ...timeTrackerResponse.data };
+        const combinedData = { 
+            ...taskServiceResponse.data, 
+            ...notesResponse.data, 
+            ...timeTrackerResponse.data,
+            ...devTrackerResponse.data // NEW
+        };
         res.json(combinedData);
         console.log('[API Gateway] Successfully composed and sent response for GET /api/data.');
     } catch (error) {
@@ -88,11 +95,13 @@ app.post('/api/data', async (req, res) => {
         // --- MODIFICATION END ---
         
         const timeTrackerPayload = { time_activities: incomingData.time_activities, time_log_entries: incomingData.time_log_entries };
+        const devTrackerPayload = { dev_epics: incomingData.dev_epics, dev_tickets: incomingData.dev_tickets }; // NEW
         
         await Promise.all([
             axios.post(`${serviceTargets.taskService}/api/core-data`, taskServicePayload),
             axios.post(`${serviceTargets.notesService}/api/notes-data`, notesPayload),
-            axios.post(`${serviceTargets.timeTrackerService}/api/time-data`, timeTrackerPayload)
+            axios.post(`${serviceTargets.timeTrackerService}/api/time-data`, timeTrackerPayload),
+            axios.post(`${serviceTargets.devTrackerService}/api/dev-data`, devTrackerPayload) // NEW
         ]);
         res.status(200).json({ message: 'Data saved successfully across all services!' });
         console.log('[API Gateway] Successfully distributed POST /api/data to all services.');

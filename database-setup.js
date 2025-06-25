@@ -124,6 +124,33 @@ function setupDatabase() {
   );`;
   db.exec(createTimeLogEntriesTable);
 
+  // --- NEW: Dev Tracker Epics Table ---
+  const createDevEpicsTable = `
+  CREATE TABLE IF NOT EXISTS dev_epics (
+    id INTEGER PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT,
+    status TEXT DEFAULT 'To Do',
+    priority TEXT DEFAULT 'Medium',
+    createdAt INTEGER
+  );`;
+  db.exec(createDevEpicsTable);
+
+  // --- NEW: Dev Tracker Tickets Table ---
+  const createDevTicketsTable = `
+  CREATE TABLE IF NOT EXISTS dev_tickets (
+    id INTEGER PRIMARY KEY,
+    epicId INTEGER,
+    title TEXT NOT NULL,
+    description TEXT,
+    status TEXT DEFAULT 'Open',
+    priority TEXT DEFAULT 'Medium',
+    type TEXT DEFAULT 'Feature',
+    createdAt INTEGER,
+    FOREIGN KEY (epicId) REFERENCES dev_epics (id) ON DELETE CASCADE
+  );`;
+  db.exec(createDevTicketsTable);
+
 
   // --- Insert Default Data ---
   // Here, we ensure that some essential default data exists.

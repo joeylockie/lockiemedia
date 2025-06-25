@@ -19,6 +19,11 @@
       "name": "time-tracker-service",
       "script": "/root/lockiemedia/services/time-tracker-service/index.js",
       "watch": false
+    },
+    {
+      "name": "dev-tracker-service",
+      "script": "/root/lockiemedia/services/dev-tracker-service/index.js",
+      "watch": false
     }
   ]
 }
