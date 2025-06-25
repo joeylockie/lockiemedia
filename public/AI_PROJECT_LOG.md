@@ -1,5 +1,5 @@
 # AI Project Curation Log: Lockie Media Platform
-**Last Updated: 2025-06-23 09:31 (EDT)**
+**Last Updated: 2025-06-25 16:04 (EDT)**
 
 ## 1. Instructions for AI (Gemini)
 **Purpose of this Document:** This document is your primary source of truth for the Lockie Media Platform project. It provides context, tracks progress, outlines current tasks, and lists future goals. Please refer to it to understand:
@@ -30,7 +30,7 @@
 * **Platform:** "Lockie Media Platform", which includes user-facing "apps" and administrative "services".
 * **Vision:** To become an all-in-one platform for personal and business management, comprised of modular apps.
 * **Technology:** Self-hosted application with a microservice architecture. Backend services are built with Node.js/Express.js and a shared SQLite database. Services are managed by PM2 and fronted by a central API Gateway secured with API Keys.
-* **Core Platform Apps (Initial Focus):** Task Manager, Notes, Habit Tracker, Time Tracker, Pomodoro, and Calendar.
+* **Core Platform Apps (Initial Focus):** Task Manager, Notes, Habit Tracker, Time Tracker, Pomodoro, Calendar, and Dev Tracker.
 * **Overall Goal:** Develop a robust, feature-complete management platform with a suite of integrated apps.
 
 ## 3. Work Completed (Overall Project - High Level):
@@ -41,23 +41,22 @@
 * API Security: Implemented an API Key authentication layer on the API Gateway.
 * Notes App Enhancements: Added notebook deletion and a full-featured Markdown editor.
 * Time Tracker UI/UX Enhancements: Fixed critical dark mode UI bugs and implemented a fully-featured custom reminder system.
+* Dev Tracker App: Implemented a full-featured development ticket tracking system for epics and tickets.
 
 ## 4. Work Completed (Specific to Current Major Task):
+
+**Date: 2025-06-25**
+* **Task:** Dev Tracker Backend & Database Debugging
+* **Summary:** Successfully debugged and resolved a series of critical backend errors that were preventing the new Dev Tracker application from saving data correctly. The session involved diagnosing 500 Internal Server Errors and 404 Not Found errors, culminating in a fully functional application.
+* **Details:**
+    * **Database Schema Error:** Fixed an initial `SqliteError: table dev_epics has no column named releaseVersion` by guiding the user to rebuild the database schema with the correct `database-setup.js` file and `npm run setup` command.
+    * **Foreign Key Constraint Error:** Resolved a `FOREIGN KEY constraint failed` error by modifying the `dev-tracker-service` to correctly handle empty string values for foreign key fields, ensuring they are saved as `NULL` to the database.
+    * **API Gateway Routing Errors:** Fixed multiple `404 Not Found` errors for ticket-specific actions (like adding comments and changing status) by adding the necessary `POST` and `PATCH` routes to the `api-gateway` service, ensuring requests were correctly forwarded to the `dev-tracker-service`.
+    * **Real-time UI Updates:** Fixed an issue where new comments would not appear in the UI until a page refresh by correcting the frontend state management logic in `dev_tracker_service.js` and `store.js` to properly trigger UI updates after an action is completed.
 
 **Date: 2025-06-23**
 * **Task:** Time Tracker UI Bug Fixing & Custom Reminders Feature
 * **Summary:** Successfully resolved a persistent UI bug where input field text appeared black in dark mode. After fixing the bug, implemented a major feature enhancement: a fully customizable reminder system for the Time Tracker.
-* **Details:**
-    * **Bug Fix:** Corrected the text color of date/time inputs in the Time Tracker modals by adding the `dark` class to the modal containers in `time-tracker.html` and ensuring all inputs used the correct Tailwind CSS `dark:` variant classes. Fixed an issue where newly created activity names appeared as black text by adding an explicit text color class in `feature_time_tracker.js`.
-    * **Feature Enhancement (Custom Reminders):**
-        * Refactored the logic in `feature_time_tracker_reminders.js` to support an array of custom reminder objects.
-        * Updated `time-tracker.html` to replace the old static settings with a new UI for listing, adding, and testing reminders.
-        * Implemented the logic to render the list of reminders and handle their deletion and enable/disable state.
-        * Built a new editor modal and the corresponding JavaScript logic to allow users to create and edit reminders with different types and options.
-
-**Date: 2025-06-21**
-* **Task:** Notes App UI/UX Enhancements & Bug Fixing
-* **Summary:** Implemented several UI and feature enhancements for the Notes app, including a resizable split-view Markdown editor and collapsible sidebars.
 
 ## 5. Current Focus / Next Steps (Specific to Current Major Task):
 * **Current Major Task/Feature Being Worked On:**
