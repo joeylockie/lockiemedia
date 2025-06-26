@@ -8,11 +8,11 @@ import { fileURLToPath } from 'url';
 // --- Configuration ---
 const PORT = 3000;
 const serviceTargets = {
-    notesService: 'http://localhost:3002',
-    taskService: 'http://localhost:3004',
-    timeTrackerService: 'http://localhost:3005',
-    devTrackerService: 'http://localhost:3006',
-    calendarService: 'http://localhost:3003',
+    notesService: 'http://127.0.0.1:3002',
+    taskService: 'http://127.0.0.1:3004',
+    timeTrackerService: 'http://127.0.0.1:3005',
+    devTrackerService: 'http://127.0.0.1:3006',
+    calendarService: 'http://127.0.0.1:3003',
 };
 
 // --- Security Configuration ---
@@ -45,7 +45,7 @@ const __dirname = path.dirname(__filename);
 // --- API Routes (MUST be defined before static file serving) ---
 app.use('/api', authenticateKey);
 
-const fetchServiceDataWithRetry = async (serviceName, serviceUrl, retries = 3, delay = 1000) => {
+const fetchServiceData = async (serviceName, serviceUrl) => {
     try {
         let endpoint = '';
         if (serviceName === 'taskService') endpoint = '/api/core-data';
@@ -59,13 +59,8 @@ const fetchServiceDataWithRetry = async (serviceName, serviceUrl, retries = 3, d
         console.log(`[API Gateway] Successfully fetched data from ${serviceName}.`);
         return response.data;
     } catch (error) {
-        if (retries > 0) {
-            console.warn(`[API Gateway] Could not fetch from ${serviceName}, retrying in ${delay}ms... (${retries} retries left)`);
-            await new Promise(res => setTimeout(res, delay));
-            return fetchServiceDataWithRetry(serviceName, serviceUrl, retries - 1, delay * 2);
-        }
-        console.error(`[API Gateway] CRITICAL: Could not fetch data from ${serviceName} after multiple retries. Error: ${error.message}`);
-        return {}; // Return empty object on final failure
+        console.error(`[API Gateway] WARN: Could not fetch data from ${serviceName}. Service may be down. Error: ${error.message}`);
+        return {}; // Return empty object on failure
     }
 };
 
@@ -73,7 +68,7 @@ const fetchServiceDataWithRetry = async (serviceName, serviceUrl, retries = 3, d
 app.get('/api/data', async (req, res) => {
     console.log('[API Gateway] GET /api/data received. Composing response from services...');
     
-    const servicePromises = Object.entries(serviceTargets).map(([name, url]) => fetchServiceDataWithRetry(name, url));
+    const servicePromises = Object.entries(serviceTargets).map(([name, url]) => fetchServiceData(name, url));
 
     try {
         const results = await Promise.all(servicePromises);
@@ -142,7 +137,6 @@ app.use(express.static(path.join(__dirname, '../../public')));
 
 
 // -- Start HTTP Server --
-// Start immediately, the retry logic will handle service startup timing.
 app.listen(PORT, () => {
     console.log(`[HTTP API Gateway] Listening on port ${PORT}`);
 });
