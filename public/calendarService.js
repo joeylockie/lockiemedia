@@ -27,8 +27,8 @@ async function addEvent(eventData) {
         createdAt: Date.now(),
         updatedAt: Date.now(),
         color: 'blue', // Default color
-        isAllDay: !eventData.startTime || !eventData.endTime,
         ...eventData,
+        // isAllDay is now passed directly in eventData
     };
 
     events.push(newEvent);
@@ -60,7 +60,7 @@ async function updateEvent(eventId, updateData) {
     events[eventIndex] = {
         ...events[eventIndex],
         ...updateData,
-        isAllDay: !updateData.startTime || !updateData.endTime,
+        // isAllDay is now passed directly in updateData
         updatedAt: Date.now(),
     };
 

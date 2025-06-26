@@ -42,13 +42,12 @@
             font-size: 0.75rem; /* text-xs */
             padding: 0.25rem; /* p-1 */
             border-radius: 0.25rem; /* rounded */
-            background-color: #0284c7; /* sky-600 */
             color: white;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
-        /* NEW: Style for tasks overlaid on the calendar */
+        /* Style for tasks overlaid on the calendar */
         .task-pill {
             font-size: 0.75rem; /* text-xs */
             padding: 0.25rem; /* p-1 */
@@ -59,6 +58,17 @@
             text-overflow: ellipsis;
             white-space: nowrap;
             cursor: pointer;
+        }
+        .color-dot {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 9999px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: border-color 0.2s ease-in-out;
+        }
+        .color-dot.selected {
+            border-color: #fff;
         }
     </style>
 </head>
@@ -118,6 +128,10 @@
                         <label for="eventTitle" class="block text-sm font-medium text-slate-300">Title</label>
                         <input type="text" id="eventTitle" required class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none">
                     </div>
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" id="isAllDay" class="h-4 w-4 rounded border-gray-300 text-sky-600 focus:ring-sky-500">
+                        <label for="isAllDay" class="text-sm font-medium text-slate-300">All-day event</label>
+                    </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label for="eventStartDate" class="block text-sm font-medium text-slate-300">Start Date</label>
@@ -128,7 +142,7 @@
                             <input type="date" id="eventEndDate" required class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none dark:[color-scheme:dark]">
                         </div>
                     </div>
-                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                     <div id="timeInputsContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label for="eventStartTime" class="block text-sm font-medium text-slate-300">Start Time</label>
                             <input type="time" id="eventStartTime" class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none dark:[color-scheme:dark]">
@@ -136,6 +150,17 @@
                         <div>
                             <label for="eventEndTime" class="block text-sm font-medium text-slate-300">End Time</label>
                             <input type="time" id="eventEndTime" class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none dark:[color-scheme:dark]">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300">Color</label>
+                        <div id="color-palette" class="mt-2 flex gap-3">
+                            <div class="color-dot bg-sky-500" data-color="sky-500"></div>
+                            <div class="color-dot bg-green-500" data-color="green-500"></div>
+                            <div class="color-dot bg-yellow-500" data-color="yellow-500"></div>
+                            <div class="color-dot bg-red-500" data-color="red-500"></div>
+                            <div class="color-dot bg-purple-500" data-color="purple-500"></div>
+                            <div class="color-dot bg-pink-500" data-color="pink-500"></div>
                         </div>
                     </div>
                     <div>
