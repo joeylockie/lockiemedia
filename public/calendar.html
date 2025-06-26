@@ -70,6 +70,42 @@
         .color-dot.selected {
             border-color: #fff;
         }
+        /* NEW: Styles for Week/Day View */
+        .time-grid {
+            display: grid;
+            grid-template-columns: 50px repeat(7, 1fr); /* Time labels + 7 days */
+            grid-template-rows: auto repeat(24, 60px); /* Header + 24 hours */
+            overflow: auto;
+        }
+        .time-label {
+            grid-column: 1;
+            text-align: right;
+            padding-right: 10px;
+            font-size: 10px;
+            color: #94a3b8; /* slate-400 */
+            position: relative;
+            top: -7px;
+        }
+        .day-column {
+            position: relative;
+            border-right: 1px solid #374151; /* slate-700 */
+            border-top: 1px solid #374151;
+        }
+        .hour-slot {
+            height: 60px;
+            border-bottom: 1px solid #374151; /* slate-700 */
+        }
+        .week-event {
+            position: absolute;
+            left: 5px;
+            right: 5px;
+            padding: 2px 4px;
+            border-radius: 4px;
+            color: white;
+            font-size: 12px;
+            overflow: hidden;
+            z-index: 10;
+        }
     </style>
 </head>
 <body id="calendarPage" class="bg-gradient-to-br from-slate-900 to-slate-700 min-h-screen text-slate-200">
@@ -95,11 +131,11 @@
         <main class="flex-1 bg-slate-900/70 p-8 overflow-y-auto flex flex-col">
             <header class="flex justify-between items-center mb-6 flex-shrink-0">
                 <div class="flex items-center gap-4">
-                    <button id="prevMonthBtn" class="p-2 rounded-full hover:bg-slate-700" title="Previous Month">
+                    <button id="prevMonthBtn" class="p-2 rounded-full hover:bg-slate-700" title="Previous Period">
                         <i class="fas fa-chevron-left"></i>
                     </button>
                     <h2 id="currentMonthYear" class="text-3xl font-bold text-white"></h2>
-                    <button id="nextMonthBtn" class="p-2 rounded-full hover:bg-slate-700" title="Next Month">
+                    <button id="nextMonthBtn" class="p-2 rounded-full hover:bg-slate-700" title="Next Period">
                         <i class="fas fa-chevron-right"></i>
                     </button>
                 </div>
@@ -113,7 +149,7 @@
             <div id="calendarGrid" class="flex-grow grid grid-cols-7 grid-rows-[auto,1fr,1fr,1fr,1fr,1fr,1fr] gap-px bg-slate-700 border border-slate-700 rounded-lg overflow-hidden">
             </div>
             
-            <div id="weekDayViewContainer" class="hidden flex-grow relative">
+            <div id="weekDayViewContainer" class="hidden flex-grow relative bg-slate-800 rounded-lg border border-slate-700">
                 </div>
         </main>
     </div>

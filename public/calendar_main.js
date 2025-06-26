@@ -9,7 +9,7 @@ const CalendarUI = (() => {
     // --- State ---
     let currentDate = new Date();
     let activeEventId = null;
-    let currentView = 'month';
+    let currentView = 'month'; // 'month', 'week', or 'day'
     let selectedColor = 'sky-500'; // Default color
 
     // --- DOM Elements ---
@@ -144,8 +144,97 @@ const CalendarUI = (() => {
         }
     }
 
-    function renderWeekView() { /* ... unchanged ... */ }
-    function renderDayView() { /* ... unchanged ... */ }
+    function renderWeekView() {
+        calendarGrid.classList.add('hidden');
+        weekDayViewContainer.classList.remove('hidden');
+        weekDayViewContainer.innerHTML = ''; // Clear previous content
+
+        // FIX: Create a robust structure for the week view
+        const timeGrid = document.createElement('div');
+        timeGrid.className = 'time-grid'; // Use the main grid container class
+
+        // Get start of the current week (assuming Sunday is the first day)
+        const firstDayOfWeek = new Date(currentDate);
+        firstDayOfWeek.setDate(firstDayOfWeek.getDate() - firstDayOfWeek.getDay());
+        const lastDayOfWeek = new Date(firstDayOfWeek);
+        lastDayOfWeek.setDate(lastDayOfWeek.getDate() + 6);
+
+        currentMonthYearEl.textContent = `Week of ${firstDayOfWeek.toLocaleDateString()}`;
+
+        // Add an empty top-left cell for spacing
+        timeGrid.appendChild(document.createElement('div')); 
+
+        // Create the 7-day header
+        for (let i = 0; i < 7; i++) {
+            const day = new Date(firstDayOfWeek);
+            day.setDate(day.getDate() + i);
+            const headerCell = document.createElement('div');
+            headerCell.className = 'text-center font-semibold text-slate-300 py-2 border-b-2 border-slate-700';
+            headerCell.innerHTML = `<span class="text-xs">${day.toLocaleString('default', { weekday: 'short' })}</span><br><span class="text-lg">${day.getDate()}</span>`;
+            timeGrid.appendChild(headerCell);
+        }
+
+        // Create the time labels and the grid cells
+        for (let i = 0; i < 24; i++) { // 24 hours
+            // Time label
+            const timeLabel = document.createElement('div');
+            timeLabel.className = 'time-label';
+            timeLabel.textContent = i === 0 ? '12 AM' : i < 12 ? `${i} AM` : i === 12 ? '12 PM' : `${i - 12} PM`;
+            timeLabel.style.gridRow = i + 2;
+            timeGrid.appendChild(timeLabel);
+
+            // 7 day columns for this hour
+            for (let j = 0; j < 7; j++) {
+                const dayColumn = document.createElement('div');
+                dayColumn.className = 'day-column';
+                dayColumn.style.gridRow = i + 2;
+                dayColumn.style.gridColumn = j + 2;
+
+                const hourSlot = document.createElement('div');
+                hourSlot.className = 'hour-slot';
+                dayColumn.appendChild(hourSlot);
+                timeGrid.appendChild(dayColumn);
+            }
+        }
+        
+        // Place events on the grid
+        const eventsThisWeek = CalendarService.getEvents().filter(event => {
+            const eventStart = new Date(event.startTime);
+            return eventStart >= firstDayOfWeek && eventStart <= lastDayOfWeek && !event.isAllDay;
+        });
+
+        eventsThisWeek.forEach(event => {
+            const eventStart = new Date(event.startTime);
+            const dayIndex = eventStart.getDay(); // 0=Sun, 6=Sat
+            
+            const startMinutes = (eventStart.getHours() * 60) + eventStart.getMinutes();
+            const endMinutes = new Date(event.endTime).getHours() * 60 + new Date(event.endTime).getMinutes();
+            const duration = endMinutes - startMinutes;
+
+            const eventEl = document.createElement('div');
+            eventEl.className = 'week-event';
+            eventEl.classList.add(`bg-${event.color || 'sky-600'}`);
+            eventEl.textContent = event.title;
+            eventEl.style.top = `${startMinutes}px`; 
+            eventEl.style.height = `${duration}px`;
+            
+            // Find the correct day column to append to
+            const targetDayColumn = timeGrid.querySelector(`[style*="grid-column: ${dayIndex + 2};"]`);
+            if(targetDayColumn) {
+                targetDayColumn.appendChild(eventEl);
+            }
+        });
+
+
+        weekDayViewContainer.appendChild(timeGrid);
+    }
+
+    function renderDayView() {
+        calendarGrid.classList.add('hidden');
+        weekDayViewContainer.classList.remove('hidden');
+        weekDayViewContainer.innerHTML = 'Day View Coming Soon...';
+        currentMonthYearEl.textContent = "Day View";
+    }
     
     function setSelectedColor(color) {
         selectedColor = color;
@@ -226,7 +315,6 @@ const CalendarUI = (() => {
         e.preventDefault();
         
         const isAllDay = isAllDayCheckbox.checked;
-        // FIX: Provide default time if empty
         const startTimeValue = eventStartTimeInput.value || '00:00';
         const endTimeValue = eventEndTimeInput.value || '23:59';
 
@@ -258,8 +346,19 @@ const CalendarUI = (() => {
     }
 
     function setupEventListeners() {
-        prevMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 1); updateView(); });
-        nextMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 1); updateView(); });
+        prevMonthBtn.addEventListener('click', () => { 
+            const d = currentView === 'week' ? 7 : 0;
+            if (d > 0) currentDate.setDate(currentDate.getDate() - d);
+            else currentDate.setMonth(currentDate.getMonth() - 1);
+            updateView(); 
+        });
+        nextMonthBtn.addEventListener('click', () => { 
+            const d = currentView === 'week' ? 7 : 0;
+            if (d > 0) currentDate.setDate(currentDate.getDate() + d);
+            else currentDate.setMonth(currentDate.getMonth() + 1);
+            updateView(); 
+        });
+
         monthViewBtn.addEventListener('click', () => { currentView = 'month'; updateView(); });
         weekViewBtn.addEventListener('click', () => { currentView = 'week'; updateView(); });
         dayViewBtn.addEventListener('click', () => { currentView = 'day'; updateView(); });
@@ -276,7 +375,13 @@ const CalendarUI = (() => {
         cancelEventBtn.addEventListener('click', closeEventModal);
         closeViewEventBtn.addEventListener('click', closeViewEventModal);
         deleteEventBtn.addEventListener('click', handleDeleteEvent);
-        editEventBtn.addEventListener('click', () => { closeViewEventModal(); openEventModal(activeEventId); });
+        
+        // FIX: Capture eventId before closing the view modal
+        editEventBtn.addEventListener('click', () => {
+            const eventIdToEdit = activeEventId;
+            closeViewEventModal();
+            openEventModal(eventIdToEdit);
+        });
         
         EventBus.subscribe('calendarEventsChanged', updateView);
         EventBus.subscribe('tasksChanged', updateView);
