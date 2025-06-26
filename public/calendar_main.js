@@ -41,6 +41,11 @@ const CalendarUI = (() => {
     }
 
     function renderCalendar() {
+        if (!calendarGrid || !currentMonthYearEl) {
+            LoggingService.error("[CalendarUI] Calendar grid or month/year element not found.", null, { functionName: 'renderCalendar'});
+            return;
+        }
+
         calendarGrid.innerHTML = '';
         currentMonthYearEl.textContent = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
 
@@ -50,18 +55,20 @@ const CalendarUI = (() => {
         const firstDayOfMonth = new Date(year, month, 1).getDay();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-        // Day names header
+        // FIX: Add day names header
         const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         days.forEach(day => {
             const dayEl = document.createElement('div');
-            dayEl.className = 'text-center font-semibold text-xs text-slate-300 py-2';
+            dayEl.className = 'calendar-day-header'; // Use pre-defined class
             dayEl.textContent = day;
             calendarGrid.appendChild(dayEl);
         });
         
-        for (let i = 0; i < 42; i++) { // Render 6 weeks
+        // Loop for the day squares
+        const totalDaysToRender = (firstDayOfMonth + daysInMonth) > 35 ? 42 : 35;
+        for (let i = 0; i < totalDaysToRender; i++) {
             const daySquare = document.createElement('div');
-            daySquare.className = 'bg-slate-800 p-2 flex flex-col min-h-[120px] hover:bg-slate-700/50 transition-colors duration-200 cursor-pointer';
+            daySquare.className = 'calendar-day-square'; // Use pre-defined class
             
             const dayOfMonth = i - firstDayOfMonth + 1;
             
@@ -70,14 +77,13 @@ const CalendarUI = (() => {
                 daySquare.dataset.date = dateStr;
 
                 const dayNumber = document.createElement('span');
-                dayNumber.className = 'font-bold text-slate-200';
+                dayNumber.className = 'calendar-day-number'; // Use pre-defined class
                 dayNumber.textContent = dayOfMonth;
                 daySquare.appendChild(dayNumber);
 
                 const eventsContainer = document.createElement('div');
                 eventsContainer.className = 'space-y-1 mt-1 overflow-y-auto';
                 
-                // Filter and render events for this day
                 const events = CalendarService.getEvents().filter(event => {
                     const eventStart = new Date(event.startTime);
                     const eventEnd = new Date(event.endTime);
@@ -88,7 +94,7 @@ const CalendarUI = (() => {
                 
                 events.forEach(event => {
                     const eventEl = document.createElement('div');
-                    eventEl.className = 'text-xs p-1 rounded bg-sky-600 text-white truncate';
+                    eventEl.className = 'event-pill'; // Use pre-defined class
                     eventEl.textContent = event.title;
                     eventEl.dataset.eventId = event.id;
                     eventEl.addEventListener('click', (e) => {
@@ -102,7 +108,7 @@ const CalendarUI = (() => {
                 daySquare.addEventListener('click', () => openEventModal(null, dateStr));
 
             } else {
-                daySquare.classList.add('opacity-50', 'cursor-default');
+                daySquare.classList.add('other-month'); // Use pre-defined class
             }
             calendarGrid.appendChild(daySquare);
         }
