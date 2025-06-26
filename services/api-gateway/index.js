@@ -13,7 +13,7 @@ const serviceTargets = {
     timeTrackerService: 'http://127.0.0.1:3005',
     devTrackerService: 'http://127.0.0.1:3006',
     // THIS IS THE FIX: Explicitly define the calendar service URL
-    calendarService: 'http://127.0.0.1:3003',
+    calendarService: 'http://127.0.0.1:3007',
 };
 
 // --- Security Configuration ---
