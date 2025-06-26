@@ -117,8 +117,8 @@ const CalendarUI = (() => {
                 events.forEach(event => {
                     const eventEl = document.createElement('div');
                     eventEl.className = 'event-pill';
-                    eventEl.style.backgroundColor = `var(--color-${event.color || 'sky-500'})`.replace('500', '600'); // Use CSS var or fallback
-                    eventEl.classList.add(`bg-${event.color || 'sky-600'}`); // Tailwind class for purge
+                    const colorClass = `bg-${event.color || 'sky-500'}`;
+                    eventEl.classList.add(colorClass.replace('500', '600'));
                     eventEl.textContent = event.title;
                     eventEl.dataset.eventId = event.id;
                     eventEl.addEventListener('click', (e) => { e.stopPropagation(); openViewEventModal(event.id); });
@@ -160,7 +160,7 @@ const CalendarUI = (() => {
         activeEventId = eventId;
 
         if (eventId) {
-            const event = CalendarService.getEventById(eventId);
+            const event = CalendarService.getEventById(Number(eventId));
             if (!event) return;
             eventModalTitle.textContent = 'Edit Event';
             eventIdInput.value = event.id;
@@ -176,7 +176,7 @@ const CalendarUI = (() => {
             eventModalTitle.textContent = 'Add Event';
             eventIdInput.value = '';
             isAllDayCheckbox.checked = false;
-            setSelectedColor('sky-500'); // Default color
+            setSelectedColor('sky-500');
             if(preselectedDate) {
                 eventStartDateInput.value = preselectedDate;
                 eventEndDateInput.value = preselectedDate;
@@ -187,15 +187,51 @@ const CalendarUI = (() => {
         eventModal.classList.remove('hidden');
     }
 
-    function closeEventModal() { /* ... unchanged ... */ }
-    function openViewEventModal(eventId) { /* ... unchanged ... */ }
-    function closeViewEventModal() { /* ... unchanged ... */ }
+    function closeEventModal() {
+        eventModal.classList.add('hidden');
+    }
+    
+    function openViewEventModal(eventId) {
+        const event = CalendarService.getEventById(Number(eventId));
+        if (!event) return;
+
+        activeEventId = eventId;
+        viewEventTitle.textContent = event.title;
+        
+        let timeString = new Date(event.startTime).toLocaleDateString();
+        if(!event.isAllDay) {
+            timeString += ` at ${new Date(event.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+        } else {
+            timeString += ' (All day)';
+        }
+        
+        if (event.endTime.split('T')[0] !== event.startTime.split('T')[0]) {
+             timeString += ` until ${new Date(event.endTime).toLocaleDateString()}`;
+             if (!event.isAllDay) {
+                 timeString += ` ${new Date(event.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+             }
+        }
+
+        viewEventTime.textContent = timeString;
+        viewEventDescription.textContent = event.description || 'No description provided.';
+        viewEventModal.classList.remove('hidden');
+    }
+    
+    function closeViewEventModal() {
+        viewEventModal.classList.add('hidden');
+        activeEventId = null;
+    }
 
     async function handleEventFormSubmit(e) {
         e.preventDefault();
+        
         const isAllDay = isAllDayCheckbox.checked;
-        const startTime = isAllDay ? `${eventStartDateInput.value}T00:00:00` : `${eventStartDateInput.value}T${eventStartTimeInput.value}`;
-        const endTime = isAllDay ? `${eventEndDateInput.value}T23:59:59` : `${eventEndDateInput.value}T${eventEndTimeInput.value}`;
+        // FIX: Provide default time if empty
+        const startTimeValue = eventStartTimeInput.value || '00:00';
+        const endTimeValue = eventEndTimeInput.value || '23:59';
+
+        const startTime = isAllDay ? `${eventStartDateInput.value}T00:00:00` : `${eventStartDateInput.value}T${startTimeValue}`;
+        const endTime = isAllDay ? `${eventEndDateInput.value}T23:59:59` : `${eventEndDateInput.value}T${endTimeValue}`;
         
         const eventData = {
             title: eventTitleInput.value,
@@ -207,14 +243,19 @@ const CalendarUI = (() => {
         };
         
         if (activeEventId) {
-            await CalendarService.updateEvent(activeEventId, eventData);
+            await CalendarService.updateEvent(Number(activeEventId), eventData);
         } else {
             await CalendarService.addEvent(eventData);
         }
         closeEventModal();
     }
     
-    async function handleDeleteEvent() { /* ... unchanged ... */ }
+    async function handleDeleteEvent() {
+        if(activeEventId && confirm('Are you sure you want to delete this event?')) {
+            await CalendarService.deleteEvent(Number(activeEventId));
+            closeViewEventModal();
+        }
+    }
 
     function setupEventListeners() {
         prevMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 1); updateView(); });

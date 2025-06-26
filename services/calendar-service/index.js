@@ -9,9 +9,9 @@ console.log('[Calendar Service] Initializing...');
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
-const PORT = 3007; // Changed port to avoid conflict
+const PORT = 3007; // FIX: Use the new, correct port
 
-// --- Database Connection (CORRECTED PATH) ---
+// --- Database Connection ---
 let db;
 try {
     const dbFile = '/root/lockiemedia/lockiedb.sqlite';
@@ -22,7 +22,7 @@ try {
     console.log(`[Calendar Service] Database connection successful.`);
 } catch (error) {
     console.error('[Calendar Service] FATAL: Could not connect to the database.', error);
-    process.exit(1); // Exit if DB connection fails
+    process.exit(1);
 }
 
 // -- Middleware --
@@ -96,6 +96,5 @@ process.on('SIGINT', () => {
         console.log('[Calendar Service] HTTP server closed.');
         db.close();
         console.log('[Calendar Service] Database connection closed.');
-        process.exit(0);
     });
 });
