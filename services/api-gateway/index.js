@@ -45,45 +45,35 @@ const __dirname = path.dirname(__filename);
 // --- API Routes (MUST be defined before static file serving) ---
 app.use('/api', authenticateKey);
 
-const fetchServiceDataWithRetry = async (serviceName, serviceUrl, retries = 3, delay = 1000) => {
-    try {
-        let endpoint = '';
-        if (serviceName === 'taskService') endpoint = '/api/core-data';
-        else if (serviceName === 'notesService') endpoint = '/api/notes-data';
-        else if (serviceName === 'timeTrackerService') endpoint = '/api/time-data';
-        else if (serviceName === 'devTrackerService') endpoint = '/api/dev-data';
-        else if (serviceName === 'calendarService') endpoint = '/api/calendar-data';
-        else return {};
-
-        const response = await axios.get(`${serviceUrl}${endpoint}`);
-        console.log(`[API Gateway] Successfully fetched data from ${serviceName}.`);
-        return response.data;
-    } catch (error) {
-        if (retries > 0) {
-            console.warn(`[API Gateway] Could not fetch from ${serviceName}, retrying in ${delay}ms... (${retries} retries left)`);
-            await new Promise(res => setTimeout(res, delay));
-            return fetchServiceDataWithRetry(serviceName, serviceUrl, retries - 1, delay * 2);
-        }
-        console.error(`[API Gateway] CRITICAL: Could not fetch data from ${serviceName} after multiple retries. Error: ${error.message}`);
-        return {}; // Return empty object on final failure
-    }
-};
-
-
 app.get('/api/data', async (req, res) => {
     console.log('[API Gateway] GET /api/data received. Composing response from services...');
     
-    const servicePromises = Object.entries(serviceTargets).map(([name, url]) => fetchServiceDataWithRetry(name, url));
+    const serviceEndpoints = {
+        taskService: `${serviceTargets.taskService}/api/core-data`,
+        notesService: `${serviceTargets.notesService}/api/notes-data`,
+        timeTrackerService: `${serviceTargets.timeTrackerService}/api/time-data`,
+        devTrackerService: `${serviceTargets.devTrackerService}/api/dev-data`,
+        calendarService: `${serviceTargets.calendarService}/api/calendar-data`,
+    };
 
-    try {
-        const results = await Promise.all(servicePromises);
-        const combinedData = results.reduce((acc, data) => ({ ...acc, ...data }), {});
-        res.json(combinedData);
-        console.log('[API Gateway] Successfully composed and sent response for GET /api/data.');
-    } catch (error) {
-        console.error('[API Gateway] Critical error during GET request composition.', error.message);
-        res.status(500).json({ error: 'A critical error occurred while composing data from backend services.' });
-    }
+    const promises = Object.entries(serviceEndpoints).map(([name, url]) =>
+        axios.get(url).then(response => ({ name, status: 'fulfilled', value: response.data }))
+        .catch(error => ({ name, status: 'rejected', reason: error.message }))
+    );
+
+    const results = await Promise.allSettled(promises);
+    
+    let combinedData = {};
+    results.forEach(result => {
+        if (result.status === 'fulfilled' && result.value.status === 'fulfilled') {
+            console.log(`[API Gateway] Successfully fetched data from ${result.value.name}.`);
+            combinedData = { ...combinedData, ...result.value.value };
+        } else if (result.status === 'fulfilled' && result.value.status === 'rejected') {
+            console.error(`[API Gateway] Failed to fetch data from ${result.value.name}: ${result.value.reason}`);
+        }
+    });
+
+    res.json(combinedData);
 });
 
 
@@ -92,68 +82,33 @@ app.post('/api/data', async (req, res) => {
     const incomingData = req.body;
     
     const servicePayloads = {
-        taskService: {
-            tasks: incomingData.tasks,
-            projects: incomingData.projects,
-            userProfile: incomingData.userProfile,
-            userPreferences: incomingData.userPreferences,
-        },
-        notesService: {
-            notes: incomingData.notes,
-            notebooks: incomingData.notebooks
-        },
-        timeTrackerService: {
-            time_activities: incomingData.time_activities,
-            time_log_entries: incomingData.time_log_entries
-        },
-        devTrackerService: {
-            dev_epics: incomingData.dev_epics,
-            dev_tickets: incomingData.dev_tickets,
-            dev_release_versions: incomingData.dev_release_versions,
-            dev_ticket_history: incomingData.dev_ticket_history,
-            dev_ticket_comments: incomingData.dev_ticket_comments,
-        },
-        calendarService: {
-            calendar_events: incomingData.calendar_events
-        }
+        taskService: { data: { tasks: incomingData.tasks, projects: incomingData.projects, userProfile: incomingData.userProfile, userPreferences: incomingData.userPreferences }, endpoint: '/api/core-data' },
+        notesService: { data: { notes: incomingData.notes, notebooks: incomingData.notebooks }, endpoint: '/api/notes-data' },
+        timeTrackerService: { data: { time_activities: incomingData.time_activities, time_log_entries: incomingData.time_log_entries }, endpoint: '/api/time-data' },
+        devTrackerService: { data: { dev_epics: incomingData.dev_epics, dev_tickets: incomingData.dev_tickets, dev_release_versions: incomingData.dev_release_versions, dev_ticket_history: incomingData.dev_ticket_history, dev_ticket_comments: incomingData.dev_ticket_comments }, endpoint: '/api/dev-data' },
+        calendarService: { data: { calendar_events: incomingData.calendar_events }, endpoint: '/api/calendar-data' }
     };
 
     const postPromises = [];
-    for (const [serviceName, serviceUrl] of Object.entries(serviceTargets)) {
-        let endpoint = '';
-        let payload = {};
-
-        if (serviceName === 'taskService') { endpoint = '/api/core-data'; payload = servicePayloads.taskService; }
-        else if (serviceName === 'notesService') { endpoint = '/api/notes-data'; payload = servicePayloads.notesService; }
-        else if (serviceName === 'timeTrackerService') { endpoint = '/api/time-data'; payload = servicePayloads.timeTrackerService; }
-        else if (serviceName === 'devTrackerService') { endpoint = '/api/dev-data'; payload = servicePayloads.devTrackerService; }
-        else if (serviceName === 'calendarService') { endpoint = '/api/calendar-data'; payload = servicePayloads.calendarService; }
-        else continue;
-
-        if (Object.values(payload).some(data => data !== undefined)) {
-            const requestPromise = axios.post(`${serviceUrl}${endpoint}`, payload)
+    for (const [serviceName, { data, endpoint }] of Object.entries(servicePayloads)) {
+        if (Object.values(data).some(d => d !== undefined)) {
+            const requestPromise = axios.post(`${serviceTargets[serviceName]}${endpoint}`, data)
                 .then(() => console.log(`[API Gateway] Successfully sent data to ${serviceName}.`))
                 .catch(error => console.error(`[API Gateway] WARN: Could not send data to ${serviceName}. Service may be down. Error: ${error.message}`));
             postPromises.push(requestPromise);
         }
     }
 
-    try {
-        await Promise.all(postPromises);
-        res.status(200).json({ message: 'Data distribution attempted for all services.' });
-        console.log('[API Gateway] Finished distributing POST /api/data to services.');
-    } catch (error) {
-        console.error('[API Gateway] Critical error during POST service request distribution.', error.message);
-        res.status(500).json({ error: 'A critical error occurred while saving data to backend services.' });
-    }
+    await Promise.allSettled(postPromises);
+    res.status(200).json({ message: 'Data distribution attempted for all services.' });
 });
 
 // Generic proxy for specific service routes
-const proxyRequest = async (req, res, serviceUrl, endpoint) => {
+const proxyRequest = async (req, res, serviceUrl) => {
     try {
         const response = await axios({
             method: req.method,
-            url: `${serviceUrl}${endpoint}`,
+            url: `${serviceUrl}${req.originalUrl}`, // Use originalUrl to preserve the full path
             data: req.body,
             headers: { 'Content-Type': 'application/json' }
         });
@@ -161,14 +116,15 @@ const proxyRequest = async (req, res, serviceUrl, endpoint) => {
     } catch (error) {
         const status = error.response ? error.response.status : 500;
         const data = error.response ? error.response.data : { error: 'Internal gateway error' };
+        console.error(`[API Gateway] Error proxying request to ${serviceUrl}${req.originalUrl}:`, data);
         res.status(status).json(data);
     }
 };
 
-app.post('/api/dev-release-versions', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService, '/api/dev-release-versions'));
-app.post('/api/tickets/:ticketId/comments', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService, req.path));
-app.delete('/api/tickets/:ticketId/comments/:commentId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService, req.path));
-app.patch('/api/tickets/:ticketId/status', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService, req.path));
+app.post('/api/dev-release-versions', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+app.post('/api/tickets/:ticketId/comments', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+app.delete('/api/tickets/:ticketId/comments/:commentId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+app.patch('/api/tickets/:ticketId/status', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 
 
 // --- Static File Serving ---
@@ -176,7 +132,6 @@ app.use(express.static(path.join(__dirname, '../../public')));
 
 
 // -- Start HTTP Server --
-// Start immediately, the retry logic will handle service startup timing.
 app.listen(PORT, () => {
     console.log(`[HTTP API Gateway] Listening on port ${PORT}`);
 });
