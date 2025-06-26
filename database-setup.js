@@ -193,6 +193,21 @@ function setupDatabase() {
       FOREIGN KEY (ticketId) REFERENCES dev_tickets (id) ON DELETE CASCADE
   );`;
   db.exec(createDevTicketCommentsTable);
+  
+  // --- NEW: Calendar Events Table ---
+  const createCalendarEventsTable = `
+  CREATE TABLE IF NOT EXISTS dev_calendar_events (
+      id INTEGER PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT,
+      startTime TEXT NOT NULL,
+      endTime TEXT NOT NULL,
+      isAllDay BOOLEAN NOT NULL DEFAULT 0,
+      color TEXT DEFAULT 'blue',
+      createdAt INTEGER,
+      updatedAt INTEGER
+  );`;
+  db.exec(createCalendarEventsTable);
 
 
   // --- Insert Default Data ---
