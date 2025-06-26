@@ -45,7 +45,7 @@ const __dirname = path.dirname(__filename);
 // --- API Routes (MUST be defined before static file serving) ---
 app.use('/api', authenticateKey);
 
-const fetchServiceData = async (serviceName, serviceUrl) => {
+const fetchServiceDataWithRetry = async (serviceName, serviceUrl, retries = 3, delay = 1000) => {
     try {
         let endpoint = '';
         if (serviceName === 'taskService') endpoint = '/api/core-data';
@@ -59,8 +59,13 @@ const fetchServiceData = async (serviceName, serviceUrl) => {
         console.log(`[API Gateway] Successfully fetched data from ${serviceName}.`);
         return response.data;
     } catch (error) {
-        console.error(`[API Gateway] WARN: Could not fetch data from ${serviceName}. Service may be down. Error: ${error.message}`);
-        return {}; // Return empty object on failure to not crash the gateway
+        if (retries > 0) {
+            console.warn(`[API Gateway] Could not fetch from ${serviceName}, retrying in ${delay}ms... (${retries} retries left)`);
+            await new Promise(res => setTimeout(res, delay));
+            return fetchServiceDataWithRetry(serviceName, serviceUrl, retries - 1, delay * 2);
+        }
+        console.error(`[API Gateway] CRITICAL: Could not fetch data from ${serviceName} after multiple retries. Error: ${error.message}`);
+        return {}; // Return empty object on final failure
     }
 };
 
@@ -68,7 +73,7 @@ const fetchServiceData = async (serviceName, serviceUrl) => {
 app.get('/api/data', async (req, res) => {
     console.log('[API Gateway] GET /api/data received. Composing response from services...');
     
-    const servicePromises = Object.entries(serviceTargets).map(([name, url]) => fetchServiceData(name, url));
+    const servicePromises = Object.entries(serviceTargets).map(([name, url]) => fetchServiceDataWithRetry(name, url));
 
     try {
         const results = await Promise.all(servicePromises);
@@ -171,9 +176,7 @@ app.use(express.static(path.join(__dirname, '../../public')));
 
 
 // -- Start HTTP Server --
-// Add a small delay to allow other services to initialize first
-setTimeout(() => {
-    app.listen(PORT, () => {
-        console.log(`[HTTP API Gateway] Listening on port ${PORT}`);
-    });
-}, 2000); // 2-second delay
+// Start immediately, the retry logic will handle service startup timing.
+app.listen(PORT, () => {
+    console.log(`[HTTP API Gateway] Listening on port ${PORT}`);
+});
