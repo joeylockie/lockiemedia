@@ -60,7 +60,7 @@ const fetchServiceData = async (serviceName, serviceUrl) => {
         return response.data;
     } catch (error) {
         console.error(`[API Gateway] WARN: Could not fetch data from ${serviceName}. Service may be down. Error: ${error.message}`);
-        return {}; // Return empty object on failure
+        return {}; // Return empty object on failure to not crash the gateway
     }
 };
 
