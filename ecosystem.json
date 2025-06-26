@@ -26,7 +26,7 @@
       "watch": false
     },
     {
-      "name": "calendar-v2",
+      "name": "calendar-service",
       "script": "/root/lockiemedia/services/calendar-service/index.js",
       "watch": false
     }

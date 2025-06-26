@@ -12,6 +12,7 @@ const serviceTargets = {
     taskService: 'http://127.0.0.1:3004',
     timeTrackerService: 'http://127.0.0.1:3005',
     devTrackerService: 'http://127.0.0.1:3006',
+    // THIS IS THE FIX: Explicitly define the calendar service URL
     calendarService: 'http://127.0.0.1:3003',
 };
 
@@ -65,7 +66,8 @@ const fetchServiceDataWithRetry = async (serviceName, serviceUrl, retries = 3, d
             return fetchServiceDataWithRetry(serviceName, serviceUrl, retries - 1, delay * 2);
         }
         console.error(`[API Gateway] CRITICAL: Could not fetch data from ${serviceName} after multiple retries. Error: ${error.message}`);
-        return {};
+        // Return an empty object for the failing service but add a specific error key
+        return { [`${serviceName}_error`]: error.message };
     }
 };
 
