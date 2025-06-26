@@ -46,7 +46,6 @@ const stringifyEvent = (event) => ({
 app.get('/api/calendar-data', (req, res) => {
   console.log('[Calendar Service] GET /api/calendar-data request received');
   try {
-    // THE ONLY CHANGE IS HERE: Corrected "dev_calendar_events" to "calendar_events"
     const events = db.prepare('SELECT * FROM calendar_events').all().map(parseEvent);
     res.json({ calendar_events: events });
   } catch (error) {
