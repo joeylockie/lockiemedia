@@ -48,6 +48,18 @@
             text-overflow: ellipsis;
             white-space: nowrap;
         }
+        /* NEW: Style for tasks overlaid on the calendar */
+        .task-pill {
+            font-size: 0.75rem; /* text-xs */
+            padding: 0.25rem; /* p-1 */
+            border-radius: 0.25rem; /* rounded */
+            background-color: #a855f7; /* purple-500 */
+            color: white;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body id="calendarPage" class="bg-gradient-to-br from-slate-900 to-slate-700 min-h-screen text-slate-200">
@@ -84,10 +96,14 @@
                 <div class="flex items-center gap-2">
                     <button id="monthViewBtn" class="px-4 py-2 text-sm rounded-md bg-sky-600 text-white">Month</button>
                     <button id="weekViewBtn" class="px-4 py-2 text-sm rounded-md hover:bg-slate-700">Week</button>
+                    <button id="dayViewBtn" class="px-4 py-2 text-sm rounded-md hover:bg-slate-700">Day</button>
                 </div>
             </header>
 
             <div id="calendarGrid" class="flex-grow grid grid-cols-7 grid-rows-[auto,1fr,1fr,1fr,1fr,1fr,1fr] gap-px bg-slate-700 border border-slate-700 rounded-lg overflow-hidden">
+            </div>
+            
+            <div id="weekDayViewContainer" class="hidden flex-grow relative">
                 </div>
         </main>
     </div>
@@ -163,6 +179,7 @@
     <script src="store.js" type="module"></script>
     <script src="utils.js" type="module"></script>
     <script src="calendarService.js" type="module"></script>
+    <script src="taskService.js" type="module"></script>
     <script src="calendar_main.js" type="module"></script>
 </body>
 </html>

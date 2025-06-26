@@ -1,25 +1,31 @@
-// public/calendar_main.js
-
 import LoggingService from './loggingService.js';
 import AppStore from './store.js';
 import EventBus from './eventBus.js';
 import CalendarService from './calendarService.js';
+import * as TaskService from './taskService.js';
+import { formatDate } from './utils.js';
 
 const CalendarUI = (() => {
     // --- State ---
     let currentDate = new Date();
     let activeEventId = null;
+    let currentView = 'month'; // 'month', 'week', or 'day'
 
     // --- DOM Elements ---
-    let calendarGrid, currentMonthYearEl, prevMonthBtn, nextMonthBtn;
+    let calendarGrid, weekDayViewContainer, currentMonthYearEl, prevMonthBtn, nextMonthBtn;
+    let monthViewBtn, weekViewBtn, dayViewBtn;
     let eventModal, eventModalTitle, eventForm, eventIdInput, eventTitleInput, eventStartDateInput, eventEndDateInput, eventStartTimeInput, eventEndTimeInput, eventDescriptionInput, cancelEventBtn;
     let viewEventModal, viewEventTitle, viewEventTime, viewEventDescription, closeViewEventBtn, editEventBtn, deleteEventBtn;
 
     function getDOMElements() {
         calendarGrid = document.getElementById('calendarGrid');
+        weekDayViewContainer = document.getElementById('weekDayViewContainer');
         currentMonthYearEl = document.getElementById('currentMonthYear');
         prevMonthBtn = document.getElementById('prevMonthBtn');
         nextMonthBtn = document.getElementById('nextMonthBtn');
+        monthViewBtn = document.getElementById('monthViewBtn');
+        weekViewBtn = document.getElementById('weekViewBtn');
+        dayViewBtn = document.getElementById('dayViewBtn');
         eventModal = document.getElementById('eventModal');
         eventModalTitle = document.getElementById('eventModalTitle');
         eventForm = document.getElementById('eventForm');
@@ -40,50 +46,72 @@ const CalendarUI = (() => {
         deleteEventBtn = document.getElementById('deleteEventBtn');
     }
 
-    function renderCalendar() {
-        if (!calendarGrid || !currentMonthYearEl) {
-            LoggingService.error("[CalendarUI] Calendar grid or month/year element not found.", null, { functionName: 'renderCalendar'});
-            return;
+    function updateView() {
+        const viewRenderers = {
+            month: renderMonthView,
+            week: renderWeekView,
+            day: renderDayView,
+        };
+
+        if (viewRenderers[currentView]) {
+            viewRenderers[currentView]();
         }
 
+        // Update button styles
+        [monthViewBtn, weekViewBtn, dayViewBtn].forEach(btn => {
+            btn.classList.remove('bg-sky-600', 'text-white');
+            btn.classList.add('hover:bg-slate-700');
+        });
+        const activeBtn = document.getElementById(`${currentView}ViewBtn`);
+        if (activeBtn) {
+            activeBtn.classList.add('bg-sky-600', 'text-white');
+            activeBtn.classList.remove('hover:bg-slate-700');
+        }
+    }
+
+    function renderMonthView() {
         calendarGrid.innerHTML = '';
+        calendarGrid.classList.remove('hidden');
+        weekDayViewContainer.classList.add('hidden');
+
         currentMonthYearEl.textContent = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
 
         const year = currentDate.getFullYear();
         const month = currentDate.getMonth();
-
         const firstDayOfMonth = new Date(year, month, 1).getDay();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-        // FIX: Add day names header
+        const allTasks = AppStore.getTasks() || [];
+
         const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         days.forEach(day => {
             const dayEl = document.createElement('div');
-            dayEl.className = 'calendar-day-header'; // Use pre-defined class
+            dayEl.className = 'calendar-day-header';
             dayEl.textContent = day;
             calendarGrid.appendChild(dayEl);
         });
         
-        // Loop for the day squares
         const totalDaysToRender = (firstDayOfMonth + daysInMonth) > 35 ? 42 : 35;
         for (let i = 0; i < totalDaysToRender; i++) {
             const daySquare = document.createElement('div');
-            daySquare.className = 'calendar-day-square'; // Use pre-defined class
+            daySquare.className = 'calendar-day-square';
             
             const dayOfMonth = i - firstDayOfMonth + 1;
             
             if (i >= firstDayOfMonth && dayOfMonth <= daysInMonth) {
-                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayOfMonth).padStart(2, '0')}`;
+                const date = new Date(year, month, dayOfMonth);
+                const dateStr = date.toISOString().split('T')[0];
                 daySquare.dataset.date = dateStr;
 
                 const dayNumber = document.createElement('span');
-                dayNumber.className = 'calendar-day-number'; // Use pre-defined class
+                dayNumber.className = 'calendar-day-number';
                 dayNumber.textContent = dayOfMonth;
                 daySquare.appendChild(dayNumber);
 
-                const eventsContainer = document.createElement('div');
-                eventsContainer.className = 'space-y-1 mt-1 overflow-y-auto';
+                const itemsContainer = document.createElement('div');
+                itemsContainer.className = 'space-y-1 mt-1 overflow-y-auto';
                 
+                // Filter and render events
                 const events = CalendarService.getEvents().filter(event => {
                     const eventStart = new Date(event.startTime);
                     const eventEnd = new Date(event.endTime);
@@ -94,24 +122,54 @@ const CalendarUI = (() => {
                 
                 events.forEach(event => {
                     const eventEl = document.createElement('div');
-                    eventEl.className = 'event-pill'; // Use pre-defined class
+                    eventEl.className = 'event-pill';
                     eventEl.textContent = event.title;
                     eventEl.dataset.eventId = event.id;
                     eventEl.addEventListener('click', (e) => {
                         e.stopPropagation();
                         openViewEventModal(event.id);
                     });
-                    eventsContainer.appendChild(eventEl);
+                    itemsContainer.appendChild(eventEl);
                 });
 
-                daySquare.appendChild(eventsContainer);
+                // NEW: Filter and render tasks
+                const tasks = allTasks.filter(task => task.dueDate === dateStr && !task.completed);
+                
+                tasks.forEach(task => {
+                    const taskEl = document.createElement('div');
+                    taskEl.className = 'task-pill';
+                    taskEl.innerHTML = `<i class="fas fa-check-circle fa-xs mr-1"></i>${task.text}`;
+                    taskEl.title = `Task: ${task.text}`;
+                    // In a future step, this could open the task modal
+                    taskEl.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        alert(`Task due: ${task.text}`);
+                    });
+                    itemsContainer.appendChild(taskEl);
+                });
+
+                daySquare.appendChild(itemsContainer);
                 daySquare.addEventListener('click', () => openEventModal(null, dateStr));
 
             } else {
-                daySquare.classList.add('other-month'); // Use pre-defined class
+                daySquare.classList.add('other-month');
             }
             calendarGrid.appendChild(daySquare);
         }
+    }
+
+    function renderWeekView() {
+        calendarGrid.classList.add('hidden');
+        weekDayViewContainer.classList.remove('hidden');
+        weekDayViewContainer.innerHTML = 'Week View Coming Soon...';
+        currentMonthYearEl.textContent = "Week View";
+    }
+
+    function renderDayView() {
+        calendarGrid.classList.add('hidden');
+        weekDayViewContainer.classList.remove('hidden');
+        weekDayViewContainer.innerHTML = 'Day View Coming Soon...';
+        currentMonthYearEl.textContent = "Day View";
     }
     
     function openEventModal(eventId = null, preselectedDate = null) {
@@ -201,8 +259,19 @@ const CalendarUI = (() => {
     }
 
     function setupEventListeners() {
-        prevMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 1); renderCalendar(); });
-        nextMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 1); renderCalendar(); });
+        prevMonthBtn.addEventListener('click', () => { 
+            currentDate.setMonth(currentDate.getMonth() - 1); 
+            updateView(); 
+        });
+        nextMonthBtn.addEventListener('click', () => { 
+            currentDate.setMonth(currentDate.getMonth() + 1); 
+            updateView(); 
+        });
+
+        monthViewBtn.addEventListener('click', () => { currentView = 'month'; updateView(); });
+        weekViewBtn.addEventListener('click', () => { currentView = 'week'; updateView(); });
+        dayViewBtn.addEventListener('click', () => { currentView = 'day'; updateView(); });
+
         eventForm.addEventListener('submit', handleEventFormSubmit);
         cancelEventBtn.addEventListener('click', closeEventModal);
         closeViewEventBtn.addEventListener('click', closeViewEventModal);
@@ -212,14 +281,16 @@ const CalendarUI = (() => {
             openEventModal(activeEventId);
         });
         
-        EventBus.subscribe('calendarEventsChanged', renderCalendar);
+        // This subscription now handles both events and tasks
+        EventBus.subscribe('calendarEventsChanged', updateView);
+        EventBus.subscribe('tasksChanged', updateView);
     }
 
     return {
         initialize: () => {
             getDOMElements();
             setupEventListeners();
-            renderCalendar();
+            updateView();
             LoggingService.info('[CalendarUI] Initialized.');
         }
     };
