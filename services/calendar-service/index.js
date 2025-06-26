@@ -11,10 +11,10 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = 3003;
 
-// --- Database Connection ---
+// --- Database Connection (CORRECTED PATH) ---
 let db;
 try {
-    const dbFile = path.resolve(__dirname, '../../lockiedb.sqlite');
+    const dbFile = '/root/lockiemedia/lockiedb.sqlite';
     console.log(`[Calendar Service] Attempting to connect to database at: ${dbFile}`);
     db = new Database(dbFile, { verbose: console.log });
     db.pragma('journal_mode = WAL');

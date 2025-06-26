@@ -13,7 +13,7 @@ const PORT = 3006;
 
 let db;
 try {
-    const dbFile = path.resolve(__dirname, '../../lockiedb.sqlite');
+    const dbFile = '/root/lockiemedia/lockiedb.sqlite';
     db = new Database(dbFile, { verbose: console.log });
     db.pragma('journal_mode = WAL');
     db.pragma('foreign_keys = ON');
@@ -147,7 +147,7 @@ app.post('/api/tickets/:ticketId/comments', (req, res) => {
     }
 });
 
-// --- NEW: Delete a comment from a ticket ---
+// Delete a comment from a ticket
 app.delete('/api/tickets/:ticketId/comments/:commentId', (req, res) => {
     const { commentId } = req.params;
     console.log(`[Dev Tracker Service] DELETE /api/tickets/comments/${commentId} request received`);

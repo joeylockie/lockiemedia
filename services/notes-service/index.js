@@ -5,15 +5,13 @@ import { fileURLToPath } from 'url';
 import Database from 'better-sqlite3';
 
 // -- Setup --
-// This setup helps us correctly locate the database file relative to this script.
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
-const PORT = 3002; // This service runs on port 3002
+const PORT = 3002;
 
-// --- Database Connection (Specific to this service) ---
-// We construct an absolute path to the database file in the project root.
-const dbFile = path.resolve(__dirname, '../../lockiedb.sqlite');
+// --- Database Connection (CORRECTED PATH) ---
+const dbFile = '/root/lockiemedia/lockiedb.sqlite';
 const db = new Database(dbFile, { verbose: console.log });
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
@@ -44,21 +42,17 @@ app.post('/api/notes-data', (req, res) => {
     console.log('[Notes Service] POST /api/notes-data request received');
     const incomingData = req.body;
 
-    // We only expect 'notes' and 'notebooks' keys in the data.
     if (!incomingData || typeof incomingData.notes === 'undefined' || typeof incomingData.notebooks === 'undefined') {
         return res.status(400).json({ error: 'Invalid data format. Expected an object with notes and notebooks arrays.' });
     }
 
     const transaction = db.transaction(() => {
-        // Clear existing data from notes-related tables ONLY.
         db.prepare('DELETE FROM notes').run();
         db.prepare('DELETE FROM notebooks').run();
 
-        // Prepare insert statements
         const insertNotebook = db.prepare('INSERT INTO notebooks (id, name, createdAt) VALUES (@id, @name, @createdAt)');
         const insertNote = db.prepare('INSERT INTO notes (id, title, content, notebookId, createdAt, updatedAt) VALUES (@id, @title, @content, @notebookId, @createdAt, @updatedAt)');
 
-        // Insert data
         if (incomingData.notebooks) for (const notebook of incomingData.notebooks) insertNotebook.run(notebook);
         if (incomingData.notes) for (const note of incomingData.notes) insertNote.run(note);
     });

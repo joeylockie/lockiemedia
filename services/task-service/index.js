@@ -10,8 +10,8 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = 3004;
 
-// --- Database Connection ---
-const dbFile = path.resolve(__dirname, '../../lockiedb.sqlite');
+// --- Database Connection (CORRECTED PATH) ---
+const dbFile = '/root/lockiemedia/lockiedb.sqlite';
 const db = new Database(dbFile, { verbose: console.log });
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
@@ -36,9 +36,6 @@ const stringifyTask = (task) => ({
     recurrence: JSON.stringify(task.recurrence || null),
 });
 
-// --- NEW ---
-// This function sanitizes a task object to ensure it only contains columns
-// that actually exist in the 'tasks' table. This makes the service more robust.
 const sanitizeTaskForDB = (task) => {
     return {
         id: task.id,
@@ -116,8 +113,6 @@ app.post('/api/core-data', (req, res) => {
 
     if (incomingData.tasks) {
         for (const task of incomingData.tasks) {
-            // --- MODIFICATION ---
-            // Sanitize the task before attempting to stringify and insert it.
             const sanitizedTask = sanitizeTaskForDB(task);
             insertTask.run(stringifyTask(sanitizedTask));
         }

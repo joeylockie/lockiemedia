@@ -10,8 +10,8 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = 3005; // This service runs on port 3005
 
-// --- Database Connection ---
-const dbFile = path.resolve(__dirname, '../../lockiedb.sqlite');
+// --- Database Connection (CORRECTED PATH) ---
+const dbFile = '/root/lockiemedia/lockiedb.sqlite';
 const db = new Database(dbFile, { verbose: console.log });
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
