@@ -24,6 +24,11 @@
       "name": "dev-tracker-service",
       "script": "/root/lockiemedia/services/dev-tracker-service/index.js",
       "watch": false
+    },
+    {
+      "name": "calendar-service",
+      "script": "/root/lockiemedia/services/calendar-service/index.js",
+      "watch": false
     }
   ]
 }
