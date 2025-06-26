@@ -68,7 +68,6 @@ app.get('/api/data', async (req, res) => {
 
         } catch (error) {
             console.error(`[API Gateway] WARN: Could not fetch data from ${serviceName}. Service may be down. Error: ${error.message}`);
-            // Don't throw an error, just log it. This makes the gateway resilient.
         }
     });
 
@@ -77,7 +76,6 @@ app.get('/api/data', async (req, res) => {
         res.json(combinedData);
         console.log('[API Gateway] Successfully composed and sent response for GET /api/data (some services may have been skipped).');
     } catch (error) {
-        // This outer catch is for unexpected errors during the Promise.all execution itself.
         console.error('[API Gateway] Critical error during service request composition.', error.message);
         res.status(500).json({ error: 'A critical error occurred while composing data from backend services.' });
     }
@@ -115,30 +113,28 @@ app.post('/api/data', async (req, res) => {
         }
     };
 
-    const postRequests = Object.entries(serviceTargets).map(async ([serviceName, serviceUrl]) => {
-         try {
-            let endpoint = '';
-            let payload = {};
+    const postPromises = [];
+    for (const [serviceName, serviceUrl] of Object.entries(serviceTargets)) {
+        let endpoint = '';
+        let payload = {};
 
-            if (serviceName === 'taskService') { endpoint = '/api/core-data'; payload = servicePayloads.taskService; }
-            else if (serviceName === 'notesService') { endpoint = '/api/notes-data'; payload = servicePayloads.notesService; }
-            else if (serviceName === 'timeTrackerService') { endpoint = '/api/time-data'; payload = servicePayloads.timeTrackerService; }
-            else if (serviceName === 'devTrackerService') { endpoint = '/api/dev-data'; payload = servicePayloads.devTrackerService; }
-            else if (serviceName === 'calendarService') { endpoint = '/api/calendar-data'; payload = servicePayloads.calendarService; }
-            else return;
+        if (serviceName === 'taskService') { endpoint = '/api/core-data'; payload = servicePayloads.taskService; }
+        else if (serviceName === 'notesService') { endpoint = '/api/notes-data'; payload = servicePayloads.notesService; }
+        else if (serviceName === 'timeTrackerService') { endpoint = '/api/time-data'; payload = servicePayloads.timeTrackerService; }
+        else if (serviceName === 'devTrackerService') { endpoint = '/api/dev-data'; payload = servicePayloads.devTrackerService; }
+        else if (serviceName === 'calendarService') { endpoint = '/api/calendar-data'; payload = servicePayloads.calendarService; }
+        else continue;
 
-            // Only send the request if the relevant data exists
-            if (Object.values(payload).some(data => data !== undefined)) {
-                 await axios.post(`${serviceUrl}${endpoint}`, payload);
-                 console.log(`[API Gateway] Successfully sent data to ${serviceName}.`);
-            }
-        } catch (error) {
-             console.error(`[API Gateway] WARN: Could not send data to ${serviceName}. Service may be down. Error: ${error.message}`);
+        if (Object.values(payload).some(data => data !== undefined)) {
+            const requestPromise = axios.post(`${serviceUrl}${endpoint}`, payload)
+                .then(() => console.log(`[API Gateway] Successfully sent data to ${serviceName}.`))
+                .catch(error => console.error(`[API Gateway] WARN: Could not send data to ${serviceName}. Service may be down. Error: ${error.message}`));
+            postPromises.push(requestPromise);
         }
-    });
+    }
 
     try {
-        await Promise.all(postRequests);
+        await Promise.all(postPromises);
         res.status(200).json({ message: 'Data distribution attempted for all services.' });
         console.log('[API Gateway] Finished distributing POST /api/data to services.');
     } catch (error) {
