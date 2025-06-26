@@ -45,35 +45,45 @@ const __dirname = path.dirname(__filename);
 // --- API Routes (MUST be defined before static file serving) ---
 app.use('/api', authenticateKey);
 
+const fetchServiceDataWithRetry = async (serviceName, serviceUrl, retries = 3, delay = 1000) => {
+    try {
+        let endpoint = '';
+        if (serviceName === 'taskService') endpoint = '/api/core-data';
+        else if (serviceName === 'notesService') endpoint = '/api/notes-data';
+        else if (serviceName === 'timeTrackerService') endpoint = '/api/time-data';
+        else if (serviceName === 'devTrackerService') endpoint = '/api/dev-data';
+        else if (serviceName === 'calendarService') endpoint = '/api/calendar-data';
+        else return {};
+
+        const response = await axios.get(`${serviceUrl}${endpoint}`);
+        console.log(`[API Gateway] Successfully fetched data from ${serviceName}.`);
+        return response.data;
+    } catch (error) {
+        if (retries > 0) {
+            console.warn(`[API Gateway] Could not fetch from ${serviceName}, retrying in ${delay}ms... (${retries} retries left)`);
+            await new Promise(res => setTimeout(res, delay));
+            return fetchServiceDataWithRetry(serviceName, serviceUrl, retries - 1, delay * 2);
+        }
+        console.error(`[API Gateway] CRITICAL: Could not fetch data from ${serviceName} after multiple retries. Error: ${error.message}`);
+        return {}; // Return empty object on final failure
+    }
+};
+
+
 app.get('/api/data', async (req, res) => {
     console.log('[API Gateway] GET /api/data received. Composing response from services...');
     
-    const serviceEndpoints = {
-        taskService: `${serviceTargets.taskService}/api/core-data`,
-        notesService: `${serviceTargets.notesService}/api/notes-data`,
-        timeTrackerService: `${serviceTargets.timeTrackerService}/api/time-data`,
-        devTrackerService: `${serviceTargets.devTrackerService}/api/dev-data`,
-        calendarService: `${serviceTargets.calendarService}/api/calendar-data`,
-    };
+    const servicePromises = Object.entries(serviceTargets).map(([name, url]) => fetchServiceDataWithRetry(name, url));
 
-    const promises = Object.entries(serviceEndpoints).map(([name, url]) =>
-        axios.get(url).then(response => ({ name, status: 'fulfilled', value: response.data }))
-        .catch(error => ({ name, status: 'rejected', reason: error.message }))
-    );
-
-    const results = await Promise.allSettled(promises);
-    
-    let combinedData = {};
-    results.forEach(result => {
-        if (result.status === 'fulfilled' && result.value.status === 'fulfilled') {
-            console.log(`[API Gateway] Successfully fetched data from ${result.value.name}.`);
-            combinedData = { ...combinedData, ...result.value.value };
-        } else if (result.status === 'fulfilled' && result.value.status === 'rejected') {
-            console.error(`[API Gateway] Failed to fetch data from ${result.value.name}: ${result.value.reason}`);
-        }
-    });
-
-    res.json(combinedData);
+    try {
+        const results = await Promise.all(servicePromises);
+        const combinedData = results.reduce((acc, data) => ({ ...acc, ...data }), {});
+        res.json(combinedData);
+        console.log('[API Gateway] Successfully composed and sent response for GET /api/data.');
+    } catch (error) {
+        console.error('[API Gateway] Critical error during GET request composition.', error.message);
+        res.status(500).json({ error: 'A critical error occurred while composing data from backend services.' });
+    }
 });
 
 
@@ -132,6 +142,7 @@ app.use(express.static(path.join(__dirname, '../../public')));
 
 
 // -- Start HTTP Server --
+// Start immediately, the retry logic will handle service startup timing.
 app.listen(PORT, () => {
     console.log(`[HTTP API Gateway] Listening on port ${PORT}`);
 });
