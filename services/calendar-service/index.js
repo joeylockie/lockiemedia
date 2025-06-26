@@ -4,18 +4,26 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import Database from 'better-sqlite3';
 
-// -- Setup --
+// --- Setup ---
+console.log('[Calendar Service] Initializing...');
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
-const PORT = 3003; // This service will run on port 3003
+const PORT = 3003;
 
 // --- Database Connection ---
-const dbFile = path.resolve(__dirname, '../../lockiedb.sqlite');
-const db = new Database(dbFile, { verbose: console.log });
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
-console.log(`[Calendar Service] Connected to SQLite database at ${dbFile}`);
+let db;
+try {
+    const dbFile = path.resolve(__dirname, '../../lockiedb.sqlite');
+    console.log(`[Calendar Service] Attempting to connect to database at: ${dbFile}`);
+    db = new Database(dbFile, { verbose: console.log });
+    db.pragma('journal_mode = WAL');
+    db.pragma('foreign_keys = ON');
+    console.log(`[Calendar Service] Database connection successful.`);
+} catch (error) {
+    console.error('[Calendar Service] FATAL: Could not connect to the database.', error);
+    process.exit(1); // Exit if DB connection fails
+}
 
 // -- Middleware --
 app.use(cors());
@@ -35,7 +43,6 @@ const stringifyEvent = (event) => ({
 
 // -- API Routes --
 
-// A dedicated endpoint to get all calendar event data.
 app.get('/api/calendar-data', (req, res) => {
   console.log('[Calendar Service] GET /api/calendar-data request received');
   try {
@@ -47,7 +54,6 @@ app.get('/api/calendar-data', (req, res) => {
   }
 });
 
-// A dedicated endpoint to save all calendar event data.
 app.post('/api/calendar-data', (req, res) => {
     console.log('[Calendar Service] POST /api/calendar-data request received');
     const { calendar_events } = req.body;
@@ -76,6 +82,20 @@ app.post('/api/calendar-data', (req, res) => {
 
 
 // -- Start Server --
-app.listen(PORT, () => {
-    console.log(`[Calendar Service] Listening on port ${PORT}`);
+const server = app.listen(PORT, () => {
+    console.log(`[Calendar Service] Server is fully operational and listening on port ${PORT}`);
+}).on('error', (err) => {
+    console.error('[Calendar Service] FATAL: Failed to start server.', err);
+    process.exit(1);
+});
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+    console.log('[Calendar Service] SIGINT signal received: closing HTTP server');
+    server.close(() => {
+        console.log('[Calendar Service] HTTP server closed.');
+        db.close();
+        console.log('[Calendar Service] Database connection closed.');
+        process.exit(0);
+    });
 });
