@@ -46,7 +46,7 @@ const stringifyEvent = (event) => ({
 app.get('/api/calendar-data', (req, res) => {
   console.log('[Calendar Service] GET /api/calendar-data request received');
   try {
-    const events = db.prepare('SELECT * FROM dev_calendar_events').all().map(parseEvent);
+    const events = db.prepare('SELECT * FROM calendar_events').all().map(parseEvent);
     res.json({ calendar_events: events });
   } catch (error) {
     console.error('[Calendar Service] Error in GET /api/calendar-data:', error);
@@ -63,8 +63,8 @@ app.post('/api/calendar-data', (req, res) => {
     }
 
     const transaction = db.transaction(() => {
-        db.prepare('DELETE FROM dev_calendar_events').run();
-        const insertEvent = db.prepare('INSERT INTO dev_calendar_events (id, title, description, startTime, endTime, isAllDay, color, createdAt, updatedAt) VALUES (@id, @title, @description, @startTime, @endTime, @isAllDay, @color, @createdAt, @updatedAt)');
+        db.prepare('DELETE FROM calendar_events').run();
+        const insertEvent = db.prepare('INSERT INTO calendar_events (id, title, description, startTime, endTime, isAllDay, color, createdAt, updatedAt) VALUES (@id, @title, @description, @startTime, @endTime, @isAllDay, @color, @createdAt, @updatedAt)');
 
         for (const event of calendar_events) {
             insertEvent.run(stringifyEvent(event));
