@@ -12,6 +12,7 @@ const serviceTargets = {
     taskService: 'http://localhost:3004',
     timeTrackerService: 'http://localhost:3005',
     devTrackerService: 'http://localhost:3006',
+    calendarService: 'http://localhost:3003', // NEW
 };
 
 // --- Security Configuration ---
@@ -49,18 +50,20 @@ app.use('/api', authenticateKey);
 app.get('/api/data', async (req, res) => {
     console.log('[API Gateway] GET /api/data received. Composing response from services...');
     try {
-        const [taskServiceResponse, notesResponse, timeTrackerResponse, devTrackerResponse] = await Promise.all([
+        const [taskServiceResponse, notesResponse, timeTrackerResponse, devTrackerResponse, calendarResponse] = await Promise.all([ // MODIFIED
             axios.get(`${serviceTargets.taskService}/api/core-data`),
             axios.get(`${serviceTargets.notesService}/api/notes-data`),
             axios.get(`${serviceTargets.timeTrackerService}/api/time-data`),
-            axios.get(`${serviceTargets.devTrackerService}/api/dev-data`)
+            axios.get(`${serviceTargets.devTrackerService}/api/dev-data`),
+            axios.get(`${serviceTargets.calendarService}/api/calendar-data`) // NEW
         ]);
 
         const combinedData = {
             ...taskServiceResponse.data,
             ...notesResponse.data,
             ...timeTrackerResponse.data,
-            ...devTrackerResponse.data
+            ...devTrackerResponse.data,
+            ...calendarResponse.data, // NEW
         };
         res.json(combinedData);
         console.log('[API Gateway] Successfully composed and sent response for GET /api/data.');
@@ -105,12 +108,16 @@ app.post('/api/data', async (req, res) => {
             dev_ticket_history: incomingData.dev_ticket_history,
             dev_ticket_comments: incomingData.dev_ticket_comments,
         };
+        const calendarPayload = { // NEW
+            calendar_events: incomingData.calendar_events
+        };
 
         await Promise.all([
             axios.post(`${serviceTargets.taskService}/api/core-data`, taskServicePayload),
             axios.post(`${serviceTargets.notesService}/api/notes-data`, notesPayload),
             axios.post(`${serviceTargets.timeTrackerService}/api/time-data`, timeTrackerPayload),
-            axios.post(`${serviceTargets.devTrackerService}/api/dev-data`, devTrackerPayload)
+            axios.post(`${serviceTargets.devTrackerService}/api/dev-data`, devTrackerPayload),
+            axios.post(`${serviceTargets.calendarService}/api/calendar-data`, calendarPayload) // NEW
         ]);
         res.status(200).json({ message: 'Data saved successfully across all services!' });
         console.log('[API Gateway] Successfully distributed POST /api/data to all services.');
@@ -155,7 +162,6 @@ app.post('/api/tickets/:ticketId/comments', async (req, res) => {
     }
 });
 
-// --- NEW: Route for deleting a comment ---
 app.delete('/api/tickets/:ticketId/comments/:commentId', async (req, res) => {
     const { ticketId, commentId } = req.params;
     console.log(`[API Gateway] DELETE /api/tickets/${ticketId}/comments/${commentId} received. Forwarding...`);

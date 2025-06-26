@@ -27,9 +27,10 @@ let _time_activities = [];
 let _time_log_entries = [];
 let _dev_epics = [];
 let _dev_tickets = [];
-let _dev_release_versions = []; // NEW
-let _dev_ticket_history = []; // NEW
-let _dev_ticket_comments = []; // NEW
+let _dev_release_versions = [];
+let _dev_ticket_history = [];
+let _dev_ticket_comments = [];
+let _calendar_events = []; // NEW
 
 
 // --- Private Helper Functions ---
@@ -89,6 +90,7 @@ async function _saveAllData(source = 'unknown') {
         dev_release_versions: _dev_release_versions,
         dev_ticket_history: _dev_ticket_history,
         dev_ticket_comments: _dev_ticket_comments,
+        calendar_events: _calendar_events, // NEW
     };
 
     try {
@@ -131,6 +133,7 @@ const AppStore = {
     getDevReleaseVersions: () => JSON.parse(JSON.stringify(_dev_release_versions)),
     getDevTicketHistory: () => JSON.parse(JSON.stringify(_dev_ticket_history)),
     getDevTicketComments: () => JSON.parse(JSON.stringify(_dev_ticket_comments)),
+    getCalendarEvents: () => JSON.parse(JSON.stringify(_calendar_events)), // NEW
 
     setTasks: async (newTasksArray, source = 'setTasks') => {
         _tasks = JSON.parse(JSON.stringify(newTasksArray));
@@ -189,19 +192,18 @@ const AppStore = {
         await _saveAllData(source);
         _publish('devReleaseVersionsChanged', [..._dev_release_versions]);
     },
-    setDevTicketHistory: async (newHistoryArray, source = 'setDevTicketHistory') => { // NEW
+    setDevTicketHistory: async (newHistoryArray, source = 'setDevTicketHistory') => { 
         _dev_ticket_history = JSON.parse(JSON.stringify(newHistoryArray));
-        // --- THIS IS THE FIX ---
-        // Do NOT save all data here. The history is saved via specific API calls.
-        // We only need to update the local state and notify the UI.
         _publish('devTicketHistoryChanged', [..._dev_ticket_history]);
     },
-    setDevTicketComments: async (newCommentsArray, source = 'setDevTicketComments') => { // NEW
+    setDevTicketComments: async (newCommentsArray, source = 'setDevTicketComments') => {
         _dev_ticket_comments = JSON.parse(JSON.stringify(newCommentsArray));
-        // --- THIS IS THE FIX ---
-        // Do NOT save all data here. The comment is already saved via its specific API call.
-        // We only need to update the local state and notify the UI.
         _publish('devTicketCommentsChanged', [..._dev_ticket_comments]);
+    },
+    setCalendarEvents: async (newEventsArray, source = 'setCalendarEvents') => { // NEW
+        _calendar_events = JSON.parse(JSON.stringify(newEventsArray));
+        await _saveAllData(source);
+        _publish('calendarEventsChanged', [..._calendar_events]);
     },
 
 
@@ -248,6 +250,7 @@ const AppStore = {
             _dev_release_versions = data.dev_release_versions || [];
             _dev_ticket_history = data.dev_ticket_history || [];
             _dev_ticket_comments = data.dev_ticket_comments || [];
+            _calendar_events = data.calendar_events || []; // NEW
 
             _updateUniqueLabelsInternal();
             _updateUniqueProjectsInternal();
@@ -268,6 +271,7 @@ const AppStore = {
             _publish('devReleaseVersionsChanged', [..._dev_release_versions]);
             _publish('devTicketHistoryChanged', [..._dev_ticket_history]);
             _publish('devTicketCommentsChanged', [..._dev_ticket_comments]);
+            _publish('calendarEventsChanged', [..._calendar_events]); // NEW
 
         } catch (error) {
             LoggingService.critical('[AppStore] Could not load data from backend server. The app may not function correctly.', error, { functionName });
