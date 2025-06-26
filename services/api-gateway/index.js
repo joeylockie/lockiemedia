@@ -45,94 +45,34 @@ const __dirname = path.dirname(__filename);
 // --- API Routes (MUST be defined before static file serving) ---
 app.use('/api', authenticateKey);
 
-const fetchServiceData = async (serviceName, serviceUrl) => {
-    try {
-        let endpoint = '';
-        if (serviceName === 'taskService') endpoint = '/api/core-data';
-        else if (serviceName === 'notesService') endpoint = '/api/notes-data';
-        else if (serviceName === 'timeTrackerService') endpoint = '/api/time-data';
-        else if (serviceName === 'devTrackerService') endpoint = '/api/dev-data';
-        else if (serviceName === 'calendarService') endpoint = '/api/calendar-data';
-        else return {};
-
-        const response = await axios.get(`${serviceUrl}${endpoint}`);
-        console.log(`[API Gateway] Successfully fetched data from ${serviceName}.`);
-        return response.data;
-    } catch (error) {
-        console.error(`[API Gateway] WARN: Could not fetch data from ${serviceName}. Service may be down. Error: ${error.message}`);
-        return {}; // Return empty object on failure
-    }
-};
-
-
 app.get('/api/data', async (req, res) => {
-    console.log('[API Gateway] GET /api/data received. Composing response from services...');
-    
-    const servicePromises = Object.entries(serviceTargets).map(([name, url]) => fetchServiceData(name, url));
-
+    console.log('[API Gateway] GET /api/data received...');
     try {
-        const results = await Promise.all(servicePromises);
-        const combinedData = results.reduce((acc, data) => ({ ...acc, ...data }), {});
+        const [taskData, notesData, timeData, devData, calendarData] = await Promise.all([
+            axios.get(`${serviceTargets.taskService}/api/core-data`).catch(e => { console.error("Task service failed:", e.message); return { data: {} }; }),
+            axios.get(`${serviceTargets.notesService}/api/notes-data`).catch(e => { console.error("Notes service failed:", e.message); return { data: {} }; }),
+            axios.get(`${serviceTargets.timeTrackerService}/api/time-data`).catch(e => { console.error("Time service failed:", e.message); return { data: {} }; }),
+            axios.get(`${serviceTargets.devTrackerService}/api/dev-data`).catch(e => { console.error("Dev service failed:", e.message); return { data: {} }; }),
+            axios.get(`${serviceTargets.calendarService}/api/calendar-data`).catch(e => { console.error("Calendar service failed:", e.message); return { data: {} }; })
+        ]);
+
+        const combinedData = {
+            ...taskData.data,
+            ...notesData.data,
+            ...timeData.data,
+            ...devData.data,
+            ...calendarData.data,
+        };
         res.json(combinedData);
-        console.log('[API Gateway] Successfully composed and sent response for GET /api/data.');
+        console.log('[API Gateway] Successfully composed response for GET /api/data.');
     } catch (error) {
         console.error('[API Gateway] Critical error during GET request composition.', error.message);
-        res.status(500).json({ error: 'A critical error occurred while composing data from backend services.' });
+        res.status(500).json({ error: 'Failed to retrieve data from one or more services.' });
     }
 });
-
-
-app.post('/api/data', async (req, res) => {
-    console.log('[API Gateway] POST /api/data received. Distributing data to services...');
-    const incomingData = req.body;
-    
-    const servicePayloads = {
-        taskService: { data: { tasks: incomingData.tasks, projects: incomingData.projects, userProfile: incomingData.userProfile, userPreferences: incomingData.userPreferences }, endpoint: '/api/core-data' },
-        notesService: { data: { notes: incomingData.notes, notebooks: incomingData.notebooks }, endpoint: '/api/notes-data' },
-        timeTrackerService: { data: { time_activities: incomingData.time_activities, time_log_entries: incomingData.time_log_entries }, endpoint: '/api/time-data' },
-        devTrackerService: { data: { dev_epics: incomingData.dev_epics, dev_tickets: incomingData.dev_tickets, dev_release_versions: incomingData.dev_release_versions, dev_ticket_history: incomingData.dev_ticket_history, dev_ticket_comments: incomingData.dev_ticket_comments }, endpoint: '/api/dev-data' },
-        calendarService: { data: { calendar_events: incomingData.calendar_events }, endpoint: '/api/calendar-data' }
-    };
-
-    const postPromises = [];
-    for (const [serviceName, { data, endpoint }] of Object.entries(servicePayloads)) {
-        if (Object.values(data).some(d => d !== undefined)) {
-            const requestPromise = axios.post(`${serviceTargets[serviceName]}${endpoint}`, data)
-                .then(() => console.log(`[API Gateway] Successfully sent data to ${serviceName}.`))
-                .catch(error => console.error(`[API Gateway] WARN: Could not send data to ${serviceName}. Service may be down. Error: ${error.message}`));
-            postPromises.push(requestPromise);
-        }
-    }
-
-    await Promise.allSettled(postPromises);
-    res.status(200).json({ message: 'Data distribution attempted for all services.' });
-});
-
-// Generic proxy for specific service routes
-const proxyRequest = async (req, res, serviceUrl) => {
-    try {
-        const response = await axios({
-            method: req.method,
-            url: `${serviceUrl}${req.originalUrl}`, // Use originalUrl to preserve the full path
-            data: req.body,
-            headers: { 'Content-Type': 'application/json' }
-        });
-        res.status(response.status).json(response.data);
-    } catch (error) {
-        const status = error.response ? error.response.status : 500;
-        const data = error.response ? error.response.data : { error: 'Internal gateway error' };
-        console.error(`[API Gateway] Error proxying request to ${serviceUrl}${req.originalUrl}:`, data);
-        res.status(status).json(data);
-    }
-};
-
-app.post('/api/dev-release-versions', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.post('/api/tickets/:ticketId/comments', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.delete('/api/tickets/:ticketId/comments/:commentId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.patch('/api/tickets/:ticketId/status', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-
 
 // --- Static File Serving ---
+// This must come *after* all API routes. All other specific routes have been removed for now to ensure this works.
 app.use(express.static(path.join(__dirname, '../../public')));
 
 
