@@ -26,9 +26,7 @@ const authenticateKey = (req, res, next) => {
         return next();
     }
     const apiKey = req.get('X-API-Key')?.trim();
-    console.log(`[API Gateway] Authenticating request...`);
     if (apiKey && VALID_API_KEYS.has(apiKey)) {
-        console.log(`[API Gateway] API Key validated successfully.`);
         next();
     } else {
         console.error(`[API Gateway] Authentication failed. Invalid or missing API Key.`);
@@ -47,36 +45,38 @@ const __dirname = path.dirname(__filename);
 // --- API Routes (MUST be defined before static file serving) ---
 app.use('/api', authenticateKey);
 
+const fetchServiceData = async (serviceName, serviceUrl) => {
+    try {
+        let endpoint = '';
+        if (serviceName === 'taskService') endpoint = '/api/core-data';
+        else if (serviceName === 'notesService') endpoint = '/api/notes-data';
+        else if (serviceName === 'timeTrackerService') endpoint = '/api/time-data';
+        else if (serviceName === 'devTrackerService') endpoint = '/api/dev-data';
+        else if (serviceName === 'calendarService') endpoint = '/api/calendar-data';
+        else return {};
+
+        const response = await axios.get(`${serviceUrl}${endpoint}`);
+        console.log(`[API Gateway] Successfully fetched data from ${serviceName}.`);
+        return response.data;
+    } catch (error) {
+        console.error(`[API Gateway] WARN: Could not fetch data from ${serviceName}. Service may be down. Error: ${error.message}`);
+        return {}; // Return empty object on failure
+    }
+};
+
+
 app.get('/api/data', async (req, res) => {
     console.log('[API Gateway] GET /api/data received. Composing response from services...');
     
-    let combinedData = {};
-    const serviceRequests = Object.entries(serviceTargets).map(async ([serviceName, serviceUrl]) => {
-        try {
-            // Map service names to their specific data endpoints
-            let endpoint = '';
-            if (serviceName === 'taskService') endpoint = '/api/core-data';
-            else if (serviceName === 'notesService') endpoint = '/api/notes-data';
-            else if (serviceName === 'timeTrackerService') endpoint = '/api/time-data';
-            else if (serviceName === 'devTrackerService') endpoint = '/api/dev-data';
-            else if (serviceName === 'calendarService') endpoint = '/api/calendar-data';
-            else return;
-
-            const response = await axios.get(`${serviceUrl}${endpoint}`);
-            combinedData = { ...combinedData, ...response.data };
-            console.log(`[API Gateway] Successfully fetched data from ${serviceName}.`);
-
-        } catch (error) {
-            console.error(`[API Gateway] WARN: Could not fetch data from ${serviceName}. Service may be down. Error: ${error.message}`);
-        }
-    });
+    const servicePromises = Object.entries(serviceTargets).map(([name, url]) => fetchServiceData(name, url));
 
     try {
-        await Promise.all(serviceRequests);
+        const results = await Promise.all(servicePromises);
+        const combinedData = results.reduce((acc, data) => ({ ...acc, ...data }), {});
         res.json(combinedData);
-        console.log('[API Gateway] Successfully composed and sent response for GET /api/data (some services may have been skipped).');
+        console.log('[API Gateway] Successfully composed and sent response for GET /api/data.');
     } catch (error) {
-        console.error('[API Gateway] Critical error during service request composition.', error.message);
+        console.error('[API Gateway] Critical error during GET request composition.', error.message);
         res.status(500).json({ error: 'A critical error occurred while composing data from backend services.' });
     }
 });
@@ -143,67 +143,37 @@ app.post('/api/data', async (req, res) => {
     }
 });
 
-app.post('/api/dev-release-versions', async (req, res) => {
-    console.log('[API Gateway] POST /api/dev-release-versions received. Forwarding to dev-tracker-service...');
+// Generic proxy for specific service routes
+const proxyRequest = async (req, res, serviceUrl, endpoint) => {
     try {
-        const response = await axios.post(`${serviceTargets.devTrackerService}/api/dev-release-versions`, req.body);
-        res.status(response.status).json(response.data);
-    } catch (error) {
-        console.error('[API Gateway] Error forwarding POST /api/dev-release-versions.');
-        const status = error.response ? error.response.status : 500;
-        const data = error.response ? error.response.data : { error: 'Internal gateway error' };
-        res.status(status).json(data);
-    }
-});
-
-// Add route handlers for ticket-specific actions.
-app.post('/api/tickets/:ticketId/comments', async (req, res) => {
-    const { ticketId } = req.params;
-    console.log(`[API Gateway] POST /api/tickets/${ticketId}/comments received. Forwarding...`);
-    try {
-        const response = await axios.post(`${serviceTargets.devTrackerService}/api/tickets/${ticketId}/comments`, req.body);
+        const response = await axios({
+            method: req.method,
+            url: `${serviceUrl}${endpoint}`,
+            data: req.body,
+            headers: { 'Content-Type': 'application/json' }
+        });
         res.status(response.status).json(response.data);
     } catch (error) {
         const status = error.response ? error.response.status : 500;
         const data = error.response ? error.response.data : { error: 'Internal gateway error' };
         res.status(status).json(data);
     }
-});
+};
 
-app.delete('/api/tickets/:ticketId/comments/:commentId', async (req, res) => {
-    const { ticketId, commentId } = req.params;
-    console.log(`[API Gateway] DELETE /api/tickets/${ticketId}/comments/${commentId} received. Forwarding...`);
-    try {
-        const response = await axios.delete(`${serviceTargets.devTrackerService}/api/tickets/${ticketId}/comments/${commentId}`);
-        res.status(response.status).json(response.data);
-    } catch (error) {
-        const status = error.response ? error.response.status : 500;
-        const data = error.response ? error.response.data : { error: 'Internal gateway error' };
-        res.status(status).json(data);
-    }
-});
-
-
-app.patch('/api/tickets/:ticketId/status', async (req, res) => {
-    const { ticketId } = req.params;
-    console.log(`[API Gateway] PATCH /api/tickets/${ticketId}/status received. Forwarding...`);
-    try {
-        const response = await axios.patch(`${serviceTargets.devTrackerService}/api/tickets/${ticketId}/status`, req.body);
-        res.status(response.status).json(response.data);
-    } catch (error) {
-        const status = error.response ? error.response.status : 500;
-        const data = error.response ? error.response.data : { error: 'Internal gateway error' };
-        res.status(status).json(data);
-    }
-});
+app.post('/api/dev-release-versions', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService, '/api/dev-release-versions'));
+app.post('/api/tickets/:ticketId/comments', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService, req.path));
+app.delete('/api/tickets/:ticketId/comments/:commentId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService, req.path));
+app.patch('/api/tickets/:ticketId/status', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService, req.path));
 
 
 // --- Static File Serving ---
-// This must come *after* all API routes.
 app.use(express.static(path.join(__dirname, '../../public')));
 
 
 // -- Start HTTP Server --
-app.listen(PORT, () => {
-    console.log(`[HTTP API Gateway] Listening on port ${PORT}`);
-});
+// Add a small delay to allow other services to initialize first
+setTimeout(() => {
+    app.listen(PORT, () => {
+        console.log(`[HTTP API Gateway] Listening on port ${PORT}`);
+    });
+}, 2000); // 2-second delay
