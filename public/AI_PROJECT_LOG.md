@@ -2,7 +2,7 @@
 **Last Updated: 2025-06-25 16:04 (EDT)**
 
 ## 1. Instructions for AI (Gemini)
-**Purpose of this Document:** This document is your primary source of truth for the Lockie Media Platform project. It provides context, tracks progress, outlines current tasks, and lists future goals. Please refer to it to understand:
+**Purpose of this Document:** This document is your primary source of truth for the dev branch of the Lockie Media Platform project. It provides context, tracks progress, outlines current tasks, and lists future goals. Please refer to it to understand:
 
 * The overall project scope.
 * What has already been completed.
