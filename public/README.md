@@ -111,7 +111,7 @@ pm2 save
 
 Usage & Monitoring:
 
-Access: The application is accessible via the API Gateway's port, typically http://<your-server-ip>:3000/dashboard.html.
+Access: The application is accessible via the API Gateway's port, typically http://<your-server-ip>:3000/index.html.
 
 Check Status: To see the status of all running services: pm2 status
 
