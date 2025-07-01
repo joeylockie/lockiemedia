@@ -75,36 +75,13 @@ Dev Tracker Backend & Database Debugging: Resolved critical backend errors preve
 4. Work Completed (Specific to Current Major Task):
 Date: 2025-06-26
 
-Task: Begin Google Calendar Integration
-
-Summary: Successfully completed the entire prerequisite setup for integrating Google Calendar. This involved configuring the Google Cloud Platform, setting up a secure local development environment, and preparing the application's configuration for the integration.
-
-Details:
-
-Google Cloud Platform: Successfully created a new GCP project, enabled the Google Calendar API, and configured the OAuth 2.0 consent screen with the correct scopes.
-
-Local Development Environment: Diagnosed and solved a critical issue with Google's OAuth redirect URI policy. After the standard snapd installation failed in the LXC container, we successfully implemented a manual ngrok installation to create a secure public tunnel to the local server.
-
-Secure Credential Storage: Updated the ecosystem.json file to securely manage the Google Client ID and Secret using PM2's environment variable system, keeping sensitive data out of the source code.
-
-Git Branching: Identified that the main branch is protected and established the correct workflow of creating a new feature branch to save changes.
 
 5. Current Focus / Next Steps (Specific to Current Major Task):
 Current Major Task/Feature Being Worked On:
 
 Name: Google Calendar Integration
 
-Goal for this Task: To add two-way synchronization between the platform's calendar app and a user's Google Calendar.
-
-Status: PAUSED
-
-Current Sub-Task / Immediate Next Action (When we resume):
-
-Create a new Git branch to continue the work: git checkout -b feature/google-calendar
-
-Commit the changes already made to ecosystem.json.
-
-Proceed with Part 3 of the plan: Updating the Database Schema by modifying the database-setup.js file.
+Goal for this Task: 
 
 Specific questions for AI (if any):
 
