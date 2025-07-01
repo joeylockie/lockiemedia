@@ -19,3 +19,5 @@ npm-debug.log*
 
 # macOS specific
 .DS_Store
+
+favicon.ico # ADDED THIS LINE
