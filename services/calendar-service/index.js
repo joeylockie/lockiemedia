@@ -14,7 +14,7 @@ const PORT = 3007; // FIX: Use the new, correct port
 // --- Database Connection ---
 let db;
 try {
-    const dbFile = '/root/lockiemedia-dev/lockiedb.sqlite'; // CHANGED THIS LINE
+    const dbFile = process.env.DB_FILE_PATH; // CHANGED THIS LINE
     console.log(`[Calendar Service] Attempting to connect to database at: ${dbFile}`);
     db = new Database(dbFile, { verbose: console.log });
     db.pragma('journal_mode = WAL');

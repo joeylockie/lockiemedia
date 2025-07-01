@@ -11,7 +11,7 @@ const app = express();
 const PORT = 3004;
 
 // --- Database Connection (CORRECTED PATH) ---
-const dbFile = '/root/lockiemedia-dev/lockiedb.sqlite';
+const dbFile = process.env.DB_FILE_PATH;
 const db = new Database(dbFile, { verbose: console.log });
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
