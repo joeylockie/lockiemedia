@@ -1,0 +1,70 @@
+{
+  "apps": [
+    {
+      "name": "api-gateway",
+      "script": "services/api-gateway/index.js",
+      "cwd": "/root/lockiemedia-dev",
+      "watch": false,
+      "post_update": ["echo", "api-gateway updated"],
+      "post_start": "sleep 0.1",
+      "env": {
+        "DB_FILE_PATH": "/root/lockiemedia-dev/lockiedb.sqlite"
+      }
+    },
+    {
+      "name": "notes-service",
+      "script": "services/notes-service/index.js",
+      "cwd": "/root/lockiemedia-dev",
+      "watch": false,
+      "post_update": ["echo", "notes-service updated"],
+      "post_start": "sleep 0.1",
+      "env": {
+        "DB_FILE_PATH": "/root/lockiemedia-dev/lockiedb.sqlite"
+      }
+    },
+    {
+      "name": "task-service",
+      "script": "services/task-service/index.js",
+      "cwd": "/root/lockiemedia-dev",
+      "watch": false,
+      "post_update": ["echo", "task-service updated"],
+      "post_start": "sleep 0.1",
+      "env": {
+        "DB_FILE_PATH": "/root/lockiemedia-dev/lockiedb.sqlite"
+      }
+    },
+    {
+      "name": "time-tracker-service",
+      "script": "services/time-tracker-service/index.js",
+      "cwd": "/root/lockiemedia-dev",
+      "watch": false,
+      "post_update": ["echo", "time-tracker-service updated"],
+      "post_start": "sleep 0.1",
+      "env": {
+        "DB_FILE_PATH": "/root/lockiemedia-dev/lockiedb.sqlite"
+      }
+    },
+    {
+      "name": "dev-tracker-service",
+      "script": "services/dev-tracker-service/index.js",
+      "cwd": "/root/lockiemedia-dev",
+      "watch": false,
+      "post_update": ["echo", "dev-tracker-service updated"],
+      "post_start": "sleep 0.1",
+      "env": {
+        "DB_FILE_PATH": "/root/lockiemedia-dev/lockiedb.sqlite"
+      }
+    },
+    {
+      "name": "calendar-service",
+      "script": "services/calendar-service/index.js",
+      "cwd": "/root/lockiemedia-dev",
+      "watch": false,
+      "post_update": ["echo", "calendar-service updated"],
+      "post_start": "sleep 0.1",
+      "env": {
+        "DB_FILE_PATH": "/root/lockiemedia-dev/lockiedb.sqlite"
+      }
+    }
+  ]
+}
