@@ -24,7 +24,7 @@ Create Credentials:
 
 Create an OAuth client ID for a Web application.
 
-Set the Authorized redirect URI to: http://192.168.2.200:3000/api/calendar/google/callback.
+Set the Authorized redirect URI to: http://192.168.2.201:3000/api/calendar/google/callback.
 
 Save the Client ID and Client Secret that Google provides.
 
@@ -240,7 +240,7 @@ For Application type, select Web application.
 
 Under Authorized redirect URIs, click + ADD URI.
 
-Enter the following exact URI: http://192.168.2.200:3000/api/calendar/google/callback
+Enter the following exact URI: http://192.168.2.201:3000/api/calendar/google/callback
 
 Click the Create button.
 
@@ -261,7 +261,7 @@ Create Your Credentials:
 
 URIs 1 
 
-http://192.168.2.200:3000/api/calendar/google/callback
+http://192.168.2.201:3000/api/calendar/google/callback
 
 Invalid Redirect: must end with a public top-level domain (such as .com or .org).
 
@@ -271,7 +271,7 @@ Invalid Redirect: must use a domain that is a valid top private domain .
 
 
 Show thinking
-Excellent question. You've hit a very common and important security checkpoint in web development. Google's OAuth system requires a publicly recognized address for the redirect URI to ensure that authentication codes are sent to a secure and verifiable location. A local IP address like 192.168.2.200 is private and cannot be used.
+Excellent question. You've hit a very common and important security checkpoint in web development. Google's OAuth system requires a publicly recognized address for the redirect URI to ensure that authentication codes are sent to a secure and verifiable location. A local IP address like 192.168.2.201 is private and cannot be used.
 
 Don't worry, there is a standard and straightforward solution for this. We will use a free tool called ngrok to create a temporary, secure, public URL that tunnels to your local server.
 
