@@ -11,5 +11,9 @@
     "better-sqlite3": "^11.1.2",
     "cors": "^2.8.5",
     "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "db-migrate": "^0.11.14",
+    "db-migrate-sqlite3": "^1.0.2"
   }
 }

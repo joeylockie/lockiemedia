@@ -1,16 +1,12 @@
 import express from 'express';
 import cors from 'cors';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import Database from 'better-sqlite3';
 
 // -- Setup --
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = 3004;
 
-// --- Database Connection (CORRECTED PATH) ---
+// --- Database Connection ---
 const dbFile = '/root/lockiemedia/lockiedb.sqlite';
 const db = new Database(dbFile, { verbose: console.log });
 db.pragma('journal_mode = WAL');
@@ -36,33 +32,13 @@ const stringifyTask = (task) => ({
     recurrence: JSON.stringify(task.recurrence || null),
 });
 
-const sanitizeTaskForDB = (task) => {
-    return {
-        id: task.id,
-        text: task.text,
-        notes: task.notes,
-        completed: task.completed,
-        creationDate: task.creationDate,
-        completedDate: task.completedDate,
-        dueDate: task.dueDate,
-        time: task.time,
-        priority: task.priority,
-        label: task.label,
-        projectId: task.projectId,
-        isReminderSet: task.isReminderSet,
-        reminderDate: task.reminderDate,
-        reminderTime: task.reminderTime,
-        reminderEmail: task.reminderEmail,
-        recurrence: task.recurrence,
-    };
-};
-
-
 // -- API Routes --
+
+// GET /api/core-data (Remains the same for fetching all initial data)
 app.get('/api/core-data', (req, res) => {
   console.log('[Task Service] GET /api/core-data request received');
   try {
-    const tasks = db.prepare('SELECT * FROM tasks').all().map(parseTask);
+    const tasks = db.prepare('SELECT * FROM tasks ORDER BY creationDate DESC').all().map(parseTask);
     const projects = db.prepare('SELECT * FROM projects').all();
     const userProfile = db.prepare('SELECT * FROM user_profile WHERE id = 1').get();
     const prefsArray = db.prepare('SELECT * FROM user_preferences').all();
@@ -79,69 +55,74 @@ app.get('/api/core-data', (req, res) => {
         return acc;
     }, {});
 
-    const responseData = {
-      tasks,
-      projects,
-      userProfile,
-      userPreferences,
-      kanbanColumns: [],
-    };
-    res.json(responseData);
+    res.json({ tasks, projects, userProfile, userPreferences });
   } catch (error) {
     console.error('[Task Service] Error in GET /api/core-data:', error);
     res.status(500).json({ error: 'Failed to retrieve core data.' });
   }
 });
 
-app.post('/api/core-data', (req, res) => {
-  console.log('[Task Service] POST /api/core-data request received');
-  const incomingData = req.body;
-
-  if (typeof incomingData !== 'object' || incomingData === null) {
-    return res.status(400).json({ error: 'Invalid data format.' });
-  }
-
-  const transaction = db.transaction(() => {
-    db.prepare('DELETE FROM tasks').run();
-    db.prepare('DELETE FROM projects WHERE id != 0').run();
-    db.prepare('DELETE FROM user_preferences').run();
-
-    const insertTask = db.prepare('INSERT INTO tasks (id, text, notes, completed, creationDate, completedDate, dueDate, time, priority, label, projectId, isReminderSet, reminderDate, reminderTime, reminderEmail, recurrence) VALUES (@id, @text, @notes, @completed, @creationDate, @completedDate, @dueDate, @time, @priority, @label, @projectId, @isReminderSet, @reminderDate, @reminderTime, @reminderEmail, @recurrence)');
-    const insertProject = db.prepare('INSERT INTO projects (id, name, creationDate) VALUES (@id, @name, @creationDate)');
-    const insertPreference = db.prepare('INSERT INTO user_preferences (key, value) VALUES (@key, @value)');
-    const updateUserProfile = db.prepare('UPDATE user_profile SET displayName = @displayName, email = @email, role = @role WHERE id = 1');
-
-    if (incomingData.tasks) {
-        for (const task of incomingData.tasks) {
-            const sanitizedTask = sanitizeTaskForDB(task);
-            insertTask.run(stringifyTask(sanitizedTask));
-        }
+// NEW: Add a single task
+app.post('/api/tasks', (req, res) => {
+    console.log('[Task Service] POST /api/tasks request received');
+    try {
+        const taskData = req.body;
+        const stmt = db.prepare('INSERT INTO tasks (id, text, notes, completed, creationDate, completedDate, dueDate, time, priority, label, projectId, isReminderSet, reminderDate, reminderTime, reminderEmail, recurrence) VALUES (@id, @text, @notes, @completed, @creationDate, @completedDate, @dueDate, @time, @priority, @label, @projectId, @isReminderSet, @reminderDate, @reminderTime, @reminderEmail, @recurrence)');
+        const result = stmt.run(stringifyTask(taskData));
+        res.status(201).json({ id: result.lastInsertRowid, ...taskData });
+    } catch (error) {
+        console.error('[Task Service] Error in POST /api/tasks:', error);
+        res.status(500).json({ error: 'Failed to add task.' });
     }
-
-    if (incomingData.projects) for (const project of incomingData.projects) { if (project.id !== 0) insertProject.run(project); }
-    
-    if (incomingData.userPreferences) {
-        for (const [key, value] of Object.entries(incomingData.userPreferences)) {
-            const valueToInsert = typeof value === 'object' && value !== null ? JSON.stringify(value) : value;
-            insertPreference.run({ key: key, value: valueToInsert });
-        }
-    }
-
-    if (incomingData.userProfile) {
-        const existingProfile = db.prepare('SELECT * FROM user_profile WHERE id = 1').get();
-        const updatedProfile = { ...existingProfile, ...incomingData.userProfile };
-        updateUserProfile.run(updatedProfile);
-    }
-  });
-
-  try {
-    transaction();
-    res.status(200).json({ message: 'Core data saved successfully!' });
-  } catch (error) {
-    console.error('[Task Service] Error in POST /api/core-data transaction:', error);
-    res.status(500).json({ error: 'Failed to save core data.' });
-  }
 });
+
+// NEW: Update a single task
+app.patch('/api/tasks/:id', (req, res) => {
+    console.log(`[Task Service] PATCH /api/tasks/${req.params.id} request received`);
+    try {
+        const taskId = parseInt(req.params.id, 10);
+        const taskUpdateData = req.body;
+
+        const existingTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(taskId);
+        if (!existingTask) {
+            return res.status(404).json({ error: 'Task not found.' });
+        }
+
+        const updatedTask = { ...parseTask(existingTask), ...taskUpdateData };
+
+        const stmt = db.prepare('UPDATE tasks SET text=@text, notes=@notes, completed=@completed, completedDate=@completedDate, dueDate=@dueDate, time=@time, priority=@priority, label=@label, projectId=@projectId, isReminderSet=@isReminderSet, reminderDate=@reminderDate, reminderTime=@reminderTime, reminderEmail=@reminderEmail, recurrence=@recurrence WHERE id = @id');
+        stmt.run(stringifyTask({ ...updatedTask, id: taskId }));
+
+        res.status(200).json(updatedTask);
+    } catch (error) {
+        console.error(`[Task Service] Error in PATCH /api/tasks/${req.params.id}:`, error);
+        res.status(500).json({ error: 'Failed to update task.' });
+    }
+});
+
+// NEW: Delete a single task
+app.delete('/api/tasks/:id', (req, res) => {
+    console.log(`[Task Service] DELETE /api/tasks/${req.params.id} request received`);
+    try {
+        const taskId = parseInt(req.params.id, 10);
+        const stmt = db.prepare('DELETE FROM tasks WHERE id = ?');
+        const result = stmt.run(taskId);
+
+        if (result.changes > 0) {
+            res.status(200).json({ message: 'Task deleted successfully.' });
+        } else {
+            res.status(404).json({ error: 'Task not found.' });
+        }
+    } catch (error) {
+        console.error(`[Task Service] Error in DELETE /api/tasks/${req.params.id}:`, error);
+        res.status(500).json({ error: 'Failed to delete task.' });
+    }
+});
+
+
+// DEPRECATED: We are removing the old, destructive way of saving data.
+// The '/api/core-data' POST endpoint is intentionally removed.
+
 
 // -- Start Server --
 app.listen(PORT, () => {

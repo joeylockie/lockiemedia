@@ -12,7 +12,7 @@ const serviceTargets = {
     taskService: 'http://127.0.0.1:3004',
     timeTrackerService: 'http://127.0.0.1:3005',
     devTrackerService: 'http://127.0.0.1:3006',
-    calendarService: 'http://127.0.0.1:3007', // FIX: Point to the new correct port
+    calendarService: 'http://127.0.0.1:3007',
 };
 
 // --- Security Configuration ---
@@ -72,7 +72,7 @@ const fetchServiceDataWithRetry = async (serviceName, serviceUrl, retries = 3, d
 
 app.get('/api/data', async (req, res) => {
     console.log('[API Gateway] GET /api/data received. Composing response from services...');
-    
+
     const servicePromises = Object.entries(serviceTargets).map(([name, url]) => fetchServiceDataWithRetry(name, url));
 
     try {
@@ -90,9 +90,10 @@ app.get('/api/data', async (req, res) => {
 app.post('/api/data', async (req, res) => {
     console.log('[API Gateway] POST /api/data received. Distributing data to services...');
     const incomingData = req.body;
-    
+
+    // MODIFIED: We no longer send task or project data through this general endpoint.
     const servicePayloads = {
-        taskService: { data: { tasks: incomingData.tasks, projects: incomingData.projects, userProfile: incomingData.userProfile, userPreferences: incomingData.userPreferences }, endpoint: '/api/core-data' },
+        // taskService: { data: { tasks: incomingData.tasks, projects: incomingData.projects, userProfile: incomingData.userProfile, userPreferences: incomingData.userPreferences }, endpoint: '/api/core-data' },
         notesService: { data: { notes: incomingData.notes, notebooks: incomingData.notebooks }, endpoint: '/api/notes-data' },
         timeTrackerService: { data: { time_activities: incomingData.time_activities, time_log_entries: incomingData.time_log_entries }, endpoint: '/api/time-data' },
         devTrackerService: { data: { dev_epics: incomingData.dev_epics, dev_tickets: incomingData.dev_tickets, dev_release_versions: incomingData.dev_release_versions, dev_ticket_history: incomingData.dev_ticket_history, dev_ticket_comments: incomingData.dev_ticket_comments }, endpoint: '/api/dev-data' },
@@ -102,6 +103,15 @@ app.post('/api/data', async (req, res) => {
     const postPromises = [];
     for (const [serviceName, { data, endpoint }] of Object.entries(servicePayloads)) {
         if (Object.values(data).some(d => d !== undefined)) {
+            // We still need to send userProfile and userPreferences to the taskService.
+            if (serviceName === 'taskService') {
+                 const taskServiceData = {
+                    userProfile: incomingData.userProfile,
+                    userPreferences: incomingData.userPreferences
+                 };
+                 // This part will be refactored later, for now we just make sure it doesn't break
+            }
+
             const requestPromise = axios.post(`${serviceTargets[serviceName]}${endpoint}`, data)
                 .then(() => console.log(`[API Gateway] Successfully sent data to ${serviceName}.`))
                 .catch(error => console.error(`[API Gateway] WARN: Could not send data to ${serviceName}. Service may be down. Error: ${error.message}`));
@@ -130,6 +140,13 @@ const proxyRequest = async (req, res, serviceUrl) => {
     }
 };
 
+// --- NEW Task Service Routes ---
+app.post('/api/tasks', (req, res) => proxyRequest(req, res, serviceTargets.taskService));
+app.patch('/api/tasks/:id', (req, res) => proxyRequest(req, res, serviceTargets.taskService));
+app.delete('/api/tasks/:id', (req, res) => proxyRequest(req, res, serviceTargets.taskService));
+
+
+// --- Existing Dev Tracker Routes ---
 app.post('/api/dev-release-versions', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.post('/api/tickets/:ticketId/comments', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.delete('/api/tickets/:ticketId/comments/:commentId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));

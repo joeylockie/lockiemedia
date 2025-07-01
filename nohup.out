@@ -1,0 +1,46 @@
+[Calendar Service] Initializing...
+[Calendar Service] Attempting to connect to database at: /root/lockiemedia/lockiedb.sqlite
+PRAGMA journal_mode = WAL
+PRAGMA foreign_keys = ON
+[Calendar Service] Database connection successful.
+[Calendar Service] Server is fully operational and listening on port 3003
+[Calendar Service] Initializing...
+[Calendar Service] Attempting to connect to database at: /root/lockiemedia/lockiedb.sqlite
+PRAGMA journal_mode = WAL
+PRAGMA foreign_keys = ON
+[Calendar Service] Database connection successful.
+[Calendar Service] FATAL: Failed to start server. Error: listen EADDRINUSE: address already in use :::3003
+    at Server.setupListenHandle [as _listen2] (node:net:1908:16)
+    at listenInCluster (node:net:1965:12)
+    at Server.listen (node:net:2067:7)
+    at Function.listen (/root/lockiemedia/services/calendar-service/node_modules/express/lib/application.js:635:24)
+    at file:///root/lockiemedia/services/calendar-service/index.js:85:20
+    at ModuleJob.run (node:internal/modules/esm/module_job:263:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:540:24)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 3003
+}
+[Calendar Service] GET /api/calendar-data request received
+SELECT * FROM calendar_events
+[Calendar Service] GET /api/calendar-data request received
+SELECT * FROM calendar_events
+[Calendar Service] POST /api/calendar-data request received
+BEGIN
+DELETE FROM calendar_events
+COMMIT
+[Calendar Service] POST /api/calendar-data request received
+BEGIN
+DELETE FROM calendar_events
+COMMIT
+[Calendar Service] POST /api/calendar-data request received
+BEGIN
+DELETE FROM calendar_events
+COMMIT
+[Calendar Service] GET /api/calendar-data request received
+SELECT * FROM calendar_events
+[Calendar Service] GET /api/calendar-data request received
+SELECT * FROM calendar_events

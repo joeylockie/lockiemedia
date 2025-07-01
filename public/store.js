@@ -1,14 +1,9 @@
 import EventBus from './eventBus.js';
 import LoggingService from './loggingService.js';
 
-// The API URL for the gateway. Now points to the UNSECURE HTTP endpoint.
+// The API URL for the gateway.
 const API_URL = 'http://192.168.2.201:3000/api/data';
-
-// --- Security Configuration ---
-// This MUST be the exact same key as in the api-gateway file, with no extra spaces.
 const API_KEY = "THeYYjPRRvQ6CjJFPL0T6cpAyfWbIMFm9U0Lo4d+saQ=";
-
-// --- Centralized Headers ---
 const API_HEADERS = {
     'Content-Type': 'application/json',
     'X-API-Key': API_KEY,
@@ -30,7 +25,7 @@ let _dev_tickets = [];
 let _dev_release_versions = [];
 let _dev_ticket_history = [];
 let _dev_ticket_comments = [];
-let _calendar_events = []; // NEW
+let _calendar_events = [];
 
 
 // --- Private Helper Functions ---
@@ -69,16 +64,16 @@ function _updateUniqueProjectsInternal() {
     }
 }
 
+// THIS FUNCTION IS NO LONGER USED TO SAVE TASKS OR PROJECTS
 async function _saveAllData(source = 'unknown') {
     const functionName = '_saveAllData (Store)';
-    LoggingService.debug(`[Store] Initiating save for all data to backend. Source: ${source}.`, { functionName, source });
+    LoggingService.debug(`[Store] Initiating save for non-task data to backend. Source: ${source}.`, { functionName, source });
 
     _updateUniqueLabelsInternal();
     _updateUniqueProjectsInternal();
 
+    // MODIFIED: tasks and projects are removed from the data payload
     const dataToSave = {
-        tasks: _tasks,
-        projects: _projects,
         userPreferences: _userPreferences,
         userProfile: _userProfile,
         notebooks: _notebooks,
@@ -90,7 +85,7 @@ async function _saveAllData(source = 'unknown') {
         dev_release_versions: _dev_release_versions,
         dev_ticket_history: _dev_ticket_history,
         dev_ticket_comments: _dev_ticket_comments,
-        calendar_events: _calendar_events, // NEW
+        calendar_events: _calendar_events,
     };
 
     try {
@@ -106,12 +101,12 @@ async function _saveAllData(source = 'unknown') {
         }
 
         const result = await response.json();
-        LoggingService.info(`[Store] Data successfully saved to backend. Server says: ${result.message}`, { functionName });
+        LoggingService.info(`[Store] Non-task data successfully saved to backend. Server says: ${result.message}`, { functionName });
 
     } catch (error) {
-        LoggingService.error('[Store] Failed to save data to backend server.', error, { functionName, source });
+        LoggingService.error('[Store] Failed to save non-task data to backend server.', error, { functionName, source });
         if (EventBus && EventBus.publish) {
-            EventBus.publish('displayUserMessage', { text: 'Error: Could not save data to server. Check connection.', type: 'error' });
+            EventBus.publish('displayUserMessage', { text: 'Error: Could not save some data to server.', type: 'error' });
         }
     }
 }
@@ -119,7 +114,6 @@ async function _saveAllData(source = 'unknown') {
 const AppStore = {
     getTasks: () => JSON.parse(JSON.stringify(_tasks)),
     getProjects: () => JSON.parse(JSON.stringify(_projects)),
-    getKanbanColumns: () => [], 
     getUniqueLabels: () => [..._uniqueLabels],
     getUniqueProjects: () => [..._uniqueProjects],
     getUserPreferences: () => JSON.parse(JSON.stringify(_userPreferences)),
@@ -133,24 +127,27 @@ const AppStore = {
     getDevReleaseVersions: () => JSON.parse(JSON.stringify(_dev_release_versions)),
     getDevTicketHistory: () => JSON.parse(JSON.stringify(_dev_ticket_history)),
     getDevTicketComments: () => JSON.parse(JSON.stringify(_dev_ticket_comments)),
-    getCalendarEvents: () => JSON.parse(JSON.stringify(_calendar_events)), // NEW
+    getCalendarEvents: () => JSON.parse(JSON.stringify(_calendar_events)),
 
+    // MODIFIED: This function NO LONGER saves to the backend. It only updates the local state.
     setTasks: async (newTasksArray, source = 'setTasks') => {
         _tasks = JSON.parse(JSON.stringify(newTasksArray));
-        await _saveAllData(source);
+        // The network request is now handled by taskService.js, so we just publish the change.
         _publish('tasksChanged', [..._tasks]);
     },
+    // MODIFIED: This function NO LONGER saves to the backend.
     setProjects: async (newProjectsArray, source = 'setProjects') => {
         const noProjectEntry = { id: 0, name: "No Project" };
         const filteredProjects = newProjectsArray.filter(p => p.id !== 0);
         _projects = [noProjectEntry, ...JSON.parse(JSON.stringify(filteredProjects))];
-        await _saveAllData(source);
+        // The network request is now handled by projectService.js (or will be), so we just publish.
         _publish('projectsChanged', [..._projects]);
     },
+
     setUserPreferences: async (newPreferences, source = 'setUserPreferences') => {
-        _userPreferences = { ..._userPreferences, ...JSON.parse(JSON.stringify(newPreferences)) };
-        await _saveAllData(source);
-        _publish('userPreferencesChanged', { ..._userPreferences });
+       _userPreferences = { ..._userPreferences, ...JSON.parse(JSON.stringify(newPreferences)) };
+       await _saveAllData(source);
+       _publish('userPreferencesChanged', { ..._userPreferences });
     },
     setUserProfile: async (newProfile, source = 'setUserProfile') => {
        _userProfile = { ..._userProfile, ...JSON.parse(JSON.stringify(newProfile)) };
@@ -192,7 +189,7 @@ const AppStore = {
         await _saveAllData(source);
         _publish('devReleaseVersionsChanged', [..._dev_release_versions]);
     },
-    setDevTicketHistory: async (newHistoryArray, source = 'setDevTicketHistory') => { 
+    setDevTicketHistory: async (newHistoryArray, source = 'setDevTicketHistory') => {
         _dev_ticket_history = JSON.parse(JSON.stringify(newHistoryArray));
         _publish('devTicketHistoryChanged', [..._dev_ticket_history]);
     },
@@ -200,7 +197,7 @@ const AppStore = {
         _dev_ticket_comments = JSON.parse(JSON.stringify(newCommentsArray));
         _publish('devTicketCommentsChanged', [..._dev_ticket_comments]);
     },
-    setCalendarEvents: async (newEventsArray, source = 'setCalendarEvents') => { // NEW
+    setCalendarEvents: async (newEventsArray, source = 'setCalendarEvents') => {
         _calendar_events = JSON.parse(JSON.stringify(newEventsArray));
         await _saveAllData(source);
         _publish('calendarEventsChanged', [..._calendar_events]);
@@ -250,7 +247,7 @@ const AppStore = {
             _dev_release_versions = data.dev_release_versions || [];
             _dev_ticket_history = data.dev_ticket_history || [];
             _dev_ticket_comments = data.dev_ticket_comments || [];
-            _calendar_events = data.calendar_events || []; // NEW
+            _calendar_events = data.calendar_events || [];
 
             _updateUniqueLabelsInternal();
             _updateUniqueProjectsInternal();
@@ -271,7 +268,7 @@ const AppStore = {
             _publish('devReleaseVersionsChanged', [..._dev_release_versions]);
             _publish('devTicketHistoryChanged', [..._dev_ticket_history]);
             _publish('devTicketCommentsChanged', [..._dev_ticket_comments]);
-            _publish('calendarEventsChanged', [..._calendar_events]); // NEW
+            _publish('calendarEventsChanged', [..._calendar_events]);
 
         } catch (error) {
             LoggingService.critical('[AppStore] Could not load data from backend server. The app may not function correctly.', error, { functionName });
