@@ -13,7 +13,7 @@ const PORT = 3006;
 
 let db;
 try {
-    const dbFile = '/root/lockiemedia/lockiedb.sqlite';
+    const dbFile = '/root/lockiemedia-dev/lockiedb.sqlite';
     db = new Database(dbFile, { verbose: console.log });
     db.pragma('journal_mode = WAL');
     db.pragma('foreign_keys = ON');
