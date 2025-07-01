@@ -3,7 +3,7 @@
 import Database from 'better-sqlite3';
 
 // Define the name of the database file.
-const dbFile = 'lockiedb.sqlite';
+const dbFile = process.env.DB_FILE_PATH || 'lockiedb.sqlite'; // CHANGED THIS LINE
 
 // Create a new database connection.
 // `verbose: console.log` will print out each SQL statement to the console,
@@ -67,7 +67,7 @@ function setupDatabase() {
     role TEXT
   );`;
   db.exec(createUserProfileTable);
-  
+
   // --- User Preferences Table ---
   // A key-value store for user settings.
   const createUserPreferencesTable = `
@@ -193,7 +193,7 @@ function setupDatabase() {
       FOREIGN KEY (ticketId) REFERENCES dev_tickets (id) ON DELETE CASCADE
   );`;
   db.exec(createDevTicketCommentsTable);
-  
+
   // --- Calendar Events Table ---
   const createCalendarEventsTable = `
   CREATE TABLE IF NOT EXISTS calendar_events (
