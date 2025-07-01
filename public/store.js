@@ -2,7 +2,7 @@ import EventBus from './eventBus.js';
 import LoggingService from './loggingService.js';
 
 // The API URL for the gateway. Now points to the UNSECURE HTTP endpoint.
-const API_URL = 'http://192.168.2.201:3000/api/data';
+const API_URL = 'http://192.168.2.200:3000/api/data';
 
 // --- Security Configuration ---
 // This MUST be the exact same key as in the api-gateway file, with no extra spaces.
