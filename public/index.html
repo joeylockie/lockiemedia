@@ -3,37 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lockie Media Platform</title>
+    <title>Dev - Dashboard - Lockie Media Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* Custom styles to match the to-do app's theme */
         body {
             background-color: #1a1a2e;
             font-family: 'Inter', sans-serif;
             color: #e0e0e0;
+            /* Prevents flashing of content before auth check completes */
+            visibility: hidden;
+        }
+        .widget-card {
+            background-color: #1f2937;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            border: 1px solid #374151;
+            display: flex;
+            flex-direction: column;
+        }
+        .widget-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid #374151;
+        }
+        .widget-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #e5e7eb;
+        }
+        .widget-view-all {
+            font-size: 0.875rem;
+            color: #38bdf8; /* sky-400 */
+            text-decoration: none;
+            transition: color 0.2s ease-in-out;
+        }
+        .widget-view-all:hover {
+            color: #7dd3fc; /* sky-300 */
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center p-4 dark">
+<body class="bg-gradient-to-br from-slate-900 to-slate-700 min-h-screen p-4 sm:p-6 lg:p-8">
 
-    <div class="text-center">
-        <h1 class="text-4xl md:text-5xl font-bold text-white mb-8">
-            Lockie Media Platform
-        </h1>
-        <p class="text-slate-300 text-lg">Loading your dashboard...</p>
-        <a href="dashboard.html" class="mt-8 inline-block text-white bg-sky-500 hover:bg-sky-600 font-semibold py-3 px-6 rounded-lg transition-colors duration-200">
-            Click here if you are not redirected
-        </a>
+    <div class="w-full max-w-7xl mx-auto">
+        <header class="flex flex-col sm:flex-row justify-between sm:items-center mb-8">
+            <div>
+                <h1 id="greetingHeader" class="text-3xl md:text-4xl font-bold text-white">Welcome! (Dev)</h1>
+                <p class="text-slate-400 mt-1">Here’s a look at your platform overview.</p>
+            </div>
+            <div class="mt-4 sm:mt-0">
+                <button id="exportDataBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center">
+                    <i class="fas fa-file-download mr-2"></i>
+                    <span>Download Backup</span>
+                </button>
+            </div>
+            </header>
+
+        <main class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+            <div id="myDayWidget" class="widget-card md:col-span-2 lg:col-span-2">
+                <div class="widget-header">
+                    <h2 class="widget-title"><i class="fas fa-sun mr-2 text-yellow-400"></i>Today's Focus</h2>
+                    <a href="tasks.html" class="widget-view-all">View All Tasks &rarr;</a>
+                </div>
+                <div id="myDayContent" class="space-y-3">
+                    <p class="text-slate-400">Loading today's tasks...</p>
+                </div>
+            </div>
+
+            <div id="habitWidget" class="widget-card md:col-span-2 lg:col-span-2">
+                <div class="widget-header">
+                    <h2 class="widget-title"><i class="fas fa-check-circle mr-2 text-green-400"></i>Daily Habits</h2>
+                    <a href="habits.html" class="widget-view-all">Details &rarr;</a>
+                </div>
+                <div id="habitContent" class="space-y-2">
+                    <p class="text-slate-400">Loading habits...</p>
+                </div>
+            </div>
+
+            <div id="upcomingWidget" class="widget-card md:col-span-2 lg:col-span-3">
+                <div class="widget-header">
+                    <h2 class="widget-title"><i class="fas fa-calendar-alt mr-2 text-indigo-400"></i>Upcoming Deadlines (Next 7 Days)</h2>
+                </div>
+                <div id="upcomingContent">
+                    <p class="text-slate-400">Loading upcoming tasks...</p>
+                </div>
+            </div>
+            
+            <div id="notesWidget" class="widget-card lg:col-span-1">
+                <div class="widget-header">
+                    <h2 class="widget-title"><i class="fas fa-sticky-note mr-2 text-amber-400"></i>Recent Notes</h2>
+                     <a href="notes.html" class="widget-view-all">All Notes &rarr;</a>
+                </div>
+                <div id="notesContent">
+                    <p class="text-slate-400">Loading recent notes...</p>
+                </div>
+            </div>
+
+            <div id="quickLinksWidget" class="widget-card md:col-span-2 lg:col-span-4">
+                <div class="widget-header">
+                    <h2 class="widget-title"><i class="fas fa-rocket mr-2 text-purple-400"></i>Platform Apps</h2>
+                </div>
+                <div id="quickLinksContent" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 pt-2">
+                    <p class="text-slate-400 col-span-full">Loading links...</p>
+                </div>
+            </div>
+
+        </main>
     </div>
 
-    <footer class="absolute bottom-4 w-full text-center text-gray-500 text-sm">
+    <footer class="text-center text-gray-500 py-6">
         <p>LockieMedia © 2025</p>
     </footer>
 
-    <script type="module">
-        // Immediately redirect to the main application dashboard.
-        window.location.href = 'dashboard.html';
-    </script>
+    <script src="loggingService.js" type="module"></script>
+    <script src="eventBus.js" type="module"></script>
+    <script src="store.js" type="module"></script>
+    <script src="taskService.js" type="module"></script>
+    <script src="habitTrackerService.js" type="module"></script>
+    <script src="timeTrackerService.js" type="module"></script>
+    <script src="noteService.js" type="module"></script>
+    <script src="utils.js" type="module"></script>
+    
+    <script src="dashboard_main.js" type="module"></script>
+
 </body>
 </html>
