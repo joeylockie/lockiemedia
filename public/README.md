@@ -2,7 +2,7 @@ Lockie Media Platform
 Project Overview
 The Lockie Media Platform is a modern, feature-rich management platform designed to provide users with a flexible and powerful tool for managing their tasks, projects, and other aspects of their personal and professional lives.
 
-The platform is built on a microservice architecture, where independent backend services for each application (e.g., Tasks, Notes) are managed by a central API Gateway. This architecture ensures the application is robust, scalable, and easy to maintain.
+The platform is built on a microservice architecture, where independent backend services for each application (e.g., Tasks, Notes) are managed by a central API Gateway. This architecture ensures the application is robust, scalable, and easy to maintain, and **supports separate development and production environments for safe feature development.**
 
 Features
 The platform is designed with a range of features, with a focus on core productivity tools.
@@ -48,7 +48,7 @@ Runtime: Node.js
 
 Web Framework: Express.js
 
-Database: SQLite (via better-sqlite3), shared across services.
+Database: SQLite (via better-sqlite3), shared across services, with **database file path configurable via environment variables.**
 
 Process Manager: PM2
 
@@ -66,55 +66,47 @@ This is a self-hosted application designed to run on a local server or container
 
 Prerequisites:
 
-Node.js (v20.x or later recommended).
-
-A local machine or server (like a Proxmox LXC container running Ubuntu) to host the application.
-
-PM2 installed globally: npm install pm2 -g
+* Node.js (v20.x or later recommended).
+    * **For Ubuntu/Debian, the recommended way to install Node.js and npm is via NodeSource PPA:**
+        ```bash
+        sudo apt-get update
+        sudo apt-get install -y curl # Install curl if you don't have it
+        curl -fsSL [https://deb.nodesource.com/setup_20.x](https://deb.nodesource.com/setup_20.x) | sudo -E bash -
+        sudo apt-get install -y nodejs
+        ```
+* A local machine or server (like a Proxmox LXC container running Ubuntu) to host the application.
+* PM2 installed globally: `npm install pm2 -g`
 
 Clone the Repository:
 
-git clone <repository-url>
-cd <repository-folder>
+Clone your repository from GitHub.
+* **For your Development Environment**: Clone the `dev` branch.
+    ```bash
+    git clone -b dev <repository-url.git> <local-dev-folder-name>
+    cd <local-dev-folder-name>
+    ```
+    * Example: `git clone -b dev https://github.com/joeylockie/lockiemedia.git /root/lockiemedia-dev`
+* **For your Production Environment**: Clone the `main` branch.
+    ```bash
+    git clone -b main <repository-url.git> <local-prod-folder-name>
+    cd <local-prod-folder-name>
+    ```
+    * Example: `git clone -b main https://github.com/joeylockie/lockiemedia.git /root/lockiemedia`
+
+**Important**: Your environment-specific configuration files (`ecosystem.dev.json`, `ecosystem.prod.json`) are not tracked by Git. Your frontend's `API_URL` and favicon link are also environment-specific. When merging changes from `dev` to `main`, you must resolve conflicts for `public/store.js` and HTML files by **keeping the `main` branch's version.**
 
 Install Dependencies:
 
 Dependencies must be installed for the root project AND for each individual service.
 
-Root: npm install
+```bash
+# From your project's root directory (e.g., /root/lockiemedia-dev or /root/lockiemedia)
+npm install
 
-API Gateway: cd services/api-gateway && npm install && cd ../..
-
-Notes Service: cd services/notes-service && npm install && cd ../..
-
-Task Service: cd services/task-service && npm install && cd ../..
-
-Time Tracker Service: cd services/time-tracker-service && npm install && cd ../..
-
-Initialize the Database:
-
-Run the setup script from the root directory to create the lockiedb.sqlite file and its tables. This only needs to be done once.
-
-npm run setup
-
-Running the Platform:
-
-The entire suite of backend services is managed by the ecosystem.json file.
-
-From the project's root directory, start all services with:
-
-pm2 start ecosystem.json
-
-To ensure the apps restart automatically after a server reboot, run:
-
-pm2 save
-
-Usage & Monitoring:
-
-Access: The application is accessible via the API Gateway's port, typically http://<your-server-ip>:3000/dashboard.html.
-
-Check Status: To see the status of all running services: pm2 status
-
-View Logs: To view the combined logs for all services: pm2 logs
-
-Restart All: To apply changes after a git pull: pm2 restart all
+# For each service:
+cd services/api-gateway && npm install && cd ../..
+cd services/notes-service && npm install && cd ../..
+cd services/task-service && npm install && cd ../..
+cd services/time-tracker-service && npm install && cd ../..
+cd services/dev-tracker-service && npm install && cd ../..
+cd services/calendar-service && npm install && cd ../..
