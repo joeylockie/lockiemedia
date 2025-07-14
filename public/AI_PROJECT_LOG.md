@@ -117,4 +117,3 @@ Editor Choice: A side-by-side Markdown editor (using Marked.js and DOMPurify) wi
 
 Sidebar UI Pattern: Decided to move from a "disappearing" sidebar (width: 0) to a more robust "shrinking" sidebar pattern to prevent UI lockouts.
 
-Development Environment Setup: Successfully established a fully isolated development environment using a cloned LXC container and `dev` Git branch. Implemented environment variables (`DB_FILE_PATH`) for backend database paths and separate PM2 ecosystem configuration files (`ecosystem.dev.json`, `ecosystem.prod.json`) to manage environment-specific settings. A specific Git merge strategy was defined for environment-specific frontend files (API_URL, favicon) to prevent production breakage during 'dev' to 'main' merges.
