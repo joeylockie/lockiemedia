@@ -1,119 +1,156 @@
-AI Project Curation Log: Lockie Media Platform
-Last Updated: 2025-07-01 19:50 (EDT)
+# AI Project Curation Log: Lockie Media Platform
 
-1. Instructions for AI (Gemini)
-Purpose of this Document: This document is your primary source of truth for the Lockie Media Platform project. It provides context, tracks progress, outlines current tasks, and lists future goals. Please refer to it to understand:
+**Last Updated:** 2025-07-14 10:27 (EDT)
 
-The overall project scope.
+## 1. Instructions for AI (Gemini)
 
-What has already been completed.
+**Purpose of this Document:**  A Note to AI Assistants: This document is your primary source of truth for the Lockie Media Platform project. It provides context, tracks progress, outlines current tasks, and lists future goals. Please refer to it to understand:
 
-What the user (Joey) is currently working on with your assistance.
+* The overall project scope.
+* What has already been completed.
+* What the user (Joey) is currently working on with your assistance.
+* The specific sub-tasks and files involved in the current session.
+* Any known issues or important decisions made.
 
-The specific sub-tasks and files involved in the current session.
+**How to Use & Update This Document:**
 
-Any known issues or important decisions made.
+* **Prioritize this Document:** When the user provides this document or refers to it at the start of a session, consider its content as the most up-to-date information, potentially overriding previous chat history if there are discrepancies regarding project state.
+* **Understand Current Focus:** Pay close attention to Section 6: "Current Focus / Next Steps" from the previous version of this log to understand the immediate objectives for the current session.
+* **Track Session Progress:** During our development session, keep track of:
+    * Tasks completed and files modified/created.
+    * New issues or bugs identified.
+    * Key decisions made.
+    * The next logical steps or remaining sub-tasks.
+* **Generate Updated Log Content (End of Session):**
+    * When the user asks you to "update the AI Project Log" (or similar), your task is to regenerate the entire Markdown content for this document.
+    * You will use the previous version of this log as your base.
+    * Update all relevant sections based on the work done during the session, including the "Last Updated" timestamp, "Work Completed," "Current Focus," and "Known Issues."
+    * Maintain Format: Preserve the existing Markdown structure and formatting.
+    * Provide Complete Output: Present the entire, fully updated Markdown content back to the user so they can replace the content of their `AI_PROJECT_LOG.md` file.
 
-How to Use & Update This Document:
+---
 
-Prioritize this Document: When the user provides this document or refers to it at the start of a session, consider its content as the most up-to-date information, potentially overriding previous chat history if there are discrepancies regarding project state.
+## 2. Project Overview & Goals
 
-Understand Current Focus: Pay close attention to Section 5: "Current Focus / Next Steps" from the previous version of this log to understand the immediate objectives for the current session.
+* **Platform:** "Lockie Media Platform", which includes user-facing "apps" and administrative "services".
+* **Vision:** To become an all-in-one platform for personal and business management, comprised of modular apps.
+* **Technology:** Self-hosted application with a microservice architecture. Backend services are built with Node.js/Express.js and a shared SQLite database. Services are managed by PM2 and fronted by a central API Gateway secured with API Keys.
+* **Core Platform Apps (Initial Focus):** Task Manager, Notes, Habit Tracker, Time Tracker, Pomodoro, Calendar, and Dev Tracker.
+* **Overall Goal:** Develop a robust, feature-complete management platform with a suite of integrated apps.
 
-Track Session Progress: During our development session, keep track of:
+---
 
-Tasks completed and files modified/created.
+## 3. Verified File Structure
 
-New issues or bugs identified.
+This is the definitive file tree for the project. **Do not assume other files or paths exist.**
 
-Key decisions made.
 
-The next logical steps or remaining sub-tasks.
+lockiemedia-dev/
+├── .gitignore             # Specifies files for Git to ignore.
+├── database-setup.js      # Node.js script to initialize the SQLite database and create tables.
+├── db.json                # Legacy file, likely for a mock API. Not used by the live application.
+├── ecosystem.dev.json     # PM2 config for DEVELOPMENT.
+├── ecosystem.prod.json    # PM2 config for PRODUCTION.
+├── package-lock.json      # Exact dependency tree for the root npm packages.
+├── package.json           # Root npm dependencies and project scripts.
+│
+├── public/                # All client-facing frontend files.
+│   ├── AI_PROJECT_LOG.md  # THIS FILE. The primary source of truth for AI assistants.
+│   ├── README.md          # The public-facing project README file.
+│   ├── index.html         # Main application entry point.
+│   ├── style.css          # Global CSS styles.
+│   ├── store.js           # CRITICAL: Frontend state management. Fetches and holds all app data.
+│   ├── viewManager.js     # Handles loading different HTML views into the main content area.
+│   ├── eventBus.js        # Frontend module communication (Pub/Sub).
+│   ├── utils.js           # Shared utility functions.
+│   ├── service-worker.js  # PWA service worker for offline capabilities.
+│   │
+│   ├── *.html             # HTML templates for each app view (e.g., tasks.html).
+│   ├── main.js          # Main JavaScript entry point for each app view (e.g., tasks_main.js).
+│   ├── *Service.js        # Business logic and data manipulation for each feature (e.g., taskService.js).
+│   └── feature.js       # Specific, isolated feature logic (e.g., feature_projects.js).
+│
+└── services/              # Contains all backend microservices.
+├── api-gateway/       # The API Gateway service.
+│   ├── index.js       # Main logic for the gateway (routing, auth, API composition).
+│   └── package.json   # Dependencies for the gateway.
+│
+├── calendar-service/      # Microservice for Calendar features.
+│   ├── index.js           # Express server and API endpoints for the service.
+│   └── package.json       # Dependencies for the service.
+├── dev-tracker-service/ # Microservice for Dev Tracker features.
+│   ├── index.js
+│   └── package.json
+├── notes-service/     # Microservice for Notes features.
+│   ├── index.js
+│   └── package.json
+├── task-service/      # Microservice for Task Management features.
+│   ├── index.js
+│   └── package.json
+└── time-tracker-service/ # Microservice for Time Tracker features.
+├── index.js
+└── package.json
 
-Generate Updated Log Content (End of Session):
 
-When the user asks you to "update the AI Project Log" (or similar), your task is to regenerate the entire Markdown content for this document.
+---
 
-You will use the previous version of this log as your base.
+## 4. Work Completed (Overall Project - High Level)
 
-Update all relevant sections based on the work done during the session, including the "Last Updated" timestamp, "Work Completed," "Current Focus," and "Known Issues."
+* **Core Task Management:** Functionalities implemented as a foundational module.
+* **Backend Refactor:** Migrated from a Firebase backend to a self-hosted Node.js/Express stack.
+* **Database Migration:** Successfully migrated the core application's database from lowdb (JSON file) to a robust SQLite database using `better-sqlite3`.
+* **Backend Architecture Refactor:** Migrated the backend from a single monolith to a microservice architecture.
+* **API Security:** Implemented an API Key authentication layer on the API Gateway.
+* **Notes App Enhancements:** Added notebook deletion and a full-featured Markdown editor.
+* **Time Tracker UI/UX Enhancements:** Fixed critical dark mode UI bugs and implemented a fully-featured custom reminder system.
+* **Dev Tracker App:** Implemented a full-featured development ticket tracking system for epics and tickets.
+* **Dev Tracker Backend & Database Debugging:** Resolved critical backend errors preventing the Dev Tracker app from saving data correctly.
+* **Isolated Development Environment:** Set up a complete, isolated development environment on a separate container, managed by PM2 and a separate Git branch.
 
-Maintain Format: Preserve the existing Markdown structure and formatting.
+---
 
-Provide Complete Output: Present the entire, fully updated Markdown content back to the user so they can replace the content of their AI_PROJECT_LOG.md file.
+## 5. Work Completed (Specific to Current Major Task)
 
-2. Project Overview & Goals:
-Platform: "Lockie Media Platform", which includes user-facing "apps" and administrative "services".
+* **Date:** 2025-07-14
+* **Task:** Improve and standardize project documentation for AI collaboration.
+* **Sub-tasks Completed:**
+    * Updated the main `README.md` to accurately reflect the project's features, architecture, and setup instructions.
+    * Restructured and merged the `AI_PROJECT_LOG.md` with a more detailed curation format.
+    * Restored the detailed file tree to the `AI_PROJECT_LOG.md` to ensure complete context for AI assistants.
 
-Vision: To become an all-in-one platform for personal and business management, comprised of modular apps.
+---
 
-Technology: Self-hosted application with a microservice architecture. Backend services are built with Node.js/Express.js and a shared SQLite database. Services are managed by PM2 and fronted by a central API Gateway secured with API Keys.
+## 6. Current Focus / Next Steps
 
-Core Platform Apps (Initial Focus): Task Manager, Notes, Habit Tracker, Time Tracker, Pomodoro, Calendar, and Dev Tracker.
+* **Current Major Task/Feature Being Worked On:**
+    * **Name:** None. Project documentation is up to date.
+    * **Goal for this Task:** Awaiting next development objective.
+* **Specific questions for AI (if any):**
+    * None.
+* **Blockers (if any):**
+    * None.
 
-Overall Goal: Develop a robust, feature-complete management platform with a suite of integrated apps.
+---
 
-3. Work Completed (Overall Project - High Level):
-Core Task Management: Functionalities implemented as a foundational module.
+## 7. Known Issues / Bugs
 
-Backend Refactor: Migrated from a Firebase backend to a self-hosted Node.js/Express stack.
+* None. All known critical issues have been resolved.
 
-Database Migration: Successfully migrated the core application's database from lowdb (JSON file) to a robust SQLite database using better-sqlite3.
+---
 
-Backend Architecture Refactor: Migrated the backend from a single monolith to a microservice architecture.
+## 8. Future/Pending Work (Overall Project - High Level)
 
-API Security: Implemented an API Key authentication layer on the API Gateway.
+* **Security:** Further enhancements could include JWT for user-level authentication in the future.
+* **Frontend Decoupling:** Continue refactoring to fully decouple all apps.
+* **Core Features:** Refine and enhance core features based on usage.
+* **UI/UX:** Continuously improve the user interface and experience across all apps.
 
-Notes App Enhancements: Added notebook deletion and a full-featured Markdown editor.
+---
 
-Time Tracker UI/UX Enhancements: Fixed critical dark mode UI bugs and implemented a fully-featured custom reminder system.
+## 9. Important Notes / Decisions Made
 
-Dev Tracker App: Implemented a full-featured development ticket tracking system for epics and tickets.
-
-Dev Tracker Backend & Database Debugging: Resolved critical backend errors preventing the Dev Tracker app from saving data correctly.
-
-4. Work Completed (Specific to Current Major Task):
-Date: 2025-07-01
-Task: Setup a fully isolated Development Environment alongside Production.
-Sub-tasks Completed:
-* Cloned existing production LXC container to create 'lockiemedia-dev' on Proxmox.
-* Configured 'lockiemedia-dev' to use static IP `192.168.2.201`.
-* Removed old code and cloned 'dev' Git branch into '/root/lockiemedia-dev' in the new container.
-* Resolved Node.js installation issues on the dev container by installing via NodeSource PPA.
-* Migrated database file paths to use environment variables (`DB_FILE_PATH`) in `database-setup.js` and all `services/*-service/index.js` files.
-* Configured PM2 to use separate environment-specific ecosystem files (`ecosystem.dev.json` and `ecosystem.prod.json`) for managing services.
-* Added `favicon-dev.ico` to the `public/` directory and updated `public/index.html` and `public/tasks.html` to display it in the dev environment.
-* Established a clear Git merge strategy for handling environment-specific files (`public/store.js`, HTML favicons, and the new ecosystem files) to prevent breaking production during 'dev' to 'main' merges.
-
-5. Current Focus / Next Steps (Specific to Current Major Task):
-Current Major Task/Feature Being Worked On:
-Name: None
-Goal for this Task:
-Specific questions for AI (if any):
-None.
-Blockers (if any):
-None.
-
-6. Known Issues / Bugs (Related to current work or recently discovered):
-None. All known critical issues have been resolved.
-
-7. Future/Pending Work (Overall Project - High Level):
-Security: Further enhancements could include JWT for user-level authentication in the future.
-
-Frontend Decoupling: Complete for Tasks and Notes apps.
-
-Core Features: Refine and enhance core features based on usage.
-
-UI/UX: Continuously improve the user interface and experience across all apps.
-
-8. Important Notes / Decisions Made:
-Microservice Architecture Adopted: Pivoted from a simple data centralization task to a full backend refactor. Adopted a microservice architecture with an API Gateway to ensure true decoupling, improve stability, and provide a secure foundation for third-party integrations. Implemented API Key security as the first layer of protection.
-
-Frontend Decoupling Initiated: A decision was made to refactor the frontend. The first phase isolated the Task Manager app. The second phase deepened this decoupling by namespacing all of its UI, event, and modal handling files with a tasks_ prefix for better code isolation and clarity.
-
-Notes App Architecture: To prepare for new features, the Notes app's frontend code was refactored into a modular structure (notes_rendering.js, notes_event_handlers.js), separating concerns and improving maintainability.
-
-Editor Choice: A side-by-side Markdown editor (using Marked.js and DOMPurify) with toggleable view modes was chosen for the Notes app over a more complex Rich Text/WYSIWYG editor. This decision prioritized implementation speed, maintainability, and data portability (plain text) while still providing a powerful user experience.
-
-Sidebar UI Pattern: Decided to move from a "disappearing" sidebar (width: 0) to a more robust "shrinking" sidebar pattern to prevent UI lockouts.
-
+* **Microservice Architecture Adopted:** Pivoted from a simple data centralization task to a full backend refactor. Adopted a microservice architecture with an API Gateway to ensure true decoupling, improve stability, and provide a secure foundation for third-party integrations. Implemented API Key security as the first layer of protection.
+* **Frontend Decoupling Initiated:** A decision was made to refactor the frontend. The first phase isolated the Task Manager app. The second phase deepened this decoupling by namespacing all of its UI, event, and modal handling files with a `tasks_` prefix for better code isolation and clarity.
+* **Notes App Architecture:** To prepare for new features, the Notes app's frontend code was refactored into a modular structure (`notes_rendering.js`, `notes_event_handlers.js`), separating concerns and improving maintainability.
+* **Editor Choice:** A side-by-side Markdown editor (using Marked.js and DOMPurify) with toggleable view modes was chosen for the Notes app over a more complex Rich Text/WYSIWYG editor. This decision prioritized implementation speed, maintainability, and data portability (plain text) while still providing a powerful user experience.
+* **Sidebar UI Pattern:** Decided to move from a "disappearing" sidebar (width: 0) to a more robust "shrinking" sidebar pattern to prevent UI lockouts.
