@@ -114,7 +114,6 @@ lockiemedia-dev/
 * **Date:** 2025-07-14
 * **Task:** Improve and standardize project documentation for AI collaboration.
 * **Sub-tasks Completed:**
-    * Updated the main `README.md` to accurately reflect the project's features, architecture, and setup instructions.
     * Restructured and merged the `AI_PROJECT_LOG.md` with a more detailed curation format.
     * Restored the detailed file tree to the `AI_PROJECT_LOG.md` to ensure complete context for AI assistants.
 
