@@ -8,7 +8,8 @@
       "post_update": ["echo", "api-gateway updated"],
       "post_start": "sleep 0.1",
       "env": {
-        "DB_FILE_PATH": "/root/lockiemedia-dev/lockiedb.sqlite"
+        "DB_FILE_PATH": "/root/lockiemedia-dev/lockiedb.sqlite",
+        "PORT": 3000
       }
     },
     {
@@ -19,7 +20,8 @@
       "post_update": ["echo", "notes-service updated"],
       "post_start": "sleep 0.1",
       "env": {
-        "DB_FILE_PATH": "/root/lockiemedia-dev/lockiedb.sqlite"
+        "DB_FILE_PATH": "/root/lockiemedia-dev/lockiedb.sqlite",
+        "PORT": 3002
       }
     },
     {
@@ -30,7 +32,8 @@
       "post_update": ["echo", "task-service updated"],
       "post_start": "sleep 0.1",
       "env": {
-        "DB_FILE_PATH": "/root/lockiemedia-dev/lockiedb.sqlite"
+        "DB_FILE_PATH": "/root/lockiemedia-dev/lockiedb.sqlite",
+        "PORT": 3004
       }
     },
     {
@@ -41,7 +44,8 @@
       "post_update": ["echo", "time-tracker-service updated"],
       "post_start": "sleep 0.1",
       "env": {
-        "DB_FILE_PATH": "/root/lockiemedia-dev/lockiedb.sqlite"
+        "DB_FILE_PATH": "/root/lockiemedia-dev/lockiedb.sqlite",
+        "PORT": 3005
       }
     },
     {
@@ -52,7 +56,8 @@
       "post_update": ["echo", "dev-tracker-service updated"],
       "post_start": "sleep 0.1",
       "env": {
-        "DB_FILE_PATH": "/root/lockiemedia-dev/lockiedb.sqlite"
+        "DB_FILE_PATH": "/root/lockiemedia-dev/lockiedb.sqlite",
+        "PORT": 3006
       }
     },
     {
@@ -63,7 +68,8 @@
       "post_update": ["echo", "calendar-service updated"],
       "post_start": "sleep 0.1",
       "env": {
-        "DB_FILE_PATH": "/root/lockiemedia-dev/lockiedb.sqlite"
+        "DB_FILE_PATH": "/root/lockiemedia-dev/lockiedb.sqlite",
+        "PORT": 3007
       }
     },
     {
@@ -74,7 +80,8 @@
       "post_update": ["echo", "habit-tracker-service updated"],
       "post_start": "sleep 0.1",
       "env": {
-        "DB_FILE_PATH": "/root/lockiemedia-dev/lockiedb.sqlite"
+        "DB_FILE_PATH": "/root/lockiemedia-dev/lockiedb.sqlite",
+        "PORT": 3010
       }
     },
     {
@@ -85,7 +92,8 @@
       "post_update": ["echo", "pomodoro-service updated"],
       "post_start": "sleep 0.1",
       "env": {
-        "DB_FILE_PATH": "/root/lockiemedia-dev/lockiedb.sqlite"
+        "DB_FILE_PATH": "/root/lockiemedia-dev/lockiedb.sqlite",
+        "PORT": 3011
       }
     }
   ]

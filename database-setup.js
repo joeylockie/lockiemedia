@@ -194,13 +194,12 @@ function setupDatabase() {
   );`;
   db.exec(createDevTicketCommentsTable);
   
-  // --- NEW: Habit Tracker Tables ---
+  // Change this statement in database-setup.js
   const createHabitsTable = `
   CREATE TABLE IF NOT EXISTS habits (
       id INTEGER PRIMARY KEY,
       name TEXT NOT NULL,
       description TEXT,
-      frequency TEXT, -- e.g., 'daily', 'weekly'
       createdAt INTEGER
   );`;
   db.exec(createHabitsTable);
