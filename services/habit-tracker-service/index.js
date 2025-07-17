@@ -55,7 +55,7 @@ app.post('/api/habits-data', (req, res) => {
             db.prepare('DELETE FROM habit_completions').run();
             db.prepare('DELETE FROM habits').run();
 
-            const insertHabit = db.prepare('INSERT INTO habits (id, name, description, frequency, createdAt) VALUES (@id, @name, @description, @frequency, @createdAt)');
+            const insertHabit = db.prepare('INSERT INTO habits (id, name, description, createdAt) VALUES (@id, @name, @description, @createdAt)');
             const insertCompletion = db.prepare('INSERT INTO habit_completions (id, habit_id, completedAt) VALUES (@id, @habit_id, @completedAt)');
 
             for (const habit of habits) {
