@@ -5,44 +5,53 @@ import EventBus from './eventBus.js';
 
 class HabitTrackerMain {
     constructor() {
-        this.habitModal = document.getElementById('habit-modal');
-        this.addHabitBtn = document.getElementById('add-habit-btn');
-        this.closeButton = this.habitModal.querySelector('.close-button');
+        // Main UI Elements
+        this.container = document.getElementById('habit-cards-container');
+        this.addNewHabitBtn = document.getElementById('add-new-habit-btn');
+        this.homeBtn = document.getElementById('home-btn');
+
+        // Modal Elements
+        this.modal = document.getElementById('habit-modal');
+        this.closeButton = this.modal.querySelector('.close-button');
         this.habitForm = document.getElementById('habit-form');
         this.modalTitle = document.getElementById('habit-modal-title');
         this.habitIdInput = document.getElementById('habit-id-input');
         this.habitNameInput = document.getElementById('habit-name');
         this.habitDescriptionInput = document.getElementById('habit-description');
-        this.habitFrequencyInput = document.getElementById('habit-frequency');
         this.deleteHabitBtn = document.getElementById('delete-habit-btn');
-        this.gridContainer = document.getElementById('habit-grid-container');
 
         this.bindEventListeners();
-        // Listen for data changes to re-render the UI
         EventBus.subscribe('habitsChanged', () => this.render());
         EventBus.subscribe('habitCompletionsChanged', () => this.render());
 
-        // Initial render
-        this.render();
+        this.render(); // Initial render
     }
 
     bindEventListeners() {
-        this.addHabitBtn.addEventListener('click', () => this.openModal());
+        if (this.addNewHabitBtn) {
+            this.addNewHabitBtn.addEventListener('click', () => this.openModal());
+        }
+        if (this.homeBtn) {
+            this.homeBtn.addEventListener('click', () => window.location.href = 'index.html');
+        }
         this.closeButton.addEventListener('click', () => this.closeModal());
         this.habitForm.addEventListener('submit', (e) => this.handleFormSubmit(e));
         this.deleteHabitBtn.addEventListener('click', () => this.handleDelete());
-        
-        // Clicks on the grid for toggling completions or editing habits
-        this.gridContainer.addEventListener('click', (e) => {
-            const dayCell = e.target.closest('.day-cell');
-            const editBtn = e.target.closest('.edit-habit-btn');
 
-            if (dayCell) {
-                const habitId = parseInt(dayCell.dataset.habitId, 10);
-                const date = dayCell.dataset.date;
-                HabitTrackerService.toggleCompletion(habitId, date);
-            } else if (editBtn) {
-                const habitId = parseInt(editBtn.dataset.habitId, 10);
+        // Use event delegation for dynamically created elements
+        this.container.addEventListener('click', (e) => {
+            const square = e.target.closest('.commit-square');
+            const cardHeader = e.target.closest('.habit-card-header');
+
+            if (square) {
+                const habitId = parseInt(square.dataset.habitId, 10);
+                const date = square.dataset.date;
+                if (date) { // Ensure it's not a filler square
+                    HabitTrackerService.toggleCompletion(habitId, date);
+                }
+            } else if (cardHeader) {
+                // The header of the card is now the edit button
+                const habitId = parseInt(cardHeader.dataset.habitId, 10);
                 this.openModal(habitId);
             }
         });
@@ -54,26 +63,22 @@ class HabitTrackerMain {
         this.deleteHabitBtn.style.display = 'none';
 
         if (habitId) {
-            // Editing existing habit
-            const habits = AppStore.getHabits();
-            const habit = habits.find(h => h.id === habitId);
+            const habit = HabitTrackerService.getHabits().find(h => h.id === habitId);
             if (habit) {
                 this.modalTitle.textContent = 'Edit Habit';
                 this.habitIdInput.value = habit.id;
                 this.habitNameInput.value = habit.name;
                 this.habitDescriptionInput.value = habit.description || '';
-                this.habitFrequencyInput.value = habit.frequency;
                 this.deleteHabitBtn.style.display = 'block';
             }
         } else {
-            // Adding new habit
             this.modalTitle.textContent = 'Add a New Habit';
         }
-        this.habitModal.style.display = 'block';
+        this.modal.style.display = 'block';
     }
 
     closeModal() {
-        this.habitModal.style.display = 'none';
+        this.modal.style.display = 'none';
     }
 
     async handleFormSubmit(event) {
@@ -81,15 +86,12 @@ class HabitTrackerMain {
         const habitData = {
             id: this.habitIdInput.value ? parseInt(this.habitIdInput.value, 10) : null,
             name: this.habitNameInput.value.trim(),
-            description: this.habitDescriptionInput.value.trim(),
-            frequency: this.habitFrequencyInput.value
+            description: this.habitDescriptionInput.value.trim()
         };
 
         if (habitData.id) {
-            // Update existing habit
             await HabitTrackerService.updateHabit(habitData);
         } else {
-            // Create new habit
             await HabitTrackerService.createHabit(habitData);
         }
         this.closeModal();
@@ -97,82 +99,110 @@ class HabitTrackerMain {
 
     async handleDelete() {
         const habitId = parseInt(this.habitIdInput.value, 10);
-        if (habitId && confirm('Are you sure you want to delete this habit and all its history?')) {
+        if (habitId && confirm('Are you sure you want to delete this habit?')) {
             await HabitTrackerService.deleteHabit(habitId);
             this.closeModal();
         }
     }
 
     render() {
-        const habits = AppStore.getHabits();
-        const completions = AppStore.getHabitCompletions();
-        
-        if (!this.gridContainer) return;
-        this.gridContainer.innerHTML = ''; // Clear previous content
+        if (!this.container) return;
+        this.container.innerHTML = ''; // Clear previous render
+
+        const habits = HabitTrackerService.getHabits();
+        const completions = HabitTrackerService.getCompletionsForYear(new Date().getFullYear());
 
         if (habits.length === 0) {
-            this.gridContainer.innerHTML = `
-                <div class="habit-card-placeholder">
-                    <p>No habits yet. Click "Add New Habit" to get started!</p>
-                </div>`;
+            this.container.innerHTML = `<p class="text-center text-gray-400">No habits yet. Click "+ New Habit" to start.</p>`;
             return;
         }
 
-        const dates = this.getLast30Days();
-
-        // Create Header Row
-        const headerRow = document.createElement('div');
-        headerRow.className = 'habit-row header-row';
-        headerRow.innerHTML = `<div class="habit-name-header">Habit</div>`;
-        dates.forEach(date => {
-            const day = date.getDate();
-            const dayName = date.toLocaleDateString('en-US', { weekday: 'short' }).charAt(0);
-            headerRow.innerHTML += `<div class="day-header"><span>${dayName}</span><span>${day}</span></div>`;
-        });
-        this.gridContainer.appendChild(headerRow);
-        
-        // Create a row for each habit
         habits.forEach(habit => {
-            const habitRow = document.createElement('div');
-            habitRow.className = 'habit-row';
-            habitRow.innerHTML = `
-                <div class="habit-name-cell">
-                    <span>${habit.name}</span>
-                    <button class="edit-habit-btn" data-habit-id="${habit.id}">⚙️</button>
-                </div>
-            `;
-
-            dates.forEach(date => {
-                const dateString = HabitTrackerService.getYYYYMMDD(date);
-                const isCompleted = completions.some(c => 
-                    c.habit_id === habit.id && HabitTrackerService.getYYYYMMDD(new Date(c.completedAt)) === dateString
-                );
-                
-                const dayCell = document.createElement('div');
-                dayCell.className = `day-cell ${isCompleted ? 'completed' : ''}`;
-                dayCell.dataset.habitId = habit.id;
-                dayCell.dataset.date = dateString;
-                habitRow.appendChild(dayCell);
-            });
-            this.gridContainer.appendChild(habitRow);
+            const card = this.createHabitCard(habit, completions);
+            this.container.appendChild(card);
         });
     }
 
-    getLast30Days() {
-        const dates = [];
-        for (let i = 0; i < 30; i++) {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
-            dates.push(date);
+    createHabitCard(habit, allCompletions) {
+        const card = document.createElement('div');
+        card.className = 'habit-card';
+
+        // Calculate completions for this specific habit
+        const habitCompletions = AppStore.getHabitCompletions().filter(c => c.habit_id === habit.id);
+        const totalDays = 365;
+        const percentage = Math.round((habitCompletions.length / totalDays) * 100);
+        
+        // Define an icon (can be expanded later)
+        const icons = {
+            'water': 'fas fa-tint',
+            'wake': 'fas fa-sun',
+            'read': 'fas fa-book',
+            'steps': 'fas fa-walking'
+        };
+        const habitNameLower = habit.name.toLowerCase();
+        let iconClass = 'fas fa-check-circle'; // Default icon
+        for (const key in icons) {
+            if (habitNameLower.includes(key)) {
+                iconClass = icons[key];
+                break;
+            }
         }
-        return dates.reverse();
+
+        card.innerHTML = `
+            <div class="habit-card-header" data-habit-id="${habit.id}" style="cursor: pointer;">
+                <div class="habit-title-section">
+                    <i class="${iconClass} habit-icon"></i>
+                    <div>
+                        <div class="habit-name">${habit.name}</div>
+                        <div class="habit-target">${habit.description || 'Target: Everyday'}</div>
+                    </div>
+                </div>
+                <div class="habit-percentage">${percentage}%</div>
+            </div>
+            <div class="commit-grid-wrapper">
+                ${this.createCommitGrid(habit, allCompletions)}
+            </div>
+        `;
+        return card;
+    }
+
+    createCommitGrid(habit, allCompletions) {
+        const grid = document.createElement('div');
+        grid.className = 'commit-grid';
+
+        const year = new Date().getFullYear();
+        const firstDayOfYear = new Date(year, 0, 1);
+        const today = new Date();
+        const todayString = HabitTrackerService.getYYYYMMDD(today);
+        
+        // Offset for the first day of the year (0=Sun, 1=Mon, etc.)
+        let dayOffset = firstDayOfYear.getDay();
+        for (let i = 0; i < dayOffset; i++) {
+            grid.innerHTML += `<div class="commit-square filler"></div>`;
+        }
+        
+        const habitCompletions = AppStore.getHabitCompletions().filter(c => c.habit_id === habit.id);
+
+        for (let i = 0; i < 365; i++) {
+            const currentDate = new Date(year, 0, i + 1);
+            if (currentDate.getFullYear() !== year) continue; // Handle leap years gracefully
+
+            const dateString = HabitTrackerService.getYYYYMMDD(currentDate);
+            const isCompleted = habitCompletions.some(c => HabitTrackerService.getYYYYMMDD(new Date(c.completedAt)) === dateString);
+            
+            const level = isCompleted ? 'level-4' : 'level-0';
+            const isToday = (dateString === todayString) ? 'today' : '';
+
+            grid.innerHTML += `<div class="commit-square ${level} ${isToday}" data-habit-id="${habit.id}" data-date="${dateString}"></div>`;
+        }
+
+        return grid.outerHTML;
     }
 }
 
-// Ensure the DOM is fully loaded before initializing the script
+// Ensure the DOM is fully loaded before initializing
 document.addEventListener('DOMContentLoaded', () => {
-    // A check to make sure we are on the habits page
-    if (document.getElementById('habit-grid-container')) {
+    if (document.getElementById('habit-cards-container')) {
         new HabitTrackerMain();
     }
 });

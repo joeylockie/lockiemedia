@@ -26,20 +26,20 @@ const HabitTrackerService = {
     },
     
     /**
-     * Retrieves all completions for a specific year, formatted for a heatmap.
+     * Retrieves all completions for a specific year, grouped by date.
      * @param {number} year - The four-digit year.
-     * @returns {object} An object with timestamps as keys and completion counts as values.
+     * @returns {Map<string, number>} A map where keys are 'YYYY-MM-DD' dates
+     * and values are the number of completions for that day.
      */
     getCompletionsForYear(year) {
         const completions = AppStore.getHabitCompletions();
-        const yearlyData = {};
+        const yearlyData = new Map();
         
         completions.forEach(c => {
             const completionDate = new Date(c.completedAt);
             if (completionDate.getFullYear() === year) {
-                // The heatmap library often uses seconds-based timestamps
-                const timestamp = Math.floor(completionDate.getTime() / 1000);
-                yearlyData[timestamp] = (yearlyData[timestamp] || 0) + 1;
+                const dateString = this.getYYYYMMDD(completionDate);
+                yearlyData.set(dateString, (yearlyData.get(dateString) || 0) + 1);
             }
         });
         return yearlyData;
@@ -47,14 +47,14 @@ const HabitTrackerService = {
 
     /**
      * Creates a new habit object and saves it to the store.
-     * @param {object} habitData - Contains name, description, and frequency.
+     * @param {object} habitData - Contains name, description.
      */
-    async createHabit({ name, description, frequency }) {
+    async createHabit({ name, description }) {
         const newHabit = {
             id: Date.now(),
             name,
-            description,
-            frequency,
+            // The description field will now hold the "Target" text.
+            description: description || 'Target: Everyday',
             createdAt: Date.now()
         };
 
@@ -74,7 +74,9 @@ const HabitTrackerService = {
         const habitIndex = currentHabits.findIndex(h => h.id === habitData.id);
 
         if (habitIndex > -1) {
-            currentHabits[habitIndex] = habitData;
+            // Ensure the description field is also updated
+            currentHabits[habitIndex].name = habitData.name;
+            currentHabits[habitIndex].description = habitData.description;
             await AppStore.setHabits(currentHabits, 'HabitTrackerService.updateHabit');
         } else {
             LoggingService.error(`[HabitService] Could not find habit to update with ID: ${habitData.id}`);

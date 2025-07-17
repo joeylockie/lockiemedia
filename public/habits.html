@@ -1,43 +1,41 @@
 <div class="habit-tracker-container">
-    <header class="app-header">
-        <h1>Habit Tracker</h1>
-        <button id="add-habit-btn" class="button-primary">+ Add New Habit</button>
+
+    <header class="habit-header">
+        <div class="header-title">
+            <h1>Habit Tracker</h1>
+            <span class="header-subtitle">2025 In-Review</span>
+        </div>
+        <div class="header-actions">
+            <button id="home-btn" class="button-icon">
+                <i class="fas fa-home"></i>
+            </button>
+            <button id="add-new-habit-btn" class="button-primary">+ New Habit</button>
+        </div>
     </header>
 
-    <div id="habit-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-button">&times;</span>
-            <h2 id="habit-modal-title">Add a New Habit</h2>
-            <form id="habit-form">
-                <input type="hidden" id="habit-id-input">
-                <div class="form-group">
-                    <label for="habit-name">Habit Name:</label>
-                    <input type="text" id="habit-name" placeholder="e.g., Drink 8 glasses of water" required>
-                </div>
-                <div class="form-group">
-                    <label for="habit-description">Description (optional):</label>
-                    <textarea id="habit-description" rows="3" placeholder="e.g., Keep a water bottle on my desk."></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="habit-frequency">Frequency:</label>
-                    <select id="habit-frequency">
-                        <option value="daily" selected>Daily</option>
-                        <option value="weekly">Weekly</option>
-                        <option value="monthly">Monthly</option>
-                    </select>
-                </div>
-                <div class="form-actions">
-                    <button type="submit" class="button-primary" id="habit-form-submit">Save Habit</button>
-                    <button type="button" class="button-danger" id="delete-habit-btn" style="display: none;">Delete</button>
-                </div>
-            </form>
-        </div>
+    <main id="habit-cards-container">
+        </main>
+
+</div>
+
+<div id="habit-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-button">&times;</span>
+        <h2 id="habit-modal-title">Add a New Habit</h2>
+        <form id="habit-form">
+            <input type="hidden" id="habit-id-input">
+            <div class="form-group">
+                <label for="habit-name">Habit Name:</label>
+                <input type="text" id="habit-name" placeholder="e.g., Drink 8 glasses of water" required>
+            </div>
+            <div class="form-group">
+                <label for="habit-description">Description (optional):</label>
+                <textarea id="habit-description" rows="3" placeholder="e.g., Target: 8 cups per day"></textarea>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="button-primary" id="habit-form-submit">Save Habit</button>
+                <button type="button" class="button-danger" id="delete-habit-btn" style="display: none;">Delete</button>
+            </div>
+        </form>
     </div>
-
-    <main id="habit-grid-container" class="habit-grid">
-        <div class="habit-card-placeholder">
-            <p>No habits yet. Click "Add New Habit" to get started!</p>
-        </div>
-    </main>
-
 </div>
