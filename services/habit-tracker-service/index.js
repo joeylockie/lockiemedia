@@ -55,26 +55,26 @@ app.post('/api/habits-data', (req, res) => {
             db.prepare('DELETE FROM habit_completions').run();
             db.prepare('DELETE FROM habits').run();
 
-            // --- THIS IS THE LINE TO VERIFY ---
-            // It MUST NOT include "frequency".
             const insertHabit = db.prepare('INSERT INTO habits (id, name, description, createdAt) VALUES (@id, @name, @description, @createdAt)');
-            
             const insertCompletion = db.prepare('INSERT INTO habit_completions (id, habit_id, completedAt) VALUES (@id, @habit_id, @completedAt)');
 
             for (const habit of habits) {
-                // We add a fallback for frequency here just in case old data is sent.
-                const habitToInsert = { ...habit };
-                delete habitToInsert.frequency; 
-                insertHabit.run(habitToInsert);
+                const sanitizedHabit = {
+                    id: habit.id,
+                    name: habit.name,
+                    description: habit.description,
+                    createdAt: habit.createdAt
+                };
+                insertHabit.run(sanitizedHabit);
             }
             for (const completion of habit_completions) {
                 insertCompletion.run(completion);
             }
         } catch (error) {
             console.error('[Habit Service] Transaction failed:', error.message);
-            throw error;
+            throw error; // This re-throws the error to be caught by the outer block
         }
-    });
+    }); // This closes the db.transaction callback
 
     try {
         transaction();
@@ -82,7 +82,7 @@ app.post('/api/habits-data', (req, res) => {
     } catch (error) {
         res.status(500).json({ error: 'An error occurred during data synchronization.' });
     }
-});
+}); // This closes the app.post callback
 
 
 // --- OLD: Original Fine-Grained Endpoints ---
