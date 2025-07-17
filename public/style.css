@@ -620,3 +620,71 @@ body.is-resizing-notes * {
     background-color: #4b5563; /* gray-600 */
     color: white;
 }
+
+
+/* ======================================= */
+/* ===== POMODORO TIMER STYLES (NEW) ===== */
+/* ======================================= */
+
+/* --- Session Tabs --- */
+.pomodoro-tab {
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem; /* rounded-md */
+    font-weight: 600;
+    color: #9ca3af; /* gray-400 */
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.pomodoro-tab:hover {
+    color: white;
+}
+
+.pomodoro-tab.active {
+    background-color: #4f46e5; /* indigo-600 */
+    color: white;
+}
+
+/* --- Start Button --- */
+.button-start {
+    background-color: white;
+    color: #111827; /* gray-900 */
+    font-weight: 700;
+    font-size: 1.125rem; /* text-lg */
+    padding: 0.75rem 3rem;
+    border-radius: 0.5rem; /* rounded-lg */
+    border: none;
+    cursor: pointer;
+    transition: transform 0.1s, background-color 0.2s;
+    letter-spacing: 0.1em; /* Add some letter spacing */
+}
+
+.button-start:hover {
+    background-color: #f3f4f6; /* gray-100 */
+}
+
+.button-start:active {
+    transform: scale(0.98);
+}
+
+/* --- Secondary Icon Button (for reset) --- */
+.button-icon-secondary {
+    background-color: #374151; /* gray-700 */
+    color: #9ca3af; /* gray-400 */
+    border-radius: 0.5rem; /* rounded-lg */
+    width: 3.25rem; /* A bit larger than the header icon buttons */
+    height: 3.25rem;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.button-icon-secondary:hover {
+    background-color: #4b5563; /* gray-600 */
+    color: white;
+}
