@@ -360,7 +360,10 @@ body.is-resizing-notes * {
 
 /* --- Main Container & Header --- */
 .habit-tracker-container {
-    padding: 1rem 2rem; /* Add some padding around the app */
+    max-width: 1024px; /* Sets a maximum width for the content */
+    margin-left: auto;  /* These two lines center the container */
+    margin-right: auto;
+    padding: 1rem 2rem; /* Keeps the padding around the app */
 }
 
 .habit-header {
