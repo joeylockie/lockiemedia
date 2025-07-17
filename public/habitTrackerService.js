@@ -10,12 +10,27 @@ const HabitTrackerService = {
     },
 
     /**
+     * Retrieves all habits from the central store.
+     * @returns {Array} An array of habit objects.
+     */
+    getHabits() {
+        return AppStore.getHabits();
+    },
+
+    /**
+     * Retrieves all habit completions from the central store.
+     * @returns {Array} An array of habit completion objects.
+     */
+    getHabitCompletions() {
+        return AppStore.getHabitCompletions();
+    },
+
+    /**
      * Creates a new habit object and saves it to the store.
      * @param {object} habitData - Contains name, description, and frequency.
      * @returns {object} The newly created habit.
      */
     async createHabit({ name, description, frequency }) {
-// ... the rest of the file remains the same
         const newHabit = {
             id: Date.now(), // Simple unique ID for now
             name,
