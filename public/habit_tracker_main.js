@@ -24,22 +24,26 @@ class HabitTrackerMain {
         EventBus.subscribe('storeInitialized', () => this.render());
     }
 
+    // Replace the existing bindEventListeners function
     bindEventListeners() {
-        if (this.addNewHabitBtn) this.addNewHabitBtn.addEventListener('click', () => this.openModal());
-        if (this.homeBtn) this.homeBtn.addEventListener('click', () => window.location.href = 'index.html');
-        this.closeButton.addEventListener('click', () => this.closeModal());
-        this.habitForm.addEventListener('submit', (e) => this.handleFormSubmit(e));
-        this.deleteHabitBtn.addEventListener('click', () => this.handleDelete());
-        this.container.addEventListener('click', (e) => {
-            const square = e.target.closest('.commit-square');
-            const cardHeader = e.target.closest('.habit-card-header');
-            if (square && square.dataset.date) {
-                HabitTrackerService.toggleCompletion(parseInt(square.dataset.habitId, 10), square.dataset.date);
-            } else if (cardHeader) {
-                this.openModal(parseInt(cardHeader.dataset.habitId, 10));
-            }
-        });
-    }
+    if (this.addNewHabitBtn) this.addNewHabitBtn.addEventListener('click', () => this.openModal());
+    if (this.homeBtn) this.homeBtn.addEventListener('click', () => window.location.href = 'index.html');
+    this.closeButton.addEventListener('click', () => this.closeModal());
+    this.habitForm.addEventListener('submit', (e) => this.handleFormSubmit(e));
+    this.deleteHabitBtn.addEventListener('click', () => this.handleDelete());
+    
+    // Use event delegation for dynamically created elements
+    this.container.addEventListener('click', (e) => {
+        const square = e.target.closest('.commit-square');
+        const editBtn = e.target.closest('.habit-edit-btn'); // Target the new button
+
+        if (square && square.dataset.date) {
+            HabitTrackerService.toggleCompletion(parseInt(square.dataset.habitId, 10), square.dataset.date);
+        } else if (editBtn) { // Check if the edit button was clicked
+            this.openModal(parseInt(editBtn.dataset.habitId, 10));
+        }
+    });
+}
 
     openModal(habitId = null) {
         this.habitForm.reset();
@@ -103,35 +107,40 @@ class HabitTrackerMain {
         });
     }
 
-    createHabitCard(habit) {
-        const card = document.createElement('div');
-        card.className = 'habit-card';
-        const habitCompletions = AppStore.getHabitCompletions().filter(c => c.habit_id === habit.id);
-        const percentage = Math.round((habitCompletions.length / 365) * 100);
-        const icons = {'water': 'fas fa-tint', 'wake': 'fas fa-sun', 'read': 'fas fa-book', 'steps': 'fas fa-walking'};
-        let iconClass = 'fas fa-check-circle';
-        for (const key in icons) {
-            if (habit.name.toLowerCase().includes(key)) {
-                iconClass = icons[key];
-                break;
-            }
+    // Replace the existing createHabitCard function
+createHabitCard(habit) {
+    const card = document.createElement('div');
+    card.className = 'habit-card';
+    const habitCompletions = AppStore.getHabitCompletions().filter(c => c.habit_id === habit.id);
+    const percentage = Math.round((habitCompletions.length / 365) * 100);
+    const icons = {'water': 'fas fa-tint', 'wake': 'fas fa-sun', 'read': 'fas fa-book', 'steps': 'fas fa-walking'};
+    let iconClass = 'fas fa-check-circle';
+    for (const key in icons) {
+        if (habit.name.toLowerCase().includes(key)) {
+            iconClass = icons[key];
+            break;
         }
-        card.innerHTML = `
-            <div class="habit-card-header" data-habit-id="${habit.id}" style="cursor: pointer;">
-                <div class="habit-title-section">
-                    <i class="${iconClass} habit-icon"></i>
-                    <div>
-                        <div class="habit-name">${habit.name}</div>
-                        <div class="habit-target">${habit.description || 'Target: Everyday'}</div>
-                    </div>
-                </div>
-                <div class="habit-percentage">${percentage}%</div>
-            </div>
-            <div class="commit-grid-wrapper">
-                ${this.createCommitGrid(habit.id, habitCompletions)}
-            </div>`;
-        return card;
     }
+    card.innerHTML = `
+        <div class="habit-card-header">
+            <div class="habit-title-section">
+                <i class="${iconClass} habit-icon"></i>
+                <div>
+                    <div class="habit-name">${habit.name}</div>
+                    <div class="habit-target">${habit.description || 'Target: Everyday'}</div>
+                </div>
+            </div>
+            <div class="habit-percentage">${percentage}%</div>
+            
+            <button class="habit-edit-btn" data-habit-id="${habit.id}" title="Edit Habit">
+                <i class="fas fa-pencil-alt"></i>
+            </button>
+        </div>
+        <div class="commit-grid-wrapper">
+            ${this.createCommitGrid(habit.id, habitCompletions)}
+        </div>`;
+    return card;
+}
 
     createCommitGrid(habitId, completions) {
         let gridHtml = '<div class="commit-grid">';

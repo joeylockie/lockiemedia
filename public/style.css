@@ -588,3 +588,33 @@ body.is-resizing-notes * {
     cursor: pointer;
     font-weight: 600;
 }
+
+
+/* --- Edit Button on Habit Card --- */
+.habit-card .habit-edit-btn {
+    position: absolute;
+    top: 0.75rem; /* 12px */
+    right: 0.75rem; /* 12px */
+    background-color: #374151; /* gray-700 */
+    color: #9ca3af; /* gray-400 */
+    border: none;
+    border-radius: 9999px; /* rounded-full */
+    width: 2rem;  /* w-8 */
+    height: 2rem; /* h-8 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0; /* Hidden by default */
+    transition: opacity 0.2s ease-in-out, background-color 0.2s ease-in-out;
+}
+
+/* Show button on card hover */
+.habit-card:hover .habit-edit-btn {
+    opacity: 1;
+}
+
+.habit-card .habit-edit-btn:hover {
+    background-color: #4b5563; /* gray-600 */
+    color: white;
+}
