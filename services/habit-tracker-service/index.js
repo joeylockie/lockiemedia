@@ -55,11 +55,17 @@ app.post('/api/habits-data', (req, res) => {
             db.prepare('DELETE FROM habit_completions').run();
             db.prepare('DELETE FROM habits').run();
 
+            // --- THIS IS THE LINE TO VERIFY ---
+            // It MUST NOT include "frequency".
             const insertHabit = db.prepare('INSERT INTO habits (id, name, description, createdAt) VALUES (@id, @name, @description, @createdAt)');
+            
             const insertCompletion = db.prepare('INSERT INTO habit_completions (id, habit_id, completedAt) VALUES (@id, @habit_id, @completedAt)');
 
             for (const habit of habits) {
-                insertHabit.run(habit);
+                // We add a fallback for frequency here just in case old data is sent.
+                const habitToInsert = { ...habit };
+                delete habitToInsert.frequency; 
+                insertHabit.run(habitToInsert);
             }
             for (const completion of habit_completions) {
                 insertCompletion.run(completion);
