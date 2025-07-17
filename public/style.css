@@ -688,3 +688,35 @@ body.is-resizing-notes * {
     background-color: #4b5563; /* gray-600 */
     color: white;
 }
+
+
+/* --- Pomodoro Settings Modal --- */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Creates a 2-column grid */
+    gap: 1rem;
+}
+
+.settings-input {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: #374151; /* gray-700 */
+    border: 1px solid #4b5563; /* gray-600 */
+    border-radius: 0.375rem; /* rounded-md */
+    color: white;
+    font-size: 1rem;
+}
+
+/* Find these existing rules and replace them */
+
+.settings-input::-webkit-outer-spin-button,
+.settings-input::-webkit-inner-spin-button {
+    -webkit-appearance: none; /* For older browsers */
+    appearance: none;         /* Standard property for modern browsers */
+    margin: 0;
+}
+
+.settings-input[type=number] {
+    -moz-appearance: textfield; /* For Firefox */
+    appearance: textfield;      /* Standard property for modern browsers */
+}

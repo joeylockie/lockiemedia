@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pomodoro History - LockieMedia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827;
+            color: #e5e7eb;
+        }
+        /* Simple table styles */
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .history-table th, .history-table td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid #374151; /* gray-700 */
+        }
+        .history-table th {
+            font-weight: 600;
+            color: #d1d5db; /* gray-300 */
+        }
+        .history-table tbody tr:hover {
+            background-color: #1f2937; /* gray-800 */
+        }
+    </style>
+</head>
+<body class="bg-gray-900 min-h-screen p-4 sm:p-6 lg:p-8">
+
+    <div class="max-w-2xl mx-auto">
+        <header class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-white">Session History</h1>
+                <p class="text-lg text-gray-400">Your completed pomodoros.</p>
+            </div>
+            <a href="pomodoro.html" class="text-gray-400 hover:text-white transition-colors" title="Back to Timer">
+                <i class="fas fa-arrow-left fa-lg"></i>
+            </a>
+        </header>
+
+        <main class="bg-slate-800 p-8 rounded-xl shadow-xl border border-slate-700">
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Session Type</th>
+                        <th>Duration</th>
+                    </tr>
+                </thead>
+                <tbody id="history-table-body">
+                    <tr>
+                        <td colspan="3" class="text-center text-gray-400">Loading history...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </main>
+    </div>
+    
+    <script src="loggingService.js" type="module"></script>
+    <script src="eventBus.js" type="module"></script>
+    <script src="store.js" type="module"></script>
+    <script src="pomodoro_history_main.js" type="module"></script>
+
+</body>
+</html>

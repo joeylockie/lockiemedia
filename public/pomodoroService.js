@@ -23,15 +23,43 @@ const PomodoroService = {
     onSessionChange: () => {},
 
     /**
-     * Initializes the service with default values.
+     * Initializes the service, loads settings, and sets the initial timer.
      * @param {object} callbacks - Functions to call for UI updates.
      */
     initialize(callbacks) {
         this.onUpdate = callbacks.onUpdate;
         this.onEnd = callbacks.onEnd;
         this.onSessionChange = callbacks.onSessionChange;
+
+        this.loadSettings();
         this.resetTimer();
         LoggingService.info('[PomodoroService] Initialized.');
+    },
+
+    /**
+     * Loads settings from localStorage. If none exist, it uses the defaults.
+     */
+    loadSettings() {
+        const savedSettings = localStorage.getItem('pomodoroSettings');
+        if (savedSettings) {
+            this.settings = JSON.parse(savedSettings);
+        }
+    },
+
+    /**
+     * Saves new settings to the service and to localStorage.
+     * @param {object} newSettings - The new settings object.
+     */
+    saveSettings(newSettings) {
+        this.settings.workMinutes = parseInt(newSettings.workMinutes, 10);
+        this.settings.shortBreakMinutes = parseInt(newSettings.shortBreakMinutes, 10);
+        this.settings.longBreakMinutes = parseInt(newSettings.longBreakMinutes, 10);
+        this.settings.longBreakInterval = parseInt(newSettings.longBreakInterval, 10);
+        
+        localStorage.setItem('pomodoroSettings', JSON.stringify(this.settings));
+        
+        this.resetTimer();
+        this.onSessionChange(this.currentSession, this.sessionCount);
     },
 
     /**
@@ -40,7 +68,6 @@ const PomodoroService = {
     start() {
         if (this.isRunning) return;
         this.isRunning = true;
-        // The interval function runs every second
         this.timerInterval = setInterval(() => this._countdown(), 1000);
     },
 
@@ -58,12 +85,12 @@ const PomodoroService = {
      */
     _countdown() {
         this.timeLeft--;
-        this.onUpdate(this.timeLeft); // Update the UI
+        this.onUpdate(this.timeLeft);
 
         if (this.timeLeft < 0) {
             this.pause();
-            this.onEnd(); // Notify UI that timer ended
-            this.saveCurrentSession();
+            this.onEnd();
+            this.saveCurrentSession(); // This will now save the data
             this.switchToNextSession();
         }
     },
@@ -87,7 +114,7 @@ const PomodoroService = {
                 break;
         }
         this.timeLeft = newTime * 60;
-        this.onUpdate(this.timeLeft); // Update UI with the new reset time
+        this.onUpdate(this.timeLeft);
     },
 
     /**
@@ -96,13 +123,12 @@ const PomodoroService = {
     switchToNextSession() {
         if (this.currentSession === 'work') {
             this.sessionCount++;
-            if (this.sessionCount % this.settings.longBreakInterval === 0) {
+            if (this.sessionCount > 0 && this.sessionCount % this.settings.longBreakInterval === 0) {
                 this.switchSession('long_break');
             } else {
                 this.switchSession('short_break');
             }
         } else {
-            // After any break, we go back to work
             this.switchSession('work');
         }
     },
@@ -114,31 +140,32 @@ const PomodoroService = {
     switchSession(sessionType) {
         this.currentSession = sessionType;
         this.resetTimer();
-        this.onSessionChange(this.currentSession, this.sessionCount); // Notify UI of the change
+        this.onSessionChange(this.currentSession, this.sessionCount);
     },
 
     /**
+     * THIS FUNCTION IS UPDATED:
      * Saves the completed session to the AppStore.
      */
     async saveCurrentSession() {
-        const sessionDuration = this.settings[this.currentSession + 'Minutes'];
+        const sessionKey = this.currentSession === 'work' ? 'workMinutes' : (this.currentSession === 'short_break' ? 'shortBreakMinutes' : 'longBreakMinutes');
+        const sessionDuration = this.settings[sessionKey];
+
         const newSession = {
             id: Date.now(),
             startTime: Date.now() - (sessionDuration * 60 * 1000),
             endTime: Date.now(),
             duration: sessionDuration,
-            type: this.currentSession,
+            type: this.currentSession.replace('_', ' '), // e.g., 'short break'
             status: 'completed',
             createdAt: Date.now(),
         };
 
-        const currentSessions = AppStore.getPomodoroSessions ? AppStore.getPomodoroSessions() : [];
+        const currentSessions = AppStore.getPomodoroSessions();
         const updatedSessions = [...currentSessions, newSession];
 
-        if (AppStore.setPomodoroSessions) {
-            await AppStore.setPomodoroSessions(updatedSessions, 'PomodoroService.saveSession');
-            LoggingService.info(`[PomodoroService] Saved session: ${this.currentSession}`);
-        }
+        await AppStore.setPomodoroSessions(updatedSessions, 'PomodoroService.saveSession');
+        LoggingService.info(`[PomodoroService] Saved session: ${newSession.type}`);
     },
 };
 
