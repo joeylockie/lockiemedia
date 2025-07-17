@@ -193,6 +193,39 @@ function setupDatabase() {
       FOREIGN KEY (ticketId) REFERENCES dev_tickets (id) ON DELETE CASCADE
   );`;
   db.exec(createDevTicketCommentsTable);
+  
+  // --- NEW: Habit Tracker Tables ---
+  const createHabitsTable = `
+  CREATE TABLE IF NOT EXISTS habits (
+      id INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      frequency TEXT, -- e.g., 'daily', 'weekly'
+      createdAt INTEGER
+  );`;
+  db.exec(createHabitsTable);
+
+  const createHabitCompletionsTable = `
+  CREATE TABLE IF NOT EXISTS habit_completions (
+      id INTEGER PRIMARY KEY,
+      habit_id INTEGER NOT NULL,
+      completedAt INTEGER,
+      FOREIGN KEY (habit_id) REFERENCES habits(id) ON DELETE CASCADE
+  );`;
+  db.exec(createHabitCompletionsTable);
+
+  // --- NEW: Pomodoro Tables ---
+  const createPomodoroSessionsTable = `
+  CREATE TABLE IF NOT EXISTS pomodoro_sessions (
+      id INTEGER PRIMARY KEY,
+      startTime INTEGER NOT NULL,
+      endTime INTEGER,
+      duration INTEGER NOT NULL, -- in minutes
+      type TEXT NOT NULL, -- 'work', 'short_break', 'long_break'
+      status TEXT DEFAULT 'completed', -- 'completed', 'interrupted'
+      createdAt INTEGER
+  );`;
+  db.exec(createPomodoroSessionsTable);
 
   // --- Calendar Events Table ---
   const createCalendarEventsTable = `

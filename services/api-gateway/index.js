@@ -12,7 +12,9 @@ const serviceTargets = {
     taskService: 'http://127.0.0.1:3004',
     timeTrackerService: 'http://127.0.0.1:3005',
     devTrackerService: 'http://127.0.0.1:3006',
-    calendarService: 'http://127.0.0.1:3007', // FIX: Point to the new correct port
+    calendarService: 'http://127.0.0.1:3007',
+    habitTrackerService: 'http://127.0.0.1:3008', // NEW
+    pomodoroService: 'http://127.0.0.1:3009',   // NEW
 };
 
 // --- Security Configuration ---
@@ -53,6 +55,8 @@ const fetchServiceDataWithRetry = async (serviceName, serviceUrl, retries = 3, d
         else if (serviceName === 'timeTrackerService') endpoint = '/api/time-data';
         else if (serviceName === 'devTrackerService') endpoint = '/api/dev-data';
         else if (serviceName === 'calendarService') endpoint = '/api/calendar-data';
+        else if (serviceName === 'habitTrackerService') endpoint = '/api/habits-data'; // NEW
+        else if (serviceName === 'pomodoroService') endpoint = '/api/pomodoro-data'; // NEW
         else return {};
 
         const response = await axios.get(`${serviceUrl}${endpoint}`);
@@ -72,7 +76,7 @@ const fetchServiceDataWithRetry = async (serviceName, serviceUrl, retries = 3, d
 
 app.get('/api/data', async (req, res) => {
     console.log('[API Gateway] GET /api/data received. Composing response from services...');
-    
+
     const servicePromises = Object.entries(serviceTargets).map(([name, url]) => fetchServiceDataWithRetry(name, url));
 
     try {
@@ -90,13 +94,15 @@ app.get('/api/data', async (req, res) => {
 app.post('/api/data', async (req, res) => {
     console.log('[API Gateway] POST /api/data received. Distributing data to services...');
     const incomingData = req.body;
-    
+
     const servicePayloads = {
         taskService: { data: { tasks: incomingData.tasks, projects: incomingData.projects, userProfile: incomingData.userProfile, userPreferences: incomingData.userPreferences }, endpoint: '/api/core-data' },
         notesService: { data: { notes: incomingData.notes, notebooks: incomingData.notebooks }, endpoint: '/api/notes-data' },
         timeTrackerService: { data: { time_activities: incomingData.time_activities, time_log_entries: incomingData.time_log_entries }, endpoint: '/api/time-data' },
         devTrackerService: { data: { dev_epics: incomingData.dev_epics, dev_tickets: incomingData.dev_tickets, dev_release_versions: incomingData.dev_release_versions, dev_ticket_history: incomingData.dev_ticket_history, dev_ticket_comments: incomingData.dev_ticket_comments }, endpoint: '/api/dev-data' },
-        calendarService: { data: { calendar_events: incomingData.calendar_events }, endpoint: '/api/calendar-data' }
+        calendarService: { data: { calendar_events: incomingData.calendar_events }, endpoint: '/api/calendar-data' },
+        habitTrackerService: { data: { habits: incomingData.habits, habit_completions: incomingData.habit_completions }, endpoint: '/api/habits-data' }, // NEW
+        pomodoroService: { data: { pomodoro_sessions: incomingData.pomodoro_sessions }, endpoint: '/api/pomodoro-data' } // NEW
     };
 
     const postPromises = [];

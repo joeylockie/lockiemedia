@@ -65,6 +65,28 @@
       "env": {
         "DB_FILE_PATH": "/root/lockiemedia-dev/lockiedb.sqlite"
       }
+    },
+    {
+      "name": "habit-tracker-service",
+      "script": "services/habit-tracker-service/index.js",
+      "cwd": "/root/lockiemedia-dev",
+      "watch": false,
+      "post_update": ["echo", "habit-tracker-service updated"],
+      "post_start": "sleep 0.1",
+      "env": {
+        "DB_FILE_PATH": "/root/lockiemedia-dev/lockiedb.sqlite"
+      }
+    },
+    {
+      "name": "pomodoro-service",
+      "script": "services/pomodoro-service/index.js",
+      "cwd": "/root/lockiemedia-dev",
+      "watch": false,
+      "post_update": ["echo", "pomodoro-service updated"],
+      "post_start": "sleep 0.1",
+      "env": {
+        "DB_FILE_PATH": "/root/lockiemedia-dev/lockiedb.sqlite"
+      }
     }
   ]
 }
