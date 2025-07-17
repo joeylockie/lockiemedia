@@ -7,78 +7,122 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Use a specific port for this service, defined in your .env file or default to 3007
-const PORT = process.env.HABIT_TRACKER_SERVICE_PORT || 3007; 
+// Use a specific port for this service, defined in your .env file or default to 3008
+const PORT = process.env.HABIT_TRACKER_SERVICE_PORT || 3008;
 const dbPath = process.env.DB_FILE_PATH || '../../lockiedb.sqlite';
 
 // Connect to the database. `fileMustExist: true` ensures we don't accidentally create a new empty db.
 const db = new Database(dbPath, { fileMustExist: true });
-console.log(`Habit Tracker service connected to database at ${dbPath}`);
+console.log(`[Habit Service] Connected to database at ${dbPath}`);
 
-// --- API Endpoints ---
+// --- NEW: API Endpoints for Data Sync ---
 
-// GET all habits and their completion records
+/**
+ * GET /api/habits-data
+ * Fetches all habit and completion data from the database.
+ * This is called by the API Gateway to gather data for the frontend.
+ */
+app.get('/api/habits-data', (req, res) => {
+    console.log('[Habit Service] GET /api/habits-data received.');
+    try {
+        const habits = db.prepare('SELECT * FROM habits').all();
+        const habit_completions = db.prepare('SELECT * FROM habit_completions').all();
+        
+        res.json({
+            habits,
+            habit_completions
+        });
+    } catch (error) {
+        console.error('[Habit Service] Error fetching habits data:', error.message);
+        res.status(500).json({ error: 'Failed to retrieve habits data.' });
+    }
+});
+
+/**
+ * POST /api/habits-data
+ * Receives a full snapshot of habit data and replaces the existing data.
+ */
+app.post('/api/habits-data', (req, res) => {
+    console.log('[Habit Service] POST /api/habits-data received.');
+    const { habits, habit_completions } = req.body;
+
+    if (!habits || !habit_completions) {
+        return res.status(400).json({ error: 'Missing habits or habit_completions data in request.' });
+    }
+
+    const transaction = db.transaction(() => {
+        try {
+            db.prepare('DELETE FROM habit_completions').run();
+            db.prepare('DELETE FROM habits').run();
+
+            const insertHabit = db.prepare('INSERT INTO habits (id, name, description, frequency, createdAt) VALUES (@id, @name, @description, @frequency, @createdAt)');
+            const insertCompletion = db.prepare('INSERT INTO habit_completions (id, habit_id, completedAt) VALUES (@id, @habit_id, @completedAt)');
+
+            for (const habit of habits) {
+                insertHabit.run(habit);
+            }
+            for (const completion of habit_completions) {
+                insertCompletion.run(completion);
+            }
+        } catch (error) {
+            console.error('[Habit Service] Transaction failed:', error.message);
+            throw error;
+        }
+    });
+
+    try {
+        transaction();
+        res.status(200).json({ message: 'Habits data successfully synchronized.' });
+    } catch (error) {
+        res.status(500).json({ error: 'An error occurred during data synchronization.' });
+    }
+});
+
+
+// --- OLD: Original Fine-Grained Endpoints ---
+// (These are being kept for now but are not used by the gateway's data sync)
+
 app.get('/habits', (req, res) => {
     try {
-        // Get all habits
         const habits = db.prepare('SELECT * FROM habits ORDER BY createdAt DESC').all();
-        // Get all completions
         const completions = db.prepare('SELECT * FROM habit_completions').all();
-
-        // Attach completions to their respective habits
         habits.forEach(habit => {
             habit.completions = completions.filter(c => c.habit_id === habit.id);
         });
-
         res.json(habits);
     } catch (error) {
-        console.error('Failed to fetch habits:', error);
         res.status(500).json({ error: 'Failed to fetch habits' });
     }
 });
 
-// POST a new habit
 app.post('/habits', (req, res) => {
     const { name, description, frequency } = req.body;
-    if (!name) {
-        return res.status(400).json({ error: 'Habit name is required' });
-    }
-
+    if (!name) return res.status(400).json({ error: 'Habit name is required' });
     try {
         const stmt = db.prepare('INSERT INTO habits (name, description, frequency, createdAt) VALUES (?, ?, ?, ?)');
         const info = stmt.run(name, description, frequency, Date.now());
         const newHabit = db.prepare('SELECT * FROM habits WHERE id = ?').get(info.lastInsertRowid);
         res.status(201).json(newHabit);
     } catch (error) {
-        console.error('Failed to create habit:', error);
         res.status(500).json({ error: 'Failed to create habit' });
     }
 });
 
-// DELETE a habit
 app.delete('/habits/:id', (req, res) => {
     const { id } = req.params;
     try {
-        // The database is set up with ON DELETE CASCADE, so completions will be deleted automatically.
         const stmt = db.prepare('DELETE FROM habits WHERE id = ?');
         const info = stmt.run(id);
-
-        if (info.changes > 0) {
-            res.status(200).json({ message: 'Habit deleted successfully' });
-        } else {
-            res.status(404).json({ error: 'Habit not found' });
-        }
+        if (info.changes > 0) res.status(200).json({ message: 'Habit deleted successfully' });
+        else res.status(404).json({ error: 'Habit not found' });
     } catch (error) {
-        console.error('Failed to delete habit:', error);
         res.status(500).json({ error: 'Failed to delete habit' });
     }
 });
 
-// POST a new completion for a habit
 app.post('/habits/:id/complete', (req, res) => {
     const { id } = req.params;
-    const { completedAt } = req.body; // Allow providing a specific timestamp
-
+    const { completedAt } = req.body;
     try {
         const stmt = db.prepare('INSERT INTO habit_completions (habit_id, completedAt) VALUES (?, ?)');
         const completionTimestamp = completedAt ? new Date(completedAt).getTime() : Date.now();
@@ -86,29 +130,23 @@ app.post('/habits/:id/complete', (req, res) => {
         const newCompletion = db.prepare('SELECT * FROM habit_completions WHERE id = ?').get(info.lastInsertRowid);
         res.status(201).json(newCompletion);
     } catch (error) {
-        console.error('Failed to mark habit as complete:', error);
         res.status(500).json({ error: 'Failed to mark habit as complete' });
     }
 });
 
-// DELETE a specific habit completion (undo)
 app.delete('/completions/:id', (req, res) => {
     const { id } = req.params;
     try {
         const stmt = db.prepare('DELETE FROM habit_completions WHERE id = ?');
         const info = stmt.run(id);
-        if (info.changes > 0) {
-            res.status(200).json({ message: 'Habit completion undone successfully' });
-        } else {
-            res.status(404).json({ error: 'Completion record not found' });
-        }
+        if (info.changes > 0) res.status(200).json({ message: 'Habit completion undone' });
+        else res.status(404).json({ error: 'Completion record not found' });
     } catch (error) {
-        console.error('Failed to undo habit completion:', error);
         res.status(500).json({ error: 'Failed to undo habit completion' });
     }
 });
 
 
 app.listen(PORT, () => {
-    console.log(`Habit Tracker service running on http://localhost:${PORT}`);
+    console.log(`[Habit Service] Listening on http://localhost:${PORT}`);
 });
