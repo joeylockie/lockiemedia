@@ -30,7 +30,10 @@ let _dev_tickets = [];
 let _dev_release_versions = [];
 let _dev_ticket_history = [];
 let _dev_ticket_comments = [];
-let _calendar_events = []; // NEW
+let _calendar_events = [];
+// --- NEW: Habit Tracker State ---
+let _habits = [];
+let _habit_completions = [];
 
 
 // --- Private Helper Functions ---
@@ -90,7 +93,10 @@ async function _saveAllData(source = 'unknown') {
         dev_release_versions: _dev_release_versions,
         dev_ticket_history: _dev_ticket_history,
         dev_ticket_comments: _dev_ticket_comments,
-        calendar_events: _calendar_events, // NEW
+        calendar_events: _calendar_events,
+        // --- NEW: Add habit data to the save payload ---
+        habits: _habits,
+        habit_completions: _habit_completions,
     };
 
     try {
@@ -133,7 +139,10 @@ const AppStore = {
     getDevReleaseVersions: () => JSON.parse(JSON.stringify(_dev_release_versions)),
     getDevTicketHistory: () => JSON.parse(JSON.stringify(_dev_ticket_history)),
     getDevTicketComments: () => JSON.parse(JSON.stringify(_dev_ticket_comments)),
-    getCalendarEvents: () => JSON.parse(JSON.stringify(_calendar_events)), // NEW
+    getCalendarEvents: () => JSON.parse(JSON.stringify(_calendar_events)),
+    // --- NEW: Getters for Habit Tracker ---
+    getHabits: () => JSON.parse(JSON.stringify(_habits)),
+    getHabitCompletions: () => JSON.parse(JSON.stringify(_habit_completions)),
 
     setTasks: async (newTasksArray, source = 'setTasks') => {
         _tasks = JSON.parse(JSON.stringify(newTasksArray));
@@ -200,10 +209,21 @@ const AppStore = {
         _dev_ticket_comments = JSON.parse(JSON.stringify(newCommentsArray));
         _publish('devTicketCommentsChanged', [..._dev_ticket_comments]);
     },
-    setCalendarEvents: async (newEventsArray, source = 'setCalendarEvents') => { // NEW
+    setCalendarEvents: async (newEventsArray, source = 'setCalendarEvents') => {
         _calendar_events = JSON.parse(JSON.stringify(newEventsArray));
         await _saveAllData(source);
         _publish('calendarEventsChanged', [..._calendar_events]);
+    },
+    // --- NEW: Setters for Habit Tracker ---
+    setHabits: async (newHabitsArray, source = 'setHabits') => {
+        _habits = JSON.parse(JSON.stringify(newHabitsArray));
+        await _saveAllData(source);
+        _publish('habitsChanged', [..._habits]);
+    },
+    setHabitCompletions: async (newCompletionsArray, source = 'setHabitCompletions') => {
+        _habit_completions = JSON.parse(JSON.stringify(newCompletionsArray));
+        await _saveAllData(source); // We save on any completion change
+        _publish('habitCompletionsChanged', [..._habit_completions]);
     },
 
 
@@ -250,7 +270,10 @@ const AppStore = {
             _dev_release_versions = data.dev_release_versions || [];
             _dev_ticket_history = data.dev_ticket_history || [];
             _dev_ticket_comments = data.dev_ticket_comments || [];
-            _calendar_events = data.calendar_events || []; // NEW
+            _calendar_events = data.calendar_events || [];
+            // --- NEW: Initialize habit data ---
+            _habits = data.habits || [];
+            _habit_completions = data.habit_completions || [];
 
             _updateUniqueLabelsInternal();
             _updateUniqueProjectsInternal();
@@ -271,7 +294,10 @@ const AppStore = {
             _publish('devReleaseVersionsChanged', [..._dev_release_versions]);
             _publish('devTicketHistoryChanged', [..._dev_ticket_history]);
             _publish('devTicketCommentsChanged', [..._dev_ticket_comments]);
-            _publish('calendarEventsChanged', [..._calendar_events]); // NEW
+            _publish('calendarEventsChanged', [..._calendar_events]);
+            // --- NEW: Publish habit data loaded events ---
+            _publish('habitsChanged', [..._habits]);
+            _publish('habitCompletionsChanged', [..._habit_completions]);
 
         } catch (error) {
             LoggingService.critical('[AppStore] Could not load data from backend server. The app may not function correctly.', error, { functionName });
