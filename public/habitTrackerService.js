@@ -3,11 +3,19 @@ import LoggingService from './loggingService.js';
 
 const HabitTrackerService = {
     /**
+     * Initializes the service. Currently a placeholder to satisfy the loading pattern.
+     */
+    initialize() {
+        LoggingService.info('[HabitService] Initialized.', { module: 'HabitTrackerService' });
+    },
+
+    /**
      * Creates a new habit object and saves it to the store.
      * @param {object} habitData - Contains name, description, and frequency.
      * @returns {object} The newly created habit.
      */
     async createHabit({ name, description, frequency }) {
+// ... the rest of the file remains the same
         const newHabit = {
             id: Date.now(), // Simple unique ID for now
             name,
