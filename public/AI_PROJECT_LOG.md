@@ -57,28 +57,77 @@ lockiemedia-dev/
 ├── public/                # All client-facing frontend files.
 │   ├── AI_PROJECT_LOG.md    # THIS FILE. The primary source of truth for AI assistants.
 │   ├── README.md            # The public-facing project README file.
+│   ├── favicon.ico          # Browser tab icon.
+│   ├── icon-32x32.png       # App icon for manifests.
 │   ├── index.html           # Main application entry point (Dashboard).
 │   ├── style.css            # Global CSS styles.
-│   ├── store.js             # CRITICAL: Frontend state management. Fetches and holds all app data.
-│   ├── viewManager.js       # Handles loading different HTML views into the main content area.
+│   │
+│   ├── app_logic.js         # Core application logic, likely for initialization.
+│   ├── dashboard_main.js    # Main JS for the dashboard view.
 │   ├── eventBus.js          # Frontend module communication (Pub/Sub).
-│   ├── utils.js             # Shared utility functions.
+│   ├── loggingService.js    # Handles client-side logging.
+│   ├── modalStateService.js # Manages the state of modals.
+│   ├── notificationService.js # Handles desktop notifications.
 │   ├── service-worker.js    # PWA service worker for offline capabilities.
+│   ├── store.js             # CRITICAL: Frontend state management. Fetches and holds all app data.
+│   ├── utils.js             # Shared utility functions.
+│   ├── viewManager.js       # Handles loading different HTML views into the main content area.
 │   │
-│   ├── habits.html                  # (NEW) HTML view for the Habit Tracker app.
-│   ├── habitTrackerService.js       # (NEW) Business logic for the Habit Tracker.
-│   ├── habit_tracker_main.js        # (NEW) Main JavaScript controller for the Habit Tracker view.
+│   ├── automation.html      # Placeholder/Future view for Automation.
+│   ├── budget.html          # Placeholder/Future view for Budgeting.
 │   │
-│   ├── pomodoro.html                # (NEW) HTML view for the Pomodoro Timer app.
-│   ├── pomodoro-history.html        # (NEW) HTML view for the Pomodoro session history.
-│   ├── pomodoroService.js           # (NEW) Business logic for the Pomodoro Timer.
-│   ├── pomodoro_main.js             # (NEW) Main JavaScript controller for the Pomodoro Timer view.
-│   ├── pomodoro_history_main.js     # (NEW) Main JavaScript controller for the Pomodoro history view.
+│   ├── tasks.html                   # HTML view for the Task Manager app.
+│   ├── taskService.js               # Business logic for tasks.
+│   ├── projectService.js            # Business logic for projects.
+│   ├── labelService.js              # Business logic for labels.
+│   ├── tasks_main.js                # Main JS controller for the Task Manager view.
+│   ├── tasks_form_handlers.js       # Handles task form submissions.
+│   ├── tasks_list_view.js           # Logic for rendering the task list.
+│   ├── tasks_modal_events.js        # Event handling for task modals.
+│   ├── tasks_modal_interactions.js  # UI interactions for task modals.
+│   ├── tasks_ui_event_handlers.js   # General UI event handling for the tasks view.
+│   ├── tasks_ui_rendering.js        # General UI rendering for the tasks view.
 │   │
-│   ├── *.html               # HTML templates for each app view (e.g., tasks.html).
-│   ├── main.js              # Main JavaScript entry point for each app view (e.g., tasks_main.js).
-│   ├── *Service.js          # Business logic for each feature (e.g., taskService.js).
-│   └── feature.js           # Specific, isolated feature logic (e.g., feature_projects.js).
+│   ├── notes.html                   # HTML view for the Notes app.
+│   ├── noteService.js               # Business logic for notes.
+│   ├── notes_main.js                # Main JS controller for the Notes view.
+│   ├── notes_event_handlers.js      # Event handling for the Notes view.
+│   ├── notes_rendering.js           # UI rendering for the Notes view.
+│   │
+│   ├── time-tracker.html            # HTML view for the Time Tracker app.
+│   ├── time-history.html            # HTML view for the Time Tracker history.
+│   ├── timeTrackerService.js        # Business logic for the Time Tracker.
+│   ├── time_tracker_main.js         # Main JS controller for the Time Tracker view.
+│   ├── time_history_main.js         # Main JS controller for the Time Tracker history view.
+│   │
+│   ├── dev-tracker.html             # HTML view for the Dev Tracker app.
+│   ├── dev_tracker_service.js       # Business logic for the Dev Tracker.
+│   ├── dev_tracker_main.js          # Main JS controller for the Dev Tracker view.
+│   ├── dev_tracker_ui.js            # UI rendering and interactions for the Dev Tracker.
+│   │
+│   ├── calendar.html                # HTML view for the Calendar app.
+│   ├── calendarService.js           # Business logic for the Calendar.
+│   ├── calendar_main.js             # Main JS controller for the Calendar view.
+│   │
+│   ├── habits.html                  # HTML view for the Habit Tracker app.
+│   ├── habitTrackerService.js       # Business logic for the Habit Tracker.
+│   ├── habit_tracker_main.js        # Main JS controller for the Habit Tracker view.
+│   │
+│   ├── pomodoro.html                # HTML view for the Pomodoro Timer app.
+│   ├── pomodoro-history.html        # HTML view for the Pomodoro session history.
+│   ├── pomodoroService.js           # Business logic for the Pomodoro Timer.
+│   ├── pomodoro_main.js             # Main JS controller for the Pomodoro Timer view.
+│   ├── pomodoro_history_main.js     # Main JS controller for the Pomodoro history view.
+│   │
+│   ├── feature_advanced_recurrence.js   # Feature module for advanced recurrence.
+│   ├── feature_desktop_notifications.js # Feature module for desktop notifications.
+│   ├── feature_habit_tracker.js         # Feature module for habit tracker integration.
+│   ├── feature_notes.js                 # Feature module for notes integration.
+│   ├── feature_projects.js              # Feature module for projects integration.
+│   ├── feature_reminder.js              # Feature module for reminders.
+│   ├── feature_shopping_list.js         # Feature module for a shopping list.
+│   ├── feature_time_tracker.js          # Feature module for time tracker integration.
+│   └── feature_time_tracker_reminders.js# Feature module for time tracker reminders.
 │
 └── services/                # Contains all backend microservices.
     ├── api-gateway/         # The API Gateway service.
@@ -93,7 +142,7 @@ lockiemedia-dev/
     │   ├── index.js
     │   └── package.json
     │
-    ├── habit-tracker-service/ # (NEW) Microservice for Habit Tracker features.
+    ├── habit-tracker-service/ # Microservice for Habit Tracker features.
     │   ├── index.js           # Express server and API endpoints for the service.
     │   └── package.json       # Dependencies for the service.
     │
@@ -101,7 +150,7 @@ lockiemedia-dev/
     │   ├── index.js
     │   └── package.json
     │
-    ├── pomodoro-service/      # (NEW) Microservice for Pomodoro features.
+    ├── pomodoro-service/      # Microservice for Pomodoro features.
     │   ├── index.js           # Express server and API endpoints for the service.
     │   └── package.json       # Dependencies for the service.
     │
