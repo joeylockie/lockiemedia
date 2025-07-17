@@ -493,3 +493,95 @@ body.is-resizing-notes * {
 .commit-square.today {
     border: 1px solid #f59e0b; /* amber-500 */
 }
+
+
+
+/* ===== MODAL STYLES (for Habit Tracker & others) ===== */
+.modal {
+    position: fixed;
+    z-index: 100;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.6);
+    display: none; /* Hidden by default */
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: #1f2937; /* gray-800 */
+    margin: auto;
+    padding: 2rem;
+    border: 1px solid #4b5563; /* gray-600 */
+    width: 90%;
+    max-width: 500px;
+    border-radius: 0.75rem; /* rounded-xl */
+    position: relative;
+    color: #d1d5db; /* gray-300 */
+}
+
+.close-button {
+    color: #aaa;
+    position: absolute;
+    top: 1rem;
+    right: 1.5rem;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: white;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* Form Styles inside Modal */
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.form-group input[type="text"],
+.form-group textarea {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: #374151; /* gray-700 */
+    border: 1px solid #4b5563; /* gray-600 */
+    border-radius: 0.375rem; /* rounded-md */
+    color: white;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.button-primary {
+    background-color: #4f46e5; /* indigo-600 */
+    color: white;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    font-weight: 600;
+}
+.button-danger {
+    background-color: #dc2626; /* red-600 */
+    color: white;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    font-weight: 600;
+}

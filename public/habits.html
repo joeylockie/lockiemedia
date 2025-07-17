@@ -1,41 +1,61 @@
-<div class="habit-tracker-container">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Habit Tracker - LockieMedia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-900 min-h-screen">
 
-    <header class="habit-header">
-        <div class="header-title">
-            <h1>Habit Tracker</h1>
-            <span class="header-subtitle">2025 In-Review</span>
-        </div>
-        <div class="header-actions">
-            <button id="home-btn" class="button-icon">
-                <i class="fas fa-home"></i>
-            </button>
-            <button id="add-new-habit-btn" class="button-primary">+ New Habit</button>
-        </div>
-    </header>
-
-    <main id="habit-cards-container">
-        </main>
-
-</div>
-
-<div id="habit-modal" class="modal">
-    <div class="modal-content">
-        <span class="close-button">&times;</span>
-        <h2 id="habit-modal-title">Add a New Habit</h2>
-        <form id="habit-form">
-            <input type="hidden" id="habit-id-input">
-            <div class="form-group">
-                <label for="habit-name">Habit Name:</label>
-                <input type="text" id="habit-name" placeholder="e.g., Drink 8 glasses of water" required>
+    <div class="habit-tracker-container">
+        <header class="habit-header">
+            <div class="header-title">
+                <h1>Habit Tracker</h1>
+                <span class="header-subtitle">2025 In-Review</span>
             </div>
-            <div class="form-group">
-                <label for="habit-description">Description (optional):</label>
-                <textarea id="habit-description" rows="3" placeholder="e.g., Target: 8 cups per day"></textarea>
+            <div class="header-actions">
+                <a href="index.html" id="home-btn" class="button-icon">
+                    <i class="fas fa-home"></i>
+                </a>
+                <button id="add-new-habit-btn" class="button-primary">+ New Habit</button>
             </div>
-            <div class="form-actions">
-                <button type="submit" class="button-primary" id="habit-form-submit">Save Habit</button>
-                <button type="button" class="button-danger" id="delete-habit-btn" style="display: none;">Delete</button>
-            </div>
-        </form>
+        </header>
+
+        <main id="habit-cards-container" class="habit-cards-container">
+            </main>
     </div>
-</div>
+
+    <div id="habit-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2 id="habit-modal-title">Add a New Habit</h2>
+            <form id="habit-form">
+                <input type="hidden" id="habit-id-input">
+                <div class="form-group">
+                    <label for="habit-name">Habit Name:</label>
+                    <input type="text" id="habit-name" placeholder="e.g., Drink 8 glasses of water" required>
+                </div>
+                <div class="form-group">
+                    <label for="habit-description">Description (optional):</label>
+                    <textarea id="habit-description" rows="3" placeholder="e.g., Target: 8 cups per day"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="button-primary" id="habit-form-submit">Save Habit</button>
+                    <button type="button" class="button-danger" id="delete-habit-btn" style="display: none;">Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="loggingService.js" type="module"></script>
+    <script src="eventBus.js" type="module"></script>
+    <script src="store.js" type="module"></script>
+    <script src="habitTrackerService.js" type="module"></script>
+    <script src="habit_tracker_main.js" type="module"></script>
+
+</body>
+</html>
