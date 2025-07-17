@@ -3,7 +3,7 @@ import LoggingService from './loggingService.js';
 
 const HabitTrackerService = {
     /**
-     * Initializes the service. Currently a placeholder to satisfy the loading pattern.
+     * Initializes the service.
      */
     initialize() {
         LoggingService.info('[HabitService] Initialized.', { module: 'HabitTrackerService' });
@@ -24,15 +24,34 @@ const HabitTrackerService = {
     getHabitCompletions() {
         return AppStore.getHabitCompletions();
     },
+    
+    /**
+     * Retrieves all completions for a specific year, formatted for a heatmap.
+     * @param {number} year - The four-digit year.
+     * @returns {object} An object with timestamps as keys and completion counts as values.
+     */
+    getCompletionsForYear(year) {
+        const completions = AppStore.getHabitCompletions();
+        const yearlyData = {};
+        
+        completions.forEach(c => {
+            const completionDate = new Date(c.completedAt);
+            if (completionDate.getFullYear() === year) {
+                // The heatmap library often uses seconds-based timestamps
+                const timestamp = Math.floor(completionDate.getTime() / 1000);
+                yearlyData[timestamp] = (yearlyData[timestamp] || 0) + 1;
+            }
+        });
+        return yearlyData;
+    },
 
     /**
      * Creates a new habit object and saves it to the store.
      * @param {object} habitData - Contains name, description, and frequency.
-     * @returns {object} The newly created habit.
      */
     async createHabit({ name, description, frequency }) {
         const newHabit = {
-            id: Date.now(), // Simple unique ID for now
+            id: Date.now(),
             name,
             description,
             frequency,
@@ -44,8 +63,6 @@ const HabitTrackerService = {
         
         await AppStore.setHabits(updatedHabits, 'HabitTrackerService.createHabit');
         LoggingService.info(`[HabitService] Created new habit: ${name}`, { habit: newHabit });
-        
-        return newHabit;
     },
 
     /**
@@ -59,7 +76,6 @@ const HabitTrackerService = {
         if (habitIndex > -1) {
             currentHabits[habitIndex] = habitData;
             await AppStore.setHabits(currentHabits, 'HabitTrackerService.updateHabit');
-            LoggingService.info(`[HabitService] Updated habit: ${habitData.name}`, { habit: habitData });
         } else {
             LoggingService.error(`[HabitService] Could not find habit to update with ID: ${habitData.id}`);
         }
@@ -76,7 +92,6 @@ const HabitTrackerService = {
         const updatedHabits = currentHabits.filter(h => h.id !== habitId);
         const updatedCompletions = currentCompletions.filter(c => c.habit_id !== habitId);
 
-        // We need to update both lists. AppStore.setHabits will save everything.
         await AppStore.setHabits(updatedHabits, 'HabitTrackerService.deleteHabit');
         await AppStore.setHabitCompletions(updatedCompletions, 'HabitTrackerService.deleteHabit');
 
@@ -91,17 +106,13 @@ const HabitTrackerService = {
     async toggleCompletion(habitId, dateString) {
         const currentCompletions = AppStore.getHabitCompletions();
         
-        // Find if a completion for this habit on this date already exists.
         const completionIndex = currentCompletions.findIndex(c => 
             c.habit_id === habitId && this.getYYYYMMDD(new Date(c.completedAt)) === dateString
         );
 
         if (completionIndex > -1) {
-            // It exists, so remove it (un-check the box).
             currentCompletions.splice(completionIndex, 1);
         } else {
-            // It doesn't exist, so add it (check the box).
-            // We set the time to noon to avoid timezone issues.
             const completionDate = new Date(`${dateString}T12:00:00`);
             const newCompletion = {
                 id: Date.now(),
@@ -115,7 +126,7 @@ const HabitTrackerService = {
     },
 
     /**
-     * A helper to get a date in YYYY-MM-DD format, ignoring timezones.
+     * A helper to get a date in YYYY-MM-DD format.
      * @param {Date} date - The date object.
      * @returns {string} The formatted date string.
      */
