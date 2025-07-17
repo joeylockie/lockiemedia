@@ -96,11 +96,11 @@ app.get('/habits', (req, res) => {
 });
 
 app.post('/habits', (req, res) => {
-    const { name, description, frequency } = req.body;
+    const { name, description } = req.body;
     if (!name) return res.status(400).json({ error: 'Habit name is required' });
     try {
-        const stmt = db.prepare('INSERT INTO habits (name, description, frequency, createdAt) VALUES (?, ?, ?, ?)');
-        const info = stmt.run(name, description, frequency, Date.now());
+        const stmt = db.prepare('INSERT INTO habits (name, description, createdAt) VALUES (?, ?, ?, ?)');
+        const info = stmt.run(name, description, Date.now());
         const newHabit = db.prepare('SELECT * FROM habits WHERE id = ?').get(info.lastInsertRowid);
         res.status(201).json(newHabit);
     } catch (error) {
