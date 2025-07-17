@@ -26,23 +26,13 @@ const HabitTrackerService = {
     },
     
     /**
-     * Retrieves all completions for a specific year, grouped by date.
+     * Retrieves all completions for a specific year as an array.
      * @param {number} year - The four-digit year.
-     * @returns {Map<string, number>} A map where keys are 'YYYY-MM-DD' dates
-     * and values are the number of completions for that day.
+     * @returns {Array} An array of completion objects for that year.
      */
     getCompletionsForYear(year) {
         const completions = AppStore.getHabitCompletions();
-        const yearlyData = new Map();
-        
-        completions.forEach(c => {
-            const completionDate = new Date(c.completedAt);
-            if (completionDate.getFullYear() === year) {
-                const dateString = this.getYYYYMMDD(completionDate);
-                yearlyData.set(dateString, (yearlyData.get(dateString) || 0) + 1);
-            }
-        });
-        return yearlyData;
+        return completions.filter(c => new Date(c.completedAt).getFullYear() === year);
     },
 
     /**
@@ -53,7 +43,6 @@ const HabitTrackerService = {
         const newHabit = {
             id: Date.now(),
             name,
-            // The description field will now hold the "Target" text.
             description: description || 'Target: Everyday',
             createdAt: Date.now()
         };
@@ -74,7 +63,6 @@ const HabitTrackerService = {
         const habitIndex = currentHabits.findIndex(h => h.id === habitData.id);
 
         if (habitIndex > -1) {
-            // Ensure the description field is also updated
             currentHabits[habitIndex].name = habitData.name;
             currentHabits[habitIndex].description = habitData.description;
             await AppStore.setHabits(currentHabits, 'HabitTrackerService.updateHabit');
