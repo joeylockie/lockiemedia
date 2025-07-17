@@ -418,6 +418,7 @@ body.is-resizing-notes * {
 }
 
 /* --- Individual Habit Card --- */
+/* Find this existing rule and replace it */
 .habit-card {
     background-color: #1f2937; /* gray-800 */
     border: 1px solid #374151; /* gray-700 */
@@ -426,6 +427,7 @@ body.is-resizing-notes * {
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    position: relative; /* This is the critical line that was missing */
 }
 
 .dark .habit-card {

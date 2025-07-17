@@ -24,22 +24,21 @@ class HabitTrackerMain {
         EventBus.subscribe('storeInitialized', () => this.render());
     }
 
-    // Replace the existing bindEventListeners function
-    bindEventListeners() {
+ // Verify this function in habit_tracker_main.js
+bindEventListeners() {
     if (this.addNewHabitBtn) this.addNewHabitBtn.addEventListener('click', () => this.openModal());
     if (this.homeBtn) this.homeBtn.addEventListener('click', () => window.location.href = 'index.html');
     this.closeButton.addEventListener('click', () => this.closeModal());
     this.habitForm.addEventListener('submit', (e) => this.handleFormSubmit(e));
     this.deleteHabitBtn.addEventListener('click', () => this.handleDelete());
     
-    // Use event delegation for dynamically created elements
     this.container.addEventListener('click', (e) => {
         const square = e.target.closest('.commit-square');
-        const editBtn = e.target.closest('.habit-edit-btn'); // Target the new button
+        const editBtn = e.target.closest('.habit-edit-btn'); 
 
         if (square && square.dataset.date) {
             HabitTrackerService.toggleCompletion(parseInt(square.dataset.habitId, 10), square.dataset.date);
-        } else if (editBtn) { // Check if the edit button was clicked
+        } else if (editBtn) {
             this.openModal(parseInt(editBtn.dataset.habitId, 10));
         }
     });
@@ -107,7 +106,7 @@ class HabitTrackerMain {
         });
     }
 
-    // Replace the existing createHabitCard function
+// Verify this function in habit_tracker_main.js
 createHabitCard(habit) {
     const card = document.createElement('div');
     card.className = 'habit-card';
