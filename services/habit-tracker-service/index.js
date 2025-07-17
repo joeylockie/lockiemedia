@@ -8,7 +8,7 @@ app.use(cors());
 app.use(express.json());
 
 // Use a specific port for this service, defined in your .env file or default to 3008
-const PORT = process.env.HABIT_TRACKER_SERVICE_PORT || 3008;
+const PORT = process.env.HABIT_TRACKER_SERVICE_PORT || 3010;
 const dbPath = process.env.DB_FILE_PATH || '../../lockiedb.sqlite';
 
 // Connect to the database. `fileMustExist: true` ensures we don't accidentally create a new empty db.

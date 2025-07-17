@@ -13,8 +13,8 @@ const serviceTargets = {
     timeTrackerService: 'http://127.0.0.1:3005',
     devTrackerService: 'http://127.0.0.1:3006',
     calendarService: 'http://127.0.0.1:3007',
-    habitTrackerService: 'http://127.0.0.1:3008', // NEW
-    pomodoroService: 'http://127.0.0.1:3009',   // NEW
+    habitTrackerService: 'http://127.0.0.1:3010', // NEW
+    pomodoroService: 'http://127.0.0.1:3011',   // NEW
 };
 
 // --- Security Configuration ---

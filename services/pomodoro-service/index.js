@@ -8,7 +8,7 @@ app.use(cors());
 app.use(express.json());
 
 // Use a specific port for this service, defined in your .env or default to 3009
-const PORT = process.env.POMODORO_SERVICE_PORT || 3009;
+const PORT = process.env.POMODORO_SERVICE_PORT || 3011;
 const dbPath = process.env.DB_FILE_PATH || '../../lockiedb.sqlite';
 
 // Connect to the database
