@@ -8,13 +8,13 @@ import { fileURLToPath } from 'url';
 // --- Configuration ---
 const PORT = 3000;
 const serviceTargets = {
-    notesService: 'http://127.0.0.1:3002',
-    taskService: 'http://127.0.0.1:3004',
-    timeTrackerService: 'http://127.0.0.1:3005',
-    devTrackerService: 'http://127.0.0.1:3006',
-    calendarService: 'http://127.0.0.1:3008',
-    habitTrackerService: 'http://127.0.0.1:3010', // NEW
-    pomodoroService: 'http://127.0.0.1:3011',   // NEW
+    notesService: 'http://192.168.2.201:3002',
+    taskService: 'http://192.168.2.201:3004',
+    timeTrackerService: 'http://192.168.2.201:3005',
+    devTrackerService: 'http://192.168.2.201:3006',
+    calendarService: 'http://192.168.2.201:3008',
+    habitTrackerService: 'http://192.168.2.201:3010', // NEW
+    pomodoroService: 'http://192.168.2.201:3011',   // NEW
 };
 
 // --- Security Configuration ---
