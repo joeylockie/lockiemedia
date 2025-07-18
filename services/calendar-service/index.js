@@ -9,14 +9,16 @@ console.log('[Calendar Service] Initializing...');
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
-const PORT = 3008; // FIX: Use the new, correct port
+// --- FIX: Read port from environment variable ---
+const PORT = process.env.PORT || 3008; 
 
 // --- Database Connection ---
 let db;
 try {
-    const dbFile = process.env.DB_FILE_PATH; // CHANGED THIS LINE
+    // --- FIX: Use the correct environment variable for the database path ---
+    const dbFile = process.env.DB_FILE_PATH || path.resolve(__dirname, '../../lockiedb.sqlite'); 
     console.log(`[Calendar Service] Attempting to connect to database at: ${dbFile}`);
-    db = new Database(dbFile, { verbose: console.log });
+    db = new Database(dbFile, { fileMustExist: true }); // Ensure file must exist
     db.pragma('journal_mode = WAL');
     db.pragma('foreign_keys = ON');
     console.log(`[Calendar Service] Database connection successful.`);
