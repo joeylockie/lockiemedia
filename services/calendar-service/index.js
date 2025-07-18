@@ -9,7 +9,7 @@ console.log('[Calendar Service] Initializing...');
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
-const PORT = 3007; // FIX: Use the new, correct port
+const PORT = 3008; // FIX: Use the new, correct port
 
 // --- Database Connection ---
 let db;

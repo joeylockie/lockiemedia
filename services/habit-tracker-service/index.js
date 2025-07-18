@@ -8,11 +8,14 @@ app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 3010;
-// Adjusted the path to correctly locate the database from the service's perspective
-const dbPath = process.env.DB_FILE_PATH || '../lockiedb.sqlite';
+// CORRECTED: The fallback path is now relative to the CWD set in ecosystem.json
+const dbPath = process.env.DB_FILE_PATH || './lockiedb.sqlite';
 
 const db = new Database(dbPath, { fileMustExist: true });
 console.log(`[Habit Service] Connected to database at ${dbPath}`);
+
+// ... THE REST OF THE FILE REMAINS THE SAME ...
+// (You only need to change the dbPath line)
 
 // --- Get All Habit Data ---
 // Fetches all habits and their corresponding completions.

@@ -69,7 +69,7 @@
       "post_start": "sleep 0.1",
       "env": {
         "DB_FILE_PATH": "/root/lockiemedia-dev/lockiedb.sqlite",
-        "PORT": 3007
+        "PORT": 3008
       }
     },
     {
