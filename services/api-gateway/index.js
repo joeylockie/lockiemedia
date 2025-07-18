@@ -12,7 +12,7 @@ const serviceTargets = {
     taskService: 'http://127.0.0.1:3004',
     timeTrackerService: 'http://127.0.0.1:3005',
     devTrackerService: 'http://127.0.0.1:3006',
-    calendarService: 'http://127.0.0.1:3007',
+    calendarService: 'http://127.0.0.1:3008',
     habitTrackerService: 'http://127.0.0.1:3010', // NEW
     pomodoroService: 'http://127.0.0.1:3011',   // NEW
 };
