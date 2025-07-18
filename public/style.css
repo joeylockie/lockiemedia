@@ -88,16 +88,16 @@ body { font-family: 'Inter', sans-serif; }
     padding: 0.75rem !important;  /* Example minimized padding: p-3 in Tailwind. Adjust as needed! */
 }
 
-.sidebar-minimized .sidebar-button-icon-only { 
-    justify-content: center; 
+.sidebar-minimized .sidebar-button-icon-only {
+    justify-content: center;
 }
-.sidebar-minimized .sidebar-button-icon-only i { 
-    margin-right: 0 !important; 
+.sidebar-minimized .sidebar-button-icon-only i {
+    margin-right: 0 !important;
 }
 .sidebar-minimized .sidebar-text-content,
 .sidebar-minimized #taskSearchInputContainer,
-.sidebar-minimized .sidebar-section-title { 
-    display: none; 
+.sidebar-minimized .sidebar-section-title {
+    display: none;
 }
 
 /* Styling for active sort buttons */
@@ -254,6 +254,7 @@ body { font-family: 'Inter', sans-serif; }
     width: 4rem !important; /* w-16 */
     padding-left: 0.5rem !important; /* px-2 */
     padding-right: 0.5rem !important;
+    overflow: hidden; /* NEW: Prevent text from overflowing */
 }
 
 .notes-sidebar-collapsed .sidebar-text-content {
@@ -274,6 +275,16 @@ body { font-family: 'Inter', sans-serif; }
 .notes-sidebar-collapsed .notebook-item-content span {
     display: none;
 }
+
+/* NEW: Fix for note list items and empty message when sidebar is collapsed */
+.notes-sidebar-collapsed .note-list-item-content {
+    justify-content: center; /* Center the icon */
+}
+.notes-sidebar-collapsed .note-list-item-text,
+.notes-sidebar-collapsed #notesList > .text-center { /* Hides empty/error messages */
+    display: none;
+}
+
 
 /* --- General Sidebar Styles --- */
 .sidebar-toggle-rotated {
