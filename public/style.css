@@ -429,7 +429,6 @@ body.is-resizing-notes * {
 }
 
 /* --- Individual Habit Card --- */
-/* Find this existing rule and replace it */
 .habit-card {
     background-color: #1f2937; /* gray-800 */
     border: 1px solid #374151; /* gray-700 */
@@ -438,7 +437,7 @@ body.is-resizing-notes * {
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    position: relative; /* This is the critical line that was missing */
+    position: relative;
 }
 
 .dark .habit-card {
@@ -496,14 +495,17 @@ body.is-resizing-notes * {
     background-color: #374151; /* Default empty color (gray-700) */
     border-radius: 2px;
     transition: background-color 0.2s;
+    cursor: pointer; /* Make it obvious it's clickable */
 }
 
-/* Different levels of completion */
+/* --- MODIFICATION START: New Completion Levels --- */
 .commit-square.level-0 { background-color: #374151; } /* gray-700 */
 .commit-square.level-1 { background-color: #0c4a6e; } /* sky-900 */
 .commit-square.level-2 { background-color: #075985; } /* sky-800 */
 .commit-square.level-3 { background-color: #0369a1; } /* sky-700 */
-.commit-square.level-4 { background-color: #0ea5e9; } /* sky-500 */
+.commit-square.level-4 { background-color: #0284c7; } /* sky-600 */
+.commit-square.level-5 { background-color: #0ea5e9; } /* sky-500 - Fully Complete */
+/* --- MODIFICATION END --- */
 
 /* Style for the "today" square */
 .commit-square.today {
@@ -567,6 +569,7 @@ body.is-resizing-notes * {
 }
 
 .form-group input[type="text"],
+.form-group input[type="number"], /* MODIFICATION: Style for number input */
 .form-group textarea {
     width: 100%;
     padding: 0.75rem;

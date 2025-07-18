@@ -95,7 +95,7 @@ function setupDatabase() {
     notebookId TEXT,
     createdAt TEXT NOT NULL,
     updatedAt TEXT NOT NULL,
-    isMarkdown BOOLEAN DEFAULT 0, 
+    isMarkdown BOOLEAN DEFAULT 0,
     FOREIGN KEY (notebookId) REFERENCES notebooks (id)
   );`;
   db.exec(createNotesTable);
@@ -193,13 +193,14 @@ function setupDatabase() {
       FOREIGN KEY (ticketId) REFERENCES dev_tickets (id) ON DELETE CASCADE
   );`;
   db.exec(createDevTicketCommentsTable);
-  
-  // Change this statement in database-setup.js
+
+  // --- MODIFICATION START: Updated Habit Tables ---
   const createHabitsTable = `
   CREATE TABLE IF NOT EXISTS habits (
       id INTEGER PRIMARY KEY,
       name TEXT NOT NULL,
       description TEXT,
+      target_count INTEGER DEFAULT 1, -- The goal for completions per day
       createdAt INTEGER
   );`;
   db.exec(createHabitsTable);
@@ -208,10 +209,13 @@ function setupDatabase() {
   CREATE TABLE IF NOT EXISTS habit_completions (
       id INTEGER PRIMARY KEY,
       habit_id INTEGER NOT NULL,
-      completedAt INTEGER,
-      FOREIGN KEY (habit_id) REFERENCES habits(id) ON DELETE CASCADE
+      completedAt TEXT NOT NULL, -- Storing date as YYYY-MM-DD string
+      completion_count INTEGER NOT NULL DEFAULT 1, -- How many times it was completed
+      FOREIGN KEY (habit_id) REFERENCES habits(id) ON DELETE CASCADE,
+      UNIQUE(habit_id, completedAt) -- Ensures only one entry per habit per day
   );`;
   db.exec(createHabitCompletionsTable);
+  // --- MODIFICATION END ---
 
   // --- NEW: Pomodoro Tables ---
   const createPomodoroSessionsTable = `
