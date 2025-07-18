@@ -1,6 +1,8 @@
 # AI Project Curation Log: Lockie Media Platform
 
-**Last Updated:** 2025-07-14 10:27 (EDT)
+**Last Updated:** 2025-07-18 14:56 (EDT)
+
+
 
 ## 1. Instructions for AI (Gemini)
 
@@ -177,8 +179,8 @@ lockiemedia-dev/
 * **Dev Tracker App:** Implemented a full-featured development ticket tracking system for epics and tickets.
 * **Dev Tracker Backend & Database Debugging:** Resolved critical backend errors preventing the Dev Tracker app from saving data correctly.
 * **Isolated Development Environment:** Set up a complete, isolated development environment on a separate container, managed by PM2 and a separate Git branch.
-* **(NEW) Habit Tracker & Pomodoro Timer:** Implemented full-stack Habit Tracker and Pomodoro Timer applications with dedicated microservices and interactive frontends.
-
+* **Habit Tracker & Pomodoro Timer:** Implemented full-stack Habit Tracker and Pomodoro Timer applications with dedicated microservices and interactive frontends.
+* **(NEW) UI/UX Bug Squashing & Habit Tracker Enhancement:** Fixed multiple UI bugs, removed unused features, and implemented a multi-click completion feature for the Habit Tracker. Resolved complex server deployment and caching issues.
 ---
 
 ## 5. Work Completed (Specific to Current Major Task)
@@ -189,7 +191,7 @@ lockiemedia-dev/
     * Restructured and merged the `AI_PROJECT_LOG.md` with a more detailed curation format.
     * Restored the detailed file tree to the `AI_PROJECT_LOG.md` to ensure complete context for AI assistants.
 
-* **Date: 2025-07-17**
+* **Date:** 2025-07-17
 * **Task:** Implement full-stack Habit Tracker and Pomodoro Timer features.
 * **Sub-tasks Completed:**
     * Backend:
@@ -208,6 +210,28 @@ lockiemedia-dev/
         * Created a session history page to log and display all completed Pomodoro sessions.
     * Debugging:
         * Resolved numerous complex server-side issues, including port conflicts, module dependency errors, and data persistence bugs related to stale server caches and incorrect file versions.
+
+* **Date:** 2025-07-18
+* **Task:** UI Bug Fixes, Feature Cleanup, and Multi-Click Habit Tracker Implementation.
+* **Sub-tasks Completed:**
+    * UI Bug Fixes & Cleanup:
+        * Fixed CSS bug causing the Notes sidebar to render incorrectly when minimized.
+        * Fixed z-index bug causing the "Manage Projects" modal to open behind the "Settings" modal in the Task app.
+        * Removed the unused "Profile" feature, including the modal, buttons, and all associated JavaScript functions and event listeners.
+    * Habit Tracker - Multi-Click Feature:
+        * Database: Modified database-setup.js to add a target_count to the habits table and a completion_count to the habit_completions table.
+        * Backend: Refactored the habit-tracker-service to use specific RESTful endpoints (POST, PUT, DELETE, and a new "upsert" endpoint for    completions) instead of a general sync.
+    * Frontend:
+        * Updated habits.html to include a "Target Per Day" input in the add/edit modal.
+        * Updated habitTrackerService.js to communicate with the new backend API endpoints.
+        * Rewrote logic in habit_tracker_main.js to handle multi-click completions, cycling through color levels based on the target count.
+        * Added new color levels to style.css for the completion squares.
+    * Server Deployment & Debugging:
+        * Diagnosed and fixed multiple EADDRINUSE (port in use) errors by identifying and correcting hardcoded ports in service files (calendar-service, api-gateway).
+        * Diagnosed and fixed a persistent no such column database error by correcting a faulty fallback database path in the habit-tracker-service.
+        * Guided a full server reset process, including reinstalling PM2 and clearing its cache, to resolve stubborn process management issues.
+    * Dashboard Fix:
+        * Removed an obsolete call to HabitTrackerService.initialize() in dashboard_main.js that was causing a critical error on the main page.
 
 ---
 
@@ -249,3 +273,4 @@ lockiemedia-dev/
 * **Notes App Architecture:** To prepare for new features, the Notes app's frontend code was refactored into a modular structure (`notes_rendering.js`, `notes_event_handlers.js`), separating concerns and improving maintainability.
 * **Editor Choice:** A side-by-side Markdown editor (using Marked.js and DOMPurify) with toggleable view modes was chosen for the Notes app over a more complex Rich Text/WYSIWYG editor. This decision prioritized implementation speed, maintainability, and data portability (plain text) while still providing a powerful user experience.
 * **Sidebar UI Pattern:** Decided to move from a "disappearing" sidebar (width: 0) to a more robust "shrinking" sidebar pattern to prevent UI lockouts.
+* **(NEW) Service Configuration:** Discovered and fixed hardcoded port numbers and database paths in several microservices. The standard moving forward will be to ensure all services pull their configuration exclusively from environment variables provided by the ecosystem.dev.json file.
