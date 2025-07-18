@@ -46,47 +46,63 @@ function getDashboardData() {
     return { overdueTasks, todayTasks, upcomingTasks, recentNotes };
 }
 
-// --- Data Export Function ---
-async function handleExportData() {
-    LoggingService.info('[Dashboard] Data export initiated by user.', { functionName: 'handleExportData' });
+// --- NEW, SIMPLIFIED Data Export Function ---
+function handleExportData() {
+    LoggingService.info('[Dashboard] Database backup download initiated by user.', { functionName: 'handleExportData' });
+    
+    // This is the API key stored in your api-gateway/index.js
+    const apiKey = "THeYYjPRRvQ6CjJFPL0T6cpAyfWbIMFm9U0Lo4d+saQ="; 
+    
+    // The URL points directly to our new backup endpoint on the server.
+    const backupUrl = `http://192.168.2.201:3000/api/database/backup`;
 
-    try {
-        const allData = {
-            tasks: AppStore.getTasks(),
-            projects: AppStore.getProjects(),
-            userProfile: AppStore.getUserProfile(),
-            userPreferences: AppStore.getUserPreferences(),
-            notebooks: AppStore.getNotebooks(),
-            notes: AppStore.getNotes(),
-            time_activities: AppStore.getTimeActivities(),
-            time_log_entries: AppStore.getTimeLogEntries(),
-            dev_epics: AppStore.getDevEpics(),
-            dev_tickets: AppStore.getDevTickets()
-        };
-
-        const dataStr = JSON.stringify(allData, null, 2);
-        const blob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
+    // We create a temporary link to trigger the download.
+    const a = document.createElement('a');
+    a.href = backupUrl;
+    
+    // We add the API key to the request headers by setting the 'download' attribute
+    // and by using a little trick to set the header via a custom property.
+    // Note: This method for headers on a direct link has limitations and is a simplified approach.
+    a.setAttribute('download', ''); // Suggests a filename to the browser
+    
+    // We can't directly set headers on an 'a' tag. The authentication is handled by the API gateway.
+    // For a more robust solution in the future, we would fetch the blob via JS and then create the download link.
+    // For now, we are relying on a simplified security model for this internal tool.
+    
+    // To make this work without complex fetch logic, temporarily disable authentication for ONLY this route if needed,
+    // or rely on browser behavior that might send cookies/headers if the user is already authenticated in another tab,
+    // though the API key method is more explicit. The provided API Gateway code will handle the key.
+    
+    // A better way if direct download fails due to auth headers:
+    fetch(backupUrl, {
+        headers: { 'X-API-Key': apiKey }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok.');
+        }
+        return response.blob();
+    })
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
 
         const date = new Date();
         const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-        a.download = `lockiemedia_backup_${dateString}.json`;
-        a.href = url;
-
+        a.download = `lockiemedia_backup_${dateString}.sqlite`;
+        
         document.body.appendChild(a);
         a.click();
-
-        setTimeout(() => {
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            LoggingService.info('[Dashboard] Data export successful.', { functionName: 'handleExportData' });
-        }, 100);
-
-    } catch (error) {
-        LoggingService.error('[Dashboard] Failed to export data.', error, { functionName: 'handleExportData' });
-        alert('An error occurred while preparing the data for download. Please check the console for details.');
-    }
+        
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    })
+    .catch(err => {
+        console.error('Error downloading the database:', err);
+        alert('Could not download the database. Please check the console for errors.');
+    });
 }
 
 
@@ -183,8 +199,8 @@ function renderNotesWidget() {
 function renderHabitWidget() {
     if (!habitContent) return;
 
-    const habits = AppStore.getHabits(); // Changed from HabitTrackerService
-    const completions = AppStore.getHabitCompletions(); // Changed from HabitTrackerService
+    const habits = AppStore.getHabits();
+    const completions = AppStore.getHabitCompletions();
     const todayString = new Date().toISOString().split('T')[0];
 
     habitContent.innerHTML = '';
@@ -290,10 +306,9 @@ function createHabitRow(habit, isCompleted) {
     checkbox.className = 'form-checkbox h-5 w-5 text-green-500 rounded border-slate-500 focus:ring-green-400 mr-3 cursor-pointer flex-shrink-0';
     checkbox.onchange = () => {
         const todayString = HabitTrackerService.getYYYYMMDD(new Date());
-        // This is a simplified toggle, the new multi-click feature is on the main habits page
         const completions = AppStore.getHabitCompletions();
         const todaysCompletion = completions.find(c => c.habit_id === habit.id && c.completedAt === todayString);
-        const nextCount = todaysCompletion ? 0 : 1; // Simple toggle on/off from dashboard
+        const nextCount = todaysCompletion ? 0 : 1;
         HabitTrackerService.logCompletion(habit.id, todayString, nextCount);
     };
 
@@ -324,7 +339,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         await AppStore.initializeStore();
         NoteService.getNotes();
-        // HabitTrackerService.initialize(); // <--- REMOVED THIS LINE
         TimeTrackerService.initialize();
 
         greetingHeader = document.getElementById('greetingHeader');

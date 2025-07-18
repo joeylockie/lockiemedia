@@ -4,9 +4,12 @@ import axios from 'axios';
 import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs'; // Added for file system access
 
 // --- Configuration ---
 const PORT = 3000;
+const IP_ADDRESS = '192.168.2.201'; // Your container's IP address
+
 const serviceTargets = {
     notesService: 'http://192.168.2.201:3002',
     taskService: 'http://192.168.2.201:3004',
@@ -55,8 +58,8 @@ const fetchServiceDataWithRetry = async (serviceName, serviceUrl, retries = 3, d
         else if (serviceName === 'timeTrackerService') endpoint = '/api/time-data';
         else if (serviceName === 'devTrackerService') endpoint = '/api/dev-data';
         else if (serviceName === 'calendarService') endpoint = '/api/calendar-data';
-        else if (serviceName === 'habitTrackerService') endpoint = '/api/habits-data'; // NEW
-        else if (serviceName === 'pomodoroService') endpoint = '/api/pomodoro-data'; // NEW
+        else if (serviceName === 'habitTrackerService') endpoint = '/api/habits-data';
+        else if (serviceName === 'pomodoroService') endpoint = '/api/pomodoro-data';
         else return {};
 
         const response = await axios.get(`${serviceUrl}${endpoint}`);
@@ -101,8 +104,8 @@ app.post('/api/data', async (req, res) => {
         timeTrackerService: { data: { time_activities: incomingData.time_activities, time_log_entries: incomingData.time_log_entries }, endpoint: '/api/time-data' },
         devTrackerService: { data: { dev_epics: incomingData.dev_epics, dev_tickets: incomingData.dev_tickets, dev_release_versions: incomingData.dev_release_versions, dev_ticket_history: incomingData.dev_ticket_history, dev_ticket_comments: incomingData.dev_ticket_comments }, endpoint: '/api/dev-data' },
         calendarService: { data: { calendar_events: incomingData.calendar_events }, endpoint: '/api/calendar-data' },
-        habitTrackerService: { data: { habits: incomingData.habits, habit_completions: incomingData.habit_completions }, endpoint: '/api/habits-data' }, // NEW
-        pomodoroService: { data: { pomodoro_sessions: incomingData.pomodoro_sessions }, endpoint: '/api/pomodoro-data' } // NEW
+        habitTrackerService: { data: { habits: incomingData.habits, habit_completions: incomingData.habit_completions }, endpoint: '/api/habits-data' },
+        pomodoroService: { data: { pomodoro_sessions: incomingData.pomodoro_sessions }, endpoint: '/api/pomodoro-data' }
     };
 
     const postPromises = [];
@@ -140,6 +143,30 @@ app.post('/api/dev-release-versions', (req, res) => proxyRequest(req, res, servi
 app.post('/api/tickets/:ticketId/comments', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.delete('/api/tickets/:ticketId/comments/:commentId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.patch('/api/tickets/:ticketId/status', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+
+// --- NEW DATABASE BACKUP ROUTE ---
+app.get('/api/database/backup', (req, res) => {
+    console.log('[API Gateway] GET /api/database/backup request received.');
+    // This path is set in ecosystem.dev.json and is available to all services
+    const dbPath = process.env.DB_FILE_PATH || path.resolve(__dirname, '../../lockiedb.sqlite');
+
+    if (fs.existsSync(dbPath)) {
+        const date = new Date();
+        const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        const filename = `lockiemedia_backup_${dateString}.sqlite`;
+
+        res.download(dbPath, filename, (err) => {
+            if (err) {
+                console.error('[API Gateway] Error sending database backup file:', err);
+            } else {
+                console.log('[API Gateway] Database backup successfully sent to user.');
+            }
+        });
+    } else {
+        console.error(`[API Gateway] CRITICAL: Database file not found at path: ${dbPath}`);
+        res.status(404).json({ error: 'Database file not found on the server.' });
+    }
+});
 
 
 // --- Static File Serving ---
