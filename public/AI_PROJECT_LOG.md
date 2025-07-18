@@ -235,7 +235,10 @@ lockiemedia-dev/
 * **Frontend Decoupling:** Continue refactoring to fully decouple all apps.
 * **Core Features:** Refine and enhance core features based on usage.
 * **UI/UX:** Continuously improve the user interface and experience across all apps.
-* **(NEW) Pomodoro:** Add optional desktop notifications for completed sessions.
+* **Pomodoro:** Add optional desktop notifications for completed sessions.
+* **Pomodoro:** Move saved from local storage to database.
+* **automation.html** To be built out at a future date.
+* **budget.html** To be built out at a future date.
 
 ---
 
