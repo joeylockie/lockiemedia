@@ -2,7 +2,7 @@ import AppStore from './store.js';
 import LoggingService from './loggingService.js';
 
 // The base URL for the habit tracker microservice.
-const API_BASE_URL = 'http://localhost:3005/api/habits';
+const API_BASE_URL = 'http://localhost:3010/api/habits'; // CORRECTED PORT
 
 const HabitTrackerService = {
     /**
