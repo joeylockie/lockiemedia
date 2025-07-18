@@ -11,9 +11,12 @@ const CalendarUI = (() => {
     let activeEventId = null;
     let currentView = 'month'; // 'month', 'week', or 'day'
     let selectedColor = 'sky-500'; // Default color
+    let draggedEventId = null;
+    let timeIndicatorInterval = null;
+    let datePicker = null; // MODIFICATION: To hold the Flatpickr instance
 
     // --- DOM Elements ---
-    let calendarGrid, weekDayViewContainer, currentMonthYearEl, prevMonthBtn, nextMonthBtn;
+    let calendarGrid, weekDayViewContainer, currentMonthYearEl, prevMonthBtn, nextMonthBtn, todayBtn;
     let monthViewBtn, weekViewBtn, dayViewBtn;
     let eventModal, eventModalTitle, eventForm, eventIdInput, eventTitleInput, eventStartDateInput, eventEndDateInput, eventStartTimeInput, eventEndTimeInput, eventDescriptionInput, cancelEventBtn, isAllDayCheckbox, timeInputsContainer, colorPalette;
     let viewEventModal, viewEventTitle, viewEventTime, viewEventDescription, closeViewEventBtn, editEventBtn, deleteEventBtn;
@@ -24,6 +27,7 @@ const CalendarUI = (() => {
         currentMonthYearEl = document.getElementById('currentMonthYear');
         prevMonthBtn = document.getElementById('prevMonthBtn');
         nextMonthBtn = document.getElementById('nextMonthBtn');
+        todayBtn = document.getElementById('todayBtn');
         monthViewBtn = document.getElementById('monthViewBtn');
         weekViewBtn = document.getElementById('weekViewBtn');
         dayViewBtn = document.getElementById('dayViewBtn');
@@ -51,6 +55,8 @@ const CalendarUI = (() => {
     }
 
     function updateView() {
+        if (timeIndicatorInterval) clearInterval(timeIndicatorInterval);
+
         const viewRenderers = {
             month: renderMonthView,
             week: renderWeekView,
@@ -67,6 +73,34 @@ const CalendarUI = (() => {
             activeBtn.classList.add('bg-sky-600', 'text-white');
             activeBtn.classList.remove('hover:bg-slate-700');
         }
+    }
+
+    function updateCurrentTimeIndicator() {
+        const now = new Date();
+        const startOfDay = new Date(currentDate);
+        startOfDay.setHours(0,0,0,0);
+        const endOfDay = new Date(currentDate);
+        endOfDay.setHours(23,59,59,999);
+
+        if (now < startOfDay || now > endOfDay && currentView !== 'week') {
+             const existingIndicator = weekDayViewContainer.querySelector('.current-time-indicator');
+             if (existingIndicator) existingIndicator.remove();
+             return;
+        }
+        
+        const timeGrid = weekDayViewContainer.querySelector('.day-view-time-grid, .week-view-time-grid');
+        if (!timeGrid) return;
+
+        let indicator = timeGrid.querySelector('.current-time-indicator');
+        if (!indicator) {
+            indicator = document.createElement('div');
+            indicator.className = 'current-time-indicator';
+            timeGrid.appendChild(indicator);
+        }
+
+        const minutesPastMidnight = now.getHours() * 60 + now.getMinutes();
+        const topPosition = (minutesPastMidnight / 1440) * (24 * 60);
+        indicator.style.top = `${topPosition}px`;
     }
 
     function renderMonthView() {
@@ -117,11 +151,16 @@ const CalendarUI = (() => {
                 events.forEach(event => {
                     const eventEl = document.createElement('div');
                     eventEl.className = 'event-pill';
+                    eventEl.draggable = true;
                     const colorClass = `bg-${event.color || 'sky-500'}`;
                     eventEl.classList.add(colorClass.replace('500', '600'));
                     eventEl.textContent = event.title;
                     eventEl.dataset.eventId = event.id;
                     eventEl.addEventListener('click', (e) => { e.stopPropagation(); openViewEventModal(event.id); });
+                    eventEl.addEventListener('dragstart', (e) => {
+                        e.stopPropagation();
+                        draggedEventId = event.id;
+                    });
                     itemsContainer.appendChild(eventEl);
                 });
 
@@ -147,93 +186,203 @@ const CalendarUI = (() => {
     function renderWeekView() {
         calendarGrid.classList.add('hidden');
         weekDayViewContainer.classList.remove('hidden');
-        weekDayViewContainer.innerHTML = ''; // Clear previous content
+        weekDayViewContainer.innerHTML = '';
 
-        // FIX: Create a robust structure for the week view
-        const timeGrid = document.createElement('div');
-        timeGrid.className = 'time-grid'; // Use the main grid container class
-
-        // Get start of the current week (assuming Sunday is the first day)
+        const today = new Date();
         const firstDayOfWeek = new Date(currentDate);
         firstDayOfWeek.setDate(firstDayOfWeek.getDate() - firstDayOfWeek.getDay());
         const lastDayOfWeek = new Date(firstDayOfWeek);
         lastDayOfWeek.setDate(lastDayOfWeek.getDate() + 6);
 
-        currentMonthYearEl.textContent = `Week of ${firstDayOfWeek.toLocaleDateString()}`;
+        currentMonthYearEl.textContent = `${formatDate(firstDayOfWeek)} - ${formatDate(lastDayOfWeek)}`;
 
-        // Add an empty top-left cell for spacing
-        timeGrid.appendChild(document.createElement('div')); 
+        const grid = document.createElement('div');
+        grid.className = 'week-view-grid';
 
-        // Create the 7-day header
+        const header = document.createElement('div');
+        header.className = 'week-view-header';
+        header.style.gridColumn = '2';
         for (let i = 0; i < 7; i++) {
             const day = new Date(firstDayOfWeek);
             day.setDate(day.getDate() + i);
             const headerCell = document.createElement('div');
             headerCell.className = 'text-center font-semibold text-slate-300 py-2 border-b-2 border-slate-700';
-            headerCell.innerHTML = `<span class="text-xs">${day.toLocaleString('default', { weekday: 'short' })}</span><br><span class="text-lg">${day.getDate()}</span>`;
-            timeGrid.appendChild(headerCell);
+            let dayClass = (day.toDateString() === today.toDateString()) ? 'text-sky-400' : '';
+            headerCell.innerHTML = `<span class="text-xs">${day.toLocaleString('default', { weekday: 'short' })}</span><br><span class="text-lg ${dayClass}">${day.getDate()}</span>`;
+            header.appendChild(headerCell);
         }
+        grid.appendChild(header);
 
-        // Create the time labels and the grid cells
-        for (let i = 0; i < 24; i++) { // 24 hours
-            // Time label
+        const allDayLabel = document.createElement('div');
+        allDayLabel.textContent = 'all-day';
+        allDayLabel.className = 'text-xs text-right pr-2 py-1 text-slate-400';
+        allDayLabel.style.gridRow = '2';
+        grid.appendChild(allDayLabel);
+
+        const allDaySection = document.createElement('div');
+        allDaySection.className = 'week-view-all-day-section';
+        allDaySection.style.gridRow = '2';
+        const allDayColumns = [];
+        for (let i = 0; i < 7; i++) {
+            const col = document.createElement('div');
+            col.className = 'all-day-column';
+            allDaySection.appendChild(col);
+            allDayColumns.push(col);
+        }
+        grid.appendChild(allDaySection);
+
+        const timeGrid = document.createElement('div');
+        timeGrid.className = 'week-view-time-grid';
+        const timedDayColumns = [];
+        for (let i = 0; i < 24; i++) {
             const timeLabel = document.createElement('div');
             timeLabel.className = 'time-label';
-            timeLabel.textContent = i === 0 ? '12 AM' : i < 12 ? `${i} AM` : i === 12 ? '12 PM' : `${i - 12} PM`;
-            timeLabel.style.gridRow = i + 2;
+            timeLabel.textContent = i === 0 ? '' : i < 12 ? `${i} AM` : i === 12 ? '12 PM' : `${i - 12} PM`;
+            timeLabel.style.gridRow = i + 1;
             timeGrid.appendChild(timeLabel);
-
-            // 7 day columns for this hour
-            for (let j = 0; j < 7; j++) {
-                const dayColumn = document.createElement('div');
-                dayColumn.className = 'day-column';
-                dayColumn.style.gridRow = i + 2;
-                dayColumn.style.gridColumn = j + 2;
-
-                const hourSlot = document.createElement('div');
-                hourSlot.className = 'hour-slot';
-                dayColumn.appendChild(hourSlot);
-                timeGrid.appendChild(dayColumn);
-            }
         }
-        
-        // Place events on the grid
+        for (let j = 0; j < 7; j++) {
+            const dayCol = document.createElement('div');
+            dayCol.className = 'day-column';
+            dayCol.style.gridColumn = j + 2;
+            dayCol.style.gridRow = '1 / -1';
+            for (let i = 0; i < 24; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'hour-slot';
+                dayCol.appendChild(slot);
+            }
+            timeGrid.appendChild(dayCol);
+            timedDayColumns.push(dayCol);
+        }
+        grid.appendChild(timeGrid);
+
         const eventsThisWeek = CalendarService.getEvents().filter(event => {
             const eventStart = new Date(event.startTime);
-            return eventStart >= firstDayOfWeek && eventStart <= lastDayOfWeek && !event.isAllDay;
+            return eventStart >= firstDayOfWeek && eventStart <= lastDayOfWeek;
         });
 
         eventsThisWeek.forEach(event => {
             const eventStart = new Date(event.startTime);
-            const dayIndex = eventStart.getDay(); // 0=Sun, 6=Sat
-            
-            const startMinutes = (eventStart.getHours() * 60) + eventStart.getMinutes();
-            const endMinutes = new Date(event.endTime).getHours() * 60 + new Date(event.endTime).getMinutes();
-            const duration = endMinutes - startMinutes;
+            const dayIndex = eventStart.getDay();
 
-            const eventEl = document.createElement('div');
-            eventEl.className = 'week-event';
-            eventEl.classList.add(`bg-${event.color || 'sky-600'}`);
-            eventEl.textContent = event.title;
-            eventEl.style.top = `${startMinutes}px`; 
-            eventEl.style.height = `${duration}px`;
-            
-            // Find the correct day column to append to
-            const targetDayColumn = timeGrid.querySelector(`[style*="grid-column: ${dayIndex + 2};"]`);
-            if(targetDayColumn) {
-                targetDayColumn.appendChild(eventEl);
+            if (event.isAllDay) {
+                const eventEl = document.createElement('div');
+                eventEl.className = 'event-pill all-day-event';
+                eventEl.classList.add(`bg-${event.color || 'sky-600'}`);
+                eventEl.textContent = event.title;
+                eventEl.dataset.eventId = event.id;
+                eventEl.addEventListener('click', (e) => { e.stopPropagation(); openViewEventModal(event.id); });
+                allDayColumns[dayIndex].appendChild(eventEl);
+            } else {
+                const startMinutes = eventStart.getHours() * 60 + eventStart.getMinutes();
+                const endMinutes = new Date(event.endTime).getHours() * 60 + new Date(event.endTime).getMinutes();
+                let duration = endMinutes - startMinutes;
+                if(duration < 30) duration = 30;
+
+                const eventEl = document.createElement('div');
+                eventEl.className = 'week-event';
+                eventEl.classList.add(`bg-${event.color || 'sky-600'}`);
+                eventEl.innerHTML = `<strong class="font-semibold">${event.title}</strong><br><span class="text-xs">${eventStart.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>`;
+                eventEl.style.top = `${(startMinutes / 60) * 60}px`;
+                eventEl.style.height = `${(duration / 60) * 60}px`;
+                eventEl.dataset.eventId = event.id;
+                eventEl.addEventListener('click', (e) => { e.stopPropagation(); openViewEventModal(event.id); });
+                timedDayColumns[dayIndex].appendChild(eventEl);
             }
         });
-
-
-        weekDayViewContainer.appendChild(timeGrid);
+        
+        weekDayViewContainer.appendChild(grid);
+        
+        updateCurrentTimeIndicator();
+        timeIndicatorInterval = setInterval(updateCurrentTimeIndicator, 60000);
     }
 
     function renderDayView() {
         calendarGrid.classList.add('hidden');
         weekDayViewContainer.classList.remove('hidden');
-        weekDayViewContainer.innerHTML = 'Day View Coming Soon...';
-        currentMonthYearEl.textContent = "Day View";
+        weekDayViewContainer.innerHTML = '';
+
+        currentMonthYearEl.textContent = currentDate.toLocaleDateString('default', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+        const grid = document.createElement('div');
+        grid.className = 'day-view-grid';
+
+        const allDayLabel = document.createElement('div');
+        allDayLabel.textContent = 'all-day';
+        allDayLabel.className = 'text-xs text-right pr-2 py-1 text-slate-400';
+        allDayLabel.style.gridRow = '2';
+        grid.appendChild(allDayLabel);
+
+        const allDaySection = document.createElement('div');
+        allDaySection.className = 'day-view-all-day-section';
+        allDaySection.style.gridRow = '2';
+        grid.appendChild(allDaySection);
+
+        const timeGrid = document.createElement('div');
+        timeGrid.className = 'day-view-time-grid';
+        
+        for (let i = 0; i < 24; i++) {
+            const timeLabel = document.createElement('div');
+            timeLabel.className = 'time-label';
+            timeLabel.textContent = i === 0 ? '' : i < 12 ? `${i} AM` : i === 12 ? '12 PM' : `${i - 12} PM`;
+            timeLabel.style.gridRow = i + 1;
+            timeGrid.appendChild(timeLabel);
+        }
+
+        const dayCol = document.createElement('div');
+        dayCol.className = 'day-column';
+        dayCol.style.gridColumn = 2;
+        dayCol.style.gridRow = '1 / -1';
+        for (let i = 0; i < 24; i++) {
+            const slot = document.createElement('div');
+            slot.className = 'hour-slot';
+            dayCol.appendChild(slot);
+        }
+        timeGrid.appendChild(dayCol);
+        grid.appendChild(timeGrid);
+
+        const dayStart = new Date(currentDate);
+        dayStart.setHours(0,0,0,0);
+        const dayEnd = new Date(currentDate);
+        dayEnd.setHours(23,59,59,999);
+
+        const eventsToday = CalendarService.getEvents().filter(event => {
+            const eventStart = new Date(event.startTime);
+            return eventStart >= dayStart && eventStart <= dayEnd;
+        });
+
+        eventsToday.forEach(event => {
+            if (event.isAllDay) {
+                const eventEl = document.createElement('div');
+                eventEl.className = 'event-pill all-day-event';
+                eventEl.classList.add(`bg-${event.color || 'sky-600'}`);
+                eventEl.textContent = event.title;
+                eventEl.dataset.eventId = event.id;
+                eventEl.addEventListener('click', (e) => { e.stopPropagation(); openViewEventModal(event.id); });
+                allDaySection.appendChild(eventEl);
+            } else {
+                const eventStart = new Date(event.startTime);
+                const startMinutes = eventStart.getHours() * 60 + eventStart.getMinutes();
+                const endMinutes = new Date(event.endTime).getHours() * 60 + new Date(event.endTime).getMinutes();
+                let duration = endMinutes - startMinutes;
+                if(duration < 30) duration = 30;
+
+                const eventEl = document.createElement('div');
+                eventEl.className = 'week-event';
+                eventEl.classList.add(`bg-${event.color || 'sky-600'}`);
+                eventEl.innerHTML = `<strong class="font-semibold">${event.title}</strong><br><span class="text-xs">${eventStart.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>`;
+                eventEl.style.top = `${(startMinutes / 60) * 60}px`;
+                eventEl.style.height = `${(duration / 60) * 60}px`;
+                eventEl.dataset.eventId = event.id;
+                eventEl.addEventListener('click', (e) => { e.stopPropagation(); openViewEventModal(event.id); });
+                dayCol.appendChild(eventEl);
+            }
+        });
+        
+        weekDayViewContainer.appendChild(grid);
+        
+        updateCurrentTimeIndicator();
+        timeIndicatorInterval = setInterval(updateCurrentTimeIndicator, 60000);
     }
     
     function setSelectedColor(color) {
@@ -345,18 +494,55 @@ const CalendarUI = (() => {
         }
     }
 
+    function handleDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    }
+
+    async function handleDrop(e) {
+        e.preventDefault();
+        const targetDaySquare = e.target.closest('.calendar-day-square');
+        if (!targetDaySquare || !draggedEventId) return;
+
+        const newDateStr = targetDaySquare.dataset.date;
+        const event = CalendarService.getEventById(Number(draggedEventId));
+        if (!event) return;
+
+        const originalStartDate = new Date(event.startTime);
+        const originalEndDate = new Date(event.endTime);
+        const durationMs = originalEndDate.getTime() - originalStartDate.getTime();
+        
+        const newStartDate = new Date(newDateStr + 'T' + originalStartDate.toTimeString().split(' ')[0]);
+        const newEndDate = new Date(newStartDate.getTime() + durationMs);
+
+        const updatedEventData = {
+            ...event,
+            startTime: newStartDate.toISOString(),
+            endTime: newEndDate.toISOString(),
+        };
+
+        await CalendarService.updateEvent(event.id, updatedEventData);
+        draggedEventId = null;
+    }
+
+
     function setupEventListeners() {
-        prevMonthBtn.addEventListener('click', () => { 
-            const d = currentView === 'week' ? 7 : 0;
+        prevMonthBtn.addEventListener('click', () => {
+            const d = currentView === 'week' ? 7 : (currentView === 'day' ? 1 : 0);
             if (d > 0) currentDate.setDate(currentDate.getDate() - d);
             else currentDate.setMonth(currentDate.getMonth() - 1);
-            updateView(); 
+            updateView();
         });
-        nextMonthBtn.addEventListener('click', () => { 
-            const d = currentView === 'week' ? 7 : 0;
+        nextMonthBtn.addEventListener('click', () => {
+            const d = currentView === 'week' ? 7 : (currentView === 'day' ? 1 : 0);
             if (d > 0) currentDate.setDate(currentDate.getDate() + d);
             else currentDate.setMonth(currentDate.getMonth() + 1);
-            updateView(); 
+            updateView();
+        });
+
+        todayBtn.addEventListener('click', () => {
+            currentDate = new Date();
+            updateView();
         });
 
         monthViewBtn.addEventListener('click', () => { currentView = 'month'; updateView(); });
@@ -376,21 +562,41 @@ const CalendarUI = (() => {
         closeViewEventBtn.addEventListener('click', closeViewEventModal);
         deleteEventBtn.addEventListener('click', handleDeleteEvent);
         
-        // FIX: Capture eventId before closing the view modal
         editEventBtn.addEventListener('click', () => {
             const eventIdToEdit = activeEventId;
             closeViewEventModal();
             openEventModal(eventIdToEdit);
         });
         
+        calendarGrid.addEventListener('dragover', handleDragOver);
+        calendarGrid.addEventListener('drop', handleDrop);
+        
         EventBus.subscribe('calendarEventsChanged', updateView);
         EventBus.subscribe('tasksChanged', updateView);
     }
+
+    // --- MODIFICATION START: Add a function to initialize the date picker ---
+    function initializeDatePicker() {
+        if (datePicker) {
+            datePicker.destroy();
+        }
+        datePicker = flatpickr(currentMonthYearEl, {
+            defaultDate: currentDate,
+            onChange: function(selectedDates) {
+                if (selectedDates[0]) {
+                    currentDate = selectedDates[0];
+                    updateView();
+                }
+            },
+        });
+    }
+    // --- MODIFICATION END ---
 
     return {
         initialize: () => {
             getDOMElements();
             setupEventListeners();
+            initializeDatePicker(); // MODIFICATION: Call the new function
             updateView();
             LoggingService.info('[CalendarUI] Initialized.');
         }

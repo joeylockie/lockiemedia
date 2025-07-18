@@ -7,105 +7,38 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" href="style.css">
     <style>
-        /* Custom styles for the dynamically generated calendar grid */
-        .calendar-day-header {
-            text-align: center;
-            font-weight: 600;
-            font-size: 0.75rem; /* text-xs */
-            color: #d1d5db; /* slate-300 */
-            padding-top: 0.5rem; /* py-2 */
-            padding-bottom: 0.5rem;
-        }
-        .calendar-day-square {
-            background-color: #1f2937; /* slate-800 */
-            padding: 0.5rem; /* p-2 */
-            display: flex;
-            flex-direction: column;
-            min-height: 120px;
-            cursor: pointer;
-            transition: background-color 0.2s ease-in-out;
-        }
-        .calendar-day-square:hover {
-            background-color: rgba(51, 65, 85, 0.5); /* slate-700/50 */
-        }
-        .calendar-day-square.other-month {
-            opacity: 0.5;
-            cursor: default;
-        }
-        .calendar-day-number {
-            font-weight: 700;
-            color: #e5e7eb; /* slate-200 */
-        }
-        .event-pill {
-            font-size: 0.75rem; /* text-xs */
-            padding: 0.25rem; /* p-1 */
-            border-radius: 0.25rem; /* rounded */
-            color: white;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        /* Style for tasks overlaid on the calendar */
-        .task-pill {
-            font-size: 0.75rem; /* text-xs */
-            padding: 0.25rem; /* p-1 */
-            border-radius: 0.25rem; /* rounded */
-            background-color: #a855f7; /* purple-500 */
-            color: white;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            cursor: pointer;
-        }
-        .color-dot {
-            width: 2rem;
-            height: 2rem;
-            border-radius: 9999px;
-            cursor: pointer;
-            border: 2px solid transparent;
-            transition: border-color 0.2s ease-in-out;
-        }
-        .color-dot.selected {
-            border-color: #fff;
-        }
-        /* NEW: Styles for Week/Day View */
-        .time-grid {
-            display: grid;
-            grid-template-columns: 50px repeat(7, 1fr); /* Time labels + 7 days */
-            grid-template-rows: auto repeat(24, 60px); /* Header + 24 hours */
-            overflow: auto;
-        }
-        .time-label {
-            grid-column: 1;
-            text-align: right;
-            padding-right: 10px;
-            font-size: 10px;
-            color: #94a3b8; /* slate-400 */
-            position: relative;
-            top: -7px;
-        }
-        .day-column {
-            position: relative;
-            border-right: 1px solid #374151; /* slate-700 */
-            border-top: 1px solid #374151;
-        }
-        .hour-slot {
-            height: 60px;
-            border-bottom: 1px solid #374151; /* slate-700 */
-        }
-        .week-event {
-            position: absolute;
-            left: 5px;
-            right: 5px;
-            padding: 2px 4px;
-            border-radius: 4px;
-            color: white;
-            font-size: 12px;
-            overflow: hidden;
-            z-index: 10;
-        }
+        /* --- Month View Styles (Existing) --- */
+        .calendar-day-header { text-align: center; font-weight: 600; font-size: 0.75rem; color: #d1d5db; padding-top: 0.5rem; padding-bottom: 0.5rem; }
+        .calendar-day-square { background-color: #1f2937; padding: 0.5rem; display: flex; flex-direction: column; min-height: 120px; cursor: pointer; transition: background-color 0.2s ease-in-out; }
+        .calendar-day-square:hover { background-color: rgba(51, 65, 85, 0.5); }
+        .calendar-day-square.other-month { opacity: 0.5; cursor: default; }
+        .calendar-day-number { font-weight: 700; color: #e5e7eb; }
+        .event-pill { font-size: 0.75rem; padding: 0.25rem; border-radius: 0.25rem; color: white; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .task-pill { font-size: 0.75rem; padding: 0.25rem; border-radius: 0.25rem; background-color: #a855f7; color: white; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+        .color-dot { width: 2rem; height: 2rem; border-radius: 9999px; cursor: pointer; border: 2px solid transparent; transition: border-color 0.2s ease-in-out; }
+        .color-dot.selected { border-color: #fff; }
+
+        /* --- Week View Styles (Existing and Unchanged) --- */
+        .week-view-grid { display: grid; grid-template-columns: 50px 1fr; grid-template-rows: auto auto 1fr; height: 100%; }
+        .week-view-header { grid-column: 2 / -1; display: grid; grid-template-columns: repeat(7, 1fr); }
+        .week-view-all-day-section { grid-column: 2 / -1; display: grid; grid-template-columns: repeat(7, 1fr); border-bottom: 2px solid #4b5563; }
+        .week-view-time-grid { grid-column: 1 / -1; grid-row: 3; display: grid; grid-template-columns: 50px repeat(7, 1fr); grid-template-rows: repeat(24, 60px); overflow-y: auto; position: relative; }
+        .time-label { text-align: right; padding-right: 10px; font-size: 10px; color: #94a3b8; position: relative; top: -7px; }
+        .day-column { position: relative; border-right: 1px solid #374151; }
+        .day-column:last-child { border-right: none; }
+        .all-day-column { position: relative; border-right: 1px solid #374151; padding: 4px; min-height: 34px; }
+        .all-day-column:last-child { border-right: none; }
+        .hour-slot { height: 60px; border-top: 1px solid #374151; }
+        .week-event { position: absolute; left: 5px; right: 5px; padding: 2px 4px; border-radius: 4px; color: white; font-size: 12px; overflow: hidden; z-index: 10; cursor: pointer; }
+        .all-day-event { position: relative; margin-bottom: 2px; }
+        .current-time-indicator { position: absolute; left: 50px; right: 0; height: 2px; background-color: #ef4444; z-index: 20; }
+        .day-view-grid { display: grid; grid-template-columns: 50px 1fr; grid-template-rows: auto auto 1fr; height: 100%; }
+        .day-view-time-grid { grid-column: 1 / -1; grid-row: 3; display: grid; grid-template-columns: 50px 1fr; grid-template-rows: repeat(24, 60px); overflow-y: auto; position: relative; }
+        .day-view-header { grid-column: 2; text-align: center; font-weight: 600; padding: 4px; border-bottom: 2px solid #4b5563; }
+        .day-view-all-day-section { grid-column: 2; border-bottom: 2px solid #4b5563; padding: 4px; min-height: 34px; }
     </style>
 </head>
 <body id="calendarPage" class="bg-gradient-to-br from-slate-900 to-slate-700 min-h-screen text-slate-200">
@@ -114,16 +47,12 @@
         <aside class="w-72 bg-slate-800 p-6 flex-shrink-0 border-r border-slate-700 flex flex-col">
             <div class="flex items-center justify-between mb-8">
                 <h1 class="text-2xl font-bold text-teal-400">Calendar</h1>
-                <a href="index.html" class="text-slate-400 hover:text-white" title="Back to Dashboard">
-                    <i class="fas fa-home"></i>
-                </a>
+                <a href="index.html" class="text-slate-400 hover:text-white" title="Back to Dashboard"><i class="fas fa-home"></i></a>
             </div>
-            <nav id="calendarSidebarNav" class="flex-grow">
-                </nav>
+            <nav id="calendarSidebarNav" class="flex-grow"></nav>
             <div class="mt-auto">
                 <button id="settingsBtn" class="w-full flex items-center justify-center px-4 py-3 rounded-lg transition-colors duration-200 bg-slate-700 hover:bg-slate-600 text-white font-semibold">
-                    <i class="fas fa-cog mr-2"></i>
-                    <span>Settings</span>
+                    <i class="fas fa-cog mr-2"></i><span>Settings</span>
                 </button>
             </div>
         </aside>
@@ -131,13 +60,10 @@
         <main class="flex-1 bg-slate-900/70 p-8 overflow-y-auto flex flex-col">
             <header class="flex justify-between items-center mb-6 flex-shrink-0">
                 <div class="flex items-center gap-4">
-                    <button id="prevMonthBtn" class="p-2 rounded-full hover:bg-slate-700" title="Previous Period">
-                        <i class="fas fa-chevron-left"></i>
-                    </button>
-                    <h2 id="currentMonthYear" class="text-3xl font-bold text-white"></h2>
-                    <button id="nextMonthBtn" class="p-2 rounded-full hover:bg-slate-700" title="Next Period">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
+                    <button id="todayBtn" class="px-4 py-2 text-sm font-semibold rounded-md border border-slate-600 hover:bg-slate-700">Today</button>
+                    <button id="prevMonthBtn" class="p-2 rounded-full hover:bg-slate-700" title="Previous Period"><i class="fas fa-chevron-left"></i></button>
+                    <button id="nextMonthBtn" class="p-2 rounded-full hover:bg-slate-700" title="Next Period"><i class="fas fa-chevron-right"></i></button>
+                    <h2 id="currentMonthYear" class="text-3xl font-bold text-white cursor-pointer hover:text-sky-400 transition-colors"></h2>
                 </div>
                 <div class="flex items-center gap-2">
                     <button id="monthViewBtn" class="px-4 py-2 text-sm rounded-md bg-sky-600 text-white">Month</button>
@@ -146,11 +72,8 @@
                 </div>
             </header>
 
-            <div id="calendarGrid" class="flex-grow grid grid-cols-7 grid-rows-[auto,1fr,1fr,1fr,1fr,1fr,1fr] gap-px bg-slate-700 border border-slate-700 rounded-lg overflow-hidden">
-            </div>
-            
-            <div id="weekDayViewContainer" class="hidden flex-grow relative bg-slate-800 rounded-lg border border-slate-700">
-                </div>
+            <div id="calendarGrid" class="flex-grow grid grid-cols-7 grid-rows-[auto,1fr,1fr,1fr,1fr,1fr,1fr] gap-px bg-slate-700 border border-slate-700 rounded-lg overflow-hidden"></div>
+            <div id="weekDayViewContainer" class="hidden flex-grow relative bg-slate-800 rounded-lg border border-slate-700"></div>
         </main>
     </div>
 
@@ -160,49 +83,23 @@
             <form id="eventForm">
                 <input type="hidden" id="eventId">
                 <div class="space-y-4">
-                    <div>
-                        <label for="eventTitle" class="block text-sm font-medium text-slate-300">Title</label>
-                        <input type="text" id="eventTitle" required class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none">
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <input type="checkbox" id="isAllDay" class="h-4 w-4 rounded border-gray-300 text-sky-600 focus:ring-sky-500">
-                        <label for="isAllDay" class="text-sm font-medium text-slate-300">All-day event</label>
-                    </div>
+                    <div><label for="eventTitle" class="block text-sm font-medium text-slate-300">Title</label><input type="text" id="eventTitle" required class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none"></div>
+                    <div class="flex items-center gap-3"><input type="checkbox" id="isAllDay" class="h-4 w-4 rounded border-gray-300 text-sky-600 focus:ring-sky-500"><label for="isAllDay" class="text-sm font-medium text-slate-300">All-day event</label></div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label for="eventStartDate" class="block text-sm font-medium text-slate-300">Start Date</label>
-                            <input type="date" id="eventStartDate" required class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none dark:[color-scheme:dark]">
-                        </div>
-                        <div>
-                            <label for="eventEndDate" class="block text-sm font-medium text-slate-300">End Date</label>
-                            <input type="date" id="eventEndDate" required class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none dark:[color-scheme:dark]">
-                        </div>
+                        <div><label for="eventStartDate" class="block text-sm font-medium text-slate-300">Start Date</label><input type="date" id="eventStartDate" required class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none dark:[color-scheme:dark]"></div>
+                        <div><label for="eventEndDate" class="block text-sm font-medium text-slate-300">End Date</label><input type="date" id="eventEndDate" required class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none dark:[color-scheme:dark]"></div>
                     </div>
-                     <div id="timeInputsContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label for="eventStartTime" class="block text-sm font-medium text-slate-300">Start Time</label>
-                            <input type="time" id="eventStartTime" class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none dark:[color-scheme:dark]">
-                        </div>
-                        <div>
-                            <label for="eventEndTime" class="block text-sm font-medium text-slate-300">End Time</label>
-                            <input type="time" id="eventEndTime" class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none dark:[color-scheme:dark]">
-                        </div>
+                    <div id="timeInputsContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div><label for="eventStartTime" class="block text-sm font-medium text-slate-300">Start Time</label><input type="time" id="eventStartTime" class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none dark:[color-scheme:dark]"></div>
+                        <div><label for="eventEndTime" class="block text-sm font-medium text-slate-300">End Time</label><input type="time" id="eventEndTime" class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none dark:[color-scheme:dark]"></div>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-slate-300">Color</label>
                         <div id="color-palette" class="mt-2 flex gap-3">
-                            <div class="color-dot bg-sky-500" data-color="sky-500"></div>
-                            <div class="color-dot bg-green-500" data-color="green-500"></div>
-                            <div class="color-dot bg-yellow-500" data-color="yellow-500"></div>
-                            <div class="color-dot bg-red-500" data-color="red-500"></div>
-                            <div class="color-dot bg-purple-500" data-color="purple-500"></div>
-                            <div class="color-dot bg-pink-500" data-color="pink-500"></div>
+                            <div class="color-dot bg-sky-500" data-color="sky-500"></div><div class="color-dot bg-green-500" data-color="green-500"></div><div class="color-dot bg-yellow-500" data-color="yellow-500"></div><div class="color-dot bg-red-500" data-color="red-500"></div><div class="color-dot bg-purple-500" data-color="purple-500"></div><div class="color-dot bg-pink-500" data-color="pink-500"></div>
                         </div>
                     </div>
-                    <div>
-                        <label for="eventDescription" class="block text-sm font-medium text-slate-300">Description</label>
-                        <textarea id="eventDescription" rows="4" class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none"></textarea>
-                    </div>
+                    <div><label for="eventDescription" class="block text-sm font-medium text-slate-300">Description</label><textarea id="eventDescription" rows="4" class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none"></textarea></div>
                 </div>
                 <div class="mt-6 flex justify-end gap-3">
                     <button type="button" id="cancelEventBtn" class="px-5 py-2.5 bg-slate-600 text-slate-200 rounded-lg hover:bg-slate-500 font-medium">Cancel</button>
@@ -211,27 +108,14 @@
             </form>
         </div>
     </div>
-
     <div id="viewEventModal" class="fixed inset-0 bg-slate-900 bg-opacity-75 flex items-center justify-center z-50 hidden">
         <div id="viewEventModalDialog" class="bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-lg border border-slate-700">
-             <div class="flex justify-between items-center pb-4 mb-4 border-b border-slate-700">
-                <h3 id="viewEventTitle" class="text-2xl font-semibold text-slate-100">Event Details</h3>
-                <button id="closeViewEventBtn" class="text-slate-400 hover:text-white">&times;</button>
-            </div>
+            <div class="flex justify-between items-center pb-4 mb-4 border-b border-slate-700"><h3 id="viewEventTitle" class="text-2xl font-semibold text-slate-100">Event Details</h3><button id="closeViewEventBtn" class="text-slate-400 hover:text-white">&times;</button></div>
             <div class="space-y-4 text-slate-300">
-                <div>
-                    <strong class="block text-sm text-slate-400">Time</strong>
-                    <p id="viewEventTime"></p>
-                </div>
-                <div>
-                    <strong class="block text-sm text-slate-400">Description</strong>
-                    <p id="viewEventDescription" class="whitespace-pre-wrap"></p>
-                </div>
+                <div><strong class="block text-sm text-slate-400">Time</strong><p id="viewEventTime"></p></div>
+                <div><strong class="block text-sm text-slate-400">Description</strong><p id="viewEventDescription" class="whitespace-pre-wrap"></p></div>
             </div>
-             <div class="mt-6 flex justify-end gap-3">
-                <button type="button" id="editEventBtn" class="px-5 py-2.5 bg-sky-600 text-white rounded-lg hover:bg-sky-700 font-semibold">Edit</button>
-                <button type="button" id="deleteEventBtn" class="px-5 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold">Delete</button>
-            </div>
+            <div class="mt-6 flex justify-end gap-3"><button type="button" id="editEventBtn" class="px-5 py-2.5 bg-sky-600 text-white rounded-lg hover:bg-sky-700 font-semibold">Edit</button><button type="button" id="deleteEventBtn" class="px-5 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold">Delete</button></div>
         </div>
     </div>
 
@@ -242,5 +126,6 @@
     <script src="calendarService.js" type="module"></script>
     <script src="taskService.js" type="module"></script>
     <script src="calendar_main.js" type="module"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 </body>
 </html>
