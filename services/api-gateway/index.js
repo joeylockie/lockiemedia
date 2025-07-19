@@ -74,8 +74,10 @@ app.delete('/api/subtasks/:subtaskId', (req, res) => proxyRequest(req, res, serv
 app.post('/api/tickets/:ticketId/comments', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.delete('/api/tickets/:ticketId/comments/:commentId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.patch('/api/tickets/:ticketId/status', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.post('/api/dev-release-versions', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-// --- END: DEV TRACKER PROXY ROUTES ---
+app.post('/api/dev-release-versions', (req, res) => {
+    console.log('--- DEBUG: HITTING /api/dev-release-versions PROXY ROUTE ---');
+    proxyRequest(req, res, serviceTargets.devTrackerService);
+});// --- END: DEV TRACKER PROXY ROUTES ---
 
 
 // --- General Data Sync Routes (Unchanged) ---
