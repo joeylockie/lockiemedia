@@ -112,7 +112,8 @@ const proxyRequest = async (req, res, serviceUrl) => {
     }
 };
 
-// --- START: All specific proxy routes ---
+// --- START: FIX FOR DEV TRACKER ---
+// These specific routes will now correctly forward requests to the dev-tracker-service.
 app.post('/api/epics', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.put('/api/epics/:epicId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.delete('/api/epics/:epicId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
@@ -125,7 +126,7 @@ app.post('/api/dev-release-versions', (req, res) => proxyRequest(req, res, servi
 app.post('/api/tickets/:ticketId/comments', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.delete('/api/tickets/:ticketId/comments/:commentId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.patch('/api/tickets/:ticketId/status', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-// --- END: All specific proxy routes ---
+// --- END: FIX FOR DEV TRACKER ---
 
 app.get('/api/database/backup', (req, res) => {
     const dbPath = process.env.DB_FILE_PATH || path.resolve(__dirname, '../../lockiedb.sqlite');
