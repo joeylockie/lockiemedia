@@ -54,7 +54,6 @@ const fetchServiceDataWithRetry = async (serviceName, serviceUrl) => {
         else if (serviceName === 'habitTrackerService') endpoint = '/api/habits-data';
         else if (serviceName === 'pomodoroService') endpoint = '/api/pomodoro-data';
         else return {};
-
         const response = await axios.get(`${serviceUrl}${endpoint}`);
         return response.data;
     } catch (error) {
@@ -75,6 +74,7 @@ app.get('/api/data', async (req, res) => {
 });
 
 app.post('/api/data', async (req, res) => {
+    // This function remains unchanged from your version
     const incomingData = req.body;
     const servicePayloads = {
         taskService: { data: { tasks: incomingData.tasks, projects: incomingData.projects, userProfile: incomingData.userProfile, userPreferences: incomingData.userPreferences }, endpoint: '/api/core-data' },
@@ -98,10 +98,11 @@ app.post('/api/data', async (req, res) => {
 
 const proxyRequest = async (req, res, serviceUrl) => {
     try {
+        const { method, originalUrl, body } = req;
         const response = await axios({
-            method: req.method,
-            url: `${serviceUrl}${req.originalUrl}`,
-            data: req.body,
+            method,
+            url: `${serviceUrl}${originalUrl}`,
+            data: body,
             headers: { 'Content-Type': 'application/json' }
         });
         res.status(response.status).json(response.data);
@@ -112,26 +113,20 @@ const proxyRequest = async (req, res, serviceUrl) => {
     }
 };
 
-// --- START: ALL DEV TRACKER PROXY ROUTES ---
-// Epics
-app.post('/api/epics', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.put('/api/epics/:epicId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.delete('/api/epics/:epicId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-// Tickets
-app.post('/api/tickets', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.put('/api/tickets/:ticketId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-// Subtasks
-app.post('/api/tickets/:ticketId/subtasks', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.put('/api/subtasks/:subtaskId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.delete('/api/subtasks/:subtaskId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-// Comments
-app.post('/api/tickets/:ticketId/comments', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.delete('/api/tickets/:ticketId/comments/:commentId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-// Status
-app.patch('/api/tickets/:ticketId/status', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-// Release Versions
-app.post('/api/dev-release-versions', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-// --- END: ALL DEV TRACKER PROXY ROUTES ---
+// --- START: THE FINAL DEV TRACKER FIX ---
+// This creates a reusable router that forwards ALL requests to the dev tracker service.
+const devTrackerRouter = express.Router();
+devTrackerRouter.all('*', (req, res) => {
+    proxyRequest(req, res, serviceTargets.devTrackerService);
+});
+
+// This tells the gateway to use that router for any path that starts with these routes.
+// This is the robust way to handle this and will catch all requests correctly.
+app.use('/api/epics', devTrackerRouter);
+app.use('/api/tickets', devTrackerRouter);
+app.use('/api/subtasks', devTrackerRouter);
+app.use('/api/dev-release-versions', devTrackerRouter);
+// --- END: THE FINAL DEV TRACKER FIX ---
 
 app.get('/api/database/backup', (req, res) => {
     const dbPath = process.env.DB_FILE_PATH || path.resolve(__dirname, '../../lockiedb.sqlite');
