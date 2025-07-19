@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 3006;
 
 let db;
 try {
-    // THIS IS THE CORRECTED PATH
+    // Corrected fallback path
     const dbFile = process.env.DB_FILE_PATH || path.join(__dirname, '../../lockiedb.sqlite');
     
     db = new Database(dbFile);
@@ -28,6 +28,7 @@ try {
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
+// ... (The rest of the file's content, including all endpoints, remains the same as my last correct version) ...
 function recordHistory(ticketId, field, oldValue, newValue, author = 'System') {
     if (String(oldValue ?? '') !== String(newValue ?? '')) {
         const stmt = db.prepare('INSERT INTO dev_ticket_history (ticketId, field, oldValue, newValue, changedAt) VALUES (?, ?, ?, ?, ?)');
