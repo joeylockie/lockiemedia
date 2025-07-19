@@ -149,3 +149,19 @@ app.use(express.static(path.join(__dirname, '../../public')));
 app.listen(PORT, () => {
     console.log(`[HTTP API Gateway] Listening on port ${PORT}`);
 });
+
+// --- START: DEBUGGING CATCH-ALL ROUTE ---
+// This will catch any /api/ request that didn't match one of the routes above.
+app.use('/api/*', (req, res) => {
+    console.log(`--- GATEWAY 404: UNMATCHED API ROUTE --- Method: ${req.method}, URL: ${req.originalUrl}`);
+    res.status(404).json({
+        error: 'This API route was not found in the gateway configuration.',
+        method: req.method,
+        url: req.originalUrl,
+    });
+});
+// --- END: DEBUGGING CATCH-ALL ROUTE ---
+
+app.listen(PORT, () => {
+    console.log(`[HTTP API Gateway] Listening on port ${PORT}`);
+});
