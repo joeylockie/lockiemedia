@@ -13,8 +13,9 @@ const PORT = process.env.PORT || 3006;
 
 let db;
 try {
-    // The corrected fallback path has one less '../'
+    // THIS IS THE CORRECTED PATH
     const dbFile = process.env.DB_FILE_PATH || path.join(__dirname, '../../lockiedb.sqlite');
+    
     db = new Database(dbFile);
     db.pragma('journal_mode = WAL');
     db.pragma('foreign_keys = ON');
@@ -24,9 +25,6 @@ try {
     process.exit(1);
 }
 
-// The rest of the file is exactly as it should be from the previous step.
-// All of your endpoints (`/api/tickets`, `/api/subtasks`, etc.) are here.
-// I'm including the full file to be safe.
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
