@@ -26,6 +26,12 @@ try {
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
+// --- NEW DEBUGGING MIDDLEWARE ---
+app.use((req, res, next) => {
+    console.log(`--- DEV-TRACKER-SERVICE RECEIVED REQUEST --- Method: ${req.method}, URL: ${req.originalUrl}`);
+    next();
+});
+
 function recordHistory(ticketId, field, oldValue, newValue, author = 'System') {
     if (String(oldValue ?? '') !== String(newValue ?? '')) {
         const stmt = db.prepare('INSERT INTO dev_ticket_history (ticketId, field, oldValue, newValue, changedAt) VALUES (?, ?, ?, ?, ?)');
