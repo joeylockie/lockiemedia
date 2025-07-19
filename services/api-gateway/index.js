@@ -113,6 +113,9 @@ const proxyRequest = async (req, res, serviceUrl) => {
 };
 
 // --- START: All specific proxy routes ---
+app.post('/api/epics', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+app.put('/api/epics/:epicId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+app.delete('/api/epics/:epicId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.post('/api/tickets', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.put('/api/tickets/:ticketId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.post('/api/tickets/:ticketId/subtasks', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));

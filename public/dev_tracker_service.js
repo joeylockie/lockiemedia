@@ -12,7 +12,7 @@ const API_HEADERS = {
     'X-API-Key': API_KEY,
 };
 
-// --- NEW: A helper function for handling API calls and errors ---
+// --- A helper function for handling API calls and errors ---
 async function _fetchApi(url, options, functionName) {
     try {
         const response = await fetch(url, options);
@@ -21,7 +21,6 @@ async function _fetchApi(url, options, functionName) {
             LoggingService.error(`[DevTrackerService] API call failed in ${functionName}`, { url, status: response.status, body: errorBody });
             throw new Error(errorBody.error || `Request failed with status ${response.status}`);
         }
-        // For DELETE requests with no content
         if (response.status === 204 || response.headers.get('content-length') === '0') {
             return null;
         }
@@ -29,59 +28,56 @@ async function _fetchApi(url, options, functionName) {
     } catch (error) {
         LoggingService.error(`[DevTrackerService] Network or parsing error in ${functionName}`, error, { url });
         EventBus.publish('displayUserMessage', { text: `API Error: ${error.message}`, type: 'error' });
-        throw error; // Re-throw the error to be caught by the calling function
+        throw error;
     }
 }
 
-
-// --- MODIFIED: addEpic now uses the full AppStore refresh ---
+// --- NEW: Epic functions now use the new API endpoints ---
 export async function addEpic(epicData) {
     const functionName = 'addEpic (DevTrackerService)';
-    const epics = AppStore.getDevEpics();
-    
-    // Simple client-side validation
-    if (epics.some(e => e.key.toUpperCase() === epicData.key.toUpperCase())) {
-        alert(`Error: Epic Key "${epicData.key}" already exists.`);
-        return null;
+    try {
+        const newEpic = await _fetchApi(`${API_URL}/epics`, {
+            method: 'POST',
+            headers: API_HEADERS,
+            body: JSON.stringify(epicData),
+        }, functionName);
+        await AppStore.initializeStore(); // Refresh all data to get the new state
+        return newEpic;
+    } catch (error) {
+        return null; // Error is already logged and displayed by _fetchApi
     }
-    // A more complete implementation would have a dedicated POST /api/epics endpoint.
-    // For now, we continue with the local update and full sync model for epics.
-    const newEpic = {
-        id: Date.now(),
-        createdAt: Date.now(),
-        key: epicData.key.toUpperCase(),
-        title: epicData.title,
-        description: epicData.description,
-        status: epicData.status,
-        priority: epicData.priority,
-        releaseVersion: epicData.releaseVersion,
-        ticketCounter: 0,
-    };
-    epics.unshift(newEpic);
-    await AppStore.setDevEpics(epics, functionName); // This still uses the old save model
-    return newEpic;
 }
 
-// --- MODIFIED: updateEpic now uses the full AppStore refresh ---
 export async function updateEpic(epicId, updateData) {
     const functionName = 'updateEpic (DevTrackerService)';
-    const epics = AppStore.getDevEpics();
-    const epicIndex = epics.findIndex(e => e.id === epicId);
-
-    if (epicIndex === -1) return null;
-
-    if (updateData.key && epics.some(e => e.key.toUpperCase() === updateData.key.toUpperCase() && e.id !== epicId)) {
-        alert(`Error: Epic Key "${updateData.key}" already exists.`);
+    try {
+        const updatedEpic = await _fetchApi(`${API_URL}/epics/${epicId}`, {
+            method: 'PUT',
+            headers: API_HEADERS,
+            body: JSON.stringify(updateData),
+        }, functionName);
+        await AppStore.initializeStore(); // Refresh all data
+        return updatedEpic;
+    } catch (error) {
         return null;
     }
-    if(updateData.key) updateData.key = updateData.key.toUpperCase();
-
-    epics[epicIndex] = { ...epics[epicIndex], ...updateData };
-    await AppStore.setDevEpics(epics, functionName);
-    return epics[epicIndex];
 }
 
-// --- NEW: addTicket now calls the dedicated API endpoint ---
+export async function deleteEpic(epicId) {
+    const functionName = 'deleteEpic (DevTrackerService)';
+    try {
+        await _fetchApi(`${API_URL}/epics/${epicId}`, {
+            method: 'DELETE',
+            headers: API_HEADERS,
+        }, functionName);
+        await AppStore.initializeStore(); // Refresh all data
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
+// --- Ticket functions call the dedicated API endpoints ---
 export async function addTicket(ticketData) {
     const functionName = 'addTicket (DevTrackerService)';
     try {
@@ -90,17 +86,13 @@ export async function addTicket(ticketData) {
             headers: API_HEADERS,
             body: JSON.stringify({ ...ticketData, author: AppStore.getUserProfile().displayName }),
         }, functionName);
-
-        // Refresh all data to ensure store is in sync
         await AppStore.initializeStore();
         return newTicket;
     } catch (error) {
-        // Error is already logged and displayed by _fetchApi
         return null;
     }
 }
 
-// --- NEW: updateTicket now calls the dedicated API endpoint ---
 export async function updateTicket(ticketId, updateData) {
     const functionName = 'updateTicket (DevTrackerService)';
     try {
@@ -109,8 +101,6 @@ export async function updateTicket(ticketId, updateData) {
             headers: API_HEADERS,
             body: JSON.stringify({ ...updateData, author: AppStore.getUserProfile().displayName }),
         }, functionName);
-
-        // Refresh all data to ensure store is in sync with changes and new history
         await AppStore.initializeStore();
         return updatedTicket;
     } catch (error) {
@@ -118,8 +108,7 @@ export async function updateTicket(ticketId, updateData) {
     }
 }
 
-// --- NEW: Subtask Management ---
-
+// --- Subtask Management ---
 export async function addSubtask(ticketId, text) {
     const functionName = 'addSubtask (DevTrackerService)';
     try {
@@ -128,8 +117,6 @@ export async function addSubtask(ticketId, text) {
             headers: API_HEADERS,
             body: JSON.stringify({ text }),
         }, functionName);
-
-        // Add to local store immediately for faster UI response
         const subtasks = AppStore.getDevSubtasks();
         subtasks.push(newSubtask);
         AppStore.setDevSubtasks(subtasks, functionName);
@@ -147,8 +134,6 @@ export async function updateSubtask(subtaskId, updateData) {
             headers: API_HEADERS,
             body: JSON.stringify(updateData),
         }, functionName);
-
-        // Update local store for faster UI response
         const subtasks = AppStore.getDevSubtasks();
         const index = subtasks.findIndex(s => s.id === subtaskId);
         if (index !== -1) {
@@ -157,7 +142,6 @@ export async function updateSubtask(subtaskId, updateData) {
         }
         return updatedSubtask;
     } catch (error) {
-        // If the API call fails, refresh the store to revert optimistic update
         await AppStore.initializeStore();
         return null;
     }
@@ -170,8 +154,6 @@ export async function deleteSubtask(subtaskId) {
             method: 'DELETE',
             headers: API_HEADERS,
         }, functionName);
-
-        // Remove from local store for faster UI response
         const subtasks = AppStore.getDevSubtasks().filter(s => s.id !== subtaskId);
         AppStore.setDevSubtasks(subtasks, functionName);
         return true;
@@ -180,9 +162,7 @@ export async function deleteSubtask(subtaskId) {
     }
 }
 
-
-// --- Existing API-driven functions (comments, versions, etc.) ---
-
+// --- Other API-driven functions ---
 export async function addComment(ticketId, comment) {
     const functionName = 'addComment (DevTrackerService)';
     try {
@@ -191,7 +171,6 @@ export async function addComment(ticketId, comment) {
             headers: API_HEADERS,
             body: JSON.stringify({ comment, author: AppStore.getUserProfile().displayName }),
         }, functionName);
-        // Refresh to get new comment and history
         await AppStore.initializeStore();
     } catch (error) {
         // Error already handled
@@ -205,7 +184,6 @@ export async function deleteComment(ticketId, commentId) {
             method: 'DELETE',
             headers: API_HEADERS,
         }, functionName);
-        // Efficiently remove from local store
         const comments = AppStore.getDevTicketComments().filter(c => c.id !== commentId);
         AppStore.setDevTicketComments(comments, functionName);
     } catch (error) {
@@ -221,7 +199,6 @@ export async function updateTicketStatus(ticketId, newStatus) {
             headers: API_HEADERS,
             body: JSON.stringify({ status: newStatus, author: AppStore.getUserProfile().displayName }),
         }, functionName);
-        // Refresh to get new status and history
         await AppStore.initializeStore();
     } catch (error) {
         // Error already handled
@@ -236,7 +213,6 @@ export async function addReleaseVersion(version) {
             headers: API_HEADERS,
             body: JSON.stringify({ version }),
         }, functionName);
-        // Refresh to get the new version list
         await AppStore.initializeStore();
         return newVersion;
     } catch (error) {
