@@ -24,7 +24,9 @@ const VALID_API_KEYS = new Set([
 ]);
 
 const authenticateKey = (req, res, next) => {
-    if (req.method === 'OPTIONS') return next();
+    if (req.method === 'OPTIONS') {
+        return next();
+    }
     const apiKey = req.get('X-API-Key')?.trim();
     if (apiKey && VALID_API_KEYS.has(apiKey)) {
         next();
@@ -46,8 +48,8 @@ const proxyRequest = async (req, res, serviceUrl) => {
         const response = await axios({
             method: req.method,
             // --- THIS IS THE FINAL FIX ---
-            // The URL forwarded to the service must NOT include the '/api' prefix,
-            // as the service itself does not expect it.
+            // This line now correctly removes the '/api' prefix from the URL
+            // before forwarding it to the target service.
             url: `${serviceUrl}${req.originalUrl.replace('/api', '')}`,
             data: req.body,
             headers: { 'Content-Type': 'application/json' }
@@ -62,14 +64,21 @@ const proxyRequest = async (req, res, serviceUrl) => {
 };
 
 // --- START: DEV TRACKER PROXY ROUTES ---
-// These routes explicitly forward all matching requests to the dev tracker service.
-app.use('/api/epics', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.use('/api/tickets', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.use('/api/subtasks', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.use('/api/dev-release-versions', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+app.post('/api/epics', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+app.put('/api/epics/:epicId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+app.delete('/api/epics/:epicId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+app.post('/api/tickets', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+app.put('/api/tickets/:ticketId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+app.post('/api/tickets/:ticketId/subtasks', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+app.put('/api/subtasks/:subtaskId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+app.delete('/api/subtasks/:subtaskId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+app.post('/api/tickets/:ticketId/comments', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+app.delete('/api/tickets/:ticketId/comments/:commentId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+app.patch('/api/tickets/:ticketId/status', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+app.post('/api/dev-release-versions', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 // --- END: DEV TRACKER PROXY ROUTES ---
 
-// --- General Data Sync Routes (Unchanged) ---
+// --- The rest of your file remains exactly the same ---
 const fetchServiceDataWithRetry = async (serviceName, serviceUrl) => {
     try {
         let endpoint = '';
@@ -101,7 +110,6 @@ app.get('/api/data', async (req, res) => {
 });
 
 app.post('/api/data', async (req, res) => {
-    // This function remains unchanged
     const incomingData = req.body;
     const servicePayloads = {
         taskService: { data: { tasks: incomingData.tasks, projects: incomingData.projects, userProfile: incomingData.userProfile, userPreferences: incomingData.userPreferences }, endpoint: '/api/core-data' },
