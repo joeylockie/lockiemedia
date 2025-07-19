@@ -501,7 +501,7 @@ const DevTrackerUI = (() => {
     const handleTicketFormSubmit = async (e) => { 
         e.preventDefault(); 
         const ticketData = { 
-            epicId: Number(el.ticketEpicIdInput.value),
+            epicId: _activeEpicId,
             title: el.ticketTitleInput.value, 
             status: el.ticketStatusSelect.value,
             priority: el.ticketPrioritySelect.value, 
