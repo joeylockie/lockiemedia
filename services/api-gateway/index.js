@@ -43,42 +43,35 @@ const __dirname = path.dirname(__filename);
 
 app.use('/api', authenticateKey);
 
-// This generic proxy function is correct and will be reused.
+// --- THIS IS THE CORRECTED PROXY FUNCTION ---
 const proxyRequest = async (req, res, serviceUrl) => {
     try {
-        const { method, originalUrl, body } = req;
         const response = await axios({
-            method,
-            url: `${serviceUrl}${originalUrl}`,
-            data: body,
+            method: req.method,
+            // The fix is here: using req.originalUrl directly
+            url: `${serviceUrl}${req.originalUrl}`,
+            data: req.body,
             headers: { 'Content-Type': 'application/json' }
         });
         res.status(response.status).json(response.data);
     } catch (error) {
         const status = error.response ? error.response.status : 500;
         const data = error.response ? error.response.data : { error: 'Internal gateway error' };
-        console.error(`[API Gateway] Error proxying request to ${serviceUrl}${originalUrl}:`, data);
+        console.error(`[API Gateway] Error proxying request to ${serviceUrl}${req.originalUrl}:`, data);
         res.status(status).json(data);
     }
 };
 
-// --- START: THE FINAL DEV TRACKER FIX ---
-// 1. Create a dedicated router for the dev tracker service.
+// --- START: DEV TRACKER PROXY ROUTES ---
 const devTrackerRouter = express.Router();
-
-// 2. This single handler will catch ALL requests sent to this router
-//    (e.g., /epics, /tickets/1, /tickets/1/comments) and forward them.
 devTrackerRouter.all('*', (req, res) => {
     proxyRequest(req, res, serviceTargets.devTrackerService);
 });
-
-// 3. This tells the main app to USE the router for any path that starts
-//    with one of these prefixes. This is the robust solution.
 app.use('/api/epics', devTrackerRouter);
 app.use('/api/tickets', devTrackerRouter);
 app.use('/api/subtasks', devTrackerRouter);
 app.use('/api/dev-release-versions', devTrackerRouter);
-// --- END: THE FINAL DEV TRACKER FIX ---
+// --- END: DEV TRACKER PROXY ROUTES ---
 
 
 // --- General Data Sync Routes (Unchanged) ---
@@ -93,7 +86,6 @@ const fetchServiceDataWithRetry = async (serviceName, serviceUrl) => {
         else if (serviceName === 'habitTrackerService') endpoint = '/api/habits-data';
         else if (serviceName === 'pomodoroService') endpoint = '/api/pomodoro-data';
         else return {};
-
         const response = await axios.get(`${serviceUrl}${endpoint}`);
         return response.data;
     } catch (error) {
@@ -135,7 +127,6 @@ app.post('/api/data', async (req, res) => {
     res.status(200).json({ message: 'Data distribution attempted.' });
 });
 
-// --- Other Routes (Unchanged) ---
 app.get('/api/database/backup', (req, res) => {
     const dbPath = process.env.DB_FILE_PATH || path.resolve(__dirname, '../../lockiedb.sqlite');
     if (fs.existsSync(dbPath)) {
