@@ -17,13 +17,12 @@ const dbPath = process.env.DB_PATH || path.join(__dirname, '..', '..', 'lockiedb
 let db;
 try {
     db = new Database(dbPath);
-    // Removed verbose logging to keep the console cleaner
     db.pragma('journal_mode = WAL');
     db.pragma('foreign_keys = ON');
     console.log(`[Dev Tracker Service] Connected to SQLite database at ${dbPath}`);
 } catch (error) {
     console.error('[Dev Tracker Service] CRITICAL: Could not connect to the database.', error);
-    process.exit(1); // Exit if we can't connect to the DB
+    process.exit(1);
 }
 
 // --- Request Logging Middleware ---
@@ -35,35 +34,25 @@ app.use((req, res, next) => {
 // --- API Routes ---
 
 // GET all dev data (epics and tickets)
-app.get('/dev-data', (req, res) => {
+app.get('/api/dev-data', (req, res) => {
     try {
         const getEpicsStmt = db.prepare('SELECT * FROM epics ORDER BY created_at DESC');
         const getTicketsStmt = db.prepare('SELECT * FROM tickets ORDER BY created_at DESC');
         const epics = getEpicsStmt.all();
         const tickets = getTicketsStmt.all();
-        res.json({
-            epics,
-            tickets
-        });
+        res.json({ epics, tickets });
     } catch (error) {
         console.error('Error fetching dev data:', error);
-        res.status(500).json({
-            error: 'Failed to fetch dev data from the database.'
-        });
+        res.status(500).json({ error: 'Failed to fetch dev data from the database.' });
     }
 });
 
 // POST a new epic
-app.post('/epics', (req, res) => {
+app.post('/api/epics', (req, res) => {
     try {
-        const {
-            name,
-            description
-        } = req.body;
+        const { name, description } = req.body;
         if (!name) {
-            return res.status(400).json({
-                error: 'Epic name is required.'
-            });
+            return res.status(400).json({ error: 'Epic name is required.' });
         }
         const stmt = db.prepare('INSERT INTO epics (name, description) VALUES (?, ?)');
         const info = stmt.run(name, description || '');
@@ -71,25 +60,16 @@ app.post('/epics', (req, res) => {
         res.status(201).json(newEpic);
     } catch (error) {
         console.error('Error creating new epic:', error);
-        res.status(500).json({
-            error: 'Failed to create new epic.'
-        });
+        res.status(500).json({ error: 'Failed to create new epic.' });
     }
 });
 
 // POST a new ticket
-app.post('/tickets', (req, res) => {
+app.post('/api/tickets', (req, res) => {
     try {
-        const {
-            title,
-            description,
-            epic_id,
-            status
-        } = req.body;
+        const { title, description, epic_id, status } = req.body;
         if (!title || !epic_id) {
-            return res.status(400).json({
-                error: 'Ticket title and epic_id are required.'
-            });
+            return res.status(400).json({ error: 'Ticket title and epic_id are required.' });
         }
         const stmt = db.prepare('INSERT INTO tickets (title, description, epic_id, status) VALUES (?, ?, ?, ?)');
         const info = stmt.run(title, description || '', epic_id, status || 'To Do');
@@ -97,93 +77,63 @@ app.post('/tickets', (req, res) => {
         res.status(201).json(newTicket);
     } catch (error) {
         console.error('Error creating new ticket:', error);
-        res.status(500).json({
-            error: 'Failed to create new ticket.'
-        });
+        res.status(500).json({ error: 'Failed to create new ticket.' });
     }
 });
 
 // PATCH to update an epic
-app.patch('/epics/:id', (req, res) => {
+app.patch('/api/epics/:id', (req, res) => {
     try {
-        const {
-            name,
-            description
-        } = req.body;
+        const { name, description } = req.body;
         if (!name) {
-            return res.status(400).json({
-                error: 'Epic name is required.'
-            });
+            return res.status(400).json({ error: 'Epic name is required.' });
         }
         const stmt = db.prepare('UPDATE epics SET name = ?, description = ? WHERE id = ?');
         const info = stmt.run(name, description || '', req.params.id);
         if (info.changes === 0) {
-            return res.status(404).json({
-                error: `Epic with id ${req.params.id} not found.`
-            });
+            return res.status(404).json({ error: `Epic with id ${req.params.id} not found.` });
         }
         const updatedEpic = db.prepare('SELECT * FROM epics WHERE id = ?').get(req.params.id);
         res.json(updatedEpic);
     } catch (error) {
         console.error(`Error updating epic ${req.params.id}:`, error);
-        res.status(500).json({
-            error: 'Failed to update epic.'
-        });
+        res.status(500).json({ error: 'Failed to update epic.' });
     }
 });
 
 // PATCH to update a ticket
-app.patch('/tickets/:id', (req, res) => {
+app.patch('/api/tickets/:id', (req, res) => {
     try {
-        const {
-            title,
-            description,
-            epic_id,
-            status
-        } = req.body;
+        const { title, description, epic_id, status } = req.body;
         if (!title || !epic_id || !status) {
-            return res.status(400).json({
-                error: 'Ticket title, epic_id, and status are required.'
-            });
+            return res.status(400).json({ error: 'Ticket title, epic_id, and status are required.' });
         }
         const stmt = db.prepare('UPDATE tickets SET title = ?, description = ?, epic_id = ?, status = ? WHERE id = ?');
         const info = stmt.run(title, description || '', epic_id, status, req.params.id);
         if (info.changes === 0) {
-            return res.status(404).json({
-                error: `Ticket with id ${req.params.id} not found.`
-            });
+            return res.status(404).json({ error: `Ticket with id ${req.params.id} not found.` });
         }
         const updatedTicket = db.prepare('SELECT * FROM tickets WHERE id = ?').get(req.params.id);
         res.json(updatedTicket);
     } catch (error) {
         console.error(`Error updating ticket ${req.params.id}:`, error);
-        res.status(500).json({
-            error: 'Failed to update ticket.'
-        });
+        res.status(500).json({ error: 'Failed to update ticket.' });
     }
 });
 
 
 // DELETE an epic
-app.delete('/epics/:id', (req, res) => {
+app.delete('/api/epics/:id', (req, res) => {
     try {
-        // Transaction to delete an epic and its associated tickets
         const deleteEpicAndTickets = db.transaction(() => {
-            const deleteTicketsStmt = db.prepare('DELETE FROM tickets WHERE epic_id = ?');
-            deleteTicketsStmt.run(req.params.id);
-
-            const deleteEpicStmt = db.prepare('DELETE FROM epics WHERE id = ?');
-            const info = deleteEpicStmt.run(req.params.id);
-
+            db.prepare('DELETE FROM tickets WHERE epic_id = ?').run(req.params.id);
+            const info = db.prepare('DELETE FROM epics WHERE id = ?').run(req.params.id);
             if (info.changes === 0) {
-                 // Manually throw an error to trigger the rollback
                 throw new Error('EpicNotFound');
             }
         });
-
         deleteEpicAndTickets();
-        res.status(204).send(); // 204 No Content for successful deletion
-
+        res.status(204).send();
     } catch (error) {
         if (error.message === 'EpicNotFound') {
              res.status(404).json({ error: `Epic with id ${req.params.id} not found.` });
@@ -196,21 +146,17 @@ app.delete('/epics/:id', (req, res) => {
 
 
 // DELETE a ticket
-app.delete('/tickets/:id', (req, res) => {
+app.delete('/api/tickets/:id', (req, res) => {
     try {
         const stmt = db.prepare('DELETE FROM tickets WHERE id = ?');
         const info = stmt.run(req.params.id);
         if (info.changes === 0) {
-            return res.status(404).json({
-                error: `Ticket with id ${req.params.id} not found.`
-            });
+            return res.status(404).json({ error: `Ticket with id ${req.params.id} not found.` });
         }
         res.status(204).send();
     } catch (error) {
         console.error(`Error deleting ticket ${req.params.id}:`, error);
-        res.status(500).json({
-            error: 'Failed to delete ticket.'
-        });
+        res.status(500).json({ error: 'Failed to delete ticket.' });
     }
 });
 
