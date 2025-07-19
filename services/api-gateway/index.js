@@ -112,21 +112,26 @@ const proxyRequest = async (req, res, serviceUrl) => {
     }
 };
 
-// --- START: FIX FOR DEV TRACKER ---
-// These specific routes will now correctly forward requests to the dev-tracker-service.
+// --- START: ALL DEV TRACKER PROXY ROUTES ---
+// Epics
 app.post('/api/epics', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.put('/api/epics/:epicId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.delete('/api/epics/:epicId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+// Tickets
 app.post('/api/tickets', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.put('/api/tickets/:ticketId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+// Subtasks
 app.post('/api/tickets/:ticketId/subtasks', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.put('/api/subtasks/:subtaskId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.delete('/api/subtasks/:subtaskId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.post('/api/dev-release-versions', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+// Comments
 app.post('/api/tickets/:ticketId/comments', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.delete('/api/tickets/:ticketId/comments/:commentId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+// Status
 app.patch('/api/tickets/:ticketId/status', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-// --- END: FIX FOR DEV TRACKER ---
+// Release Versions
+app.post('/api/dev-release-versions', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+// --- END: ALL DEV TRACKER PROXY ROUTES ---
 
 app.get('/api/database/backup', (req, res) => {
     const dbPath = process.env.DB_FILE_PATH || path.resolve(__dirname, '../../lockiedb.sqlite');
