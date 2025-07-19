@@ -4,125 +4,90 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import Database from 'better-sqlite3';
 
-console.log('[Dev Tracker Service] Starting up...');
+console.log('[Habit Tracker Service] Starting up...');
 
+// --- CONFIGURATION ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
-const PORT = process.env.PORT || 3006;
+const PORT = process.env.PORT || 3010; // Default port for habit tracker
 
+// --- DATABASE CONNECTION ---
 let db;
 try {
+    // Use the environment variable for the DB path, or fall back to a relative path
     const dbFile = process.env.DB_FILE_PATH || path.join(__dirname, '../../lockiedb.sqlite');
     db = new Database(dbFile);
     db.pragma('journal_mode = WAL');
     db.pragma('foreign_keys = ON');
-    console.log(`[Dev Tracker Service] Connected to SQLite database at ${dbFile}`);
+    console.log(`[Habit Tracker Service] Connected to SQLite database at ${dbFile}`);
 } catch (error) {
-    console.error('[Dev Tracker Service] FATAL: Could not connect to the database.', error);
-    process.exit(1);
+    console.error('[Habit Tracker Service] FATAL: Could not connect to the database.', error);
+    process.exit(1); // Exit if we can't connect to the DB
 }
 
+// --- MIDDLEWARE ---
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json()); // Middleware to parse JSON bodies
 
-// All routes are now correctly prefixed with /api
-app.get('/api/dev-data', (req, res) => {
-    // ... function content is correct
+// --- API ROUTES ---
+
+// GET / - Get all habit data
+// This is used by the API gateway during the initial data load.
+app.get('/', (req, res) => {
     try {
-        const dev_epics = db.prepare('SELECT * FROM dev_epics').all();
-        const dev_tickets = db.prepare('SELECT * FROM dev_tickets').all();
-        const dev_subtasks = db.prepare('SELECT * FROM dev_subtasks').all();
-        const dev_release_versions = db.prepare('SELECT * FROM dev_release_versions ORDER BY createdAt DESC').all();
-        const dev_ticket_history = db.prepare('SELECT * FROM dev_ticket_history ORDER BY changedAt ASC').all();
-        const dev_ticket_comments = db.prepare('SELECT * FROM dev_ticket_comments ORDER BY createdAt ASC').all();
-        res.json({ dev_epics, dev_tickets, dev_subtasks, dev_release_versions, dev_ticket_history, dev_ticket_comments });
+        const habits = db.prepare('SELECT * FROM habits ORDER BY display_order').all();
+        const habit_completions = db.prepare('SELECT * FROM habit_completions').all();
+        res.json({ habits, habit_completions });
     } catch (error) {
-        res.status(500).json({ error: 'Failed to retrieve dev tracker data.' });
+        console.error('[Habit Tracker Service] Error fetching all habit data:', error);
+        res.status(500).json({ error: 'Failed to retrieve habit data.' });
     }
 });
 
-app.post('/api/epics', (req, res) => {
-    // ... function content is correct
-    const { key, title, status, priority, description, releaseVersion } = req.body;
-    if (!key || !title) return res.status(400).json({ error: 'Key and Title are required.' });
-    try {
-        const stmt = db.prepare('INSERT INTO dev_epics (key, title, status, priority, description, releaseVersion, createdAt, ticketCounter) VALUES (?, ?, ?, ?, ?, ?, ?, 0)');
-        const result = stmt.run(key.toUpperCase(), title, status, priority, description, releaseVersion, Date.now());
-        const newEpic = db.prepare('SELECT * FROM dev_epics WHERE id = ?').get(result.lastInsertRowid);
-        res.status(201).json(newEpic);
-    } catch (error) {
-        if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') return res.status(409).json({ error: 'Epic Key must be unique.' });
-        res.status(500).json({ error: 'Failed to create epic.' });
+// POST / - Sync all habit data
+// This is used by the API gateway to save all data at once.
+app.post('/', (req, res) => {
+    const { habits, habit_completions } = req.body;
+    if (!habits || !habit_completions) {
+        return res.status(400).json({ error: 'Invalid data format for habit sync.' });
     }
-});
-
-app.put('/api/epics/:epicId', (req, res) => {
-    // ... function content is correct
-    const { epicId } = req.params;
-    const { title, status, priority, description, releaseVersion } = req.body;
-    try {
-        const stmt = db.prepare('UPDATE dev_epics SET title = ?, status = ?, priority = ?, description = ?, releaseVersion = ? WHERE id = ?');
-        const result = stmt.run(title, status, priority, description, releaseVersion, epicId);
-        if (result.changes === 0) return res.status(404).json({ error: 'Epic not found.' });
-        const updatedEpic = db.prepare('SELECT * FROM dev_epics WHERE id = ?').get(epicId);
-        res.status(200).json(updatedEpic);
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to update epic.' });
-    }
-});
-
-app.delete('/api/epics/:epicId', (req, res) => {
-    // ... function content is correct
-    const { epicId } = req.params;
     try {
         db.transaction(() => {
-            const result = db.prepare('DELETE FROM dev_epics WHERE id = ?').run(epicId);
-            if (result.changes === 0) throw new Error('EpicNotFound');
+            // Clear existing data
+            db.prepare('DELETE FROM habit_completions').run();
+            db.prepare('DELETE FROM habits').run();
+
+            // Insert new data
+            const habitStmt = db.prepare('INSERT INTO habits (id, name, icon, color, display_order, target_count) VALUES (?, ?, ?, ?, ?, ?)');
+            const completionStmt = db.prepare('INSERT INTO habit_completions (id, habit_id, date, completion_count) VALUES (?, ?, ?, ?)');
+
+            for (const habit of habits) {
+                habitStmt.run(habit.id, habit.name, habit.icon, habit.color, habit.display_order, habit.target_count);
+            }
+            for (const completion of habit_completions) {
+                completionStmt.run(completion.id, completion.habit_id, completion.date, completion.completion_count);
+            }
         })();
-        res.status(200).json({ message: 'Epic and its tickets deleted successfully.' });
+        res.status(200).json({ message: 'Habit data synced successfully.' });
     } catch (error) {
-        if (error.message === 'EpicNotFound') return res.status(404).json({ error: 'Epic not found.' });
-        res.status(500).json({ error: 'Failed to delete epic.' });
+        console.error('[Habit Tracker Service] Error syncing habit data:', error);
+        res.status(500).json({ error: 'Failed to sync habit data.' });
     }
 });
 
 
-app.post('/api/tickets', (req, res) => {
-    // ... function content is correct
-    const { epicId, title, ...otherFields } = req.body;
-    if (!title || !epicId) return res.status(400).json({ error: 'Title and Epic ID are required.' });
-    try {
-        const newTicket = db.transaction(() => {
-            const epic = db.prepare('SELECT * FROM dev_epics WHERE id = ?').get(epicId);
-            if (!epic) throw new Error('EpicNotFound');
-            const newTicketNumber = (epic.ticketCounter || 0) + 1;
-            db.prepare('UPDATE dev_epics SET ticketCounter = ? WHERE id = ?').run(newTicketNumber, epicId);
-            const fullKey = `${epic.key}-${newTicketNumber}`;
-            const stmt = db.prepare(`INSERT INTO dev_tickets (fullKey, epicId, title, description, status, priority, type, component, createdAt, reporter, story_points, due_date, assignee, fix_version, resolution) VALUES (?, ?, ?, ?, 'Open', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
-            const result = stmt.run(fullKey, epicId, title, otherFields.description, otherFields.priority, otherFields.type, otherFields.component, Date.now(), otherFields.author || 'User', otherFields.story_points, otherFields.due_date, otherFields.assignee, otherFields.fix_version, otherFields.resolution);
-            return db.prepare('SELECT * FROM dev_tickets WHERE id = ?').get(result.lastInsertRowid);
-        })();
-        res.status(201).json(newTicket);
-    } catch (error) {
-        if (error.message === 'EpicNotFound') return res.status(404).json({ error: 'Epic not found.' });
-        res.status(500).json({ error: 'Failed to create new ticket.' });
-    }
-});
-
-
-// All other routes for tickets, subtasks, comments, etc., should also have the /api prefix.
-// The logic within them is correct.
-app.put('/api/tickets/:ticketId', (req, res) => { /* ... */ });
-app.post('/api/tickets/:ticketId/subtasks', (req, res) => { /* ... */ });
-app.put('/api/subtasks/:subtaskId', (req, res) => { /* ... */ });
-app.delete('/api/subtasks/:subtaskId', (req, res) => { /* ... */ });
-app.post('/api/tickets/:ticketId/comments', (req, res) => { /* ... */ });
-app.delete('/api/tickets/:ticketId/comments/:commentId', (req, res) => { /* ... */ });
-app.patch('/api/tickets/:ticketId/status', (req, res) => { /* ... */ });
-app.post('/api/dev-release-versions', (req, res) => { /* ... */ });
-
-
+// --- SERVER ---
 app.listen(PORT, () => {
-    console.log(`[Dev Tracker Service] Listening on port ${PORT}`);
+    console.log(`[Habit Tracker Service] Listening on port ${PORT}`);
+});
+
+// --- GRACEFUL SHUTDOWN ---
+process.on('SIGINT', () => {
+    console.log('[Habit Tracker Service] SIGINT signal received: closing HTTP server');
+    if (db) {
+        db.close();
+        console.log('[Habit Tracker Service] Database connection closed.');
+    }
+    process.exit(0);
 });

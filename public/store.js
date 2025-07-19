@@ -1,8 +1,8 @@
 import EventBus from './eventBus.js';
 import LoggingService from './loggingService.js';
 
-// The API URL for the gateway. Now points to the UNSECURE HTTP endpoint.
-const API_URL = 'http://192.168.2.201:3000/api/data';
+// The API URL for the gateway. Now points to a relative path.
+const API_URL = '/api/data';
 
 // --- Security Configuration ---
 // This MUST be the exact same key as in the api-gateway file, with no extra spaces.
@@ -27,7 +27,7 @@ let _time_activities = [];
 let _time_log_entries = [];
 let _dev_epics = [];
 let _dev_tickets = [];
-let _dev_subtasks = []; // --- NEW: Add state for subtasks ---
+let _dev_subtasks = [];
 let _dev_release_versions = [];
 let _dev_ticket_history = [];
 let _dev_ticket_comments = [];
