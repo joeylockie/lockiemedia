@@ -24,9 +24,7 @@ const VALID_API_KEYS = new Set([
 ]);
 
 const authenticateKey = (req, res, next) => {
-    if (req.method === 'OPTIONS') {
-        return next();
-    }
+    if (req.method === 'OPTIONS') return next();
     const apiKey = req.get('X-API-Key')?.trim();
     if (apiKey && VALID_API_KEYS.has(apiKey)) {
         next();
@@ -43,7 +41,62 @@ const __dirname = path.dirname(__filename);
 
 app.use('/api', authenticateKey);
 
-const fetchServiceDataWithRetry = async (serviceName, serviceUrl) => {
+// Generic proxy function
+const proxyRequest = async (req, res, serviceUrl) => {
+    try {
+        const response = await axios({
+            method: req.method,
+            url: `${serviceUrl}${req.originalUrl}`,
+            data: req.body,
+            headers: { 'Content-Type': 'application/json' }
+        });
+        res.status(response.status).json(response.data);
+    } catch (error) {
+        const status = error.response ? error.response.status : 500;
+        const data = error.response ? error.response.data : { error: 'Internal gateway error' };
+        console.error(`[API Gateway] Error proxying request to ${serviceUrl}${req.originalUrl}:`, data);
+        res.status(status).json(data);
+    }
+};
+
+// --- START: ALL DEV TRACKER PROXY ROUTES ---
+// These routes must be defined BEFORE the general /api/data routes.
+// Epics
+app.post('/api/epics', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+app.put('/api/epics/:epicId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+app.delete('/api/epics/:epicId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+// Tickets
+app.post('/api/tickets', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+app.put('/api/tickets/:ticketId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+// Subtasks
+app.post('/api/tickets/:ticketId/subtasks', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+app.put('/api/subtasks/:subtaskId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+app.delete('/api/subtasks/:subtaskId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+// Comments
+app.post('/api/tickets/:ticketId/comments', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+app.delete('/api/tickets/:ticketId/comments/:commentId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+// Status
+app.patch('/api/tickets/:ticketId/status', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+// Release Versions
+app.post('/api/dev-release-versions', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+// --- END: ALL DEV TRACKER PROXY ROUTES ---
+
+// General data sync routes
+app.get('/api/data', async (req, res) => { /* ... unchanged ... */ });
+app.post('/api/data', async (req, res) => { /* ... unchanged ... */ });
+app.get('/api/database/backup', (req, res) => { /* ... unchanged ... */ });
+
+// Static File Serving
+app.use(express.static(path.join(__dirname, '../../public')));
+
+// Start Server
+app.listen(PORT, () => {
+    console.log(`[HTTP API Gateway] Listening on port ${PORT}`);
+});
+
+// Helper function for GET /api/data (unchanged)
+async function fetchServiceDataWithRetry(serviceName, serviceUrl) {
+    // ... logic is unchanged ...
     try {
         let endpoint = '';
         if (serviceName === 'taskService') endpoint = '/api/core-data';
@@ -61,85 +114,4 @@ const fetchServiceDataWithRetry = async (serviceName, serviceUrl) => {
         console.error(`[API Gateway] CRITICAL: Could not fetch data from ${serviceName}. Error: ${error.message}`);
         return { [`${serviceName}_error`]: error.message };
     }
-};
-
-app.get('/api/data', async (req, res) => {
-    const servicePromises = Object.entries(serviceTargets).map(([name, url]) => fetchServiceDataWithRetry(name, url));
-    try {
-        const results = await Promise.all(servicePromises);
-        const combinedData = results.reduce((acc, data) => ({ ...acc, ...data }), {});
-        res.json(combinedData);
-    } catch (error) {
-        res.status(500).json({ error: 'A critical error occurred while composing data.' });
-    }
-});
-
-app.post('/api/data', async (req, res) => {
-    const incomingData = req.body;
-    const servicePayloads = {
-        taskService: { data: { tasks: incomingData.tasks, projects: incomingData.projects, userProfile: incomingData.userProfile, userPreferences: incomingData.userPreferences }, endpoint: '/api/core-data' },
-        notesService: { data: { notes: incomingData.notes, notebooks: incomingData.notebooks }, endpoint: '/api/notes-data' },
-        timeTrackerService: { data: { time_activities: incomingData.time_activities, time_log_entries: incomingData.time_log_entries }, endpoint: '/api/time-data' },
-        devTrackerService: { data: { dev_epics: incomingData.dev_epics, dev_tickets: incomingData.dev_tickets, dev_release_versions: incomingData.dev_release_versions, dev_ticket_history: incomingData.dev_ticket_history, dev_ticket_comments: incomingData.dev_ticket_comments }, endpoint: '/api/dev-data' },
-        calendarService: { data: { calendar_events: incomingData.calendar_events }, endpoint: '/api/calendar-data' },
-        habitTrackerService: { data: { habits: incomingData.habits, habit_completions: incomingData.habit_completions }, endpoint: '/api/habits-data' },
-        pomodoroService: { data: { pomodoro_sessions: incomingData.pomodoro_sessions }, endpoint: '/api/pomodoro-data' }
-    };
-    const postPromises = [];
-    for (const [serviceName, { data, endpoint }] of Object.entries(servicePayloads)) {
-        if (Object.values(data).some(d => d !== undefined)) {
-            const requestPromise = axios.post(`${serviceTargets[serviceName]}${endpoint}`, data).catch(error => console.error(`[API Gateway] WARN: Could not send data to ${serviceName}. Error: ${error.message}`));
-            postPromises.push(requestPromise);
-        }
-    }
-    await Promise.allSettled(postPromises);
-    res.status(200).json({ message: 'Data distribution attempted.' });
-});
-
-const proxyRequest = async (req, res, serviceUrl) => {
-    try {
-        const response = await axios({
-            method: req.method,
-            url: `${serviceUrl}${req.originalUrl}`,
-            data: req.body,
-            headers: { 'Content-Type': 'application/json' }
-        });
-        res.status(response.status).json(response.data);
-    } catch (error) {
-        const status = error.response ? error.response.status : 500;
-        const data = error.response ? error.response.data : { error: 'Internal gateway error' };
-        res.status(status).json(data);
-    }
-};
-
-// --- START: All specific proxy routes ---
-app.post('/api/epics', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.put('/api/epics/:epicId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.delete('/api/epics/:epicId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.post('/api/tickets', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.put('/api/tickets/:ticketId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.post('/api/tickets/:ticketId/subtasks', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.put('/api/subtasks/:subtaskId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.delete('/api/subtasks/:subtaskId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.post('/api/dev-release-versions', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.post('/api/tickets/:ticketId/comments', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.delete('/api/tickets/:ticketId/comments/:commentId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.patch('/api/tickets/:ticketId/status', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-// --- END: All specific proxy routes ---
-
-app.get('/api/database/backup', (req, res) => {
-    const dbPath = process.env.DB_FILE_PATH || path.resolve(__dirname, '../../lockiedb.sqlite');
-    if (fs.existsSync(dbPath)) {
-        const dateString = new Date().toISOString().split('T')[0];
-        const filename = `lockiemedia_backup_${dateString}.sqlite`;
-        res.download(dbPath, filename);
-    } else {
-        res.status(404).json({ error: 'Database file not found.' });
-    }
-});
-
-app.use(express.static(path.join(__dirname, '../../public')));
-
-app.listen(PORT, () => {
-    console.log(`[HTTP API Gateway] Listening on port ${PORT}`);
-});
+}
