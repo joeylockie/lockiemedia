@@ -49,18 +49,6 @@
       }
     },
     {
-      "name": "dev-tracker-service",
-      "script": "services/dev-tracker-service/index.js",
-      "cwd": "/root/lockiemedia-dev",
-      "watch": false,
-      "post_update": ["echo", "dev-tracker-service updated"],
-      "post_start": "sleep 0.1",
-      "env": {
-        "DB_FILE_PATH": "/root/lockiemedia-dev/lockiedb.sqlite",
-        "PORT": 3006
-      }
-    },
-    {
       "name": "calendar-service",
       "script": "services/calendar-service/index.js",
       "cwd": "/root/lockiemedia-dev",
