@@ -1,132 +1,226 @@
-import express from 'express';
-import cors from 'cors';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import Database from 'better-sqlite3';
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const Database = require('better-sqlite3');
 
-console.log('[Dev Tracker Service] Starting up...');
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 const app = express();
-const PORT = process.env.PORT || 3006;
+app.use(cors());
+app.use(express.json());
 
+// --- Database Connection ---
+const dbPath = process.env.DB_PATH || path.join(__dirname, '..', '..', 'lockiedb.sqlite');
 let db;
 try {
-    const dbFile = process.env.DB_FILE_PATH || path.join(__dirname, '../../lockiedb.sqlite');
-    db = new Database(dbFile);
+    db = new Database(dbPath, {
+        verbose: console.log
+    });
     db.pragma('journal_mode = WAL');
     db.pragma('foreign_keys = ON');
-    console.log(`[Dev Tracker Service] Connected to SQLite database at ${dbFile}`);
+    console.log(`[Dev Tracker Service] Connected to SQLite database at ${dbPath}`);
 } catch (error) {
-    console.error('[Dev Tracker Service] FATAL: Could not connect to the database.', error);
-    process.exit(1);
+    console.error('[Dev Tracker Service] CRITICAL: Could not connect to the database.', error);
+    process.exit(1); // Exit if we can't connect to the DB
 }
 
-app.use(cors());
-app.use(express.json({ limit: '10mb' }));
-
-// --- NEW DEBUGGING MIDDLEWARE ---
+// --- Request Logging Middleware ---
 app.use((req, res, next) => {
     console.log(`--- DEV-TRACKER-SERVICE RECEIVED REQUEST --- Method: ${req.method}, URL: ${req.originalUrl}`);
     next();
 });
 
-function recordHistory(ticketId, field, oldValue, newValue, author = 'System') {
-    if (String(oldValue ?? '') !== String(newValue ?? '')) {
-        const stmt = db.prepare('INSERT INTO dev_ticket_history (ticketId, field, oldValue, newValue, changedAt) VALUES (?, ?, ?, ?, ?)');
-        stmt.run(ticketId, field, String(oldValue ?? ''), String(newValue ?? ''), Date.now());
-    }
-}
+// --- API Routes ---
 
-app.get('/api/dev-data', (req, res) => {
+// GET all dev data (epics and tickets)
+app.get('/dev-data', (req, res) => {
     try {
-        const dev_epics = db.prepare('SELECT * FROM dev_epics').all();
-        const dev_tickets = db.prepare('SELECT * FROM dev_tickets').all();
-        const dev_subtasks = db.prepare('SELECT * FROM dev_subtasks').all();
-        const dev_release_versions = db.prepare('SELECT * FROM dev_release_versions ORDER BY createdAt DESC').all();
-        const dev_ticket_history = db.prepare('SELECT * FROM dev_ticket_history ORDER BY changedAt ASC').all();
-        const dev_ticket_comments = db.prepare('SELECT * FROM dev_ticket_comments ORDER BY createdAt ASC').all();
-        res.json({ dev_epics, dev_tickets, dev_subtasks, dev_release_versions, dev_ticket_history, dev_ticket_comments });
+        const getEpicsStmt = db.prepare('SELECT * FROM epics ORDER BY created_at DESC');
+        const getTicketsStmt = db.prepare('SELECT * FROM tickets ORDER BY created_at DESC');
+        const epics = getEpicsStmt.all();
+        const tickets = getTicketsStmt.all();
+        res.json({
+            epics,
+            tickets
+        });
     } catch (error) {
-        console.error('[Dev Tracker Service] Error in GET /api/dev-data:', error);
-        res.status(500).json({ error: 'Failed to retrieve dev tracker data.' });
+        console.error('Error fetching dev data:', error);
+        res.status(500).json({
+            error: 'Failed to fetch dev data from the database.'
+        });
     }
 });
 
-// --- NEW: Endpoints for Epics ---
-app.post('/api/epics', (req, res) => {
-    const { key, title, status, priority, description, releaseVersion } = req.body;
-    if (!key || !title) return res.status(400).json({ error: 'Key and Title are required.' });
+// POST a new epic
+app.post('/epics', (req, res) => {
     try {
-        const stmt = db.prepare('INSERT INTO dev_epics (key, title, status, priority, description, releaseVersion, createdAt, ticketCounter) VALUES (?, ?, ?, ?, ?, ?, ?, 0)');
-        const result = stmt.run(key.toUpperCase(), title, status, priority, description, releaseVersion, Date.now());
-        const newEpic = db.prepare('SELECT * FROM dev_epics WHERE id = ?').get(result.lastInsertRowid);
+        const {
+            name,
+            description
+        } = req.body;
+        if (!name) {
+            return res.status(400).json({
+                error: 'Epic name is required.'
+            });
+        }
+        const stmt = db.prepare('INSERT INTO epics (name, description) VALUES (?, ?)');
+        const info = stmt.run(name, description || '');
+        const newEpic = db.prepare('SELECT * FROM epics WHERE id = ?').get(info.lastInsertRowid);
         res.status(201).json(newEpic);
     } catch (error) {
-        if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') return res.status(409).json({ error: 'Epic Key must be unique.' });
-        console.error('[Dev Tracker Service] Error creating epic:', error);
-        res.status(500).json({ error: 'Failed to create epic.' });
+        console.error('Error creating new epic:', error);
+        res.status(500).json({
+            error: 'Failed to create new epic.'
+        });
     }
 });
 
-app.put('/api/epics/:epicId', (req, res) => {
-    const { epicId } = req.params;
-    const { title, status, priority, description, releaseVersion } = req.body;
+// POST a new ticket
+app.post('/tickets', (req, res) => {
     try {
-        const stmt = db.prepare('UPDATE dev_epics SET title = ?, status = ?, priority = ?, description = ?, releaseVersion = ? WHERE id = ?');
-        const result = stmt.run(title, status, priority, description, releaseVersion, epicId);
-        if (result.changes === 0) return res.status(404).json({ error: 'Epic not found.' });
-        const updatedEpic = db.prepare('SELECT * FROM dev_epics WHERE id = ?').get(epicId);
-        res.status(200).json(updatedEpic);
-    } catch (error) {
-        console.error(`[Dev Tracker Service] Error updating epic ${epicId}:`, error);
-        res.status(500).json({ error: 'Failed to update epic.' });
-    }
-});
-
-app.delete('/api/epics/:epicId', (req, res) => {
-    const { epicId } = req.params;
-    const transaction = db.transaction(() => {
-        // Tickets are deleted automatically by the FOREIGN KEY ON DELETE CASCADE constraint
-        const result = db.prepare('DELETE FROM dev_epics WHERE id = ?').run(epicId);
-        if (result.changes === 0) throw new Error('EpicNotFound');
-    });
-    try {
-        transaction();
-        res.status(200).json({ message: 'Epic and its tickets deleted successfully.' });
-    } catch (error) {
-        if (error.message === 'EpicNotFound') return res.status(404).json({ error: 'Epic not found.' });
-        console.error(`[Dev Tracker Service] Error deleting epic ${epicId}:`, error);
-        res.status(500).json({ error: 'Failed to delete epic.' });
-    }
-});
-
-// --- Endpoints for Tickets ---
-app.post('/api/tickets', (req, res) => {
-    const { epicId, title, ...otherFields } = req.body;
-    if (!title || !epicId) return res.status(400).json({ error: 'Title and Epic ID are required.' });
-    const createTicketTransaction = db.transaction(() => {
-        const epic = db.prepare('SELECT * FROM dev_epics WHERE id = ?').get(epicId);
-        if (!epic) throw new Error('EpicNotFound');
-        const newTicketNumber = (epic.ticketCounter || 0) + 1;
-        db.prepare('UPDATE dev_epics SET ticketCounter = ? WHERE id = ?').run(newTicketNumber, epicId);
-        const fullKey = `${epic.key}-${newTicketNumber}`;
-        const stmt = db.prepare(`INSERT INTO dev_tickets (fullKey, epicId, title, description, status, priority, type, component, createdAt, reporter, story_points, due_date, assignee, fix_version, resolution) VALUES (?, ?, ?, ?, 'Open', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
-        const result = stmt.run(fullKey, epicId, title, otherFields.description, otherFields.priority, otherFields.type, otherFields.component, Date.now(), otherFields.author || 'User', otherFields.story_points, otherFields.due_date, otherFields.assignee, otherFields.fix_version, otherFields.resolution);
-        return db.prepare('SELECT * FROM dev_tickets WHERE id = ?').get(result.lastInsertRowid);
-    });
-    try {
-        const newTicket = createTicketTransaction();
+        const {
+            title,
+            description,
+            epic_id,
+            status
+        } = req.body;
+        if (!title || !epic_id) {
+            return res.status(400).json({
+                error: 'Ticket title and epic_id are required.'
+            });
+        }
+        const stmt = db.prepare('INSERT INTO tickets (title, description, epic_id, status) VALUES (?, ?, ?, ?)');
+        const info = stmt.run(title, description || '', epic_id, status || 'To Do');
+        const newTicket = db.prepare('SELECT * FROM tickets WHERE id = ?').get(info.lastInsertRowid);
         res.status(201).json(newTicket);
     } catch (error) {
-        if (error.message === 'EpicNotFound') return res.status(404).json({ error: 'Epic not found.' });
-        res.status(500).json({ error: 'Failed to create new ticket.' });
+        console.error('Error creating new ticket:', error);
+        res.status(500).json({
+            error: 'Failed to create new ticket.'
+        });
     }
 });
 
-// ... The rest of the endpoints (PUT /tickets, subtasks, comments, etc.) are correct.
-// For brevity, only showing the final listen call. Ensure the rest of your file is present.
+// PATCH to update an epic
+app.patch('/epics/:id', (req, res) => {
+    try {
+        const {
+            name,
+            description
+        } = req.body;
+        if (!name) {
+            return res.status(400).json({
+                error: 'Epic name is required.'
+            });
+        }
+        const stmt = db.prepare('UPDATE epics SET name = ?, description = ? WHERE id = ?');
+        const info = stmt.run(name, description || '', req.params.id);
+        if (info.changes === 0) {
+            return res.status(404).json({
+                error: `Epic with id ${req.params.id} not found.`
+            });
+        }
+        const updatedEpic = db.prepare('SELECT * FROM epics WHERE id = ?').get(req.params.id);
+        res.json(updatedEpic);
+    } catch (error) {
+        console.error(`Error updating epic ${req.params.id}:`, error);
+        res.status(500).json({
+            error: 'Failed to update epic.'
+        });
+    }
+});
+
+// PATCH to update a ticket
+app.patch('/tickets/:id', (req, res) => {
+    try {
+        const {
+            title,
+            description,
+            epic_id,
+            status
+        } = req.body;
+        if (!title || !epic_id || !status) {
+            return res.status(400).json({
+                error: 'Ticket title, epic_id, and status are required.'
+            });
+        }
+        const stmt = db.prepare('UPDATE tickets SET title = ?, description = ?, epic_id = ?, status = ? WHERE id = ?');
+        const info = stmt.run(title, description || '', epic_id, status, req.params.id);
+        if (info.changes === 0) {
+            return res.status(404).json({
+                error: `Ticket with id ${req.params.id} not found.`
+            });
+        }
+        const updatedTicket = db.prepare('SELECT * FROM tickets WHERE id = ?').get(req.params.id);
+        res.json(updatedTicket);
+    } catch (error) {
+        console.error(`Error updating ticket ${req.params.id}:`, error);
+        res.status(500).json({
+            error: 'Failed to update ticket.'
+        });
+    }
+});
+
+
+// DELETE an epic
+app.delete('/epics/:id', (req, res) => {
+    try {
+        // Transaction to delete an epic and its associated tickets
+        const deleteEpicAndTickets = db.transaction(() => {
+            const deleteTicketsStmt = db.prepare('DELETE FROM tickets WHERE epic_id = ?');
+            deleteTicketsStmt.run(req.params.id);
+
+            const deleteEpicStmt = db.prepare('DELETE FROM epics WHERE id = ?');
+            const info = deleteEpicStmt.run(req.params.id);
+
+            if (info.changes === 0) {
+                 // Manually throw an error to trigger the rollback
+                throw new Error('EpicNotFound');
+            }
+        });
+
+        deleteEpicAndTickets();
+        res.status(204).send(); // 204 No Content for successful deletion
+
+    } catch (error) {
+        if (error.message === 'EpicNotFound') {
+             res.status(404).json({ error: `Epic with id ${req.params.id} not found.` });
+        } else {
+            console.error(`Error deleting epic ${req.params.id}:`, error);
+            res.status(500).json({ error: 'Failed to delete epic.' });
+        }
+    }
+});
+
+
+// DELETE a ticket
+app.delete('/tickets/:id', (req, res) => {
+    try {
+        const stmt = db.prepare('DELETE FROM tickets WHERE id = ?');
+        const info = stmt.run(req.params.id);
+        if (info.changes === 0) {
+            return res.status(404).json({
+                error: `Ticket with id ${req.params.id} not found.`
+            });
+        }
+        res.status(204).send();
+    } catch (error) {
+        console.error(`Error deleting ticket ${req.params.id}:`, error);
+        res.status(500).json({
+            error: 'Failed to delete ticket.'
+        });
+    }
+});
+
+
+// --- Server Start ---
+const PORT = process.env.PORT || 3006;
 app.listen(PORT, () => {
     console.log(`[Dev Tracker Service] Listening on port ${PORT}`);
+});
+
+// --- Graceful Shutdown ---
+process.on('SIGINT', () => {
+    console.log('[Dev Tracker Service] SIGINT signal received: closing HTTP server');
+    db.close();
+    console.log('[Dev Tracker Service] Database connection closed.');
+    process.exit(0);
 });
