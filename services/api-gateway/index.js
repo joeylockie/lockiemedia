@@ -139,23 +139,20 @@ const proxyRequest = async (req, res, serviceUrl) => {
     }
 };
 
-// --- MODIFICATION START: Added all new proxy routes for Dev Tracker ---
-// Proxy all specific dev-tracker requests
+// --- START: Dev Tracker Proxy Routes ---
 app.post('/api/tickets', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.put('/api/tickets/:ticketId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.post('/api/tickets/:ticketId/subtasks', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.put('/api/subtasks/:subtaskId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.delete('/api/subtasks/:subtaskId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-
-// Existing routes
 app.post('/api/dev-release-versions', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.post('/api/tickets/:ticketId/comments', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.delete('/api/tickets/:ticketId/comments/:commentId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.patch('/api/tickets/:ticketId/status', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-// --- MODIFICATION END ---
+// --- END: Dev Tracker Proxy Routes ---
 
 
-// --- NEW DATABASE BACKUP ROUTE ---
+// --- Database Backup Route ---
 app.get('/api/database/backup', (req, res) => {
     console.log('[API Gateway] GET /api/database/backup request received.');
     const dbPath = process.env.DB_FILE_PATH || path.resolve(__dirname, '../../lockiedb.sqlite');
