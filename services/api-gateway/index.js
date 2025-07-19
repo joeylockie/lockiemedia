@@ -24,9 +24,7 @@ const VALID_API_KEYS = new Set([
 ]);
 
 const authenticateKey = (req, res, next) => {
-    if (req.method === 'OPTIONS') {
-        return next();
-    }
+    if (req.method === 'OPTIONS') return next();
     const apiKey = req.get('X-API-Key')?.trim();
     if (apiKey && VALID_API_KEYS.has(apiKey)) {
         next();
@@ -47,9 +45,7 @@ const proxyRequest = async (req, res, serviceUrl) => {
     try {
         const response = await axios({
             method: req.method,
-            // --- THIS IS THE FINAL FIX ---
-            // The URL is forwarded exactly as it was received.
-            url: `${serviceUrl}${req.originalUrl}`,
+            url: `${serviceUrl}${req.originalUrl}`, // Forward the original URL
             data: req.body,
             headers: { 'Content-Type': 'application/json' }
         });
@@ -63,24 +59,12 @@ const proxyRequest = async (req, res, serviceUrl) => {
 };
 
 // --- START: DEV TRACKER PROXY ROUTES ---
-app.post('/api/epics', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.put('/api/epics/:epicId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.delete('/api/epics/:epicId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.post('/api/tickets', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.put('/api/tickets/:ticketId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.post('/api/tickets/:ticketId/subtasks', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.put('/api/subtasks/:subtaskId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.delete('/api/subtasks/:subtaskId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.post('/api/tickets/:ticketId/comments', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.delete('/api/tickets/:ticketId/comments/:commentId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.patch('/api/tickets/:ticketId/status', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.post('/api/dev-release-versions', (req, res) => {
-    console.log('--- DEBUG: HITTING /api/dev-release-versions PROXY ROUTE ---');
-    proxyRequest(req, res, serviceTargets.devTrackerService);
-});// --- END: DEV TRACKER PROXY ROUTES ---
+app.use('/api/epics', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+app.use('/api/tickets', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+app.use('/api/subtasks', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+app.use('/api/dev-release-versions', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+// --- END: DEV TRACKER PROXY ROUTES ---
 
-
-// --- General Data Sync Routes (Unchanged) ---
 const fetchServiceDataWithRetry = async (serviceName, serviceUrl) => {
     try {
         let endpoint = '';
@@ -112,6 +96,7 @@ app.get('/api/data', async (req, res) => {
 });
 
 app.post('/api/data', async (req, res) => {
+    // This function is unchanged
     const incomingData = req.body;
     const servicePayloads = {
         taskService: { data: { tasks: incomingData.tasks, projects: incomingData.projects, userProfile: incomingData.userProfile, userPreferences: incomingData.userPreferences }, endpoint: '/api/core-data' },
@@ -145,22 +130,6 @@ app.get('/api/database/backup', (req, res) => {
 });
 
 app.use(express.static(path.join(__dirname, '../../public')));
-
-app.listen(PORT, () => {
-    console.log(`[HTTP API Gateway] Listening on port ${PORT}`);
-});
-
-// --- START: DEBUGGING CATCH-ALL ROUTE ---
-// This will catch any /api/ request that didn't match one of the routes above.
-app.use('/api/*', (req, res) => {
-    console.log(`--- GATEWAY 404: UNMATCHED API ROUTE --- Method: ${req.method}, URL: ${req.originalUrl}`);
-    res.status(404).json({
-        error: 'This API route was not found in the gateway configuration.',
-        method: req.method,
-        url: req.originalUrl,
-    });
-});
-// --- END: DEBUGGING CATCH-ALL ROUTE ---
 
 app.listen(PORT, () => {
     console.log(`[HTTP API Gateway] Listening on port ${PORT}`);
