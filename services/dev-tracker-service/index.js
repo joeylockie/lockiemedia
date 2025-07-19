@@ -1,7 +1,12 @@
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
-const Database = require('better-sqlite3');
+import express from 'express';
+import cors from 'cors';
+import path from 'path';
+import Database from 'better-sqlite3';
+import { fileURLToPath } from 'url';
+
+// ES Module equivalent for __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(cors());
@@ -11,9 +16,8 @@ app.use(express.json());
 const dbPath = process.env.DB_PATH || path.join(__dirname, '..', '..', 'lockiedb.sqlite');
 let db;
 try {
-    db = new Database(dbPath, {
-        verbose: console.log
-    });
+    db = new Database(dbPath);
+    // Removed verbose logging to keep the console cleaner
     db.pragma('journal_mode = WAL');
     db.pragma('foreign_keys = ON');
     console.log(`[Dev Tracker Service] Connected to SQLite database at ${dbPath}`);
