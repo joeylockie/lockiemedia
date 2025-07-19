@@ -48,8 +48,8 @@ const proxyRequest = async (req, res, serviceUrl) => {
         const response = await axios({
             method: req.method,
             // --- THIS IS THE FINAL FIX ---
-            // It correctly removes the '/api' prefix before sending to the service
-            url: `${serviceUrl}${req.originalUrl.replace('/api', '')}`,
+            // The URL is forwarded exactly as it was received.
+            url: `${serviceUrl}${req.originalUrl}`,
             data: req.body,
             headers: { 'Content-Type': 'application/json' }
         });
@@ -77,7 +77,8 @@ app.patch('/api/tickets/:ticketId/status', (req, res) => proxyRequest(req, res, 
 app.post('/api/dev-release-versions', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 // --- END: DEV TRACKER PROXY ROUTES ---
 
-// --- The rest of your file remains exactly the same ---
+
+// --- General Data Sync Routes (Unchanged) ---
 const fetchServiceDataWithRetry = async (serviceName, serviceUrl) => {
     try {
         let endpoint = '';
