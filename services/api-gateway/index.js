@@ -16,8 +16,8 @@ const serviceTargets = {
     timeTrackerService: 'http://192.168.2.201:3005',
     devTrackerService: 'http://192.168.2.201:3006',
     calendarService: 'http://192.168.2.201:3008',
-    habitTrackerService: 'http://192.168.2.201:3010', // NEW
-    pomodoroService: 'http://192.168.2.201:3011',   // NEW
+    habitTrackerService: 'http://192.168.2.201:3010',
+    pomodoroService: 'http://192.168.2.201:3011',
 };
 
 // --- Security Configuration ---
@@ -139,15 +139,25 @@ const proxyRequest = async (req, res, serviceUrl) => {
     }
 };
 
+// --- MODIFICATION START: Added all new proxy routes for Dev Tracker ---
+// Proxy all specific dev-tracker requests
+app.post('/api/tickets', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+app.put('/api/tickets/:ticketId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+app.post('/api/tickets/:ticketId/subtasks', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+app.put('/api/subtasks/:subtaskId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+app.delete('/api/subtasks/:subtaskId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+
+// Existing routes
 app.post('/api/dev-release-versions', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.post('/api/tickets/:ticketId/comments', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.delete('/api/tickets/:ticketId/comments/:commentId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.patch('/api/tickets/:ticketId/status', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
+// --- MODIFICATION END ---
+
 
 // --- NEW DATABASE BACKUP ROUTE ---
 app.get('/api/database/backup', (req, res) => {
     console.log('[API Gateway] GET /api/database/backup request received.');
-    // This path is set in ecosystem.dev.json and is available to all services
     const dbPath = process.env.DB_FILE_PATH || path.resolve(__dirname, '../../lockiedb.sqlite');
 
     if (fs.existsSync(dbPath)) {
