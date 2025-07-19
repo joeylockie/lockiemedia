@@ -125,7 +125,7 @@ function setupDatabase() {
   );`;
   db.exec(createTimeLogEntriesTable);
 
-  // --- Dev Tracker Release Versions Table (NEW) ---
+  // --- Dev Tracker Release Versions Table ---
   const createDevReleaseVersionsTable = `
   CREATE TABLE IF NOT EXISTS dev_release_versions (
       id INTEGER PRIMARY KEY,
@@ -134,7 +134,7 @@ function setupDatabase() {
   );`;
   db.exec(createDevReleaseVersionsTable);
 
-  // --- Dev Tracker Epics Table (MODIFIED) ---
+  // --- Dev Tracker Epics Table ---
   const createDevEpicsTable = `
   CREATE TABLE IF NOT EXISTS dev_epics (
     id INTEGER PRIMARY KEY,
@@ -149,7 +149,8 @@ function setupDatabase() {
   );`;
   db.exec(createDevEpicsTable);
 
-  // --- Dev Tracker Tickets Table (MODIFIED) ---
+  // --- MODIFICATION START: Updated Dev Tickets Table ---
+  // --- This is the main table for Dev Tracker tickets. ---
   const createDevTicketsTable = `
   CREATE TABLE IF NOT EXISTS dev_tickets (
     id INTEGER PRIMARY KEY,
@@ -161,15 +162,37 @@ function setupDatabase() {
     priority TEXT DEFAULT 'Medium',
     type TEXT DEFAULT 'Feature',
     component TEXT,
-    releaseVersion TEXT,
     affectedVersion TEXT,
     createdAt INTEGER,
+
+    -- New Fields for Phase 1 --
+    story_points INTEGER DEFAULT 0,
+    due_date TEXT,
+    reporter TEXT,
+    assignee TEXT,
+    fix_version TEXT,
+    resolution TEXT,
+
     FOREIGN KEY (epicId) REFERENCES dev_epics (id) ON DELETE CASCADE,
     FOREIGN KEY (affectedVersion) REFERENCES dev_release_versions (version) ON DELETE SET NULL
   );`;
   db.exec(createDevTicketsTable);
 
-  // --- Dev Tracker Ticket History Table (NEW) ---
+  // --- NEW TABLE: Dev Tracker Sub-Tasks ---
+  // --- Stores checklist items for a ticket ---
+  const createDevSubTasksTable = `
+  CREATE TABLE IF NOT EXISTS dev_subtasks (
+      id INTEGER PRIMARY KEY,
+      ticketId INTEGER NOT NULL,
+      text TEXT NOT NULL,
+      completed BOOLEAN NOT NULL DEFAULT 0,
+      createdAt INTEGER,
+      FOREIGN KEY (ticketId) REFERENCES dev_tickets (id) ON DELETE CASCADE
+  );`;
+  db.exec(createDevSubTasksTable);
+  // --- MODIFICATION END ---
+
+  // --- Dev Tracker Ticket History Table ---
   const createDevTicketHistoryTable = `
   CREATE TABLE IF NOT EXISTS dev_ticket_history (
       id INTEGER PRIMARY KEY,
@@ -182,7 +205,7 @@ function setupDatabase() {
   );`;
   db.exec(createDevTicketHistoryTable);
 
-  // --- Dev Tracker Ticket Comments Table (NEW) ---
+  // --- Dev Tracker Ticket Comments Table ---
   const createDevTicketCommentsTable = `
   CREATE TABLE IF NOT EXISTS dev_ticket_comments (
       id INTEGER PRIMARY KEY,
@@ -194,7 +217,7 @@ function setupDatabase() {
   );`;
   db.exec(createDevTicketCommentsTable);
 
-  // --- MODIFICATION START: Updated Habit Tables ---
+  // --- Updated Habit Tables ---
   const createHabitsTable = `
   CREATE TABLE IF NOT EXISTS habits (
       id INTEGER PRIMARY KEY,
@@ -215,9 +238,8 @@ function setupDatabase() {
       UNIQUE(habit_id, completedAt) -- Ensures only one entry per habit per day
   );`;
   db.exec(createHabitCompletionsTable);
-  // --- MODIFICATION END ---
 
-  // --- NEW: Pomodoro Tables ---
+  // --- Pomodoro Tables ---
   const createPomodoroSessionsTable = `
   CREATE TABLE IF NOT EXISTS pomodoro_sessions (
       id INTEGER PRIMARY KEY,
