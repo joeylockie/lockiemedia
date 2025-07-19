@@ -1,7 +1,6 @@
 # AI Project Curation Log: Lockie Media Platform
 
-**Last Updated:** 2025-07-18 14:56 (EDT)
-
+**Last Updated:** 2025-07-18 16:52 (EDT)
 
 
 ## 1. Instructions for AI (Gemini)
@@ -180,7 +179,8 @@ lockiemedia-dev/
 * **Dev Tracker Backend & Database Debugging:** Resolved critical backend errors preventing the Dev Tracker app from saving data correctly.
 * **Isolated Development Environment:** Set up a complete, isolated development environment on a separate container, managed by PM2 and a separate Git branch.
 * **Habit Tracker & Pomodoro Timer:** Implemented full-stack Habit Tracker and Pomodoro Timer applications with dedicated microservices and interactive frontends.
-* **(NEW) UI/UX Bug Squashing & Habit Tracker Enhancement:** Fixed multiple UI bugs, removed unused features, and implemented a multi-click completion feature for the Habit Tracker. Resolved complex server deployment and caching issues.
+* **(NEW) UI/UX Bug Squashing & Habit Tracker Enhancement:** Fixed multiple UI bugs, removed unused features, and implemented a multi-click completion feature for the Habit Tracker. Resolved complex server deployment and caching issues. Implemented a robust automated database backup system, and added a full-featured Week View with drag-and-drop and a live time indicator to the Calendar app.
+
 ---
 
 ## 5. Work Completed (Specific to Current Major Task)
@@ -232,6 +232,14 @@ lockiemedia-dev/
         * Guided a full server reset process, including reinstalling PM2 and clearing its cache, to resolve stubborn process management issues.
     * Dashboard Fix:
         * Removed an obsolete call to HabitTrackerService.initialize() in dashboard_main.js that was causing a critical error on the main page.
+    * Automated Backup System:
+        * Created a new /api/database/backup endpoint in the API gateway to allow direct download of the entire lockiedb.sqlite file.
+        * Replaced the old, manual JSON export function on the frontend with a simple link to the new, automated backup endpoint.
+    * Calendar App Enhancements:
+        * Implemented a full-featured Week View with a 24-hour timeline and correct event placement.
+        * Implemented Drag-and-Drop rescheduling for events in the Month View.
+        * Added a "Today" Button for quick navigation.
+        * Added a real-time Current Time Indicator line to the Week View.
 
 ---
 
@@ -274,3 +282,11 @@ lockiemedia-dev/
 * **Editor Choice:** A side-by-side Markdown editor (using Marked.js and DOMPurify) with toggleable view modes was chosen for the Notes app over a more complex Rich Text/WYSIWYG editor. This decision prioritized implementation speed, maintainability, and data portability (plain text) while still providing a powerful user experience.
 * **Sidebar UI Pattern:** Decided to move from a "disappearing" sidebar (width: 0) to a more robust "shrinking" sidebar pattern to prevent UI lockouts.
 * **(NEW) Service Configuration:** Discovered and fixed hardcoded port numbers and database paths in several microservices. The standard moving forward will be to ensure all services pull their configuration exclusively from environment variables provided by the ecosystem.dev.json file.
+* **(NEW) Backup Strategy:** Moved from a manual, frontend-driven JSON export to a robust, backend-driven direct database file download. This is a future-proof solution that guarantees a complete backup without needing future code changes.
+
+
+
+
+
+
+

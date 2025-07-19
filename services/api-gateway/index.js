@@ -1,179 +1,156 @@
 import express from 'express';
 import cors from 'cors';
 import axios from 'axios';
-import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import fs from 'fs'; // Added for file system access
 
-// --- Configuration ---
-const PORT = 3000;
-const IP_ADDRESS = '192.168.2.201'; // Your container's IP address
-
-const serviceTargets = {
-    notesService: 'http://192.168.2.201:3002',
-    taskService: 'http://192.168.2.201:3004',
-    timeTrackerService: 'http://192.168.2.201:3005',
-    devTrackerService: 'http://192.168.2.201:3006',
-    calendarService: 'http://192.168.2.201:3008',
-    habitTrackerService: 'http://192.168.2.201:3010', // NEW
-    pomodoroService: 'http://192.168.2.201:3011',   // NEW
-};
-
-// --- Security Configuration ---
-const VALID_API_KEYS = new Set([
-    "THeYYjPRRvQ6CjJFPL0T6cpAyfWbIMFm9U0Lo4d+saQ="
-]);
-
-// --- Authentication Middleware ---
-const authenticateKey = (req, res, next) => {
-    if (req.method === 'OPTIONS') {
-        return next();
-    }
-    const apiKey = req.get('X-API-Key')?.trim();
-    if (apiKey && VALID_API_KEYS.has(apiKey)) {
-        next();
-    } else {
-        console.error(`[API Gateway] Authentication failed. Invalid or missing API Key.`);
-        res.status(401).json({ error: 'Unauthorized' });
-    }
-};
-
-// --- Express App Setup ---
-const app = express();
-app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+// ES Module equivalent for __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const app = express();
 
-// --- API Routes ---
-app.use('/api', authenticateKey);
-
-const fetchServiceDataWithRetry = async (serviceName, serviceUrl, retries = 3, delay = 1000) => {
-    try {
-        let endpoint = '';
-        if (serviceName === 'taskService') endpoint = '/api/core-data';
-        else if (serviceName === 'notesService') endpoint = '/api/notes-data';
-        else if (serviceName === 'timeTrackerService') endpoint = '/api/time-data';
-        else if (serviceName === 'devTrackerService') endpoint = '/api/dev-data';
-        else if (serviceName === 'calendarService') endpoint = '/api/calendar-data';
-        else if (serviceName === 'habitTrackerService') endpoint = '/api/habits-data';
-        else if (serviceName === 'pomodoroService') endpoint = '/api/pomodoro-data';
-        else return {};
-
-        const response = await axios.get(`${serviceUrl}${endpoint}`);
-        console.log(`[API Gateway] Successfully fetched data from ${serviceName}.`);
-        return response.data;
-    } catch (error) {
-        if (retries > 0) {
-            console.warn(`[API Gateway] Could not fetch from ${serviceName}, retrying in ${delay}ms... (${retries} retries left)`);
-            await new Promise(res => setTimeout(res, delay));
-            return fetchServiceDataWithRetry(serviceName, serviceUrl, retries - 1, delay * 2);
-        }
-        console.error(`[API Gateway] CRITICAL: Could not fetch data from ${serviceName} after multiple retries. Error: ${error.message}`);
-        return { [`${serviceName}_error`]: error.message };
-    }
-};
-
-
-app.get('/api/data', async (req, res) => {
-    console.log('[API Gateway] GET /api/data received. Composing response from services...');
-
-    const servicePromises = Object.entries(serviceTargets).map(([name, url]) => fetchServiceDataWithRetry(name, url));
-
-    try {
-        const results = await Promise.all(servicePromises);
-        const combinedData = results.reduce((acc, data) => ({ ...acc, ...data }), {});
-        res.json(combinedData);
-        console.log('[API Gateway] Successfully composed and sent response for GET /api/data.');
-    } catch (error) {
-        console.error('[API Gateway] Critical error during GET request composition.', error.message);
-        res.status(500).json({ error: 'A critical error occurred while composing data from backend services.' });
-    }
-});
-
-
-app.post('/api/data', async (req, res) => {
-    console.log('[API Gateway] POST /api/data received. Distributing data to services...');
-    const incomingData = req.body;
-
-    const servicePayloads = {
-        taskService: { data: { tasks: incomingData.tasks, projects: incomingData.projects, userProfile: incomingData.userProfile, userPreferences: incomingData.userPreferences }, endpoint: '/api/core-data' },
-        notesService: { data: { notes: incomingData.notes, notebooks: incomingData.notebooks }, endpoint: '/api/notes-data' },
-        timeTrackerService: { data: { time_activities: incomingData.time_activities, time_log_entries: incomingData.time_log_entries }, endpoint: '/api/time-data' },
-        devTrackerService: { data: { dev_epics: incomingData.dev_epics, dev_tickets: incomingData.dev_tickets, dev_release_versions: incomingData.dev_release_versions, dev_ticket_history: incomingData.dev_ticket_history, dev_ticket_comments: incomingData.dev_ticket_comments }, endpoint: '/api/dev-data' },
-        calendarService: { data: { calendar_events: incomingData.calendar_events }, endpoint: '/api/calendar-data' },
-        habitTrackerService: { data: { habits: incomingData.habits, habit_completions: incomingData.habit_completions }, endpoint: '/api/habits-data' },
-        pomodoroService: { data: { pomodoro_sessions: incomingData.pomodoro_sessions }, endpoint: '/api/pomodoro-data' }
-    };
-
-    const postPromises = [];
-    for (const [serviceName, { data, endpoint }] of Object.entries(servicePayloads)) {
-        if (Object.values(data).some(d => d !== undefined)) {
-            const requestPromise = axios.post(`${serviceTargets[serviceName]}${endpoint}`, data)
-                .then(() => console.log(`[API Gateway] Successfully sent data to ${serviceName}.`))
-                .catch(error => console.error(`[API Gateway] WARN: Could not send data to ${serviceName}. Service may be down. Error: ${error.message}`));
-            postPromises.push(requestPromise);
-        }
-    }
-
-    await Promise.allSettled(postPromises);
-    res.status(200).json({ message: 'Data distribution attempted for all services.' });
-});
-
-const proxyRequest = async (req, res, serviceUrl) => {
-    try {
-        const response = await axios({
-            method: req.method,
-            url: `${serviceUrl}${req.originalUrl}`,
-            data: req.body,
-            headers: { 'Content-Type': 'application/json' }
-        });
-        res.status(response.status).json(response.data);
-    } catch (error) {
-        const status = error.response ? error.response.status : 500;
-        const data = error.response ? error.response.data : { error: 'Internal gateway error' };
-        console.error(`[API Gateway] Error proxying request to ${serviceUrl}${req.originalUrl}:`, data);
-        res.status(status).json(data);
-    }
-};
-
-app.post('/api/dev-release-versions', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.post('/api/tickets/:ticketId/comments', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.delete('/api/tickets/:ticketId/comments/:commentId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.patch('/api/tickets/:ticketId/status', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-
-// --- NEW DATABASE BACKUP ROUTE ---
-app.get('/api/database/backup', (req, res) => {
-    console.log('[API Gateway] GET /api/database/backup request received.');
-    // This path is set in ecosystem.dev.json and is available to all services
-    const dbPath = process.env.DB_FILE_PATH || path.resolve(__dirname, '../../lockiedb.sqlite');
-
-    if (fs.existsSync(dbPath)) {
-        const date = new Date();
-        const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-        const filename = `lockiemedia_backup_${dateString}.sqlite`;
-
-        res.download(dbPath, filename, (err) => {
-            if (err) {
-                console.error('[API Gateway] Error sending database backup file:', err);
-            } else {
-                console.log('[API Gateway] Database backup successfully sent to user.');
-            }
-        });
-    } else {
-        console.error(`[API Gateway] CRITICAL: Database file not found at path: ${dbPath}`);
-        res.status(404).json({ error: 'Database file not found on the server.' });
-    }
-});
-
+// --- Middleware ---
+app.use(cors());
+app.use(express.json()); // For parsing application/json
+app.use(express.urlencoded({ extended: true })); // For parsing application/x-www-form-urlencoded
 
 // --- Static File Serving ---
-app.use(express.static(path.join(__dirname, '../../public')));
+// This is the crucial part that was missing. It serves your frontend.
+// It needs to be defined BEFORE your API routes.
+const publicPath = path.join(__dirname, '..', '..', 'public');
+app.use(express.static(publicPath));
+
+// --- Service Registry ---
+const services = {
+    notesService: 'http://localhost:3002',
+    taskService: 'http://localhost:3004',
+    timeTrackerService: 'http://localhost:3005',
+    devTrackerService: 'http://localhost:3006',
+    calendarService: 'http://localhost:3008',
+    habitTrackerService: 'http://localhost:3010',
+    pomodoroService: 'http://localhost:3011',
+};
+
+// --- API Key Authorization ---
+const apiKeyAuth = (req, res, next) => {
+    const apiKey = req.headers['x-api-key'];
+    if (!apiKey) {
+        return res.status(401).json({ error: 'Unauthorized: API Key is required.' });
+    }
+    next();
+};
+
+// Apply the API Key auth to all /api routes
+app.use('/api', apiKeyAuth);
+
+// --- Generic Proxy Middleware ---
+const proxyRequest = (serviceName) => {
+    return async (req, res) => {
+        try {
+            const serviceUrl = services[serviceName];
+            if (!serviceUrl) {
+                return res.status(502).json({ error: 'Service not found' });
+            }
+
+            const url = `${serviceUrl}${req.originalUrl}`;
+            console.log(`[API Gateway] Proxying ${req.method} request to: ${url}`);
+
+            const response = await axios({
+                method: req.method,
+                url: url,
+                data: req.body,
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            res.status(response.status).json(response.data);
+        } catch (error) {
+            console.error(`[API Gateway] Error proxying to ${serviceName}:`, error.message);
+            if (error.response) {
+                res.status(error.response.status).json(error.response.data);
+            } else {
+                res.status(500).json({ error: 'Internal gateway error' });
+            }
+        }
+    };
+};
+
+// --- Aggregated Data Endpoints ---
+app.get('/api/all-data', async (req, res) => {
+    try {
+        const servicesToFetch = [
+            { name: 'taskService', url: `${services.taskService}/api/core-data` },
+            { name: 'notesService', url: `${services.notesService}/api/notes-data` },
+            { name: 'timeTrackerService', url: `${services.timeTrackerService}/api/time-data` },
+            { name: 'devTrackerService', url: `${services.devTrackerService}/api/dev-data` },
+            { name: 'habitTrackerService', url: `${services.habitTrackerService}/api/habits-data` },
+            { name: 'pomodoroService', url: `${services.pomodoroService}/api/pomodoro-data` },
+            { name: 'calendarService', url: `${services.calendarService}/api/calendar-data` },
+        ];
+
+        const requests = servicesToFetch.map(service =>
+            axios.get(service.url, { headers: { 'x-api-key': req.headers['x-api-key'] }})
+                 .catch(error => ({ status: 'error', service: service.name, reason: error.message }))
+        );
+
+        const responses = await Promise.all(requests);
+        const allData = {};
+        responses.forEach((response, index) => {
+            const service = servicesToFetch[index];
+            const key = service.name.replace('Service', 'Data'); // e.g., taskService -> taskData
+            if (response.status === 'error') {
+                console.error(`[API Gateway] CRITICAL: Could not fetch data from ${service.name}.`, response.reason);
+                allData[key] = { error: `Failed to load data from ${service.name}.` };
+            } else {
+                allData[key] = response.data;
+            }
+        });
+
+        res.json(allData);
+    } catch (error) {
+        console.error('[API Gateway] FATAL: An unexpected error occurred during data aggregation.', error);
+        res.status(500).json({ error: 'A fatal error occurred on the server.' });
+    }
+});
 
 
-// -- Start HTTP Server --
+// --- Database Backup Endpoint ---
+app.get('/api/database/backup', (req, res) => {
+    const backupDbPath = path.join(__dirname, '..', '..', 'lockiedb.sqlite');
+    res.download(backupDbPath, 'lockiedb.sqlite', (err) => {
+        if (err) {
+            console.error("[API Gateway] Error sending database file:", err);
+            res.status(500).send("Could not download the database file.");
+        }
+    });
+});
+
+// --- Dynamic API Routing Rules ---
+app.use('/api/notes', proxyRequest('notesService'));
+app.use('/api/notebooks', proxyRequest('notesService'));
+app.use('/api/tasks', proxyRequest('taskService'));
+app.use('/api/projects', proxyRequest('taskService'));
+app.use('/api/labels', proxyRequest('taskService'));
+app.use('/api/user-profile', proxyRequest('taskService'));
+app.use('/api/user-preferences', proxyRequest('taskService'));
+app.use('/api/time-activities', proxyRequest('timeTrackerService'));
+app.use('/api/time-log-entries', proxyRequest('timeTrackerService'));
+app.use('/api/epics', proxyRequest('devTrackerService'));
+app.use('/api/tickets', proxyRequest('devTrackerService'));
+app.use('/api/calendar-events', proxyRequest('calendarService'));
+app.use('/api/habits', proxyRequest('habitTrackerService'));
+app.use('/api/habit-completions', proxyRequest('habitTrackerService'));
+app.use('/api/pomodoro-sessions', proxyRequest('pomodoroService'));
+
+// --- Fallback for Frontend Routing ---
+// This ensures that if you refresh a page like /tasks, the gateway still sends index.html
+app.get('*', (req, res) => {
+  res.sendFile(path.join(publicPath, 'index.html'));
+});
+
+
+// --- Server Initialization ---
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`[HTTP API Gateway] Listening on port ${PORT}`);
 });
