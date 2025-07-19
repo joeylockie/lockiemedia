@@ -47,7 +47,9 @@ const proxyRequest = async (req, res, serviceUrl) => {
     try {
         const response = await axios({
             method: req.method,
-            url: `${serviceUrl}${req.originalUrl}`,
+            // --- THIS IS THE FINAL FIX ---
+            // It correctly removes the '/api' prefix before sending to the service
+            url: `${serviceUrl}${req.originalUrl.replace('/api', '')}`,
             data: req.body,
             headers: { 'Content-Type': 'application/json' }
         });
@@ -55,33 +57,27 @@ const proxyRequest = async (req, res, serviceUrl) => {
     } catch (error) {
         const status = error.response ? error.response.status : 500;
         const data = error.response ? error.response.data : { error: 'Internal gateway error' };
-        // This log is important for debugging
         console.error(`[API Gateway] Error proxying request to ${serviceUrl}${req.originalUrl}:`, data);
         res.status(status).json(data);
     }
 };
 
-// --- START: THE FINAL DEV TRACKER FIX (Explicit Routes) ---
-// Epics
+// --- START: DEV TRACKER PROXY ROUTES ---
 app.post('/api/epics', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.put('/api/epics/:epicId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.delete('/api/epics/:epicId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-// Tickets
 app.post('/api/tickets', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.put('/api/tickets/:ticketId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-// Subtasks
 app.post('/api/tickets/:ticketId/subtasks', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.put('/api/subtasks/:subtaskId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.delete('/api/subtasks/:subtaskId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-// Comments
 app.post('/api/tickets/:ticketId/comments', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
 app.delete('/api/tickets/:ticketId/comments/:commentId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-// Status
 app.patch('/api/tickets/:ticketId/status', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-// Release Versions
 app.post('/api/dev-release-versions', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-// --- END: THE FINAL DEV TRACKER FIX ---
+// --- END: DEV TRACKER PROXY ROUTES ---
 
+// --- The rest of your file remains exactly the same ---
 const fetchServiceDataWithRetry = async (serviceName, serviceUrl) => {
     try {
         let endpoint = '';
@@ -93,7 +89,6 @@ const fetchServiceDataWithRetry = async (serviceName, serviceUrl) => {
         else if (serviceName === 'habitTrackerService') endpoint = '/api/habits-data';
         else if (serviceName === 'pomodoroService') endpoint = '/api/pomodoro-data';
         else return {};
-
         const response = await axios.get(`${serviceUrl}${endpoint}`);
         return response.data;
     } catch (error) {
