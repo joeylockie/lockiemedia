@@ -43,6 +43,45 @@ const __dirname = path.dirname(__filename);
 
 app.use('/api', authenticateKey);
 
+// This generic proxy function is correct and will be reused.
+const proxyRequest = async (req, res, serviceUrl) => {
+    try {
+        const { method, originalUrl, body } = req;
+        const response = await axios({
+            method,
+            url: `${serviceUrl}${originalUrl}`,
+            data: body,
+            headers: { 'Content-Type': 'application/json' }
+        });
+        res.status(response.status).json(response.data);
+    } catch (error) {
+        const status = error.response ? error.response.status : 500;
+        const data = error.response ? error.response.data : { error: 'Internal gateway error' };
+        console.error(`[API Gateway] Error proxying request to ${serviceUrl}${originalUrl}:`, data);
+        res.status(status).json(data);
+    }
+};
+
+// --- START: THE FINAL DEV TRACKER FIX ---
+// 1. Create a dedicated router for the dev tracker service.
+const devTrackerRouter = express.Router();
+
+// 2. This single handler will catch ALL requests sent to this router
+//    (e.g., /epics, /tickets/1, /tickets/1/comments) and forward them.
+devTrackerRouter.all('*', (req, res) => {
+    proxyRequest(req, res, serviceTargets.devTrackerService);
+});
+
+// 3. This tells the main app to USE the router for any path that starts
+//    with one of these prefixes. This is the robust solution.
+app.use('/api/epics', devTrackerRouter);
+app.use('/api/tickets', devTrackerRouter);
+app.use('/api/subtasks', devTrackerRouter);
+app.use('/api/dev-release-versions', devTrackerRouter);
+// --- END: THE FINAL DEV TRACKER FIX ---
+
+
+// --- General Data Sync Routes (Unchanged) ---
 const fetchServiceDataWithRetry = async (serviceName, serviceUrl) => {
     try {
         let endpoint = '';
@@ -96,43 +135,7 @@ app.post('/api/data', async (req, res) => {
     res.status(200).json({ message: 'Data distribution attempted.' });
 });
 
-const proxyRequest = async (req, res, serviceUrl) => {
-    try {
-        const response = await axios({
-            method: req.method,
-            url: `${serviceUrl}${req.originalUrl}`,
-            data: req.body,
-            headers: { 'Content-Type': 'application/json' }
-        });
-        res.status(response.status).json(response.data);
-    } catch (error) {
-        const status = error.response ? error.response.status : 500;
-        const data = error.response ? error.response.data : { error: 'Internal gateway error' };
-        res.status(status).json(data);
-    }
-};
-
-// --- START: THE FINAL DEV TRACKER FIX ---
-// Epics
-app.post('/api/epics', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.put('/api/epics/:epicId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.delete('/api/epics/:epicId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-// Tickets
-app.post('/api/tickets', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.put('/api/tickets/:ticketId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-// Subtasks
-app.post('/api/tickets/:ticketId/subtasks', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.put('/api/subtasks/:subtaskId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.delete('/api/subtasks/:subtaskId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-// Comments
-app.post('/api/tickets/:ticketId/comments', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-app.delete('/api/tickets/:ticketId/comments/:commentId', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-// Status
-app.patch('/api/tickets/:ticketId/status', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-// Release Versions
-app.post('/api/dev-release-versions', (req, res) => proxyRequest(req, res, serviceTargets.devTrackerService));
-// --- END: THE FINAL DEV TRACKER FIX ---
-
+// --- Other Routes (Unchanged) ---
 app.get('/api/database/backup', (req, res) => {
     const dbPath = process.env.DB_FILE_PATH || path.resolve(__dirname, '../../lockiedb.sqlite');
     if (fs.existsSync(dbPath)) {
