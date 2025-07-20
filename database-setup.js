@@ -3,26 +3,22 @@
 import Database from 'better-sqlite3';
 
 // Define the name of the database file.
-const dbFile = process.env.DB_FILE_PATH || 'lockiedb.sqlite'; // CHANGED THIS LINE
+const dbFile = process.env.DB_FILE_PATH || 'lockiedb.sqlite';
 
 // Create a new database connection.
-// `verbose: console.log` will print out each SQL statement to the console,
-// which is very helpful for seeing what's happening.
 const db = new Database(dbFile, { verbose: console.log });
 
 console.log(`Connected to database ${dbFile}`);
 
 /**
  * --- DATABASE SCHEMA ---
- * This function defines the structure of our database. It creates tables
- * to hold tasks, projects, and user profile information.
+ * This function defines the structure of our database.
  * It's designed to only run if the tables don't already exist.
  */
 function setupDatabase() {
   console.log('Running database setup...');
 
   // --- Projects Table ---
-  // Stores project information.
   const createProjectsTable = `
   CREATE TABLE IF NOT EXISTS projects (
     id INTEGER PRIMARY KEY,
@@ -32,9 +28,6 @@ function setupDatabase() {
   db.exec(createProjectsTable);
 
   // --- Tasks Table ---
-  // This is the main table for storing all task items.
-  // We use TEXT for complex data like recurrence rules,
-  // which will be stored as JSON strings.
   const createTasksTable = `
   CREATE TABLE IF NOT EXISTS tasks (
     id INTEGER PRIMARY KEY,
@@ -58,7 +51,6 @@ function setupDatabase() {
   db.exec(createTasksTable);
 
   // --- User Profile Table ---
-  // A simple table to store profile info for the single user.
   const createUserProfileTable = `
   CREATE TABLE IF NOT EXISTS user_profile (
     id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -69,7 +61,6 @@ function setupDatabase() {
   db.exec(createUserProfileTable);
 
   // --- User Preferences Table ---
-  // A key-value store for user settings.
   const createUserPreferencesTable = `
   CREATE TABLE IF NOT EXISTS user_preferences (
     key TEXT PRIMARY KEY,
@@ -125,99 +116,7 @@ function setupDatabase() {
   );`;
   db.exec(createTimeLogEntriesTable);
 
-  // --- Dev Tracker Release Versions Table ---
-  const createDevReleaseVersionsTable = `
-  CREATE TABLE IF NOT EXISTS dev_release_versions (
-      id INTEGER PRIMARY KEY,
-      version TEXT NOT NULL UNIQUE,
-      createdAt INTEGER
-  );`;
-  db.exec(createDevReleaseVersionsTable);
-
-  // --- Dev Tracker Epics Table ---
-  const createDevEpicsTable = `
-  CREATE TABLE IF NOT EXISTS dev_epics (
-    id INTEGER PRIMARY KEY,
-    key TEXT UNIQUE,
-    title TEXT NOT NULL,
-    description TEXT,
-    status TEXT DEFAULT 'To Do',
-    priority TEXT DEFAULT 'Medium',
-    releaseVersion TEXT,
-    ticketCounter INTEGER DEFAULT 0,
-    createdAt INTEGER
-  );`;
-  db.exec(createDevEpicsTable);
-
-  // --- MODIFICATION START: Updated Dev Tickets Table ---
-  // --- This is the main table for Dev Tracker tickets. ---
-  const createDevTicketsTable = `
-  CREATE TABLE IF NOT EXISTS dev_tickets (
-    id INTEGER PRIMARY KEY,
-    fullKey TEXT UNIQUE,
-    epicId INTEGER,
-    title TEXT NOT NULL,
-    description TEXT,
-    status TEXT DEFAULT 'Open',
-    priority TEXT DEFAULT 'Medium',
-    type TEXT DEFAULT 'Feature',
-    component TEXT,
-    affectedVersion TEXT,
-    createdAt INTEGER,
-
-    -- New Fields for Phase 1 --
-    story_points INTEGER DEFAULT 0,
-    due_date TEXT,
-    reporter TEXT,
-    assignee TEXT,
-    fix_version TEXT,
-    resolution TEXT,
-
-    FOREIGN KEY (epicId) REFERENCES dev_epics (id) ON DELETE CASCADE,
-    FOREIGN KEY (affectedVersion) REFERENCES dev_release_versions (version) ON DELETE SET NULL
-  );`;
-  db.exec(createDevTicketsTable);
-
-  // --- NEW TABLE: Dev Tracker Sub-Tasks ---
-  // --- Stores checklist items for a ticket ---
-  const createDevSubTasksTable = `
-  CREATE TABLE IF NOT EXISTS dev_subtasks (
-      id INTEGER PRIMARY KEY,
-      ticketId INTEGER NOT NULL,
-      text TEXT NOT NULL,
-      completed BOOLEAN NOT NULL DEFAULT 0,
-      createdAt INTEGER,
-      FOREIGN KEY (ticketId) REFERENCES dev_tickets (id) ON DELETE CASCADE
-  );`;
-  db.exec(createDevSubTasksTable);
-  // --- MODIFICATION END ---
-
-  // --- Dev Tracker Ticket History Table ---
-  const createDevTicketHistoryTable = `
-  CREATE TABLE IF NOT EXISTS dev_ticket_history (
-      id INTEGER PRIMARY KEY,
-      ticketId INTEGER NOT NULL,
-      field TEXT NOT NULL,
-      oldValue TEXT,
-      newValue TEXT,
-      changedAt INTEGER,
-      FOREIGN KEY (ticketId) REFERENCES dev_tickets (id) ON DELETE CASCADE
-  );`;
-  db.exec(createDevTicketHistoryTable);
-
-  // --- Dev Tracker Ticket Comments Table ---
-  const createDevTicketCommentsTable = `
-  CREATE TABLE IF NOT EXISTS dev_ticket_comments (
-      id INTEGER PRIMARY KEY,
-      ticketId INTEGER NOT NULL,
-      comment TEXT NOT NULL,
-      author TEXT,
-      createdAt INTEGER,
-      FOREIGN KEY (ticketId) REFERENCES dev_tickets (id) ON DELETE CASCADE
-  );`;
-  db.exec(createDevTicketCommentsTable);
-
-  // --- Updated Habit Tables ---
+  // --- Habit Tables ---
   const createHabitsTable = `
   CREATE TABLE IF NOT EXISTS habits (
       id INTEGER PRIMARY KEY,
@@ -269,13 +168,10 @@ function setupDatabase() {
 
 
   // --- Insert Default Data ---
-  // Here, we ensure that some essential default data exists.
-  // We use INSERT OR IGNORE to prevent errors if the data is already there.
-
   const insertDefaultProject = db.prepare('INSERT OR IGNORE INTO projects (id, name, creationDate) VALUES (?, ?, ?)');
   insertDefaultProject.run(0, 'No Project', Date.now());
 
-  const insertDefaultProfile = db.prepare('INSERT OR IGNORE INTO user_profile (id, displayName, role) VALUES (?, ?, ?)');
+  const insertDefaultProfile = db.preparE('INSERT OR IGNORE INTO user_profile (id, displayName, role) VALUES (?, ?, ?)');
   insertDefaultProfile.run(1, 'User', 'admin');
 
   const defaultActivities = [
@@ -288,15 +184,6 @@ function setupDatabase() {
   for (const activity of defaultActivities) {
     insertActivity.run(activity);
   }
-
-  const insertPreference = db.prepare('INSERT OR IGNORE INTO user_preferences (key, value) VALUES (?, ?)');
-  const devTrackerOptions = {
-    statuses: ['Open', 'In Progress', 'In Review', 'Done'],
-    priorities: ['Low', 'Medium', 'High'],
-    types: ['Feature', 'Bug', 'Chore'],
-    components: ['Backend', 'Frontend', 'Database', 'UI/UX']
-  };
-  insertPreference.run('dev_tracker_options', JSON.stringify(devTrackerOptions));
 
   console.log('Database setup complete.');
 }

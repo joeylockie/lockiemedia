@@ -46,40 +46,22 @@ function getDashboardData() {
     return { overdueTasks, todayTasks, upcomingTasks, recentNotes };
 }
 
-// --- NEW, SIMPLIFIED Data Export Function ---
+// --- SIMPLIFIED Data Export Function ---
 function handleExportData() {
     LoggingService.info('[Dashboard] Database backup download initiated by user.', { functionName: 'handleExportData' });
-    
-    // This is the API key stored in your api-gateway/index.js
-    const apiKey = "THeYYjPRRvQ6CjJFPL0T6cpAyfWbIMFm9U0Lo4d+saQ="; 
-    
-    // The URL points directly to our new backup endpoint on the server.
-    const backupUrl = `http://192.168.2.201:3000/api/database/backup`;
 
-    // We create a temporary link to trigger the download.
-    const a = document.createElement('a');
-    a.href = backupUrl;
+    // Use a relative URL, which is more robust.
+    const backupUrl = `/api/database/backup`;
     
-    // We add the API key to the request headers by setting the 'download' attribute
-    // and by using a little trick to set the header via a custom property.
-    // Note: This method for headers on a direct link has limitations and is a simplified approach.
-    a.setAttribute('download', ''); // Suggests a filename to the browser
-    
-    // We can't directly set headers on an 'a' tag. The authentication is handled by the API gateway.
-    // For a more robust solution in the future, we would fetch the blob via JS and then create the download link.
-    // For now, we are relying on a simplified security model for this internal tool.
-    
-    // To make this work without complex fetch logic, temporarily disable authentication for ONLY this route if needed,
-    // or rely on browser behavior that might send cookies/headers if the user is already authenticated in another tab,
-    // though the API key method is more explicit. The provided API Gateway code will handle the key.
-    
-    // A better way if direct download fails due to auth headers:
+    // This API Key should ideally be managed more securely, but for this app it's retrieved from the store.
+    const apiKey = "THeYYjPRRvQ6CjJFPL0T6cpAyfWbIMFm9U0Lo4d+saQ=";
+
     fetch(backupUrl, {
         headers: { 'X-API-Key': apiKey }
     })
     .then(response => {
         if (!response.ok) {
-            throw new Error('Network response was not ok.');
+            throw new Error(`Network response was not ok. Status: ${response.status}`);
         }
         return response.blob();
     })
@@ -101,7 +83,8 @@ function handleExportData() {
     })
     .catch(err => {
         console.error('Error downloading the database:', err);
-        alert('Could not download the database. Please check the console for errors.');
+        LoggingService.error('Could not download the database.', err, { functionName: 'handleExportData' });
+        alert('Could not download the database. Please ensure the server is running and check the console for errors.');
     });
 }
 
@@ -166,8 +149,8 @@ function renderUpcomingWidget() {
           const li = document.createElement('li');
           li.className = 'text-sm text-slate-300 flex justify-between items-center';
           li.innerHTML = `
-              <span>${task.text}</span>
-              <span class="text-xs text-slate-400">${formatDate(task.dueDate)}</span>
+                <span>${task.text}</span>
+                <span class="text-xs text-slate-400">${formatDate(task.dueDate)}</span>
           `;
           list.appendChild(li);
     });
@@ -225,9 +208,9 @@ function renderTimeTrackerWidget() {
     if (activeTimer) {
         const activity = (TimeTrackerService.getActivities() || []).find(a => a.id === activeTimer.activityId);
         timeTrackerContent.innerHTML = `
-            <p class="text-sm text-slate-400">Currently Tracking:</p>
-            <p class="font-semibold text-slate-100 truncate">${activity ? activity.name : '...'}</p>
-            <p id="dashboardLiveTimer" class="text-2xl font-mono font-bold text-sky-300 mt-2">00:00:00</p>
+              <p class="text-sm text-slate-400">Currently Tracking:</p>
+              <p class="font-semibold text-slate-100 truncate">${activity ? activity.name : '...'}</p>
+              <p id="dashboardLiveTimer" class="text-2xl font-mono font-bold text-sky-300 mt-2">00:00:00</p>
         `;
         const timerDisplay = document.getElementById('dashboardLiveTimer');
         const updateTime = () => {
@@ -239,8 +222,8 @@ function renderTimeTrackerWidget() {
     } else {
         const totalMs = TimeTrackerService.getTodaysTotalTrackedMs();
         timeTrackerContent.innerHTML = `
-            <p class="text-sm text-slate-400">Time Tracked Today:</p>
-            <p class="text-3xl font-bold text-slate-100 mt-2">${formatMillisecondsToHMS(totalMs)}</p>
+              <p class="text-sm text-slate-400">Time Tracked Today:</p>
+              <p class="text-3xl font-bold text-slate-100 mt-2">${formatMillisecondsToHMS(totalMs)}</p>
         `;
     }
 }
@@ -250,7 +233,6 @@ function renderQuickLinksWidget() {
 
     const links = [
         { href: 'tasks.html', icon: 'fa-check-double', title: 'Task Manager', color: 'text-sky-400' },
-        { href: 'dev-tracker.html', icon: 'fa-tasks', title: 'Dev Tracker', color: 'text-purple-400' },
         { href: 'notes.html', icon: 'fa-sticky-note', title: 'Notes', color: 'text-amber-400' },
         { href: 'habits.html', icon: 'fa-calendar-check', title: 'Habit Tracker', color: 'text-green-400' },
         { href: 'time-tracker.html', icon: 'fa-clock', title: 'Time Tracker', color: 'text-indigo-400' },
@@ -266,10 +248,10 @@ function renderQuickLinksWidget() {
         linkEl.href = link.href;
         linkEl.className = 'block p-4 rounded-lg bg-slate-700/50 hover:bg-slate-700 hover:ring-2 hover:ring-purple-500 transition-all duration-200';
         linkEl.innerHTML = `
-            <div class="flex items-center">
-                <i class="fas ${link.icon} w-6 mr-3 ${link.color}" style="font-size: 1.25rem;"></i>
-                <h3 class="font-semibold text-slate-100">${link.title}</h3>
-            </div>
+              <div class="flex items-center">
+                  <i class="fas ${link.icon} w-6 mr-3 ${link.color}" style="font-size: 1.25rem;"></i>
+                  <h3 class="font-semibold text-slate-100">${link.title}</h3>
+              </div>
         `;
         quickLinksContent.appendChild(linkEl);
     });

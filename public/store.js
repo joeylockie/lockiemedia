@@ -5,7 +5,6 @@ import LoggingService from './loggingService.js';
 const API_URL = '/api/data';
 
 // --- Security Configuration ---
-// This MUST be the exact same key as in the api-gateway file, with no extra spaces.
 const API_KEY = "THeYYjPRRvQ6CjJFPL0T6cpAyfWbIMFm9U0Lo4d+saQ=";
 
 // --- Centralized Headers ---
@@ -25,12 +24,6 @@ let _notebooks = [];
 let _notes = [];
 let _time_activities = [];
 let _time_log_entries = [];
-let _dev_epics = [];
-let _dev_tickets = [];
-let _dev_subtasks = [];
-let _dev_release_versions = [];
-let _dev_ticket_history = [];
-let _dev_ticket_comments = [];
 let _calendar_events = [];
 let _habits = [];
 let _habit_completions = [];
@@ -73,8 +66,6 @@ function _updateUniqueProjectsInternal() {
     }
 }
 
-// NOTE: This function uses a "full sync" approach which is being replaced for the Dev Tracker
-// by more specific API calls (e.g., updateTicket, createSubtask). It is kept for other modules.
 async function _saveAllData(source = 'unknown') {
     const functionName = '_saveAllData (Store)';
     LoggingService.debug(`[Store] Initiating save for all data to backend. Source: ${source}.`, { functionName, source });
@@ -91,12 +82,6 @@ async function _saveAllData(source = 'unknown') {
         notes: _notes,
         time_activities: _time_activities,
         time_log_entries: _time_log_entries,
-        dev_epics: _dev_epics,
-        dev_tickets: _dev_tickets,
-        // Subtasks are not saved here as they have their own endpoints
-        dev_release_versions: _dev_release_versions,
-        dev_ticket_history: _dev_ticket_history,
-        dev_ticket_comments: _dev_ticket_comments,
         calendar_events: _calendar_events,
         habits: _habits,
         habit_completions: _habit_completions,
@@ -138,12 +123,6 @@ const AppStore = {
     getNotes: () => JSON.parse(JSON.stringify(_notes)),
     getTimeActivities: () => JSON.parse(JSON.stringify(_time_activities)),
     getTimeLogEntries: () => JSON.parse(JSON.stringify(_time_log_entries)),
-    getDevEpics: () => JSON.parse(JSON.stringify(_dev_epics)),
-    getDevTickets: () => JSON.parse(JSON.stringify(_dev_tickets)),
-    getDevSubtasks: () => JSON.parse(JSON.stringify(_dev_subtasks)), // --- NEW: Getter for subtasks ---
-    getDevReleaseVersions: () => JSON.parse(JSON.stringify(_dev_release_versions)),
-    getDevTicketHistory: () => JSON.parse(JSON.stringify(_dev_ticket_history)),
-    getDevTicketComments: () => JSON.parse(JSON.stringify(_dev_ticket_comments)),
     getCalendarEvents: () => JSON.parse(JSON.stringify(_calendar_events)),
     getHabits: () => JSON.parse(JSON.stringify(_habits)),
     getHabitCompletions: () => JSON.parse(JSON.stringify(_habit_completions)),
@@ -191,35 +170,6 @@ const AppStore = {
         await _saveAllData(source);
         _publish('timeLogEntriesChanged', [..._time_log_entries]);
     },
-    setDevEpics: async (newEpicsArray, source = 'setDevEpics') => {
-        _dev_epics = JSON.parse(JSON.stringify(newEpicsArray));
-        // No longer saving all data on every change for dev tracker
-        _publish('devEpicsChanged', [..._dev_epics]);
-    },
-    setDevTickets: async (newTicketsArray, source = 'setDevTickets') => {
-        _dev_tickets = JSON.parse(JSON.stringify(newTicketsArray));
-        // No longer saving all data on every change for dev tracker
-        _publish('devTicketsChanged', [..._dev_tickets]);
-    },
-    // --- NEW: Setter for subtasks ---
-    setDevSubtasks: (newSubtasksArray, source = 'setDevSubtasks') => {
-        _dev_subtasks = JSON.parse(JSON.stringify(newSubtasksArray));
-        // This does not trigger a save, as subtasks are handled by their own API calls.
-        _publish('devSubtasksChanged', [..._dev_subtasks]);
-    },
-    setDevReleaseVersions: async (newVersionsArray, source = 'setDevReleaseVersions') => {
-        _dev_release_versions = JSON.parse(JSON.stringify(newVersionsArray));
-        // No longer saving all data on every change for dev tracker
-        _publish('devReleaseVersionsChanged', [..._dev_release_versions]);
-    },
-    setDevTicketHistory: (newHistoryArray, source = 'setDevTicketHistory') => {
-        _dev_ticket_history = JSON.parse(JSON.stringify(newHistoryArray));
-        _publish('devTicketHistoryChanged', [..._dev_ticket_history]);
-    },
-    setDevTicketComments: (newCommentsArray, source = 'setDevTicketComments') => {
-        _dev_ticket_comments = JSON.parse(JSON.stringify(newCommentsArray));
-        _publish('devTicketCommentsChanged', [..._dev_ticket_comments]);
-    },
     setCalendarEvents: async (newEventsArray, source = 'setCalendarEvents') => {
         _calendar_events = JSON.parse(JSON.stringify(newEventsArray));
         await _saveAllData(source);
@@ -244,7 +194,7 @@ const AppStore = {
     deleteTimeActivity: async (activityId, source = 'deleteTimeActivity') => {
         const initialActivityCount = _time_activities.length;
         _time_activities = _time_activities.filter(a => a.id !== activityId);
-        if (_time_activities.length < initialActivityCount) {
+        if (_time_activities.length < initialActivity.length) {
             _time_log_entries = _time_log_entries.filter(log => log.activityId !== activityId);
             await _saveAllData(source);
             _publish('timeActivitiesChanged', [..._time_activities]);
@@ -279,12 +229,6 @@ const AppStore = {
             _notes = data.notes || [];
             _time_activities = data.time_activities || [];
             _time_log_entries = data.time_log_entries ? data.time_log_entries.map(entry => ({...entry, startTime: new Date(entry.startTime), endTime: new Date(entry.endTime)})) : [];
-            _dev_epics = data.dev_epics || [];
-            _dev_tickets = data.dev_tickets || [];
-            _dev_subtasks = data.dev_subtasks || []; // --- NEW: Handle subtasks from fetched data ---
-            _dev_release_versions = data.dev_release_versions || [];
-            _dev_ticket_history = data.dev_ticket_history || [];
-            _dev_ticket_comments = data.dev_ticket_comments || [];
             _calendar_events = data.calendar_events || [];
             _habits = data.habits || [];
             _habit_completions = data.habit_completions || [];
@@ -304,12 +248,6 @@ const AppStore = {
             _publish('notesChanged', [..._notes]);
             _publish('timeActivitiesChanged', [..._time_activities]);
             _publish('timeLogEntriesChanged', [..._time_log_entries]);
-            _publish('devEpicsChanged', [..._dev_epics]);
-            _publish('devTicketsChanged', [..._dev_tickets]);
-            _publish('devSubtasksChanged', [..._dev_subtasks]); // --- NEW: Publish subtask data loaded event ---
-            _publish('devReleaseVersionsChanged', [..._dev_release_versions]);
-            _publish('devTicketHistoryChanged', [..._dev_ticket_history]);
-            _publish('devTicketCommentsChanged', [..._dev_ticket_comments]);
             _publish('calendarEventsChanged', [..._calendar_events]);
             _publish('habitsChanged', [..._habits]);
             _publish('habitCompletionsChanged', [..._habit_completions]);
