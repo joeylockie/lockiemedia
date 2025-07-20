@@ -171,7 +171,7 @@ function setupDatabase() {
   const insertDefaultProject = db.prepare('INSERT OR IGNORE INTO projects (id, name, creationDate) VALUES (?, ?, ?)');
   insertDefaultProject.run(0, 'No Project', Date.now());
 
-  const insertDefaultProfile = db.preparE('INSERT OR IGNORE INTO user_profile (id, displayName, role) VALUES (?, ?, ?)');
+  const insertDefaultProfile = db.prepare('INSERT OR IGNORE INTO user_profile (id, displayName, role) VALUES (?, ?, ?)');
   insertDefaultProfile.run(1, 'User', 'admin');
 
   const defaultActivities = [
