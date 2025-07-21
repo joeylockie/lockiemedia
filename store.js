@@ -15,6 +15,7 @@ let _time_log_entries = [];
 let _calendar_events = [];
 let _habits = [];
 let _habit_completions = [];
+let _uniqueLabels = [];
 
 // --- Private Helper Functions ---
 
@@ -23,6 +24,18 @@ function _publish(eventName, data) {
         EventBus.publish(eventName, data);
     }
 }
+
+function _updateUniqueLabels() {
+    const labels = new Set();
+    _tasks.forEach(task => {
+        if (task.label && task.label.trim() !== '') {
+            labels.add(task.label.trim());
+        }
+    });
+    _uniqueLabels = Array.from(labels).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+    _publish('labelsChanged', [..._uniqueLabels]);
+}
+
 
 async function _migrateFromLocalStorage() {
     const functionName = '_migrateFromLocalStorage (Store)';
@@ -67,24 +80,25 @@ async function _migrateFromLocalStorage() {
 }
 
 const AppStore = {
-    // --- GETTERS (No change) ---
+    // --- GETTERS ---
     getTasks: () => [..._tasks],
     getProjects: () => [..._projects],
+    getUniqueLabels: () => [..._uniqueLabels],
     getUserPreferences: () => ({ ..._userPreferences }),
     getUserProfile: () => ({ ..._userProfile }),
     getNotebooks: () => [..._notebooks],
     getNotes: () => [..._notes],
     getTimeActivities: () => [..._time_activities],
+    // THE FIX: Add the getLogEntries function back
     getTimeLogEntries: () => [..._time_log_entries],
     getCalendarEvents: () => [..._calendar_events],
     getHabits: () => [..._habits],
     getHabitCompletions: () => [..._habit_completions],
 
-    // --- REFACTORED SETTERS ---
-    // These functions now ONLY refresh the cache and publish events.
-    // They no longer write to the database themselves.
+    // --- SETTERS ---
     setTasks: async (newTasksArray) => {
         _tasks = newTasksArray;
+        _updateUniqueLabels(); // Update labels whenever tasks change
         _publish('tasksChanged', [..._tasks]);
     },
     setProjects: async (newProjectsArray) => {
@@ -164,6 +178,7 @@ const AppStore = {
             ]);
 
             _tasks = tasks;
+            _updateUniqueLabels(); // Initial update of labels
             _projects = projects;
             _notebooks = notebooks;
             _notes = notes;

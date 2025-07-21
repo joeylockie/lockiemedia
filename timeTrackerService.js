@@ -163,7 +163,7 @@ async function deleteLogEntry(logId) {
 
 // Getters for UI still read from the fast cache in AppStore
 function getActivities() { return AppStore ? AppStore.getTimeActivities() : []; }
-function getLogEntries() { return AppStore ? AppStore.getLogEntries() : []; }
+function getLogEntries() { return AppStore ? AppStore.getTimeLogEntries() : []; }
 function getActiveTimer() { return _activeTimer ? { ..._activeTimer } : null; }
 
 async function startTracking(activityId) {

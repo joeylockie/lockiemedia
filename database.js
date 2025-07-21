@@ -1,13 +1,12 @@
 // This file defines the database schema using Dexie.js.
 
-// The 'Dexie' object is available globally because we added it in index.html
+import Dexie from './dexie.mjs';
+
 const db = new Dexie('LockieMediaDatabase');
 
-// Define the database schema and versioning.
-// This is where we declare our "tables" (object stores) and their "indexes".
+// --- Version 1 ---
+// This is the original schema. We never delete old versions.
 db.version(1).stores({
-    // '++id' means auto-incrementing primary key.
-    // Other fields listed are indexes for fast lookups.
     tasks: '++id, dueDate, projectId, label',
     projects: '++id, name',
     notebooks: '++id, name',
@@ -16,10 +15,17 @@ db.version(1).stores({
     time_log_entries: '++id, activityId, startTime',
     calendar_events: '++id, start',
     habits: '++id, name',
-    habit_completions: '++id, habit_id, completedAt',
-    // We also need a simple key-value store for user profile and preferences.
-    app_state: 'key' // A simple table with a 'key' as the primary key.
+    habit_completions: '++id, habit_id, completedAt', // The old definition
+    app_state: 'key'
 });
+
+// --- Version 2 (The Performance Fix) ---
+// We create a new version to add the compound index.
+db.version(2).stores({
+    // We only need to list the table that is changing.
+    habit_completions: '++id, [habit_id+completedAt]' // The new, faster index
+});
+
 
 // We are exporting the 'db' object so other files can use it to
 // interact with the database.

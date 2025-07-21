@@ -1,6 +1,6 @@
 # AI Project Curation Log: Lockie Media Platform
 
-**Last Updated:** 2025-07-20 22:43 (EDT)
+**Last Updated:** 2025-07-21 03:20 (EDT)
 
 
 ## 1. Instructions for AI (Gemini)
@@ -47,10 +47,12 @@
 ## 3. Verified File Structure
 
 This is the definitive file tree for the project. **Do not assume other files or paths exist.**
+
 lockiemedia-dev/
 ├── AI_PROJECT_LOG.md
 ├── README.md
 ├── database.js
+├── dexie.mjs
 ├── favicon.ico
 ├── icon-32x32.png
 ├── index.html
@@ -128,21 +130,15 @@ lockiemedia-dev/
 
 ## 5. Work Completed (Specific to Current Major Task)
 
-* **Date:** 2025-07-20
-* **Task:** Migrate Data Storage from `localStorage` to IndexedDB.
-* **Goal:** To upgrade the application's data layer to a more scalable, efficient, and resilient database solution while preserving all existing user data.
+* **Date:** 2025-07-21
+* **Task:** Migrate Data Storage to IndexedDB & Finalize Refactoring.
+* **Goal:** To upgrade the application's data layer to a scalable database solution and squash all bugs introduced during the major architectural refactors.
 * **Sub-tasks Completed:**
-    * **Library Integration:** Added the Dexie.js library to `index.html`.
-    * **Database Schema:** Created a new `database.js` file to define all application tables (`tasks`, `notes`, `projects`, etc.) and their indexes.
-    * **Store Refactor (`store.js`):**
-        * Completely rewrote the `store.js` file to interact with the new IndexedDB database.
-        * Implemented a one-time, automatic migration function to safely transfer all existing user data from `localStorage` to IndexedDB.
-        * Refactored the "setter" methods to be more efficient, acting as cache refreshers rather than database writers.
-    * **Service Logic Refactor:**
-        * Updated all service files (`taskService.js`, `noteService.js`, `habitTrackerService.js`, `timeTrackerService.js`, `projectService.js`, `labelService.js`, `calendarService.js`) to be `async`.
-        * Replaced all data manipulation logic with direct, efficient database commands using Dexie.js.
-        * Ensured UI updates are still triggered correctly through the `AppStore` after each database operation.
-    * **Documentation Update:** Updated the `README.md` and this `AI_PROJECT_LOG.md` to reflect the new IndexedDB architecture.
+    * **Library Integration:** Added the Dexie.js library locally to the project to resolve CORS/module loading errors.
+    * **Database Schema:** Created a `database.js` file defining all tables and indexes. Later updated it to `version(2)` to add a compound index for performance.
+    * **Store Refactor (`store.js`):** Rewrote `store.js` to use IndexedDB, including a one-time `localStorage` migration. Later refactored it to be more efficient and restored missing getter functions (`getUniqueLabels`, `getTimeLogEntries`) to fix UI errors.
+    * **Service & Feature Refactor:** Updated all service and feature files (`taskService.js`, `noteService.js`, `habitTrackerService.js`, `timeTrackerService.js`, `projectService.js`, `labelService.js`, `calendarService.js`, `feature_projects.js`, `tasks_modal_interactions.js`) to use the new `async` database logic and remove old, broken dependency checks.
+    * **Debugging:** Resolved numerous `TypeError` and `ReferenceError` issues across the application caused by the architectural changes. Fixed a Dexie.js performance warning by adding a compound index.
 
 ---
 
@@ -177,6 +173,6 @@ lockiemedia-dev/
 ## 9. Important Notes / Decisions Made
 
 * **Data Layer Upgrade to IndexedDB:** The application's data persistence layer has been upgraded from `localStorage` to IndexedDB (via the Dexie.js library). This was done to provide a more scalable, performant, and resilient data storage solution capable of handling larger amounts of data and more complex queries.
-* **PIVOTAL DECISION: Migration to Client-Side Architecture:** The project has been fundamentally changed from a complex, self-hosted Node.js microservice application to a pure client-side application. This decision was made to drastically simplify the architecture, eliminate server hosting and maintenance costs, and enable easy deployment on any static hosting platform (e.g., GitHub Pages, Netlify).
+* **PIVOTAL DECISION: Migration to Client-Side Architecture:** The project has been fundamentally changed from a complex, self-hosted Node.js microservice application to a pure client-side application.
 * **File Structure:** The project's file structure has been flattened, with all necessary files moved to the root directory to simplify deployment on static hosting services.
-* **Data Backup Strategy:** The backup strategy remains a client-side `.json` file export, generated from the data in the AppStore cache.
+* **Data Backup Strategy:** The backup strategy remains a client-side `.json` file export.
