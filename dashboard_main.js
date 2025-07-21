@@ -6,9 +6,12 @@ import * as NoteService from './noteService.js';
 import HabitTrackerService from './habitTrackerService.js';
 import TimeTrackerService from './timeTrackerService.js';
 import { formatDate, formatMillisecondsToHMS } from './utils.js';
+import db from './database.js';
+import Dexie from './dexie.mjs';
+import { initializeVersionChecker } from './versionService.js'; // <-- ADD THIS LINE
 
 // --- DOM Element References ---
-let greetingHeader, myDayContent, habitContent, timeTrackerContent, upcomingContent, notesContent, quickLinksContent, exportDataBtn;
+let greetingHeader, myDayContent, habitContent, timeTrackerContent, upcomingContent, notesContent, quickLinksContent, exportDataBtn, importDataBtn, importFileInput;
 let timeTrackerInterval = null;
 
 // --- Helper Functions to Get Data ---
@@ -47,29 +50,20 @@ function getDashboardData() {
 }
 
 /**
- * Handles exporting all user data from localStorage into a downloadable JSON file.
- * This is the new, client-side only backup function.
+ * Handles exporting all user data from the IndexedDB into a downloadable JSON file.
  */
-function handleExportDataClientSide() {
-    LoggingService.info('[Dashboard] Client-side data export initiated by user.');
+async function handleExportDataClientSide() {
+    LoggingService.info('[Dashboard] Database export initiated by user.');
 
     try {
-        // Gather all data from the AppStore
-        const dataToSave = {
-            tasks: AppStore.getTasks(),
-            projects: AppStore.getProjects(),
-            userPreferences: AppStore.getUserPreferences(),
-            userProfile: AppStore.getUserProfile(),
-            notebooks: AppStore.getNotebooks(),
-            notes: AppStore.getNotes(),
-            time_activities: AppStore.getTimeActivities(),
-            time_log_entries: AppStore.getTimeLogEntries(),
-            calendar_events: AppStore.getCalendarEvents(),
-            habits: AppStore.getHabits(),
-            habit_completions: AppStore.getHabitCompletions(),
-        };
+        const allData = {};
+        await db.transaction('r', db.tables, async () => {
+            for (const table of db.tables) {
+                allData[table.name] = await table.toArray();
+            }
+        });
 
-        const jsonString = JSON.stringify(dataToSave, null, 2); // Pretty-print with 2-space indentation
+        const jsonString = JSON.stringify(allData, null, 2);
         const blob = new Blob([jsonString], { type: 'application/json' });
         const url = window.URL.createObjectURL(blob);
 
@@ -79,7 +73,6 @@ function handleExportDataClientSide() {
 
         const date = new Date();
         const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-        // The file is now a .json file, not a database file.
         a.download = `lockiemedia_backup_${dateString}.json`;
 
         document.body.appendChild(a);
@@ -88,10 +81,63 @@ function handleExportDataClientSide() {
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
 
+        EventBus.publish('displayUserMessage', { text: 'Backup downloaded successfully!', type: 'success' });
+
     } catch (err) {
-        LoggingService.error('Could not export client-side data.', err, { functionName: 'handleExportDataClientSide' });
+        LoggingService.error('Could not export database data.', err, { functionName: 'handleExportDataClientSide' });
         alert('Could not export your data. Please check the console for errors.');
     }
+}
+
+
+/**
+ * Handles importing data from a JSON file and restoring it to the IndexedDB.
+ */
+async function handleImportData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!confirm('Warning: Importing a backup will completely overwrite all current data. This action cannot be undone. Are you sure you want to continue?')) {
+        importFileInput.value = ''; // Reset the file input
+        return;
+    }
+
+    LoggingService.info('[Dashboard] Database import initiated by user.');
+    const reader = new FileReader();
+
+    reader.onload = async (e) => {
+        try {
+            const importedData = JSON.parse(e.target.result);
+            
+            await db.transaction('rw', db.tables, async () => {
+                const clearPromises = db.tables.map(table => table.clear());
+                await Promise.all(clearPromises);
+                LoggingService.info('[Dashboard] All tables cleared for import.');
+
+                const importPromises = [];
+                for (const tableName in importedData) {
+                    if (db.table(tableName)) {
+                        importPromises.push(db.table(tableName).bulkAdd(importedData[tableName]));
+                    }
+                }
+                await Promise.all(importPromises);
+                LoggingService.info('[Dashboard] Bulk data import complete.');
+            });
+
+            await AppStore.initializeStore();
+            
+            alert('Data imported successfully! The application will now reload.');
+            location.reload();
+
+        } catch (err) {
+            LoggingService.error('Could not import data.', err, { functionName: 'handleImportData' });
+            alert('Could not import your data. The file may be corrupted or in the wrong format. Please check the console for errors.');
+        } finally {
+            importFileInput.value = '';
+        }
+    };
+
+    reader.readAsText(file);
 }
 
 
@@ -242,7 +288,6 @@ function renderQuickLinksWidget() {
         { href: 'notes.html', icon: 'fa-sticky-note', title: 'Notes', color: 'text-amber-400' },
         { href: 'habits.html', icon: 'fa-calendar-check', title: 'Habit Tracker', color: 'text-green-400' },
         { href: 'time-tracker.html', icon: 'fa-clock', title: 'Time Tracker', color: 'text-indigo-400' },
-        // The Pomodoro link has been removed
         { href: 'calendar.html', icon: 'fa-calendar-alt', title: 'Calendar', color: 'text-teal-400' },
         { href: 'budget.html', icon: 'fa-wallet', title: 'Budget Planner', color: 'text-lime-400' }
     ];
@@ -328,6 +373,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         await AppStore.initializeStore();
         NoteService.getNotes();
         TimeTrackerService.initialize();
+        initializeVersionChecker(); // <-- ADD THIS LINE
 
         greetingHeader = document.getElementById('greetingHeader');
         myDayContent = document.getElementById('myDayContent');
@@ -337,12 +383,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         notesContent = document.getElementById('notesContent');
         quickLinksContent = document.getElementById('quickLinksContent');
         exportDataBtn = document.getElementById('exportDataBtn');
+        importDataBtn = document.getElementById('importDataBtn');
+        importFileInput = document.getElementById('importFileInput');
 
         document.body.style.visibility = 'visible';
 
         if (exportDataBtn) {
-            // Updated to use the new client-side export function
             exportDataBtn.addEventListener('click', handleExportDataClientSide);
+        }
+
+        if (importDataBtn) {
+            importDataBtn.addEventListener('click', () => importFileInput.click());
+        }
+        if (importFileInput) {
+            importFileInput.addEventListener('change', handleImportData);
         }
 
         renderAllWidgets();

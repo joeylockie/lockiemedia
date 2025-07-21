@@ -49,19 +49,28 @@
 </head>
 <body class="bg-gradient-to-br from-slate-900 to-slate-700 min-h-screen p-4 sm:p-6 lg:p-8">
 
+    <div id="updateNotificationBar" class="hidden sticky top-0 left-0 right-0 bg-yellow-500 text-black p-3 text-center z-50 shadow-lg">
+        <span id="updateMessage">A new version is available. Please reload the page.</span>
+        <button id="reloadPageBtn" class="ml-4 bg-white text-black font-bold py-1 px-3 rounded-md hover:bg-gray-200">Reload</button>
+    </div>
     <div class="w-full max-w-7xl mx-auto">
         <header class="flex flex-col sm:flex-row justify-between sm:items-center mb-8">
             <div>
                 <h1 id="greetingHeader" class="text-3xl md:text-4xl font-bold text-white">Welcome! (Dev)</h1>
                 <p class="text-slate-400 mt-1">Here’s a look at your platform overview.</p>
             </div>
-            <div class="mt-4 sm:mt-0">
+            <div class="mt-4 sm:mt-0 flex items-center gap-2">
+                <button id="importDataBtn" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center">
+                    <i class="fas fa-file-upload mr-2"></i>
+                    <span>Import Backup</span>
+                </button>
                 <button id="exportDataBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center">
                     <i class="fas fa-file-download mr-2"></i>
                     <span>Download Backup</span>
                 </button>
+                <input type="file" id="importFileInput" class="hidden" accept=".json">
             </div>
-            </header>
+        </header>
 
         <main class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 
@@ -118,6 +127,7 @@
 
     <footer class="text-center text-gray-500 py-6">
         <p>LockieMedia © 2025</p>
+        <p id="appVersionFooter" class="text-xs mt-1"></p>
     </footer>
 
     <script src="loggingService.js" type="module"></script>
@@ -128,6 +138,8 @@
     <script src="timeTrackerService.js" type="module"></script>
     <script src="noteService.js" type="module"></script>
     <script src="utils.js" type="module"></script>
+    
+    <script src="versionService.js" type="module"></script>
     
     <script src="dashboard_main.js" type="module"></script>
 
