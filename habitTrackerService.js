@@ -1,11 +1,10 @@
 import AppStore from './store.js';
 import LoggingService from './loggingService.js';
+import db from './database.js'; // Import the database connection
 
 const HabitTrackerService = {
     /**
      * Converts a Date object to a 'YYYY-MM-DD' string.
-     * @param {Date} date - The date to format.
-     * @returns {string} The formatted date string.
      */
     getYYYYMMDD(date) {
         const year = date.getFullYear();
@@ -15,99 +14,109 @@ const HabitTrackerService = {
     },
 
     /**
-     * Creates a new habit and saves it to the AppStore.
-     * @param {{name: string, description: string, target_count: number}} habitDetails - The details of the new habit.
+     * Creates a new habit and saves it to the database.
      */
-    createHabit({ name, description, target_count }) {
+    async createHabit({ name, description, target_count }) {
+        const functionName = 'createHabit (HabitTrackerService)';
         try {
             const newHabit = {
-                id: Date.now(), // Generate a unique ID using the current timestamp.
                 name,
                 description,
                 target_count,
                 created_at: new Date().toISOString()
             };
-            const currentHabits = AppStore.getHabits();
-            currentHabits.push(newHabit);
-            AppStore.setHabits(currentHabits, 'HabitTrackerService.createHabit');
-            LoggingService.info('[HabitService] New habit created locally.', { newHabit });
+            await db.habits.add(newHabit);
+            LoggingService.info('[HabitService] New habit added to DB.', { newHabit });
+
+            // Refresh the store to update UI
+            const allHabits = await db.habits.toArray();
+            await AppStore.setHabits(allHabits);
+
         } catch (error) {
-            LoggingService.error('[HabitService] Error creating habit:', error);
+            LoggingService.error('[HabitService] Error creating habit:', error, { functionName });
         }
     },
 
     /**
-     * Updates an existing habit in the AppStore.
-     * @param {{id: number, name: string, description: string, target_count: number}} habitData - The habit data to update.
+     * Updates an existing habit in the database.
      */
-    updateHabit(habitData) {
+    async updateHabit(habitData) {
+        const functionName = 'updateHabit (HabitTrackerService)';
         try {
-            let currentHabits = AppStore.getHabits();
-            const habitIndex = currentHabits.findIndex(h => h.id === habitData.id);
+            // Dexie's 'update' method finds the item by its primary key (id)
+            // and applies the changes.
+            await db.habits.update(habitData.id, habitData);
+            LoggingService.info(`[HabitService] Habit with ID ${habitData.id} updated in DB.`);
 
-            if (habitIndex === -1) {
-                throw new Error(`Habit with ID ${habitData.id} not found.`);
-            }
+            // Refresh the store to update UI
+            const allHabits = await db.habits.toArray();
+            await AppStore.setHabits(allHabits);
 
-            currentHabits[habitIndex] = { ...currentHabits[habitIndex], ...habitData };
-            AppStore.setHabits(currentHabits, 'HabitTrackerService.updateHabit');
-            LoggingService.info(`[HabitService] Habit with ID ${habitData.id} updated locally.`);
         } catch (error) {
-            LoggingService.error(`[HabitService] Could not update habit with ID: ${habitData.id}`, error);
+            LoggingService.error(`[HabitService] Could not update habit with ID: ${habitData.id}`, error, { functionName });
         }
     },
 
     /**
-     * Deletes a habit and all its completions from the AppStore.
-     * @param {number} habitId - The ID of the habit to delete.
+     * Deletes a habit and all its completions from the database.
      */
-    deleteHabit(habitId) {
+    async deleteHabit(habitId) {
+        const functionName = 'deleteHabit (HabitTrackerService)';
         try {
-            // Remove the habit
-            let currentHabits = AppStore.getHabits();
-            const updatedHabits = currentHabits.filter(h => h.id !== habitId);
-            AppStore.setHabits(updatedHabits, 'HabitTrackerService.deleteHabit');
+            // Use a transaction to safely delete both the habit and its completions
+            await db.transaction('rw', db.habits, db.habit_completions, async () => {
+                await db.habits.delete(habitId);
+                await db.habit_completions.where('habit_id').equals(habitId).delete();
+            });
 
-            // Remove its associated completions
-            let currentCompletions = AppStore.getHabitCompletions();
-            const updatedCompletions = currentCompletions.filter(c => c.habit_id !== habitId);
-            AppStore.setHabitCompletions(updatedCompletions, 'HabitTrackerService.deleteHabit');
+            LoggingService.info(`[HabitService] Habit with ID ${habitId} and its completions deleted from DB.`);
 
-            LoggingService.info(`[HabitService] Habit with ID ${habitId} and its completions deleted locally.`);
+            // Refresh the store to update UI
+            const allHabits = await db.habits.toArray();
+            const allCompletions = await db.habit_completions.toArray();
+            await AppStore.setHabits(allHabits);
+            await AppStore.setHabitCompletions(allCompletions);
+
         } catch (error) {
-            LoggingService.error(`[HabitService] Error deleting habit with ID: ${habitId}`, error);
+            LoggingService.error(`[HabitService] Error deleting habit with ID: ${habitId}`, error, { functionName });
         }
     },
 
     /**
-     * Logs a completion for a habit on a specific date.
-     * Updates existing completion or creates a new one.
-     * @param {number} habitId - The ID of the habit.
-     * @param {string} dateString - The 'YYYY-MM-DD' date of the completion.
-     * @param {number} count - The completion count.
+     * Logs or updates a completion for a habit on a specific date.
      */
-    logCompletion(habitId, dateString, count) {
+    async logCompletion(habitId, dateString, count) {
+        const functionName = 'logCompletion (HabitTrackerService)';
         try {
-            let completions = AppStore.getHabitCompletions();
-            const existingCompletionIndex = completions.findIndex(c => c.habit_id === habitId && c.completedAt === dateString);
+            // Find if a completion for this habit on this day already exists.
+            const existing = await db.habit_completions
+                .where({
+                    habit_id: habitId,
+                    completedAt: dateString
+                })
+                .first();
 
-            if (existingCompletionIndex > -1) {
-                // Update existing completion
-                completions[existingCompletionIndex].completion_count = count;
+            if (existing) {
+                // If it exists, update its count
+                await db.habit_completions.update(existing.id, { completion_count: count });
             } else {
-                // Create a new completion log
+                // If it doesn't exist, create a new one
                 const newCompletion = {
-                    id: Date.now(), // Unique ID for the completion entry
                     habit_id: habitId,
                     completedAt: dateString,
                     completion_count: count
                 };
-                completions.push(newCompletion);
+                await db.habit_completions.add(newCompletion);
             }
-            AppStore.setHabitCompletions(completions, 'HabitTrackerService.logCompletion');
+
             LoggingService.info(`[HabitService] Logged completion for habit ID ${habitId} on ${dateString}.`);
+
+            // Refresh the store to update UI
+            const allCompletions = await db.habit_completions.toArray();
+            await AppStore.setHabitCompletions(allCompletions);
+
         } catch (error) {
-            LoggingService.error(`[HabitService] Error logging completion for habit ID ${habitId} on ${dateString}`, error);
+            LoggingService.error(`[HabitService] Error logging completion for habit ID ${habitId} on ${dateString}`, error, { functionName });
         }
     }
 };

@@ -1,15 +1,11 @@
 import EventBus from './eventBus.js';
 import LoggingService from './loggingService.js';
-
-// --- Centralized LocalStorage Key ---
-const LOCAL_STORAGE_KEY = 'lockieMediaUserData';
+import db from './database.js'; // Import our new database connection
 
 // --- Internal State Variables ---
-// These will hold the application's data in memory.
+// These act as a fast, in-memory cache of the database content.
 let _tasks = [];
 let _projects = [];
-let _uniqueLabels = [];
-let _uniqueProjects = [];
 let _userPreferences = {};
 let _userProfile = {};
 let _notebooks = [];
@@ -19,248 +15,200 @@ let _time_log_entries = [];
 let _calendar_events = [];
 let _habits = [];
 let _habit_completions = [];
-// Pomodoro sessions have been removed.
+let _uniqueLabels = [];
 
 // --- Private Helper Functions ---
 
-/**
- * Publishes an event to the EventBus.
- * @param {string} eventName - The name of the event.
- * @param {*} data - The data to send with the event.
- */
 function _publish(eventName, data) {
     if (EventBus && typeof EventBus.publish === 'function') {
         EventBus.publish(eventName, data);
-    } else {
-        LoggingService.warn(`[Store] EventBus not available to publish event: ${eventName}`, { module: 'store', functionName: '_publish' });
     }
 }
 
-/**
- * Updates the derived list of unique labels from the tasks list.
- */
-function _updateUniqueLabelsInternal() {
+function _updateUniqueLabels() {
     const labels = new Set();
     _tasks.forEach(task => {
         if (task.label && task.label.trim() !== '') {
             labels.add(task.label.trim());
         }
     });
-    const oldLabelsJSON = JSON.stringify(_uniqueLabels);
     _uniqueLabels = Array.from(labels).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
-    if (JSON.stringify(_uniqueLabels) !== oldLabelsJSON) {
-        LoggingService.debug('[Store] Unique labels updated.', { newLabels: _uniqueLabels, module: 'store', functionName: '_updateUniqueLabelsInternal' });
-        _publish('labelsChanged', [..._uniqueLabels]);
-    }
+    _publish('labelsChanged', [..._uniqueLabels]);
 }
 
-/**
- * Updates the derived list of unique projects from the projects list.
- */
-function _updateUniqueProjectsInternal() {
-    const oldUniqueProjectsJSON = JSON.stringify(_uniqueProjects);
-    _uniqueProjects = _projects
-        .filter(project => project.id !== 0) // Exclude "No Project"
-        .map(project => ({ id: project.id, name: project.name }))
-        .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
 
-    if (JSON.stringify(_uniqueProjects) !== oldUniqueProjectsJSON) {
-        LoggingService.debug('[Store] Unique projects updated for UI.', { newUniqueProjects: _uniqueProjects, module: 'store', functionName: '_updateUniqueProjectsInternal' });
-        _publish('uniqueProjectsChanged', [..._uniqueProjects]);
+async function _migrateFromLocalStorage() {
+    const functionName = '_migrateFromLocalStorage (Store)';
+    const oldStorageKey = 'lockieMediaUserData';
+    const migrationFlag = 'lockieMediaMigrationV1Complete';
+
+    if (localStorage.getItem(migrationFlag)) {
+        return; // Migration already done
     }
-}
 
-/**
- * Saves the entire application state to the browser's localStorage.
- * This is the new "backend".
- * @param {string} source - The function that triggered the save.
- */
-function _saveAllData(source = 'unknown') {
-    const functionName = '_saveAllData (Store)';
-    LoggingService.debug(`[Store] Saving all data to localStorage. Source: ${source}.`, { functionName, source });
-
-    // Ensure derived data is up-to-date before saving
-    _updateUniqueLabelsInternal();
-    _updateUniqueProjectsInternal();
-
-    const dataToSave = {
-        tasks: _tasks,
-        projects: _projects,
-        userPreferences: _userPreferences,
-        userProfile: _userProfile,
-        notebooks: _notebooks,
-        notes: _notes,
-        time_activities: _time_activities,
-        time_log_entries: _time_log_entries,
-        calendar_events: _calendar_events,
-        habits: _habits,
-        habit_completions: _habit_completions,
-        // No pomodoro_sessions
-    };
+    const savedData = localStorage.getItem(oldStorageKey);
+    if (!savedData) {
+        localStorage.setItem(migrationFlag, 'true');
+        return; // Nothing to migrate
+    }
 
     try {
-        // localStorage can only store strings, so we serialize the object to JSON.
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dataToSave));
-        LoggingService.info(`[Store] Data successfully saved to localStorage.`, { functionName });
+        LoggingService.info('[Store] Starting data migration from localStorage to IndexedDB...', { functionName });
+        const data = JSON.parse(savedData);
+
+        await db.transaction('rw', db.tables, async () => {
+            if (data.tasks) await db.tasks.bulkAdd(data.tasks);
+            if (data.projects) await db.projects.bulkAdd(data.projects);
+            if (data.notebooks) await db.notebooks.bulkAdd(data.notebooks);
+            if (data.notes) await db.notes.bulkAdd(data.notes);
+            if (data.time_activities) await db.time_activities.bulkAdd(data.time_activities);
+            if (data.time_log_entries) await db.time_log_entries.bulkAdd(data.time_log_entries);
+            if (data.calendar_events) await db.calendar_events.bulkAdd(data.calendar_events);
+            if (data.habits) await db.habits.bulkAdd(data.habits);
+            if (data.habit_completions) await db.habit_completions.bulkAdd(data.habit_completions);
+            if (data.userProfile) await db.app_state.put({ key: 'userProfile', value: data.userProfile });
+            if (data.userPreferences) await db.app_state.put({ key: 'userPreferences', value: data.userPreferences });
+        });
+
+        LoggingService.info('[Store] Data migration successful!', { functionName });
+        localStorage.setItem(migrationFlag, 'true');
+        localStorage.removeItem(oldStorageKey);
+
     } catch (error) {
-        LoggingService.error('[Store] Failed to save data to localStorage.', error, { functionName, source });
-        _publish('displayUserMessage', { text: 'Error: Could not save data to browser storage.', type: 'error' });
+        LoggingService.critical('[Store] Data migration FAILED.', error, { functionName });
     }
 }
 
-// --- Public Store API ---
 const AppStore = {
     // --- GETTERS ---
-    // Getters return a deep copy to prevent direct modification of the store's state.
-    getTasks: () => JSON.parse(JSON.stringify(_tasks)),
-    getProjects: () => JSON.parse(JSON.stringify(_projects)),
-    getKanbanColumns: () => [], // This seems unused but left for compatibility
+    getTasks: () => [..._tasks],
+    getProjects: () => [..._projects],
     getUniqueLabels: () => [..._uniqueLabels],
-    getUniqueProjects: () => [..._uniqueProjects],
-    getUserPreferences: () => JSON.parse(JSON.stringify(_userPreferences)),
-    getUserProfile: () => JSON.parse(JSON.stringify(_userProfile)),
-    getNotebooks: () => JSON.parse(JSON.stringify(_notebooks)),
-    getNotes: () => JSON.parse(JSON.stringify(_notes)),
-    getTimeActivities: () => JSON.parse(JSON.stringify(_time_activities)),
-    getTimeLogEntries: () => JSON.parse(JSON.stringify(_time_log_entries)),
-    getCalendarEvents: () => JSON.parse(JSON.stringify(_calendar_events)),
-    getHabits: () => JSON.parse(JSON.stringify(_habits)),
-    getHabitCompletions: () => JSON.parse(JSON.stringify(_habit_completions)),
+    getUserPreferences: () => ({ ..._userPreferences }),
+    getUserProfile: () => ({ ..._userProfile }),
+    getNotebooks: () => [..._notebooks],
+    getNotes: () => [..._notes],
+    getTimeActivities: () => [..._time_activities],
+    // THE FIX: Add the getLogEntries function back
+    getTimeLogEntries: () => [..._time_log_entries],
+    getCalendarEvents: () => [..._calendar_events],
+    getHabits: () => [..._habits],
+    getHabitCompletions: () => [..._habit_completions],
 
     // --- SETTERS ---
-    // Setters update the state, save everything to localStorage, and publish changes.
-    setTasks: (newTasksArray, source = 'setTasks') => {
-        _tasks = JSON.parse(JSON.stringify(newTasksArray));
-        _saveAllData(source);
+    setTasks: async (newTasksArray) => {
+        _tasks = newTasksArray;
+        _updateUniqueLabels(); // Update labels whenever tasks change
         _publish('tasksChanged', [..._tasks]);
     },
-    setProjects: (newProjectsArray, source = 'setProjects') => {
-        const noProjectEntry = { id: 0, name: "No Project" };
-        const filteredProjects = newProjectsArray.filter(p => p.id !== 0);
-        _projects = [noProjectEntry, ...JSON.parse(JSON.stringify(filteredProjects))];
-        _saveAllData(source);
+    setProjects: async (newProjectsArray) => {
+        _projects = newProjectsArray;
         _publish('projectsChanged', [..._projects]);
     },
-    setUserPreferences: (newPreferences, source = 'setUserPreferences') => {
-        _userPreferences = { ..._userPreferences, ...JSON.parse(JSON.stringify(newPreferences)) };
-        _saveAllData(source);
+    setUserPreferences: async (newPreferences) => {
+        await db.app_state.put({ key: 'userPreferences', value: newPreferences });
+        _userPreferences = newPreferences;
         _publish('userPreferencesChanged', { ..._userPreferences });
     },
-    setUserProfile: (newProfile, source = 'setUserProfile') => {
-       _userProfile = { ..._userProfile, ...JSON.parse(JSON.stringify(newProfile)) };
-       _saveAllData(source);
+    setUserProfile: async (newProfile) => {
+       await db.app_state.put({ key: 'userProfile', value: newProfile });
+       _userProfile = newProfile;
        _publish('userProfileChanged', { ..._userProfile });
     },
-    setNotebooks: (newNotebooksArray, source = 'setNotebooks') => {
-        _notebooks = JSON.parse(JSON.stringify(newNotebooksArray));
-        _saveAllData(source);
+    setNotebooks: async (newNotebooksArray) => {
+        _notebooks = newNotebooksArray;
         _publish('notebooksChanged', [..._notebooks]);
     },
-    setNotes: (newNotesArray, source = 'setNotes') => {
-        _notes = JSON.parse(JSON.stringify(newNotesArray));
-        _saveAllData(source);
+    setNotes: async (newNotesArray) => {
+        _notes = newNotesArray;
         _publish('notesChanged', [..._notes]);
     },
-    setTimeActivities: (newActivitiesArray, source = 'setTimeActivities') => {
-        _time_activities = JSON.parse(JSON.stringify(newActivitiesArray));
-        _saveAllData(source);
+    setTimeActivities: async (newActivitiesArray) => {
+        _time_activities = newActivitiesArray;
         _publish('timeActivitiesChanged', [..._time_activities]);
     },
-    setTimeLogEntries: (newLogEntriesArray, source = 'setTimeLogEntries') => {
-        _time_log_entries = JSON.parse(JSON.stringify(newLogEntriesArray));
-        _saveAllData(source);
+    setTimeLogEntries: async (newLogEntriesArray) => {
+        _time_log_entries = newLogEntriesArray;
         _publish('timeLogEntriesChanged', [..._time_log_entries]);
     },
-    setCalendarEvents: (newEventsArray, source = 'setCalendarEvents') => {
-        _calendar_events = JSON.parse(JSON.stringify(newEventsArray));
-        _saveAllData(source);
+    setCalendarEvents: async (newEventsArray) => {
+        _calendar_events = newEventsArray;
         _publish('calendarEventsChanged', [..._calendar_events]);
     },
-    setHabits: (newHabitsArray, source = 'setHabits') => {
-        _habits = JSON.parse(JSON.stringify(newHabitsArray));
-        _saveAllData(source);
+    setHabits: async (newHabitsArray) => {
+        _habits = newHabitsArray;
         _publish('habitsChanged', [..._habits]);
     },
-    setHabitCompletions: (newCompletionsArray, source = 'setHabitCompletions') => {
-        _habit_completions = JSON.parse(JSON.stringify(newCompletionsArray));
-        _saveAllData(source);
+    setHabitCompletions: async (newCompletionsArray) => {
+        _habit_completions = newCompletionsArray;
         _publish('habitCompletionsChanged', [..._habit_completions]);
     },
-    // Pomodoro setter removed.
 
-    /**
-     * Deletes a time activity and its associated log entries.
-     */
-    deleteTimeActivity: (activityId, source = 'deleteTimeActivity') => {
-        const initialActivityCount = _time_activities.length;
-        _time_activities = _time_activities.filter(a => a.id !== activityId);
-        if (_time_activities.length < initialActivityCount) {
-            // Also remove associated time log entries
-            _time_log_entries = _time_log_entries.filter(log => log.activityId !== activityId);
-            _saveAllData(source); // Save changes
+    deleteTimeActivity: async (activityId) => {
+        await db.transaction('rw', db.time_activities, db.time_log_entries, async () => {
+            await db.time_activities.delete(activityId);
+            await db.time_log_entries.where('activityId').equals(activityId).delete();
+        });
+        // Refresh cache and publish changes
+        _time_activities = await db.time_activities.toArray();
+        _time_log_entries = await db.time_log_entries.toArray();
+        _publish('timeActivitiesChanged', [..._time_activities]);
+        _publish('timeLogEntriesChanged', [..._time_log_entries]);
+    },
+
+    initializeStore: async () => {
+        const functionName = 'initializeStore (AppStore)';
+        LoggingService.info('[AppStore] Initializing store from IndexedDB...', { functionName });
+
+        try {
+            await _migrateFromLocalStorage();
+
+            const [tasks, projects, notebooks, notes, timeActivities, timeLogs, calendarEvents, habits, habitCompletions, userProfile, userPreferences] = await Promise.all([
+                db.tasks.toArray(),
+                db.projects.toArray(),
+                db.notebooks.toArray(),
+                db.notes.toArray(),
+                db.time_activities.toArray(),
+                db.time_log_entries.toArray(),
+                db.calendar_events.toArray(),
+                db.habits.toArray(),
+                db.habit_completions.toArray(),
+                db.app_state.get('userProfile'),
+                db.app_state.get('userPreferences')
+            ]);
+
+            _tasks = tasks;
+            _updateUniqueLabels(); // Initial update of labels
+            _projects = projects;
+            _notebooks = notebooks;
+            _notes = notes;
+            _time_activities = timeActivities;
+            _time_log_entries = timeLogs;
+            _calendar_events = calendarEvents;
+            _habits = habits;
+            _habit_completions = habitCompletions;
+            _userProfile = userProfile ? userProfile.value : { displayName: 'User' };
+            _userPreferences = userPreferences ? userPreferences.value : {};
+
+            LoggingService.info("[AppStore] Store initialized with data from IndexedDB.", { functionName });
+
+            _publish('storeInitialized');
+            _publish('tasksChanged', [..._tasks]);
+            _publish('projectsChanged', [..._projects]);
+            _publish('userProfileChanged', { ..._userProfile });
+            _publish('userPreferencesChanged', { ..._userPreferences });
+            _publish('notebooksChanged', [..._notebooks]);
+            _publish('notesChanged', [..._notes]);
             _publish('timeActivitiesChanged', [..._time_activities]);
             _publish('timeLogEntriesChanged', [..._time_log_entries]);
+            _publish('calendarEventsChanged', [..._calendar_events]);
+            _publish('habitsChanged', [..._habits]);
+            _publish('habitCompletionsChanged', [..._habit_completions]);
+
+        } catch (error) {
+            LoggingService.critical('[AppStore] Could not load data from IndexedDB.', error, { functionName });
+            _publish('displayUserMessage', { text: 'Fatal: Cannot load application database. Check browser console.', type: 'error' });
         }
-    },
-
-    /**
-     * Initializes the store by loading data from localStorage.
-     * If no data is found, it sets up a default empty state.
-     */
-    initializeStore: () => {
-        const functionName = 'initializeStore (AppStore)';
-        LoggingService.info('[AppStore] Initializing store from localStorage...', { module: 'store', functionName });
-
-        const savedData = localStorage.getItem(LOCAL_STORAGE_KEY);
-
-        if (savedData) {
-            try {
-                const data = JSON.parse(savedData);
-                // Assign data from localStorage to our in-memory variables
-                _tasks = data.tasks || [];
-                _projects = data.projects || [];
-                _userPreferences = data.userPreferences || {};
-                _userProfile = data.userProfile || { displayName: 'User', email: null, role: 'admin' };
-                _notebooks = data.notebooks || [];
-                _notes = data.notes || [];
-                _time_activities = data.time_activities || [];
-                // Ensure dates are converted back to Date objects
-                _time_log_entries = data.time_log_entries ? data.time_log_entries.map(entry => ({...entry, startTime: new Date(entry.startTime), endTime: new Date(entry.endTime)})) : [];
-                _calendar_events = data.calendar_events || [];
-                _habits = data.habits || [];
-                _habit_completions = data.habit_completions || [];
-                // No pomodoro sessions to load
-
-                LoggingService.info("[AppStore] Store initialized with data from localStorage.", { module: 'store', functionName });
-            } catch (error) {
-                LoggingService.critical('[AppStore] Could not parse data from localStorage. Data might be corrupt.', error, { functionName });
-                _publish('displayUserMessage', { text: 'Fatal: Could not load data. It may be corrupt. Check browser console.', type: 'error' });
-                // If data is corrupt, we could clear it or leave it for manual inspection.
-                // For now, we will proceed with an empty state.
-            }
-        } else {
-            LoggingService.info("[AppStore] No data found in localStorage. Initializing with default empty state.", { module: 'store', functionName });
-            // Set default empty values if no saved data exists
-            _userProfile = { displayName: 'User', email: null, role: 'admin' };
-            _projects = [{ id: 0, name: "No Project" }];
-        }
-
-        // Update derived data and publish initial state to all components
-        _updateUniqueLabelsInternal();
-        _updateUniqueProjectsInternal();
-
-        _publish('storeInitialized');
-        _publish('tasksChanged', [..._tasks]);
-        _publish('projectsChanged', [..._projects]);
-        _publish('userProfileChanged', { ..._userProfile });
-        _publish('userPreferencesChanged', { ..._userPreferences });
-        _publish('notebooksChanged', [..._notebooks]);
-        _publish('notesChanged', [..._notes]);
-        _publish('timeActivitiesChanged', [..._time_activities]);
-        _publish('timeLogEntriesChanged', [..._time_log_entries]);
-        _publish('calendarEventsChanged', [..._calendar_events]);
-        _publish('habitsChanged', [..._habits]);
-        _publish('habitCompletionsChanged', [..._habit_completions]);
     }
 };
 

@@ -1,11 +1,12 @@
 // public/calendarService.js
-// Manages all logic for the calendar feature, using AppStore for data.
+// Manages all logic for the calendar feature, using IndexedDB.
 
 import AppStore from './store.js';
 import LoggingService from './loggingService.js';
+import db from './database.js'; // Import the database connection
 
 /**
- * Gets all calendar events.
+ * Gets all calendar events from the AppStore cache.
  * @returns {Array<Object>} An array of event objects.
  */
 function getEvents() {
@@ -14,84 +15,71 @@ function getEvents() {
 }
 
 /**
- * Adds a new event.
+ * Adds a new event to the database.
  * @param {object} eventData - The data for the new event.
- * @returns {object} The newly created event object.
+ * @returns {Promise<object>} The newly created event object.
  */
 async function addEvent(eventData) {
     const functionName = 'addEvent (CalendarService)';
-    const events = getEvents();
-    
-    const newEvent = {
-        id: Date.now(),
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        color: 'blue', // Default color
-        ...eventData,
-        // isAllDay is now passed directly in eventData
-    };
+    try {
+        const newEvent = {
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            color: 'blue', // Default color
+            ...eventData,
+        };
 
-    events.push(newEvent);
-    
-    if (AppStore && AppStore.setCalendarEvents) {
-        await AppStore.setCalendarEvents(events, functionName);
+        const newId = await db.calendar_events.add(newEvent);
+        const allEvents = await db.calendar_events.toArray();
+        await AppStore.setCalendarEvents(allEvents, functionName); // Refresh store
+
+        LoggingService.info(`[CalendarService] Event added: "${newEvent.title}"`, { newEvent });
+        return { ...newEvent, id: newId };
+    } catch (error) {
+        LoggingService.error(`[${functionName}] Error adding event`, error);
+        return null;
     }
-    
-    LoggingService.info(`[CalendarService] Event added: "${newEvent.title}"`, { newEvent });
-    return newEvent;
 }
 
 /**
- * Updates an existing event.
+ * Updates an existing event in the database.
  * @param {number} eventId - The ID of the event to update.
  * @param {object} updateData - The data to update.
- * @returns {object|null} The updated event object or null if not found.
  */
 async function updateEvent(eventId, updateData) {
     const functionName = 'updateEvent (CalendarService)';
-    const events = getEvents();
-    const eventIndex = events.findIndex(e => e.id === eventId);
-
-    if (eventIndex === -1) {
-        LoggingService.error(`[CalendarService] Event with ID ${eventId} not found for update.`, new Error("EventNotFound"));
-        return null;
+    try {
+        const payload = {
+            ...updateData,
+            updatedAt: Date.now(),
+        };
+        await db.calendar_events.update(eventId, payload);
+        const allEvents = await db.calendar_events.toArray();
+        await AppStore.setCalendarEvents(allEvents, functionName); // Refresh store
+        LoggingService.info(`[CalendarService] Event updated: ${eventId}`);
+    } catch (error) {
+        LoggingService.error(`[${functionName}] Error updating event ${eventId}`, error);
     }
-
-    events[eventIndex] = {
-        ...events[eventIndex],
-        ...updateData,
-        // isAllDay is now passed directly in updateData
-        updatedAt: Date.now(),
-    };
-
-    if (AppStore && AppStore.setCalendarEvents) {
-        await AppStore.setCalendarEvents(events, functionName);
-    }
-    
-    LoggingService.info(`[CalendarService] Event updated: ${eventId}`, { updatedData: events[eventIndex] });
-    return events[eventIndex];
 }
 
 /**
- * Deletes an event by its ID.
+ * Deletes an event by its ID from the database.
  * @param {number} eventId - The ID of the event to delete.
  */
 async function deleteEvent(eventId) {
     const functionName = 'deleteEvent (CalendarService)';
-    let events = getEvents();
-    const initialLength = events.length;
-    events = events.filter(e => e.id !== eventId);
-
-    if (events.length < initialLength) {
-        if (AppStore && AppStore.setCalendarEvents) {
-            await AppStore.setCalendarEvents(events, functionName);
-        }
-        LoggingService.info(`[CalendarService] Event ${eventId} deleted.`, { eventId });
+    try {
+        await db.calendar_events.delete(eventId);
+        const allEvents = await db.calendar_events.toArray();
+        await AppStore.setCalendarEvents(allEvents, functionName); // Refresh store
+        LoggingService.info(`[CalendarService] Event ${eventId} deleted.`);
+    } catch (error) {
+        LoggingService.error(`[${functionName}] Error deleting event ${eventId}`, error);
     }
 }
 
 /**
- * Retrieves an event by its ID.
+ * Retrieves an event by its ID from the AppStore cache.
  * @param {number} eventId - The ID of the event.
  * @returns {object|undefined} The event object or undefined if not found.
  */
