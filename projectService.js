@@ -1,195 +1,139 @@
 // projectService.js
-// This file contains services related to project data and operations.
-// It relies on AppStore for state management.
+// This file contains services related to project data and operations using IndexedDB.
 
 import AppStore from './store.js';
-import EventBus from './eventBus.js'; // MODIFIED: Added EventBus import
-// NEW: Import LoggingService
+import EventBus from './eventBus.js';
 import LoggingService from './loggingService.js';
-// MODIFIED: showMessage is no longer assumed to be global.
+import db from './database.js'; // Import the database connection
 
 /**
- * Adds a new project.
+ * Adds a new project to the database.
  * @param {string} projectName - The name for the new project.
- * @returns {object|null} The new project object or null if failed.
+ * @returns {Promise<object|null>} The new project object or null if failed.
  */
-export function addProject(projectName) {
-    const functionName = 'addProject'; // For logging context
-    if (!AppStore || typeof AppStore.getProjects !== 'function' || typeof AppStore.setProjects !== 'function') {
-        LoggingService.error("[ProjectService] AppStore API not available.", new Error("AppStoreMissing"), { functionName, projectName });
-        // MODIFIED: Publish event instead of direct call
-        EventBus.publish('displayUserMessage', { text: 'Error adding project: Service unavailable.', type: 'error' });
-        return null;
-    }
-
-    const currentProjects = AppStore.getProjects();
+export async function addProject(projectName) {
+    const functionName = 'addProject';
     const trimmedProjectName = projectName.trim();
 
     if (trimmedProjectName === '') {
-        LoggingService.info("[ProjectService] Attempted to add project with empty name.", { functionName });
-        // MODIFIED: Publish event instead of direct call
         EventBus.publish('displayUserMessage', { text: 'Project name cannot be empty.', type: 'error' });
         return null;
     }
-    if (currentProjects.some(p => p.name.toLowerCase() === trimmedProjectName.toLowerCase() && p.id !== 0)) {
-        LoggingService.info(`[ProjectService] Attempted to add duplicate project name: "${trimmedProjectName}".`, { functionName, projectName: trimmedProjectName });
-        // MODIFIED: Publish event instead of direct call
+
+    // Check for duplicates directly in the database (case-insensitive)
+    const existing = await db.projects.where('name').equalsIgnoreCase(trimmedProjectName).first();
+    if (existing) {
         EventBus.publish('displayUserMessage', { text: `Project "${trimmedProjectName}" already exists.`, type: 'error' });
         return null;
     }
 
     const newProject = {
-        id: Date.now(),
         name: trimmedProjectName,
         creationDate: Date.now()
     };
 
-    const updatedProjects = [...currentProjects, newProject];
-    AppStore.setProjects(updatedProjects);
-
-    LoggingService.info(`[ProjectService] Project added: "${newProject.name}" (ID: ${newProject.id})`, { functionName, newProject });
-    // Note: The success message is usually handled by the calling UI handler (e.g., in feature_projects.js)
-    return { ...newProject };
+    try {
+        const newId = await db.projects.add(newProject);
+        const allProjects = await db.projects.toArray();
+        await AppStore.setProjects(allProjects); // Refresh store
+        LoggingService.info(`[ProjectService] Project added: "${newProject.name}"`, { functionName });
+        return { ...newProject, id: newId };
+    } catch (error) {
+        LoggingService.error('[ProjectService] Error adding project.', error, { functionName });
+        EventBus.publish('displayUserMessage', { text: 'Error adding project.', type: 'error' });
+        return null;
+    }
 }
 
 /**
- * Updates the name of an existing project.
+ * Updates the name of an existing project in the database.
  * @param {number} projectId - The ID of the project to update.
  * @param {string} newName - The new name for the project.
- * @returns {object|null} The updated project object or null if not found/failed.
  */
-export function updateProjectName(projectId, newName) {
+export async function updateProjectName(projectId, newName) {
     const functionName = 'updateProjectName';
-    if (!AppStore || typeof AppStore.getProjects !== 'function' || typeof AppStore.setProjects !== 'function') {
-        LoggingService.error("[ProjectService] AppStore API not available.", new Error("AppStoreMissing"), { functionName, projectId });
-        // MODIFIED: Publish event instead of direct call
-        EventBus.publish('displayUserMessage', { text: 'Error updating project: Service unavailable.', type: 'error' });
-        return null;
-    }
-
-    let currentProjects = AppStore.getProjects();
-    const projectIndex = currentProjects.findIndex(p => p.id === projectId);
-
-    if (projectIndex === -1 || projectId === 0) {
-        LoggingService.warn(`[ProjectService] Project not found or "No Project" cannot be edited.`, { functionName, projectId });
-        // MODIFIED: Publish event instead of direct call
-        EventBus.publish('displayUserMessage', { text: 'Project not found or "No Project" cannot be edited.', type: 'error' });
-        return null;
-    }
-
     const trimmedNewName = newName.trim();
-    if (trimmedNewName === '') {
-        LoggingService.info(`[ProjectService] Attempted to update project ID ${projectId} with empty name.`, { functionName, projectId });
-        // MODIFIED: Publish event instead of direct call
-        EventBus.publish('displayUserMessage', { text: 'Project name cannot be empty.', type: 'error' });
-        return null;
+
+    if (projectId === 0 || trimmedNewName === '') {
+        EventBus.publish('displayUserMessage', { text: 'Project name cannot be empty and "No Project" cannot be edited.', type: 'error' });
+        return;
     }
-    if (currentProjects.some(p => p.name.toLowerCase() === trimmedNewName.toLowerCase() && p.id !== projectId && p.id !== 0)) {
-        LoggingService.info(`[ProjectService] Attempted to update project ID ${projectId} to a duplicate name: "${trimmedNewName}".`, { functionName, projectId, newName: trimmedNewName });
-        // MODIFIED: Publish event instead of direct call
+
+    // Check for duplicates
+    const existing = await db.projects.where('name').equalsIgnoreCase(trimmedNewName).first();
+    if (existing && existing.id !== projectId) {
         EventBus.publish('displayUserMessage', { text: `Another project with the name "${trimmedNewName}" already exists.`, type: 'error' });
-        return null;
+        return;
     }
 
-    currentProjects[projectIndex].name = trimmedNewName;
-    AppStore.setProjects(currentProjects);
-
-    LoggingService.info(`[ProjectService] Project ${projectId} updated to name: "${trimmedNewName}".`, { functionName, projectId, newName: trimmedNewName });
-    // Note: The success message is usually handled by the calling UI handler (e.g., in feature_projects.js)
-    return { ...currentProjects[projectIndex] };
+    try {
+        await db.projects.update(projectId, { name: trimmedNewName });
+        const allProjects = await db.projects.toArray();
+        await AppStore.setProjects(allProjects);
+        LoggingService.info(`[ProjectService] Project ${projectId} updated.`, { functionName });
+    } catch (error) {
+        LoggingService.error(`[ProjectService] Error updating project ${projectId}.`, error, { functionName });
+    }
 }
 
 /**
- * Deletes a project by its ID and reassigns its tasks to "No Project".
+ * Deletes a project and reassigns its tasks to "No Project" in a transaction.
  * @param {number} projectId - The ID of the project to delete.
- * @returns {boolean} True if deletion was successful, false otherwise.
  */
-export function deleteProjectById(projectId) {
+export async function deleteProjectById(projectId) {
     const functionName = 'deleteProjectById';
-    if (!AppStore || typeof AppStore.getProjects !== 'function' || typeof AppStore.setProjects !== 'function' ||
-        typeof AppStore.getTasks !== 'function' || typeof AppStore.setTasks !== 'function') {
-        LoggingService.error("[ProjectService] AppStore API not available.", new Error("AppStoreMissing"), { functionName, projectId });
-        // MODIFIED: Publish event instead of direct call
-        EventBus.publish('displayUserMessage', { text: 'Error deleting project: Service unavailable.', type: 'error' });
-        return false;
-    }
-
     if (projectId === 0) {
-        LoggingService.warn('[ProjectService] "No Project" cannot be deleted.', { functionName, projectId });
-        // MODIFIED: Publish event instead of direct call
         EventBus.publish('displayUserMessage', { text: '"No Project" cannot be deleted.', type: 'error' });
-        return false;
+        return;
     }
 
-    let currentProjects = AppStore.getProjects();
-    const projectIndex = currentProjects.findIndex(p => p.id === projectId);
+    try {
+        // Use a transaction to ensure both operations succeed or fail together
+        await db.transaction('rw', db.projects, db.tasks, async () => {
+            // 1. Delete the project
+            await db.projects.delete(projectId);
 
-    if (projectIndex === -1) {
-        LoggingService.warn(`[ProjectService] Project not found for deletion.`, { functionName, projectId });
-        // MODIFIED: Publish event instead of direct call
-        EventBus.publish('displayUserMessage', { text: 'Project not found for deletion.', type: 'error' });
-        return false;
+            // 2. Find all tasks with this project ID and update them
+            const tasksToUpdate = await db.tasks.where('projectId').equals(projectId).primaryKeys();
+            if (tasksToUpdate.length > 0) {
+                await db.tasks.bulkUpdate(tasksToUpdate.map(id => ({ key: id, changes: { projectId: 0 } })));
+            }
+        });
+
+        // Refresh the store with updated data
+        const allProjects = await db.projects.toArray();
+        const allTasks = await db.tasks.toArray();
+        await AppStore.setProjects(allProjects);
+        await AppStore.setTasks(allTasks);
+
+        LoggingService.info(`[ProjectService] Project ${projectId} deleted and tasks reassigned.`, { functionName });
+    } catch (error) {
+        LoggingService.error(`[ProjectService] Error deleting project ${projectId}.`, error, { functionName });
     }
-
-    const projectName = currentProjects[projectIndex].name;
-
-    const updatedProjects = currentProjects.filter(p => p.id !== projectId);
-    AppStore.setProjects(updatedProjects);
-
-    let currentTasks = AppStore.getTasks();
-    let tasksModified = false;
-    const updatedTasks = currentTasks.map(task => {
-        if (task.projectId === projectId) {
-            tasksModified = true;
-            return { ...task, projectId: 0 };
-        }
-        return task;
-    });
-
-    if (tasksModified) {
-        AppStore.setTasks(updatedTasks);
-    }
-
-    LoggingService.info(`[ProjectService] Project "${projectName}" (ID: ${projectId}) deleted. Associated tasks reassigned.`, { functionName, projectId, projectName, tasksModified });
-    // Note: The success message is usually handled by the calling UI handler (e.g., in feature_projects.js)
-    return true;
 }
 
 /**
- * Retrieves a project by its ID.
+ * Retrieves a project by its ID from the AppStore cache.
  * @param {number} projectId - The ID of the project.
- * @returns {object|undefined} The project object (a copy) or undefined if not found.
+ * @returns {object|undefined} The project object or undefined if not found.
  */
 export function getProjectById(projectId) {
-    const functionName = 'getProjectById';
-    if (!AppStore || typeof AppStore.getProjects !== 'function') {
-        LoggingService.error("[ProjectService] AppStore API not available.", new Error("AppStoreMissing"), { functionName, projectId });
-        return undefined;
-    }
+    if (!AppStore) return undefined;
     const project = AppStore.getProjects().find(p => p.id === projectId);
-    if (!project) {
-        LoggingService.debug(`[ProjectService] Project with ID ${projectId} not found.`, { functionName, projectId });
-    }
     return project ? { ...project } : undefined;
 }
 
 /**
- * Retrieves all projects.
+ * Retrieves all projects from the AppStore cache.
  * @param {boolean} [includeNoProject=false] - Whether to include the "No Project" entry.
- * @returns {Array<object>} An array of project objects (copies).
+ * @returns {Array<object>} An array of project objects.
  */
 export function getAllProjects(includeNoProject = false) {
-    const functionName = 'getAllProjects';
-     if (!AppStore || typeof AppStore.getProjects !== 'function') {
-        LoggingService.error("[ProjectService] AppStore API not available.", new Error("AppStoreMissing"), { functionName });
-        return [];
-    }
+    if (!AppStore) return [];
     const projectsFromStore = AppStore.getProjects();
+    const sortedProjects = projectsFromStore.sort((a,b) => a.id === 0 ? -1 : b.id === 0 ? 1 : a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
     if (includeNoProject) {
-        return projectsFromStore.sort((a,b) => a.id === 0 ? -1 : b.id === 0 ? 1 : a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+        return sortedProjects;
     }
-    return projectsFromStore.filter(p => p.id !== 0).sort((a,b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+    return sortedProjects.filter(p => p.id !== 0);
 }
-
-// REMOVED: LoggingService.debug("projectService.js loaded as ES6 module.", { module: 'projectService' });
-// console.log("projectService.js module parsed and functions defined."); // Optional

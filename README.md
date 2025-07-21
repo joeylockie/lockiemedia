@@ -1,6 +1,6 @@
 # LockieMedia Productivity Hub
 
-A comprehensive, client-side productivity application designed to help you organize your life. This application runs entirely in your web browser, using local storage to save all your data securely on your own computer.
+A comprehensive, client-side productivity application designed to help you organize your life. This application runs entirely in your web browser, using the powerful IndexedDB database to save all your data securely and efficiently on your own computer.
 
 ## Features
 
@@ -18,7 +18,8 @@ This project is built with a focus on simplicity and performance, using fundamen
 * **Vanilla JavaScript (ES6 Modules)**: No frameworks, just modern JavaScript for all application logic.
 * **HTML5**: For structuring the content and application views.
 * **Tailwind CSS**: A utility-first CSS framework for rapid UI development.
-* **Browser Local Storage**: Used as the database to persist all user data directly in the browser. No server is required.
+* **IndexedDB**: A powerful, scalable, browser-based database for all user data persistence.
+* **Dexie.js**: A minimalist wrapper library that makes IndexedDB easy and enjoyable to use.
 
 ## Getting Started
 
@@ -27,14 +28,13 @@ Getting started is as simple as possible.
 ### Option 1: Run Locally
 
 1.  Clone or download this repository to your local machine.
-2.  Open the `public` folder.
-3.  Open the `index.html` file in a modern web browser (like Chrome, Firefox, or Edge).
+2.  Open the `index.html` file in a modern web browser (like Chrome, Firefox, or Edge).
 
-That's it! The application will run, and your data will be saved automatically to that browser's local storage.
+That's it! The application will run, and your data will be saved automatically to that browser's IndexedDB database.
 
 ### Option 2: Deploy to a Static Host
 
-You can deploy the contents of the `public` folder to any static web hosting service, such as:
+You can deploy the project files to any static web hosting service, such as:
 
 * GitHub Pages
 * Netlify
@@ -46,4 +46,4 @@ No special configuration is needed.
 ## Data Management
 
 * **Backup**: You can back up all your data by clicking the "Download Backup" button on the dashboard. This will save a `.json` file containing all your information.
-* **Restore**: To restore from a backup, you would need to manually import the data using your browser's developer tools, as a restore feature has not yet been implemented.
+* **Restore**: A restore feature has not yet been implemented. To restore from a backup, you would need to manually import the data using your browser's developer tools.

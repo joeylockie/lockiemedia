@@ -1,8 +1,6 @@
-Markdown
-
 # AI Project Curation Log: Lockie Media Platform
 
-**Last Updated:** 2025-07-20 20:50 (EDT)
+**Last Updated:** 2025-07-20 22:43 (EDT)
 
 
 ## 1. Instructions for AI (Gemini)
@@ -37,10 +35,10 @@ Markdown
 
 * **Platform:** "Lockie Media Platform", a suite of user-facing productivity "apps".
 * **Vision:** To be an all-in-one platform for personal management, comprised of modular apps that run entirely in the browser.
-* **Technology:** A purely client-side application. All data is stored in the browser's Local Storage. No backend or database is required.
+* **Technology:** A purely client-side application.
     * **Core:** Vanilla JavaScript (ES6 Modules), HTML5
     * **Styling:** Tailwind CSS
-    * **Data Storage:** Browser Local Storage
+    * **Data Storage:** IndexedDB via the Dexie.js library.
 * **Core Platform Apps:** Task Manager, Notes, Habit Tracker, Time Tracker, Calendar.
 * **Overall Goal:** Develop a robust, feature-complete, and easily deployable management platform.
 
@@ -49,10 +47,10 @@ Markdown
 ## 3. Verified File Structure
 
 This is the definitive file tree for the project. **Do not assume other files or paths exist.**
-
 lockiemedia-dev/
 ├── AI_PROJECT_LOG.md
 ├── README.md
+├── database.js
 ├── favicon.ico
 ├── icon-32x32.png
 ├── index.html
@@ -119,7 +117,8 @@ lockiemedia-dev/
 
 ## 4. Work Completed (Overall Project - High Level)
 
-* **Architecture Migration:** Migrated the entire platform from a self-hosted Node.js microservice architecture to a purely client-side application using browser local storage.
+* **Architecture Migration:** Migrated the entire platform from a self-hosted Node.js microservice architecture to a purely client-side application.
+* **Data Layer Migration:** Upgraded the data storage from `localStorage` to a robust **IndexedDB** database using the Dexie.js library, including a seamless, one-time data migration for existing users.
 * **File Structure Simplification:** Flattened the project structure by moving all files from the `/public` directory to the root, preparing it for simple static hosting.
 * **Core Task Management:** Functionalities implemented as a foundational module.
 * **Notes App Enhancements:** Added notebook deletion and a full-featured Markdown editor.
@@ -130,15 +129,20 @@ lockiemedia-dev/
 ## 5. Work Completed (Specific to Current Major Task)
 
 * **Date:** 2025-07-20
-* **Task:** Refactor Project to a Client-Side Application & Simplify File Structure.
-* **Goal:** Remove the entire backend, eliminate the database, refactor the application to store all data in local storage, and simplify the file structure for easy static hosting.
+* **Task:** Migrate Data Storage from `localStorage` to IndexedDB.
+* **Goal:** To upgrade the application's data layer to a more scalable, efficient, and resilient database solution while preserving all existing user data.
 * **Sub-tasks Completed:**
-    * **File Deletion:** Removed all backend files (`server.js`, `package.json`, etc.), the entire `/services` directory, `.gitignore`, and all files related to the deleted Pomodoro and Dev-Tracker apps.
-    * **Data Layer Refactor (`store.js`):** Completely rewrote the core data store. Replaced all `fetch` API calls with direct calls to `localStorage.setItem()` and `localStorage.getItem()`.
-    * **Service Logic Refactor:** Updated `habitTrackerService.js`, `taskService.js`, and `timeTrackerService.js` to manage all data locally via the new `AppStore`.
-    * **UI/Dashboard Cleanup:** Updated `dashboard_main.js` to remove the link to the deleted Pomodoro app and replace the server backup function with a client-side JSON export.
-    * **File Structure Flattening:** Moved all files and folders from the `/public` directory to the root project directory and deleted the now-empty `/public` folder.
-    * **Documentation Update:** Updated the `README.md` and this `AI_PROJECT_LOG.md` to reflect the new, simplified client-side architecture and file structure.
+    * **Library Integration:** Added the Dexie.js library to `index.html`.
+    * **Database Schema:** Created a new `database.js` file to define all application tables (`tasks`, `notes`, `projects`, etc.) and their indexes.
+    * **Store Refactor (`store.js`):**
+        * Completely rewrote the `store.js` file to interact with the new IndexedDB database.
+        * Implemented a one-time, automatic migration function to safely transfer all existing user data from `localStorage` to IndexedDB.
+        * Refactored the "setter" methods to be more efficient, acting as cache refreshers rather than database writers.
+    * **Service Logic Refactor:**
+        * Updated all service files (`taskService.js`, `noteService.js`, `habitTrackerService.js`, `timeTrackerService.js`, `projectService.js`, `labelService.js`, `calendarService.js`) to be `async`.
+        * Replaced all data manipulation logic with direct, efficient database commands using Dexie.js.
+        * Ensured UI updates are still triggered correctly through the `AppStore` after each database operation.
+    * **Documentation Update:** Updated the `README.md` and this `AI_PROJECT_LOG.md` to reflect the new IndexedDB architecture.
 
 ---
 
@@ -163,7 +167,7 @@ lockiemedia-dev/
 ## 8. Future/Pending Work (Overall Project - High Level)
 
 * **Data Management:** Implement a data import/restore feature to load data from a `.json` backup file.
-* **Security:** Future enhancements could include adding an optional encryption layer before saving to local storage.
+* **Security:** Future enhancements could include adding an optional encryption layer before saving to IndexedDB.
 * **UI/UX:** Continuously improve the user interface and experience across all apps.
 * **automation.html** To be built out at a future date.
 * **budget.html** To be built out at a future date.
@@ -172,8 +176,7 @@ lockiemedia-dev/
 
 ## 9. Important Notes / Decisions Made
 
-* **PIVOTAL DECISION: Migration to Client-Side Architecture:** The project has been fundamentally changed from a complex, self-hosted Node.js microservice application to a pure client-side application. This decision was made to drastically simplify the architecture, eliminate server hosting and maintenance costs, and enable easy deployment on any static hosting platform (e.g., GitHub Pages, Netlify). All application data now resides exclusively in the user's browser local storage.
-* **File Structure:** The project's file structure has been flattened, with all necessary files moved to the root directory to simplify deployment on static hosting services. The `public` directory has been removed.
-* **Data Backup Strategy:** The backup strategy has been changed. The "Download Backup" button now generates a `.json` file containing all application data directly from the user's browser.
-* **Legacy Architecture (Historical Context):** The previous microservice architecture, API gateway, and SQLite database are now considered legacy parts of the project's history. They were crucial development steps but have been superseded by the new client-side approach.
-* **Editor Choice:** A side-by-side Markdown editor (using Marked.js and DOMPur
+* **Data Layer Upgrade to IndexedDB:** The application's data persistence layer has been upgraded from `localStorage` to IndexedDB (via the Dexie.js library). This was done to provide a more scalable, performant, and resilient data storage solution capable of handling larger amounts of data and more complex queries.
+* **PIVOTAL DECISION: Migration to Client-Side Architecture:** The project has been fundamentally changed from a complex, self-hosted Node.js microservice application to a pure client-side application. This decision was made to drastically simplify the architecture, eliminate server hosting and maintenance costs, and enable easy deployment on any static hosting platform (e.g., GitHub Pages, Netlify).
+* **File Structure:** The project's file structure has been flattened, with all necessary files moved to the root directory to simplify deployment on static hosting services.
+* **Data Backup Strategy:** The backup strategy remains a client-side `.json` file export, generated from the data in the AppStore cache.

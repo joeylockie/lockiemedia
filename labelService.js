@@ -1,89 +1,67 @@
 // labelService.js
-// This service handles logic related to managing labels.
+// This service handles logic related to managing labels on tasks in IndexedDB.
 
 import AppStore from './store.js';
-import EventBus from './eventBus.js'; // Already imported
-// NEW: Import LoggingService
+import EventBus from './eventBus.js';
 import LoggingService from './loggingService.js';
-// MODIFIED: showMessage is no longer assumed to be global or directly called.
+import db from './database.js'; // Import the database connection
 
 /**
- * Deletes a label from all tasks that use it and triggers an update of the unique labels list.
+ * Deletes a label from all tasks that use it by setting their 'label' field to empty.
  * @param {string} labelNameToDelete - The name of the label to delete.
- * @returns {boolean} True if any tasks were updated, false otherwise.
  */
-export function deleteLabelUsageFromTasks(labelNameToDelete) {
+export async function deleteLabelUsageFromTasks(labelNameToDelete) {
     const functionName = 'deleteLabelUsageFromTasks';
-    if (!AppStore || typeof AppStore.getTasks !== 'function' || typeof AppStore.setTasks !== 'function') {
-        LoggingService.error("[LabelService] AppStore API not available.", new Error("AppStoreMissing"), { functionName, labelName: labelNameToDelete });
-        // MODIFIED: Publish event instead of direct/conditional call
-        EventBus.publish('displayUserMessage', { text: 'Error processing label deletion: core data missing.', type: 'error' });
-        return false;
-    }
     if (!labelNameToDelete || typeof labelNameToDelete !== 'string') {
-        LoggingService.warn("[LabelService] Invalid label name provided for deletion.", { functionName, receivedName: labelNameToDelete });
-        return false;
+        LoggingService.warn("[LabelService] Invalid label name provided.", { functionName, receivedName: labelNameToDelete });
+        return;
     }
 
-    let currentTasks = AppStore.getTasks();
-    let tasksModified = false;
-    const updatedTasks = currentTasks.map(task => {
-        if (task.label && task.label.toLowerCase() === labelNameToDelete.toLowerCase()) {
-            tasksModified = true;
-            return { ...task, label: '' };
-        }
-        return task;
-    });
+    try {
+        // 1. Find the primary keys of all tasks that use this label (case-insensitive).
+        const tasksToUpdate = await db.tasks.where('label').equalsIgnoreCase(labelNameToDelete).primaryKeys();
 
-    if (tasksModified) {
-        AppStore.setTasks(updatedTasks);
-        LoggingService.info(`[LabelService] Label "${labelNameToDelete}" removed from tasks.`, { functionName, labelName: labelNameToDelete });
-        // Note: Success message is typically handled by the calling UI handler (e.g., in ui_event_handlers.js for handleDeleteLabel)
-        return true;
-    } else {
-        LoggingService.info(`[LabelService] Label "${labelNameToDelete}" not found on any tasks.`, { functionName, labelName: labelNameToDelete });
-        return false;
+        if (tasksToUpdate.length > 0) {
+            // 2. Use bulkUpdate to efficiently change the 'label' field for all found tasks.
+            await db.tasks.bulkUpdate(tasksToUpdate.map(id => ({ key: id, changes: { label: '' } })));
+
+            // 3. Refresh the AppStore to update the UI
+            const allTasks = await db.tasks.toArray();
+            await AppStore.setTasks(allTasks);
+
+            LoggingService.info(`[LabelService] Label "${labelNameToDelete}" removed from ${tasksToUpdate.length} tasks.`, { functionName });
+            EventBus.publish('displayUserMessage', { text: `Label "${labelNameToDelete}" removed.`, type: 'success' });
+        } else {
+            LoggingService.info(`[LabelService] Label "${labelNameToDelete}" not found on any tasks.`, { functionName });
+        }
+    } catch (error) {
+        LoggingService.error(`[LabelService] Error deleting label from tasks.`, error, { functionName });
+        EventBus.publish('displayUserMessage', { text: 'Error removing label.', type: 'error' });
     }
 }
 
 /**
- * Conceptually adds a label to the system.
- * @param {string} labelName - The name of the label to add.
- * @returns {boolean} True if the label was new and conceptually added, false if it already exists or invalid.
+ * This function is a check, not a database operation. It verifies if a label can be conceptually added.
+ * Its logic remains the same as it checks the AppStore cache, which is always up-to-date.
+ * @param {string} labelName - The name of the label to check.
+ * @returns {boolean} True if the label name is valid and not a duplicate.
  */
 export function addConceptualLabel(labelName) {
     const functionName = 'addConceptualLabel';
-    if (!AppStore || typeof AppStore.getUniqueLabels !== 'function' || !EventBus) {
-        LoggingService.error("[LabelService] Core dependencies not available.", new Error("CoreDependenciesMissing"), {
-            functionName,
-            appStoreAvailable: !!AppStore,
-            getUniqueLabelsAvailable: typeof AppStore?.getUniqueLabels === 'function',
-            eventBusAvailable: !!EventBus
-        });
-        // Cannot publish event if EventBus itself is missing. Fallback or silent fail.
-        console.error("Critical: EventBus missing in addConceptualLabel");
-        return false;
-    }
     const trimmedLabelName = labelName.trim();
+
     if (trimmedLabelName === '') {
-        LoggingService.info("[LabelService] Attempted to add empty label name.", { functionName });
-        // MODIFIED: Publish event instead of direct call
         EventBus.publish('displayUserMessage', { text: 'Label name cannot be empty.', type: 'error' });
         return false;
     }
 
+    // The unique labels list is derived from the tasks in AppStore's cache.
     let currentUniqueLabels = AppStore.getUniqueLabels();
     if (currentUniqueLabels.some(l => l.toLowerCase() === trimmedLabelName.toLowerCase())) {
-        LoggingService.info(`[LabelService] Label "${trimmedLabelName}" already conceptually exists or is in use.`, { functionName, labelName: trimmedLabelName });
-        // MODIFIED: Publish event instead of direct call
-        EventBus.publish('displayUserMessage', { text: `Label "${trimmedLabelName}" already conceptually exists or is in use.`, type: 'info' });
+        EventBus.publish('displayUserMessage', { text: `Label "${trimmedLabelName}" already exists.`, type: 'info' });
         return false;
     }
 
-    LoggingService.info(`[LabelService] Label "${trimmedLabelName}" conceptually added. Assign it to a task to persist it in the unique labels list.`, { functionName, labelName: trimmedLabelName });
-    // Success message for "conceptual add" is usually not shown directly from service, but by UI handler if needed.
+    LoggingService.info(`[LabelService] Label "${trimmedLabelName}" is valid for creation.`, { functionName });
     return true;
 }
-
-// REMOVED: LoggingService.debug("labelService.js loaded as ES6 module.", { module: 'labelService' });
-// console.log("labelService.js module parsed and functions defined."); // Optional

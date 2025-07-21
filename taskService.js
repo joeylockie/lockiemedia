@@ -1,10 +1,13 @@
 // taskService.js
 // This file contains services related to task data and operations.
-// It relies on AppStore for state management and utils.js.
+// It now interacts directly with the IndexedDB database via Dexie.js.
 
 import { getTodayDateString, getDateString } from './utils.js';
 import AppStore from './store.js';
 import LoggingService from './loggingService.js';
+import db from './database.js'; // Import the database connection
+
+// --- Pure Functions (No changes needed) ---
 
 export function getPriorityClass(priority) {
     switch (priority) {
@@ -16,6 +19,7 @@ export function getPriorityClass(priority) {
 }
 
 export function parseDateFromText(text) {
+    // This entire complex function is preserved as is.
     let parsedDate = null;
     let remainingText = text;
     const today = new Date(getTodayDateString() + 'T00:00:00Z');
@@ -38,158 +42,151 @@ export function parseDateFromText(text) {
     return { parsedDate, remainingText };
 }
 
-export function addTask(taskData) {
-    if (!AppStore) {
-        LoggingService.error("[TaskService] AppStore not available for addTask.", new Error("AppStoreMissing"), { functionName: 'addTask' });
+// --- Refactored Database Functions ---
+
+export async function addTask(taskData) {
+    const functionName = 'addTask (TaskService)';
+    try {
+        const newTask = {
+            // Dexie handles the 'id' field automatically, so we don't set it.
+            creationDate: Date.now(),
+            completed: false,
+            ...taskData,
+            dueDate: taskData.dueDate || null,
+            time: taskData.time || null,
+            priority: taskData.priority || 'medium',
+            label: taskData.label || '',
+            notes: taskData.notes || '',
+            projectId: typeof taskData.projectId === 'number' ? taskData.projectId : 0,
+            isReminderSet: taskData.isReminderSet || false,
+            reminderDate: taskData.reminderDate || null,
+            reminderTime: taskData.reminderTime || null,
+            reminderEmail: taskData.reminderEmail || null,
+            completedDate: null,
+            recurrence: taskData.recurrence || null
+        };
+        // Add the single new task to the database.
+        const newId = await db.tasks.add(newTask);
+        LoggingService.info(`[TaskService] Task added to DB with ID: ${newId}.`, { functionName });
+
+        // Refresh the central store to update the UI
+        const allTasks = await db.tasks.toArray();
+        await AppStore.setTasks(allTasks, functionName);
+        return { ...newTask, id: newId };
+
+    } catch (error) {
+        LoggingService.error('[TaskService] Error adding task.', error, { functionName });
         return null;
     }
-    let currentTasks = AppStore.getTasks();
-    
-    const newTask = {
-        id: Date.now(), // Use timestamp for unique ID
-        creationDate: Date.now(),
-        completed: false,
-        ...taskData,
-        dueDate: taskData.dueDate || null,
-        time: taskData.time || null,
-        priority: taskData.priority || 'medium',
-        label: taskData.label || '',
-        notes: taskData.notes || '',
-        projectId: typeof taskData.projectId === 'number' ? taskData.projectId : 0,
-        isReminderSet: taskData.isReminderSet || false,
-        reminderDate: taskData.reminderDate || null,
-        reminderTime: taskData.reminderTime || null,
-        reminderEmail: taskData.reminderEmail || null,
-        completedDate: null,
-        recurrence: taskData.recurrence || null
-    };
-    currentTasks.unshift(newTask); // Add to the beginning of the list
-    AppStore.setTasks(currentTasks, 'addTask'); // Save to local storage
-    LoggingService.info("[TaskService] Task added.", { taskId: newTask.id, taskText: newTask.text, functionName: 'addTask' });
-    return newTask;
 }
 
-export function updateTask(taskId, taskUpdateData) {
-    if (!AppStore) {
-        LoggingService.error("[TaskService] AppStore not available for updateTask.", new Error("AppStoreMissing"), { functionName: 'updateTask', taskId });
-        return null;
-    }
-    let currentTasks = AppStore.getTasks();
-    const taskIndex = currentTasks.findIndex(t => t.id === taskId);
+export async function updateTask(taskId, taskUpdateData) {
+    const functionName = 'updateTask (TaskService)';
+    try {
+        // 'update' is a Dexie function that finds a record by its primary key
+        // and applies the updates. It's very efficient.
+        await db.tasks.update(taskId, taskUpdateData);
+        LoggingService.info(`[TaskService] Task updated in DB: ${taskId}`, { functionName });
 
-    if (taskIndex === -1) {
-        LoggingService.error(`[TaskService] Task with ID ${taskId} not found for update.`, new Error("TaskNotFound"), { functionName: 'updateTask', taskId });
-        return null;
+        const allTasks = await db.tasks.toArray();
+        await AppStore.setTasks(allTasks, functionName);
+
+    } catch (error) {
+        LoggingService.error(`[TaskService] Error updating task ${taskId}.`, error, { functionName });
     }
-    currentTasks[taskIndex] = { ...currentTasks[taskIndex], ...taskUpdateData };
-    AppStore.setTasks(currentTasks, 'updateTask'); // Save to local storage
-    LoggingService.info(`[TaskService] Task updated: ${taskId}`, { taskId, updatedData: taskUpdateData, functionName: 'updateTask' });
-    return currentTasks[taskIndex];
 }
 
-export function toggleTaskComplete(taskId) {
-    if (!AppStore) {
-        LoggingService.error("[TaskService] AppStore not available for toggle.", new Error("AppStoreMissing"), { functionName: 'toggleTaskComplete' });
-        return null;
-    }
-
-    let currentTasks = AppStore.getTasks();
-    const taskIndex = currentTasks.findIndex(t => t.id === taskId);
-    if (taskIndex === -1) {
-        LoggingService.error(`[TaskService] Task with ID ${taskId} not found for toggle complete.`, new Error("TaskNotFound"), { functionName: 'toggleTaskComplete', taskId });
-        return null;
-    }
-
-    const taskToToggle = currentTasks[taskIndex];
-    const isNowCompleted = !taskToToggle.completed;
-    let isRecurringAndRenewed = false;
-
-    // Recurrence logic is now always active if the data is present
-    if (isNowCompleted && taskToToggle.recurrence && taskToToggle.recurrence.frequency && taskToToggle.recurrence.frequency !== 'none') {
-        const recurrence = taskToToggle.recurrence;
-        const interval = recurrence.interval || 1;
-        const currentDueDate = new Date(taskToToggle.dueDate + 'T00:00:00Z');
-        let nextDueDate = new Date(currentDueDate);
-
-        switch (recurrence.frequency) {
-            case 'daily':
-                nextDueDate.setUTCDate(nextDueDate.getUTCDate() + interval);
-                break;
-            case 'weekly':
-                if (recurrence.daysOfWeek && recurrence.daysOfWeek.length > 0) {
-                    const dayMap = { 'su': 0, 'mo': 1, 'tu': 2, 'we': 3, 'th': 4, 'fr': 5, 'sa': 6 };
-                    const allowedDays = recurrence.daysOfWeek.map(d => dayMap[d]).sort((a,b) => a - b);
-                    let currentDay = nextDueDate.getUTCDay();
-                    
-                    for (let i = 1; i <= 7; i++) {
-                        let nextDayIndex = (currentDay + i) % 7;
-                        if (allowedDays.includes(nextDayIndex)) {
-                            nextDueDate.setUTCDate(nextDueDate.getUTCDate() + i);
-                            if (interval > 1 && nextDayIndex <= currentDay) {
-                                nextDueDate.setUTCDate(nextDueDate.getUTCDate() + (interval - 1) * 7);
-                            }
-                            break;
-                        }
-                    }
-                } else {
-                    nextDueDate.setUTCDate(nextDueDate.getUTCDate() + 7 * interval);
-                }
-                break;
-            case 'monthly':
-                nextDueDate.setUTCMonth(nextDueDate.getUTCMonth() + interval);
-                break;
-            case 'yearly':
-                nextDueDate.setUTCFullYear(nextDueDate.getUTCFullYear() + interval);
-                break;
+export async function toggleTaskComplete(taskId) {
+    const functionName = 'toggleTaskComplete (TaskService)';
+    try {
+        const taskToToggle = await db.tasks.get(taskId);
+        if (!taskToToggle) {
+            LoggingService.error(`[TaskService] Task with ID ${taskId} not found for toggle.`, new Error("TaskNotFound"), { functionName });
+            return null;
         }
 
-        if (recurrence.endDate) {
-            const stopDate = new Date(recurrence.endDate + 'T23:59:59Z');
-            if (nextDueDate > stopDate) {
-                LoggingService.info(`[TaskService] Recurring task ${taskId} reached its end date. It will now be permanently completed.`);
+        const isNowCompleted = !taskToToggle.completed;
+        let isRecurringAndRenewed = false;
+
+        // --- All of your existing recurrence logic is preserved perfectly ---
+        if (isNowCompleted && taskToToggle.recurrence && taskToToggle.recurrence.frequency && taskToToggle.recurrence.frequency !== 'none') {
+            // ... (recurrence logic is identical to your original file)
+            const recurrence = taskToToggle.recurrence;
+            const interval = recurrence.interval || 1;
+            const currentDueDate = new Date(taskToToggle.dueDate + 'T00:00:00Z');
+            let nextDueDate = new Date(currentDueDate);
+
+            switch (recurrence.frequency) {
+                case 'daily': nextDueDate.setUTCDate(nextDueDate.getUTCDate() + interval); break;
+                case 'weekly':
+                    if (recurrence.daysOfWeek && recurrence.daysOfWeek.length > 0) {
+                        const dayMap = { 'su': 0, 'mo': 1, 'tu': 2, 'we': 3, 'th': 4, 'fr': 5, 'sa': 6 };
+                        const allowedDays = recurrence.daysOfWeek.map(d => dayMap[d]).sort((a, b) => a - b);
+                        let currentDay = nextDueDate.getUTCDay();
+                        for (let i = 1; i <= 7; i++) {
+                            let nextDayIndex = (currentDay + i) % 7;
+                            if (allowedDays.includes(nextDayIndex)) {
+                                nextDueDate.setUTCDate(nextDueDate.getUTCDate() + i);
+                                if (interval > 1 && nextDayIndex <= currentDay) {
+                                    nextDueDate.setUTCDate(nextDueDate.getUTCDate() + (interval - 1) * 7);
+                                }
+                                break;
+                            }
+                        }
+                    } else {
+                        nextDueDate.setUTCDate(nextDueDate.getUTCDate() + 7 * interval);
+                    }
+                    break;
+                case 'monthly': nextDueDate.setUTCMonth(nextDueDate.getUTCMonth() + interval); break;
+                case 'yearly': nextDueDate.setUTCFullYear(nextDueDate.getUTCFullYear() + interval); break;
+            }
+
+            if (recurrence.endDate) {
+                const stopDate = new Date(recurrence.endDate + 'T23:59:59Z');
+                if (nextDueDate > stopDate) {
+                    LoggingService.info(`[TaskService] Recurring task ${taskId} reached end date.`);
+                } else {
+                    taskToToggle.dueDate = getDateString(nextDueDate);
+                    taskToToggle.completed = false;
+                    taskToToggle.completedDate = null;
+                    isRecurringAndRenewed = true;
+                }
             } else {
-                currentTasks[taskIndex].dueDate = getDateString(nextDueDate);
-                currentTasks[taskIndex].completed = false; // Reset for next time
-                currentTasks[taskIndex].completedDate = null;
+                taskToToggle.dueDate = getDateString(nextDueDate);
+                taskToToggle.completed = false;
+                taskToToggle.completedDate = null;
                 isRecurringAndRenewed = true;
             }
-        } else {
-            currentTasks[taskIndex].dueDate = getDateString(nextDueDate);
-            currentTasks[taskIndex].completed = false; // Reset for next time
-            currentTasks[taskIndex].completedDate = null;
-            isRecurringAndRenewed = true;
         }
 
-        if(isRecurringAndRenewed) {
-             LoggingService.info(`[TaskService] Recurring task ${taskId} completed and reset for next due date: ${currentTasks[taskIndex].dueDate}.`, { functionName: 'toggleTaskComplete', taskId });
+        if (!isRecurringAndRenewed) {
+            taskToToggle.completed = isNowCompleted;
+            taskToToggle.completedDate = isNowCompleted ? Date.now() : null;
         }
-    }
 
-    if (!isRecurringAndRenewed) {
-        currentTasks[taskIndex].completed = isNowCompleted;
-        currentTasks[taskIndex].completedDate = isNowCompleted ? Date.now() : null;
-    }
+        // 'put' is like save/update. It will save the entire modified task object.
+        await db.tasks.put(taskToToggle);
+        LoggingService.info(`[TaskService] Task ${taskId} completion toggled in DB.`, { functionName });
 
-    AppStore.setTasks(currentTasks, 'toggleTaskComplete'); // Save to local storage
-    LoggingService.info(`[TaskService] Task ${taskId} completion toggled. New 'completed' status: ${currentTasks[taskIndex].completed}`, { functionName: 'toggleTaskComplete', taskId, newStatus: currentTasks[taskIndex].completed });
-    return currentTasks[taskIndex];
+        const allTasks = await db.tasks.toArray();
+        await AppStore.setTasks(allTasks, functionName);
+
+    } catch (error) {
+        LoggingService.error(`[TaskService] Error toggling task ${taskId}.`, error, { functionName });
+    }
 }
 
-export function deleteTaskById(taskId) {
-    if (!AppStore) {
-        LoggingService.error("[TaskService] AppStore not available.", new Error("AppStoreMissing"), { functionName: 'deleteTaskById' });
-        return false;
-    }
+export async function deleteTaskById(taskId) {
+    const functionName = 'deleteTaskById (TaskService)';
+    try {
+        // Simple and direct deletion from the database.
+        await db.tasks.delete(taskId);
+        LoggingService.info(`[TaskService] Task ${taskId} deleted from DB.`, { functionName });
 
-    let currentTasks = AppStore.getTasks();
-    const initialLength = currentTasks.length;
-    let updatedTasks = currentTasks.filter(task => task.id !== taskId);
+        const allTasks = await db.tasks.toArray();
+        await AppStore.setTasks(allTasks, functionName);
 
-    if (updatedTasks.length < initialLength) {
-        AppStore.setTasks(updatedTasks, 'deleteTaskById'); // Save to local storage
-        LoggingService.info(`[TaskService] Task ${taskId} deleted.`, { functionName: 'deleteTaskById', taskId });
-        return true;
+    } catch (error) {
+        LoggingService.error(`[TaskService] Error deleting task ${taskId}.`, error, { functionName });
     }
-    LoggingService.warn(`[TaskService] Task ${taskId} not found for deletion.`, { functionName: 'deleteTaskById', taskId });
-    return false;
 }
