@@ -46,46 +46,52 @@ function getDashboardData() {
     return { overdueTasks, todayTasks, upcomingTasks, recentNotes };
 }
 
-// --- SIMPLIFIED Data Export Function ---
-function handleExportData() {
-    LoggingService.info('[Dashboard] Database backup download initiated by user.', { functionName: 'handleExportData' });
+/**
+ * Handles exporting all user data from localStorage into a downloadable JSON file.
+ * This is the new, client-side only backup function.
+ */
+function handleExportDataClientSide() {
+    LoggingService.info('[Dashboard] Client-side data export initiated by user.');
 
-    // Use a relative URL, which is more robust.
-    const backupUrl = `/api/database/backup`;
-    
-    // This API Key should ideally be managed more securely, but for this app it's retrieved from the store.
-    const apiKey = "THeYYjPRRvQ6CjJFPL0T6cpAyfWbIMFm9U0Lo4d+saQ=";
+    try {
+        // Gather all data from the AppStore
+        const dataToSave = {
+            tasks: AppStore.getTasks(),
+            projects: AppStore.getProjects(),
+            userPreferences: AppStore.getUserPreferences(),
+            userProfile: AppStore.getUserProfile(),
+            notebooks: AppStore.getNotebooks(),
+            notes: AppStore.getNotes(),
+            time_activities: AppStore.getTimeActivities(),
+            time_log_entries: AppStore.getTimeLogEntries(),
+            calendar_events: AppStore.getCalendarEvents(),
+            habits: AppStore.getHabits(),
+            habit_completions: AppStore.getHabitCompletions(),
+        };
 
-    fetch(backupUrl, {
-        headers: { 'X-API-Key': apiKey }
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`Network response was not ok. Status: ${response.status}`);
-        }
-        return response.blob();
-    })
-    .then(blob => {
+        const jsonString = JSON.stringify(dataToSave, null, 2); // Pretty-print with 2-space indentation
+        const blob = new Blob([jsonString], { type: 'application/json' });
         const url = window.URL.createObjectURL(blob);
+
         const a = document.createElement('a');
         a.style.display = 'none';
         a.href = url;
 
         const date = new Date();
         const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-        a.download = `lockiemedia_backup_${dateString}.sqlite`;
-        
+        // The file is now a .json file, not a database file.
+        a.download = `lockiemedia_backup_${dateString}.json`;
+
         document.body.appendChild(a);
         a.click();
-        
+
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-    })
-    .catch(err => {
-        console.error('Error downloading the database:', err);
-        LoggingService.error('Could not download the database.', err, { functionName: 'handleExportData' });
-        alert('Could not download the database. Please ensure the server is running and check the console for errors.');
-    });
+
+    } catch (err) {
+        LoggingService.error('Could not export client-side data.', err, { functionName: 'handleExportDataClientSide' });
+        alert('Could not export your data. Please check the console for errors.');
+    }
 }
 
 
@@ -236,7 +242,7 @@ function renderQuickLinksWidget() {
         { href: 'notes.html', icon: 'fa-sticky-note', title: 'Notes', color: 'text-amber-400' },
         { href: 'habits.html', icon: 'fa-calendar-check', title: 'Habit Tracker', color: 'text-green-400' },
         { href: 'time-tracker.html', icon: 'fa-clock', title: 'Time Tracker', color: 'text-indigo-400' },
-        { href: 'pomodoro.html', icon: 'fa-stopwatch-20', title: 'Pomodoro', color: 'text-red-400' },
+        // The Pomodoro link has been removed
         { href: 'calendar.html', icon: 'fa-calendar-alt', title: 'Calendar', color: 'text-teal-400' },
         { href: 'budget.html', icon: 'fa-wallet', title: 'Budget Planner', color: 'text-lime-400' }
     ];
@@ -335,7 +341,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.body.style.visibility = 'visible';
 
         if (exportDataBtn) {
-            exportDataBtn.addEventListener('click', handleExportData);
+            // Updated to use the new client-side export function
+            exportDataBtn.addEventListener('click', handleExportDataClientSide);
         }
 
         renderAllWidgets();
