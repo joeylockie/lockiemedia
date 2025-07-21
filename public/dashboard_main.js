@@ -9,7 +9,7 @@ import { formatDate, formatMillisecondsToHMS } from './utils.js';
 
 // --- DOM Element References ---
 let greetingHeader, myDayContent, habitContent, timeTrackerContent, upcomingContent, notesContent, quickLinksContent, exportDataBtn;
-let timeTrackerInterval = null; 
+let timeTrackerInterval = null;
 
 // --- Helper Functions to Get Data ---
 
@@ -18,7 +18,7 @@ function getDashboardData() {
     today.setHours(0, 0, 0, 0);
 
     const allTasks = AppStore.getTasks() || [];
-    
+
     const overdueTasks = allTasks.filter(task => {
         if (task.completed || !task.dueDate) return false;
         const taskDueDate = new Date(task.dueDate + 'T00:00:00');
@@ -46,46 +46,51 @@ function getDashboardData() {
     return { overdueTasks, todayTasks, upcomingTasks, recentNotes };
 }
 
-// --- Data Export Function ---
-async function handleExportData() {
-    LoggingService.info('[Dashboard] Data export initiated by user.', { functionName: 'handleExportData' });
-    
+/**
+ * Handles exporting all user data from localStorage into a downloadable JSON file.
+ * This is the new, client-side only backup function.
+ */
+function handleExportDataClientSide() {
+    LoggingService.info('[Dashboard] Client-side data export initiated by user.');
+
     try {
-        const allData = {
+        // Gather all data from the AppStore
+        const dataToSave = {
             tasks: AppStore.getTasks(),
             projects: AppStore.getProjects(),
-            userProfile: AppStore.getUserProfile(),
             userPreferences: AppStore.getUserPreferences(),
+            userProfile: AppStore.getUserProfile(),
             notebooks: AppStore.getNotebooks(),
             notes: AppStore.getNotes(),
             time_activities: AppStore.getTimeActivities(),
             time_log_entries: AppStore.getTimeLogEntries(),
-            dev_epics: AppStore.getDevEpics(),
-            dev_tickets: AppStore.getDevTickets()
+            calendar_events: AppStore.getCalendarEvents(),
+            habits: AppStore.getHabits(),
+            habit_completions: AppStore.getHabitCompletions(),
         };
 
-        const dataStr = JSON.stringify(allData, null, 2);
-        const blob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
+        const jsonString = JSON.stringify(dataToSave, null, 2); // Pretty-print with 2-space indentation
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = window.URL.createObjectURL(blob);
+
         const a = document.createElement('a');
-        
+        a.style.display = 'none';
+        a.href = url;
+
         const date = new Date();
         const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        // The file is now a .json file, not a database file.
         a.download = `lockiemedia_backup_${dateString}.json`;
-        a.href = url;
-        
+
         document.body.appendChild(a);
         a.click();
-        
-        setTimeout(() => {
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            LoggingService.info('[Dashboard] Data export successful.', { functionName: 'handleExportData' });
-        }, 100);
 
-    } catch (error) {
-        LoggingService.error('[Dashboard] Failed to export data.', error, { functionName: 'handleExportData' });
-        alert('An error occurred while preparing the data for download. Please check the console for details.');
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+    } catch (err) {
+        LoggingService.error('Could not export client-side data.', err, { functionName: 'handleExportDataClientSide' });
+        alert('Could not export your data. Please check the console for errors.');
     }
 }
 
@@ -109,7 +114,7 @@ function renderGreeting() {
 function renderMyDayWidget() {
     if (!myDayContent) return;
     const { overdueTasks, todayTasks } = getDashboardData();
-    
+
     myDayContent.innerHTML = '';
 
     if (overdueTasks.length === 0 && todayTasks.length === 0) {
@@ -143,17 +148,17 @@ function renderUpcomingWidget() {
         upcomingContent.innerHTML = '<p class="text-slate-400">No tasks due in the next 7 days.</p>';
         return;
     }
-    
+
     const list = document.createElement('ul');
     list.className = 'space-y-2';
     upcomingTasks.forEach(task => {
-         const li = document.createElement('li');
-         li.className = 'text-sm text-slate-300 flex justify-between items-center';
-         li.innerHTML = `
-            <span>${task.text}</span>
-            <span class="text-xs text-slate-400">${formatDate(task.dueDate)}</span>
-         `;
-         list.appendChild(li);
+          const li = document.createElement('li');
+          li.className = 'text-sm text-slate-300 flex justify-between items-center';
+          li.innerHTML = `
+                <span>${task.text}</span>
+                <span class="text-xs text-slate-400">${formatDate(task.dueDate)}</span>
+          `;
+          list.appendChild(li);
     });
     upcomingContent.appendChild(list);
 }
@@ -163,18 +168,18 @@ function renderNotesWidget() {
     const { recentNotes } = getDashboardData();
     notesContent.innerHTML = '';
 
-     if (recentNotes.length === 0) {
+      if (recentNotes.length === 0) {
         notesContent.innerHTML = '<p class="text-slate-400 text-sm">No recent notes.</p>';
         return;
     }
-    
+
     const list = document.createElement('ul');
     list.className = 'space-y-3';
     recentNotes.forEach(note => {
         const li = document.createElement('li');
         li.className = 'text-sm text-slate-300 hover:text-sky-400 transition-colors cursor-pointer';
         li.textContent = note.title;
-        li.onclick = () => window.location.href = 'notes.html'; 
+        li.onclick = () => window.location.href = 'notes.html';
         list.appendChild(li);
     });
     notesContent.appendChild(list);
@@ -182,9 +187,9 @@ function renderNotesWidget() {
 
 function renderHabitWidget() {
     if (!habitContent) return;
-    
-    const habits = HabitTrackerService.getHabits();
-    const completions = HabitTrackerService.getCompletionsForYear(new Date().getFullYear());
+
+    const habits = AppStore.getHabits();
+    const completions = AppStore.getHabitCompletions();
     const todayString = new Date().toISOString().split('T')[0];
 
     habitContent.innerHTML = '';
@@ -194,7 +199,8 @@ function renderHabitWidget() {
     }
 
     habits.forEach(habit => {
-        const isCompletedToday = completions.some(c => c.habitId === habit.id && c.date === todayString);
+        const todaysCompletion = completions.find(c => c.habit_id === habit.id && c.completedAt === todayString);
+        const isCompletedToday = todaysCompletion && todaysCompletion.completion_count >= (habit.target_count || 1);
         habitContent.appendChild(createHabitRow(habit, isCompletedToday));
     });
 }
@@ -208,9 +214,9 @@ function renderTimeTrackerWidget() {
     if (activeTimer) {
         const activity = (TimeTrackerService.getActivities() || []).find(a => a.id === activeTimer.activityId);
         timeTrackerContent.innerHTML = `
-            <p class="text-sm text-slate-400">Currently Tracking:</p>
-            <p class="font-semibold text-slate-100 truncate">${activity ? activity.name : '...'}</p>
-            <p id="dashboardLiveTimer" class="text-2xl font-mono font-bold text-sky-300 mt-2">00:00:00</p>
+              <p class="text-sm text-slate-400">Currently Tracking:</p>
+              <p class="font-semibold text-slate-100 truncate">${activity ? activity.name : '...'}</p>
+              <p id="dashboardLiveTimer" class="text-2xl font-mono font-bold text-sky-300 mt-2">00:00:00</p>
         `;
         const timerDisplay = document.getElementById('dashboardLiveTimer');
         const updateTime = () => {
@@ -222,8 +228,8 @@ function renderTimeTrackerWidget() {
     } else {
         const totalMs = TimeTrackerService.getTodaysTotalTrackedMs();
         timeTrackerContent.innerHTML = `
-            <p class="text-sm text-slate-400">Time Tracked Today:</p>
-            <p class="text-3xl font-bold text-slate-100 mt-2">${formatMillisecondsToHMS(totalMs)}</p>
+              <p class="text-sm text-slate-400">Time Tracked Today:</p>
+              <p class="text-3xl font-bold text-slate-100 mt-2">${formatMillisecondsToHMS(totalMs)}</p>
         `;
     }
 }
@@ -233,11 +239,10 @@ function renderQuickLinksWidget() {
 
     const links = [
         { href: 'tasks.html', icon: 'fa-check-double', title: 'Task Manager', color: 'text-sky-400' },
-        { href: 'dev-tracker.html', icon: 'fa-tasks', title: 'Dev Tracker', color: 'text-purple-400' },
         { href: 'notes.html', icon: 'fa-sticky-note', title: 'Notes', color: 'text-amber-400' },
         { href: 'habits.html', icon: 'fa-calendar-check', title: 'Habit Tracker', color: 'text-green-400' },
         { href: 'time-tracker.html', icon: 'fa-clock', title: 'Time Tracker', color: 'text-indigo-400' },
-        { href: 'pomodoro.html', icon: 'fa-stopwatch-20', title: 'Pomodoro', color: 'text-red-400' },
+        // The Pomodoro link has been removed
         { href: 'calendar.html', icon: 'fa-calendar-alt', title: 'Calendar', color: 'text-teal-400' },
         { href: 'budget.html', icon: 'fa-wallet', title: 'Budget Planner', color: 'text-lime-400' }
     ];
@@ -249,10 +254,10 @@ function renderQuickLinksWidget() {
         linkEl.href = link.href;
         linkEl.className = 'block p-4 rounded-lg bg-slate-700/50 hover:bg-slate-700 hover:ring-2 hover:ring-purple-500 transition-all duration-200';
         linkEl.innerHTML = `
-            <div class="flex items-center">
-                <i class="fas ${link.icon} w-6 mr-3 ${link.color}" style="font-size: 1.25rem;"></i>
-                <h3 class="font-semibold text-slate-100">${link.title}</h3>
-            </div>
+              <div class="flex items-center">
+                  <i class="fas ${link.icon} w-6 mr-3 ${link.color}" style="font-size: 1.25rem;"></i>
+                  <h3 class="font-semibold text-slate-100">${link.title}</h3>
+              </div>
         `;
         quickLinksContent.appendChild(linkEl);
     });
@@ -262,7 +267,7 @@ function renderQuickLinksWidget() {
 function createTaskRow(task) {
     const taskRow = document.createElement('div');
     taskRow.className = 'flex items-center p-2 rounded-md hover:bg-slate-700 transition-colors';
-    
+
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.className = 'form-checkbox h-5 w-5 text-sky-500 rounded border-slate-500 focus:ring-sky-400 mr-3 cursor-pointer flex-shrink-0';
@@ -288,9 +293,11 @@ function createHabitRow(habit, isCompleted) {
     checkbox.checked = isCompleted;
     checkbox.className = 'form-checkbox h-5 w-5 text-green-500 rounded border-slate-500 focus:ring-green-400 mr-3 cursor-pointer flex-shrink-0';
     checkbox.onchange = () => {
-        const todayString = new Date().toISOString().split('T')[0];
-        HabitTrackerService.toggleCompletion(habit.id, todayString);
-        renderHabitWidget();
+        const todayString = HabitTrackerService.getYYYYMMDD(new Date());
+        const completions = AppStore.getHabitCompletions();
+        const todaysCompletion = completions.find(c => c.habit_id === habit.id && c.completedAt === todayString);
+        const nextCount = todaysCompletion ? 0 : 1;
+        HabitTrackerService.logCompletion(habit.id, todayString, nextCount);
     };
 
     const habitText = document.createElement('span');
@@ -318,9 +325,8 @@ function renderAllWidgets() {
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        await AppStore.initializeStore(); 
-        NoteService.getNotes(); 
-        HabitTrackerService.initialize();
+        await AppStore.initializeStore();
+        NoteService.getNotes();
         TimeTrackerService.initialize();
 
         greetingHeader = document.getElementById('greetingHeader');
@@ -333,9 +339,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         exportDataBtn = document.getElementById('exportDataBtn');
 
         document.body.style.visibility = 'visible';
-        
+
         if (exportDataBtn) {
-            exportDataBtn.addEventListener('click', handleExportData);
+            // Updated to use the new client-side export function
+            exportDataBtn.addEventListener('click', handleExportDataClientSide);
         }
 
         renderAllWidgets();

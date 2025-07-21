@@ -4,12 +4,11 @@
 
 import LoggingService from './loggingService.js';
 import AppStore from './store.js';
-import EventBus from './eventBus.js';
 
 const ACTIVE_TIMER_KEY = 'timeTracker_active_timer_v1';
 
 // --- Internal State ---
-let _activeTimer = null; // This remains managed by localStorage for efficiency
+let _activeTimer = null; // This remains managed by localStorage for efficiency.
 
 // --- Private Helper Functions ---
 
@@ -27,7 +26,7 @@ function _loadActiveTimer() {
 }
 
 function _saveActiveTimer() {
-     try {
+    try {
         if (_activeTimer) {
             localStorage.setItem(ACTIVE_TIMER_KEY, JSON.stringify(_activeTimer));
         } else {
@@ -47,36 +46,20 @@ function _getTodaysEntries() {
 
 // --- Public API ---
 
-function streamActivities(onUpdate) {
-    if (typeof onUpdate === 'function' && AppStore) {
-        onUpdate(AppStore.getTimeActivities());
-    }
-}
-
-function streamLogEntries(startDate, onUpdate) {
-     if (typeof onUpdate === 'function' && AppStore) {
-        const entries = AppStore.getTimeLogEntries().filter(entry => new Date(entry.startTime) >= startDate);
-        onUpdate(entries);
-    }
-}
-
 function getTodaysTotalTrackedMs() {
     return _getTodaysEntries().reduce((total, entry) => total + entry.durationMs, 0);
 }
 
-async function fetchLogEntriesForDateRange(startDate, endDate) {
+function fetchLogEntriesForDateRange(startDate, endDate) {
     if (!AppStore) return [];
-    return Promise.resolve(AppStore.getTimeLogEntries().filter(entry => {
+    // Now synchronous
+    return AppStore.getTimeLogEntries().filter(entry => {
         const entryDate = new Date(entry.startTime);
         return entryDate >= startDate && entryDate <= endDate;
-    }));
+    });
 }
 
-function stopAllStreams() {
-    // No-op for this implementation. Event listeners are managed by the feature file.
-}
-
-async function addActivity(activityData) {
+function addActivity(activityData) {
     const functionName = 'addActivity (TimeTrackerService)';
     if (!AppStore) return;
     const activities = AppStore.getTimeActivities();
@@ -86,21 +69,20 @@ async function addActivity(activityData) {
         createdAt: new Date().toISOString()
     };
     activities.push(newActivity);
-    await AppStore.setTimeActivities(activities, functionName);
+    AppStore.setTimeActivities(activities, functionName);
 }
 
-async function deleteActivity(activityId) {
+function deleteActivity(activityId) {
     const functionName = 'deleteActivity (TimeTrackerService)';
     if (!AppStore) return;
-    // This now calls the new, safe function in the AppStore
-    await AppStore.deleteTimeActivity(activityId, functionName);
+    AppStore.deleteTimeActivity(activityId, functionName);
 }
 
-async function stopTracking() {
+function stopTracking() {
     const functionName = 'stopTracking (TimeTrackerService)';
     if (!_activeTimer || !AppStore) return;
     let logEntries = AppStore.getTimeLogEntries();
-    
+
     const newLogEntry = {
         id: `log_${Date.now()}`,
         activityId: _activeTimer.activityId,
@@ -110,15 +92,15 @@ async function stopTracking() {
         manuallyAdded: false
     };
     newLogEntry.durationMs = newLogEntry.endTime.getTime() - newLogEntry.startTime.getTime();
-    
+
     logEntries.unshift(newLogEntry);
-    await AppStore.setTimeLogEntries(logEntries, functionName);
+    AppStore.setTimeLogEntries(logEntries, functionName);
 
     _activeTimer = null;
     _saveActiveTimer();
 }
 
-async function addLogEntry(logData) {
+function addLogEntry(logData) {
     const functionName = 'addLogEntry (TimeTrackerService)';
     if (!AppStore) return;
     let logEntries = AppStore.getTimeLogEntries();
@@ -134,15 +116,18 @@ async function addLogEntry(logData) {
     };
     logEntries.unshift(newLog);
     logEntries.sort((a,b) => new Date(b.startTime) - new Date(a.startTime)); // Keep sorted
-    await AppStore.setTimeLogEntries(logEntries, functionName);
+    AppStore.setTimeLogEntries(logEntries, functionName);
 }
 
-async function updateLogEntry(logId, updatedData) {
+function updateLogEntry(logId, updatedData) {
     const functionName = 'updateLogEntry (TimeTrackerService)';
     if (!AppStore) return;
     let logEntries = AppStore.getTimeLogEntries();
     const logIndex = logEntries.findIndex(log => log.id === logId);
-    if (logIndex === -1) throw new Error("Log entry not found");
+    if (logIndex === -1) {
+        LoggingService.error(`Log entry with ID ${logId} not found`, new Error("LogNotFound"), { functionName });
+        return;
+    }
 
     const existingLog = logEntries[logIndex];
     const newStartTime = updatedData.startTime ? new Date(updatedData.startTime) : existingLog.startTime;
@@ -155,15 +140,15 @@ async function updateLogEntry(logId, updatedData) {
         endTime: newEndTime,
         durationMs: newEndTime.getTime() - newStartTime.getTime()
     };
-    await AppStore.setTimeLogEntries(logEntries, functionName);
+    AppStore.setTimeLogEntries(logEntries, functionName);
 }
 
-async function deleteLogEntry(logId) {
+function deleteLogEntry(logId) {
     const functionName = 'deleteLogEntry (TimeTrackerService)';
     if (!AppStore) return;
     let logEntries = AppStore.getTimeLogEntries();
-    logEntries = logEntries.filter(log => log.id !== logId);
-    await AppStore.setTimeLogEntries(logEntries, functionName);
+    const updatedEntries = logEntries.filter(log => log.id !== logId);
+    AppStore.setTimeLogEntries(updatedEntries, functionName);
 }
 
 function getActivities() { return AppStore ? AppStore.getTimeActivities() : []; }
@@ -173,6 +158,7 @@ function getActiveTimer() { return _activeTimer ? { ..._activeTimer } : null; }
 function startTracking(activityId) {
     if (_activeTimer && _activeTimer.activityId === activityId) return;
     if (_activeTimer) {
+        // This will save the previous timer before starting a new one
         stopTracking();
     }
     const activity = AppStore.getTimeActivities().find(a => a.id === activityId);
@@ -192,19 +178,15 @@ function startTracking(activityId) {
 
 function initialize() {
     _loadActiveTimer(); // Load transient state from localStorage
-    // Core data is loaded by AppStore.initializeStore()
-    LoggingService.info('[TimeTrackerService] Initialized. Active timer loaded from localStorage. Core data sourced from AppStore.', {
+    LoggingService.info('[TimeTrackerService] Initialized. Active timer loaded. Core data sourced from AppStore.', {
         functionName: 'initialize (TimeTrackerService)'
     });
 }
 
 const TimeTrackerService = {
     initialize,
-    streamActivities,
-    streamLogEntries,
     fetchLogEntriesForDateRange,
     getTodaysTotalTrackedMs,
-    stopAllStreams,
     addActivity,
     deleteActivity,
     getActivities,

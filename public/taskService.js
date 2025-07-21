@@ -38,7 +38,7 @@ export function parseDateFromText(text) {
     return { parsedDate, remainingText };
 }
 
-export async function addTask(taskData) {
+export function addTask(taskData) {
     if (!AppStore) {
         LoggingService.error("[TaskService] AppStore not available for addTask.", new Error("AppStoreMissing"), { functionName: 'addTask' });
         return null;
@@ -46,7 +46,7 @@ export async function addTask(taskData) {
     let currentTasks = AppStore.getTasks();
     
     const newTask = {
-        id: Date.now(),
+        id: Date.now(), // Use timestamp for unique ID
         creationDate: Date.now(),
         completed: false,
         ...taskData,
@@ -63,34 +63,33 @@ export async function addTask(taskData) {
         completedDate: null,
         recurrence: taskData.recurrence || null
     };
-    currentTasks.unshift(newTask);
-    await AppStore.setTasks(currentTasks);
+    currentTasks.unshift(newTask); // Add to the beginning of the list
+    AppStore.setTasks(currentTasks, 'addTask'); // Save to local storage
     LoggingService.info("[TaskService] Task added.", { taskId: newTask.id, taskText: newTask.text, functionName: 'addTask' });
     return newTask;
 }
 
-export async function updateTask(taskId, taskUpdateData) {
+export function updateTask(taskId, taskUpdateData) {
     if (!AppStore) {
         LoggingService.error("[TaskService] AppStore not available for updateTask.", new Error("AppStoreMissing"), { functionName: 'updateTask', taskId });
         return null;
     }
     let currentTasks = AppStore.getTasks();
     const taskIndex = currentTasks.findIndex(t => t.id === taskId);
+
     if (taskIndex === -1) {
         LoggingService.error(`[TaskService] Task with ID ${taskId} not found for update.`, new Error("TaskNotFound"), { functionName: 'updateTask', taskId });
         return null;
     }
     currentTasks[taskIndex] = { ...currentTasks[taskIndex], ...taskUpdateData };
-    await AppStore.setTasks(currentTasks);
+    AppStore.setTasks(currentTasks, 'updateTask'); // Save to local storage
     LoggingService.info(`[TaskService] Task updated: ${taskId}`, { taskId, updatedData: taskUpdateData, functionName: 'updateTask' });
     return currentTasks[taskIndex];
 }
 
-export async function toggleTaskComplete(taskId) {
-    if (!AppStore || typeof window.isFeatureEnabled !== 'function') { 
-        const errorContext = { functionName: 'toggleTaskComplete', taskId };
-        if (!AppStore) LoggingService.error("[TaskService] AppStore not available.", new Error("AppStoreMissing"), errorContext);
-        if (typeof window.isFeatureEnabled !== 'function') LoggingService.error("[TaskService] isFeatureEnabled function not available.", new Error("isFeatureEnabledMissing"), errorContext);
+export function toggleTaskComplete(taskId) {
+    if (!AppStore) {
+        LoggingService.error("[TaskService] AppStore not available for toggle.", new Error("AppStoreMissing"), { functionName: 'toggleTaskComplete' });
         return null;
     }
 
@@ -102,11 +101,11 @@ export async function toggleTaskComplete(taskId) {
     }
 
     const taskToToggle = currentTasks[taskIndex];
-    
     const isNowCompleted = !taskToToggle.completed;
     let isRecurringAndRenewed = false;
 
-    if (isNowCompleted && window.isFeatureEnabled('advancedRecurrence') && taskToToggle.recurrence && taskToToggle.recurrence.frequency && taskToToggle.recurrence.frequency !== 'none') { 
+    // Recurrence logic is now always active if the data is present
+    if (isNowCompleted && taskToToggle.recurrence && taskToToggle.recurrence.frequency && taskToToggle.recurrence.frequency !== 'none') {
         const recurrence = taskToToggle.recurrence;
         const interval = recurrence.interval || 1;
         const currentDueDate = new Date(taskToToggle.dueDate + 'T00:00:00Z');
@@ -150,13 +149,13 @@ export async function toggleTaskComplete(taskId) {
                 LoggingService.info(`[TaskService] Recurring task ${taskId} reached its end date. It will now be permanently completed.`);
             } else {
                 currentTasks[taskIndex].dueDate = getDateString(nextDueDate);
-                currentTasks[taskIndex].completed = false;
+                currentTasks[taskIndex].completed = false; // Reset for next time
                 currentTasks[taskIndex].completedDate = null;
                 isRecurringAndRenewed = true;
             }
         } else {
             currentTasks[taskIndex].dueDate = getDateString(nextDueDate);
-            currentTasks[taskIndex].completed = false;
+            currentTasks[taskIndex].completed = false; // Reset for next time
             currentTasks[taskIndex].completedDate = null;
             isRecurringAndRenewed = true;
         }
@@ -171,29 +170,26 @@ export async function toggleTaskComplete(taskId) {
         currentTasks[taskIndex].completedDate = isNowCompleted ? Date.now() : null;
     }
 
-    await AppStore.setTasks(currentTasks);
+    AppStore.setTasks(currentTasks, 'toggleTaskComplete'); // Save to local storage
     LoggingService.info(`[TaskService] Task ${taskId} completion toggled. New 'completed' status: ${currentTasks[taskIndex].completed}`, { functionName: 'toggleTaskComplete', taskId, newStatus: currentTasks[taskIndex].completed });
     return currentTasks[taskIndex];
 }
 
-
-export async function deleteTaskById(taskId) {
-    if (!AppStore || typeof window.isFeatureEnabled !== 'function') { 
-        const errorContext = { functionName: 'deleteTaskById', taskId };
-        if (!AppStore) LoggingService.error("[TaskService] AppStore not available.", new Error("AppStoreMissing"), errorContext);
-        if (typeof window.isFeatureEnabled !== 'function') LoggingService.error("[TaskService] isFeatureEnabled function not available.", new Error("isFeatureEnabledMissing"), errorContext);
+export function deleteTaskById(taskId) {
+    if (!AppStore) {
+        LoggingService.error("[TaskService] AppStore not available.", new Error("AppStoreMissing"), { functionName: 'deleteTaskById' });
         return false;
     }
 
-    let currentTasks = AppStore.getTasks(); 
-    const initialLength = currentTasks.length; 
-    let updatedTasks = currentTasks.filter(task => task.id !== taskId); 
+    let currentTasks = AppStore.getTasks();
+    const initialLength = currentTasks.length;
+    let updatedTasks = currentTasks.filter(task => task.id !== taskId);
 
-    if (updatedTasks.length < initialLength) { 
-        await AppStore.setTasks(updatedTasks); 
+    if (updatedTasks.length < initialLength) {
+        AppStore.setTasks(updatedTasks, 'deleteTaskById'); // Save to local storage
         LoggingService.info(`[TaskService] Task ${taskId} deleted.`, { functionName: 'deleteTaskById', taskId });
-        return true; 
+        return true;
     }
     LoggingService.warn(`[TaskService] Task ${taskId} not found for deletion.`, { functionName: 'deleteTaskById', taskId });
-    return false; 
+    return false;
 }

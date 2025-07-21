@@ -1,120 +1,49 @@
-Lockie Media Platform
-Project Overview
-The Lockie Media Platform is a modern, feature-rich management platform designed to provide users with a flexible and powerful tool for managing their tasks, projects, and other aspects of their personal and professional lives.
+# LockieMedia Productivity Hub
 
-The platform is built on a microservice architecture, where independent backend services for each application (e.g., Tasks, Notes) are managed by a central API Gateway. This architecture ensures the application is robust, scalable, and easy to maintain.
+A comprehensive, client-side productivity application designed to help you organize your life. This application runs entirely in your web browser, using local storage to save all your data securely on your own computer.
 
-Features
-The platform is designed with a range of features, with a focus on core productivity tools.
+## Features
 
-Platform Apps & Core Features
-Task Management: Create, Edit, Delete Tasks, Due Dates & Times, Priority Levels, Labels, Detailed Notes, Task Completion tracking, and Smart Date Parsing.
+* **Dashboard**: A central hub providing an at-a-glance overview of your day, including tasks, upcoming events, and tracked time.
+* **Task Manager**: A powerful to-do list with support for due dates, projects, labels, and priorities.
+* **Notes**: A simple and effective note-taking application.
+* **Habit Tracker**: A tool to build and maintain good habits with visual tracking.
+* **Time Tracker**: Log time spent on different activities to understand your workflow.
+* **Calendar**: Visualize your tasks and events in a monthly calendar view.
 
-Notes App: A dedicated module for note-taking.
+## Tech Stack
 
-Markdown Editor: A full-featured, side-by-side Markdown editor with live preview and different view modes (editor-only, preview-only, split view).
+This project is built with a focus on simplicity and performance, using fundamental web technologies:
 
-Notebooks: Organize notes into separate notebooks, which can be created and deleted.
+* **Vanilla JavaScript (ES6 Modules)**: No frameworks, just modern JavaScript for all application logic.
+* **HTML5**: For structuring the content and application views.
+* **Tailwind CSS**: A utility-first CSS framework for rapid UI development.
+* **Browser Local Storage**: Used as the database to persist all user data directly in the browser. No server is required.
 
-Project Organization: Organize tasks into projects.
+## Getting Started
 
-Advanced Recurrence: For tasks that repeat on complex schedules.
+Getting started is as simple as possible.
 
-Habit Tracker App: A tool for building and tracking daily habits.
+### Option 1: Run Locally
 
-Time Tracker App: A separate app to track time spent on various activities.
+1.  Clone or download this repository to your local machine.
+2.  Open the `public` folder.
+3.  Open the `index.html` file in a modern web browser (like Chrome, Firefox, or Edge).
 
-Shopping List: A smart view within the Task Manager dedicated to shopping items.
+That's it! The application will run, and your data will be saved automatically to that browser's local storage.
 
-Search & Filtering: Predefined Smart Views, search by title, label, etc., and sorting options.
+### Option 2: Deploy to a Static Host
 
-Theme Management: Light and Dark mode support.
+You can deploy the contents of the `public` folder to any static web hosting service, such as:
 
-Desktop Notifications: For task reminders and application alerts.
+* GitHub Pages
+* Netlify
+* Vercel
+* AWS S3
 
-Planned Apps & Features
-Reminders: Set reminders for tasks.
+No special configuration is needed.
 
-Bulk Task Actions: Perform actions on multiple tasks at once.
+## Data Management
 
-Technology Stack & Architecture
-System Architecture
-Microservice Architecture: The backend is composed of several independent Node.js services managed by PM2.
-
-API Gateway: A central Express.js application that acts as the single entry point for the frontend. It routes requests to the appropriate microservice and uses an API Composition pattern to aggregate data.
-
-Backend Services
-Runtime: Node.js
-
-Web Framework: Express.js
-
-Database: SQLite (via better-sqlite3), shared across services.
-
-Process Manager: PM2
-
-Frontend
-HTML5
-
-CSS3 (including Tailwind CSS for utility-first styling)
-
-JavaScript (ES6 Modules) - Vanilla JS, no frameworks.
-
-Markdown Parsing: Marked.js and DOMPurify.
-
-Setup and Installation
-This is a self-hosted application designed to run on a local server or container.
-
-Prerequisites:
-
-Node.js (v20.x or later recommended).
-
-A local machine or server (like a Proxmox LXC container running Ubuntu) to host the application.
-
-PM2 installed globally: npm install pm2 -g
-
-Clone the Repository:
-
-git clone <repository-url>
-cd <repository-folder>
-
-Install Dependencies:
-
-Dependencies must be installed for the root project AND for each individual service.
-
-Root: npm install
-
-API Gateway: cd services/api-gateway && npm install && cd ../..
-
-Notes Service: cd services/notes-service && npm install && cd ../..
-
-Task Service: cd services/task-service && npm install && cd ../..
-
-Time Tracker Service: cd services/time-tracker-service && npm install && cd ../..
-
-Initialize the Database:
-
-Run the setup script from the root directory to create the lockiedb.sqlite file and its tables. This only needs to be done once.
-
-npm run setup
-
-Running the Platform:
-
-The entire suite of backend services is managed by the ecosystem.json file.
-
-From the project's root directory, start all services with:
-
-pm2 start ecosystem.json
-
-To ensure the apps restart automatically after a server reboot, run:
-
-pm2 save
-
-Usage & Monitoring:
-
-Access: The application is accessible via the API Gateway's port, typically http://<your-server-ip>:3000/dashboard.html.
-
-Check Status: To see the status of all running services: pm2 status
-
-View Logs: To view the combined logs for all services: pm2 logs
-
-Restart All: To apply changes after a git pull: pm2 restart all
+* **Backup**: You can back up all your data by clicking the "Download Backup" button on the dashboard. This will save a `.json` file containing all your information.
+* **Restore**: To restore from a backup, you would need to manually import the data using your browser's developer tools, as a restore feature has not yet been implemented.

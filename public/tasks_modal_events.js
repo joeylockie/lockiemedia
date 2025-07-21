@@ -10,8 +10,7 @@ import {
     openSettingsModal,
     closeManageLabelsModal,
     closeViewTaskDetailsModal,
-    openDesktopNotificationsSettingsModal, closeDesktopNotificationsSettingsModal,
-    openProfileModal, closeProfileModal
+    openDesktopNotificationsSettingsModal, closeDesktopNotificationsSettingsModal
 } from './tasks_modal_interactions.js';
 import { ProjectsFeature } from './feature_projects.js';
 
@@ -34,10 +33,9 @@ export function setupModalEventListeners() {
     attachListener('settingsManageLabelsBtn', 'click', openManageLabelsModal, 'openManageLabelsModal');
     attachListener('openSettingsModalButton', 'click', openSettingsModal, 'openSettingsModal');
     attachListener('settingsManageNotificationsBtn', 'click', openDesktopNotificationsSettingsModal, 'openDesktopNotificationsSettingsModal');
-    attachListener('settingsManageProfileBtn', 'click', openProfileModal, 'openProfileModal');
 
     // Special handling for Manage Projects Modal opener
-    if (window.isFeatureEnabled('projectFeature')) { 
+    if (window.isFeatureEnabled('projectFeature')) {
         const settingsManageProjectsBtnEl = document.getElementById('settingsManageProjectsBtn');
         if (settingsManageProjectsBtnEl && ProjectsFeature?.openManageProjectsModal) {
             settingsManageProjectsBtnEl.addEventListener('click', ProjectsFeature.openManageProjectsModal);
@@ -61,14 +59,9 @@ export function setupModalEventListeners() {
         { id: 'closeManageLabelsModalBtn', handler: closeManageLabelsModal, name: 'closeManageLabelsModal (primary)' },
         { id: 'closeManageLabelsSecondaryBtn', handler: closeManageLabelsModal, name: 'closeManageLabelsModal (secondary)' },
         { id: 'manageLabelsModal', handler: (event) => { if(event.target.id === 'manageLabelsModal') closeManageLabelsModal(); }, name: 'closeManageLabelsModal (backdrop)'},
-        { id: 'closeProfileModalBtn', handler: closeProfileModal, name: 'closeProfileModal (primary)' },
-        { id: 'closeProfileSecondaryBtn', handler: closeProfileModal, name: 'closeProfileModal (secondary)' },
-        { id: 'profileModal', handler: (event) => { if (event.target.id === 'profileModal') closeProfileModal(); }, name: 'closeProfileModal (backdrop)' },
-        // --- MODIFICATION START ---
         { id: 'closeDesktopNotificationsSettingsModalBtn', handler: closeDesktopNotificationsSettingsModal, name: 'closeDesktopNotificationsSettingsModal (primary)' },
         { id: 'closeDesktopNotificationsSettingsSecondaryBtn', handler: closeDesktopNotificationsSettingsModal, name: 'closeDesktopNotificationsSettingsModal (secondary)' },
         { id: 'desktopNotificationsSettingsModal', handler: (event) => { if (event.target.id === 'desktopNotificationsSettingsModal') closeDesktopNotificationsSettingsModal(); }, name: 'closeDesktopNotificationsSettingsModal (backdrop)'}
-        // --- MODIFICATION END ---
     ];
     modalCloserListeners.forEach(listener => attachListener(listener.id, 'click', listener.handler, listener.name));
 
@@ -77,21 +70,17 @@ export function setupModalEventListeners() {
         const keydownHandlerName = 'documentKeydownHandler (TasksModalEvents)';
         if (event.key === 'Escape') {
             LoggingService.debug('[TasksModalEvents] Escape key pressed, attempting to close modals.', { functionName: keydownHandlerName, key: event.key });
-            const profileModalEl = document.getElementById('profileModal');
             const projModal = document.getElementById('manageProjectsModal');
 
-            if (profileModalEl && !profileModalEl.classList.contains('hidden')) closeProfileModal();
-            else if (document.getElementById('addTaskModal') && !document.getElementById('addTaskModal').classList.contains('hidden')) closeAddModal();
+            if (document.getElementById('addTaskModal') && !document.getElementById('addTaskModal').classList.contains('hidden')) closeAddModal();
             else if (document.getElementById('viewEditTaskModal') && !document.getElementById('viewEditTaskModal').classList.contains('hidden')) closeViewEditModal();
             else if (document.getElementById('viewTaskDetailsModal') && !document.getElementById('viewTaskDetailsModal').classList.contains('hidden')) closeViewTaskDetailsModal();
             else if (document.getElementById('settingsModal') && !document.getElementById('settingsModal').classList.contains('hidden')) closeSettingsModal();
             else if (document.getElementById('manageLabelsModal') && !document.getElementById('manageLabelsModal').classList.contains('hidden')) closeManageLabelsModal();
-            // --- MODIFICATION START ---
             else if (document.getElementById('desktopNotificationsSettingsModal') && !document.getElementById('desktopNotificationsSettingsModal').classList.contains('hidden')) closeDesktopNotificationsSettingsModal();
-            // --- MODIFICATION END ---
             else if (projModal && !projModal.classList.contains('hidden') && window.AppFeatures?.ProjectsFeature?.closeManageProjectsModal) {
                  window.AppFeatures.ProjectsFeature.closeManageProjectsModal();
-            } else if (projModal && !projModal.classList.contains('hidden')) { 
+            } else if (projModal && !projModal.classList.contains('hidden')) {
                 const projDialog = document.getElementById('modalDialogManageProjects');
                 if (projDialog) projDialog.classList.add('scale-95', 'opacity-0');
                 setTimeout(() => { projModal.classList.add('hidden'); }, 200);

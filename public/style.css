@@ -88,16 +88,16 @@ body { font-family: 'Inter', sans-serif; }
     padding: 0.75rem !important;  /* Example minimized padding: p-3 in Tailwind. Adjust as needed! */
 }
 
-.sidebar-minimized .sidebar-button-icon-only { 
-    justify-content: center; 
+.sidebar-minimized .sidebar-button-icon-only {
+    justify-content: center;
 }
-.sidebar-minimized .sidebar-button-icon-only i { 
-    margin-right: 0 !important; 
+.sidebar-minimized .sidebar-button-icon-only i {
+    margin-right: 0 !important;
 }
 .sidebar-minimized .sidebar-text-content,
 .sidebar-minimized #taskSearchInputContainer,
-.sidebar-minimized .sidebar-section-title { 
-    display: none; 
+.sidebar-minimized .sidebar-section-title {
+    display: none;
 }
 
 /* Styling for active sort buttons */
@@ -254,6 +254,7 @@ body { font-family: 'Inter', sans-serif; }
     width: 4rem !important; /* w-16 */
     padding-left: 0.5rem !important; /* px-2 */
     padding-right: 0.5rem !important;
+    overflow: hidden; /* NEW: Prevent text from overflowing */
 }
 
 .notes-sidebar-collapsed .sidebar-text-content {
@@ -274,6 +275,16 @@ body { font-family: 'Inter', sans-serif; }
 .notes-sidebar-collapsed .notebook-item-content span {
     display: none;
 }
+
+/* NEW: Fix for note list items and empty message when sidebar is collapsed */
+.notes-sidebar-collapsed .note-list-item-content {
+    justify-content: center; /* Center the icon */
+}
+.notes-sidebar-collapsed .note-list-item-text,
+.notes-sidebar-collapsed #notesList > .text-center { /* Hides empty/error messages */
+    display: none;
+}
+
 
 /* --- General Sidebar Styles --- */
 .sidebar-toggle-rotated {
@@ -349,4 +360,377 @@ body.is-resizing-notes * {
     width: 1.5rem; /* w-6 */
     margin-right: 0.75rem; /* mr-3 */
     text-align: center;
+}
+
+
+
+
+/* ============================================= */
+/* ===== HABIT TRACKER STYLES (NEW DESIGN) ===== */
+/* ============================================= */
+
+/* --- Main Container & Header --- */
+.habit-tracker-container {
+    max-width: 1024px; /* Sets a maximum width for the content */
+    margin-left: auto;  /* These two lines center the container */
+    margin-right: auto;
+    padding: 1rem 2rem; /* Keeps the padding around the app */
+}
+
+.habit-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #374151; /* gray-700 for dark mode */
+}
+
+.dark .habit-header {
+    border-bottom-color: #4b5563; /* gray-600 */
+}
+
+.header-title h1 {
+    font-size: 1.875rem; /* text-3xl */
+    font-weight: 700;
+    margin: 0;
+}
+
+.header-subtitle {
+    font-size: 1.125rem; /* text-lg */
+    color: #9ca3af; /* gray-400 */
+    font-weight: 500;
+}
+
+.header-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.button-icon {
+    background-color: #374151; /* gray-700 */
+    border: 1px solid #4b5563; /* gray-600 */
+    border-radius: 0.375rem; /* rounded-md */
+    padding: 0.5rem 0.75rem;
+    color: #d1d5db; /* gray-300 */
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.button-icon:hover {
+    background-color: #4b5563; /* gray-600 */
+}
+
+/* --- Habit Cards Container --- */
+#habit-cards-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem; /* Space between cards */
+}
+
+/* --- Individual Habit Card --- */
+.habit-card {
+    background-color: #1f2937; /* gray-800 */
+    border: 1px solid #374151; /* gray-700 */
+    border-radius: 0.75rem; /* rounded-xl */
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    position: relative;
+}
+
+.dark .habit-card {
+    background-color: #1f2937;
+    border-color: #374151;
+}
+
+.habit-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.habit-title-section {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.habit-title-section .habit-icon {
+    font-size: 1.25rem; /* text-xl */
+    color: #0ea5e9; /* sky-500 */
+}
+
+.habit-title-section .habit-name {
+    font-size: 1.125rem; /* text-lg */
+    font-weight: 600;
+}
+
+.habit-title-section .habit-target {
+    font-size: 0.875rem; /* text-sm */
+    color: #9ca3af; /* gray-400 */
+}
+
+.habit-percentage {
+    font-size: 1.25rem; /* text-xl */
+    font-weight: 600;
+    color: #d1d5db; /* gray-300 */
+}
+
+/* --- Commit Grid --- */
+.commit-grid {
+    display: grid;
+    grid-template-columns: repeat(52, 1fr); /* 52 weeks */
+    grid-template-rows: repeat(7, 1fr); /* 7 days */
+    grid-auto-flow: column; /* Fill columns first */
+    gap: 3px;
+    width: 100%;
+    aspect-ratio: 52 / 7; /* Maintain aspect ratio */
+}
+
+.commit-square {
+    width: 100%;
+    height: 100%;
+    background-color: #374151; /* Default empty color (gray-700) */
+    border-radius: 2px;
+    transition: background-color 0.2s;
+    cursor: pointer; /* Make it obvious it's clickable */
+}
+
+/* --- MODIFICATION START: New Completion Levels --- */
+.commit-square.level-0 { background-color: #374151; } /* gray-700 */
+.commit-square.level-1 { background-color: #0c4a6e; } /* sky-900 */
+.commit-square.level-2 { background-color: #075985; } /* sky-800 */
+.commit-square.level-3 { background-color: #0369a1; } /* sky-700 */
+.commit-square.level-4 { background-color: #0284c7; } /* sky-600 */
+.commit-square.level-5 { background-color: #0ea5e9; } /* sky-500 - Fully Complete */
+/* --- MODIFICATION END --- */
+
+/* Style for the "today" square */
+.commit-square.today {
+    border: 1px solid #f59e0b; /* amber-500 */
+}
+
+
+
+/* ===== MODAL STYLES (for Habit Tracker & others) ===== */
+.modal {
+    position: fixed;
+    z-index: 100;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.6);
+    display: none; /* Hidden by default */
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: #1f2937; /* gray-800 */
+    margin: auto;
+    padding: 2rem;
+    border: 1px solid #4b5563; /* gray-600 */
+    width: 90%;
+    max-width: 500px;
+    border-radius: 0.75rem; /* rounded-xl */
+    position: relative;
+    color: #d1d5db; /* gray-300 */
+}
+
+.close-button {
+    color: #aaa;
+    position: absolute;
+    top: 1rem;
+    right: 1.5rem;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: white;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* Form Styles inside Modal */
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.form-group input[type="text"],
+.form-group input[type="number"], /* MODIFICATION: Style for number input */
+.form-group textarea {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: #374151; /* gray-700 */
+    border: 1px solid #4b5563; /* gray-600 */
+    border-radius: 0.375rem; /* rounded-md */
+    color: white;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.button-primary {
+    background-color: #4f46e5; /* indigo-600 */
+    color: white;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    font-weight: 600;
+}
+.button-danger {
+    background-color: #dc2626; /* red-600 */
+    color: white;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+
+/* --- Edit Button on Habit Card --- */
+.habit-card .habit-edit-btn {
+    position: absolute;
+    top: 0.75rem; /* 12px */
+    right: 0.75rem; /* 12px */
+    background-color: #374151; /* gray-700 */
+    color: #9ca3af; /* gray-400 */
+    border: none;
+    border-radius: 9999px; /* rounded-full */
+    width: 2rem;  /* w-8 */
+    height: 2rem; /* h-8 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0; /* Hidden by default */
+    transition: opacity 0.2s ease-in-out, background-color 0.2s ease-in-out;
+}
+
+/* Show button on card hover */
+.habit-card:hover .habit-edit-btn {
+    opacity: 1;
+}
+
+.habit-card .habit-edit-btn:hover {
+    background-color: #4b5563; /* gray-600 */
+    color: white;
+}
+
+
+/* ======================================= */
+/* ===== POMODORO TIMER STYLES (NEW) ===== */
+/* ======================================= */
+
+/* --- Session Tabs --- */
+.pomodoro-tab {
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem; /* rounded-md */
+    font-weight: 600;
+    color: #9ca3af; /* gray-400 */
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.pomodoro-tab:hover {
+    color: white;
+}
+
+.pomodoro-tab.active {
+    background-color: #4f46e5; /* indigo-600 */
+    color: white;
+}
+
+/* --- Start Button --- */
+.button-start {
+    background-color: white;
+    color: #111827; /* gray-900 */
+    font-weight: 700;
+    font-size: 1.125rem; /* text-lg */
+    padding: 0.75rem 3rem;
+    border-radius: 0.5rem; /* rounded-lg */
+    border: none;
+    cursor: pointer;
+    transition: transform 0.1s, background-color 0.2s;
+    letter-spacing: 0.1em; /* Add some letter spacing */
+}
+
+.button-start:hover {
+    background-color: #f3f4f6; /* gray-100 */
+}
+
+.button-start:active {
+    transform: scale(0.98);
+}
+
+/* --- Secondary Icon Button (for reset) --- */
+.button-icon-secondary {
+    background-color: #374151; /* gray-700 */
+    color: #9ca3af; /* gray-400 */
+    border-radius: 0.5rem; /* rounded-lg */
+    width: 3.25rem; /* A bit larger than the header icon buttons */
+    height: 3.25rem;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.button-icon-secondary:hover {
+    background-color: #4b5563; /* gray-600 */
+    color: white;
+}
+
+
+/* --- Pomodoro Settings Modal --- */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Creates a 2-column grid */
+    gap: 1rem;
+}
+
+.settings-input {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: #374151; /* gray-700 */
+    border: 1px solid #4b5563; /* gray-600 */
+    border-radius: 0.375rem; /* rounded-md */
+    color: white;
+    font-size: 1rem;
+}
+
+/* Find these existing rules and replace them */
+
+.settings-input::-webkit-outer-spin-button,
+.settings-input::-webkit-inner-spin-button {
+    -webkit-appearance: none; /* For older browsers */
+    appearance: none;         /* Standard property for modern browsers */
+    margin: 0;
+}
+
+.settings-input[type=number] {
+    -moz-appearance: textfield; /* For Firefox */
+    appearance: textfield;      /* Standard property for modern browsers */
 }

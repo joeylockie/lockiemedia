@@ -19,3 +19,8 @@ npm-debug.log*
 
 # macOS specific
 .DS_Store
+
+favicon.ico # ADDED THIS LINE
+
+ecosystem.dev.json # ADDED THIS LINE
+ecosystem.prod.json # ADDED THIS LINE
