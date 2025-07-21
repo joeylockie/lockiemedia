@@ -52,7 +52,7 @@ lockiemedia-dev/
 ├── AI_PROJECT_LOG.md
 ├── README.md
 ├── database.js
-├── dexie.mjs
+├── dexie.mjs **(ingore this file)**
 ├── favicon.ico
 ├── icon-32x32.png
 ├── index.html
