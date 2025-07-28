@@ -147,35 +147,23 @@ Notes App Enhancements: Added notebook deletion and a full-featured Markdown edi
 Calendar App Enhancements: Implemented a full-featured Week View with drag-and-drop and a live time indicator.
 
 5. Work Completed (Specific to Current Major Task)
-Date: 2025-07-21
+Date: 2025-07-27
 
-Task: Implement Data Management and Versioning Features.
+Task: Calendar App Feature Enhancement.
 
-Goal: To allow users to back up and restore their data, and to notify them of application updates.
+Goal: To add several new features to the calendar application to improve its usability and bring it closer to parity with modern calendar apps.
 
 Sub-tasks Completed:
 
-Data Backup & Restore:
+Current Date Highlighting: Added a visual marker (a colored circle) to the current day in the month view for easier identification. This involved changes to calendar_main.js and style.css. Fixed a timezone bug to ensure the correct local date is highlighted.
 
-UI (index.html): Added an "Import Backup" button and a hidden file input to the dashboard header.
+Event Recurrence and Location: Implemented a feature to allow events to repeat (daily, weekly, bi-weekly, monthly, yearly). Also added a location field to events. This required modifications to calendar.html, calendarService.js, and calendar_main.js.
 
-Logic (dashboard_main.js):
+Desktop Notifications: Added a settings panel to enable desktop notifications for upcoming events, including requesting user permission. This involved changes to calendar.html and calendar_main.js.
 
-Implemented handleImportData function to read a .json file, confirm overwrite with the user, and use a Dexie transaction to safely clear and restore all database tables.
+Holiday Display: Integrated an external API to fetch and display Canadian public holidays on the calendar, with a setting to toggle this feature on and off. This involved changes to calendar.html, calendar_main.js, and style.css.
 
-Refactored handleExportDataClientSide to read data directly from IndexedDB tables, ensuring a complete and accurate backup.
-
-Fixed a bug in the export function where tx.tables was used instead of the correct db.tables.
-
-Application Versioning:
-
-Data Source (version.json): Created a new version.json file to act as the single source of truth for the application version.
-
-Service (versionService.js): Created a new service to fetch, display, and periodically check for new versions.
-
-UI (index.html): Added a footer element to display the version number and a hidden notification bar for update alerts.
-
-Integration (dashboard_main.js): Imported and initialized the versionService to activate the feature on page load.
+Mouse Wheel Navigation: Added the ability to scroll through months using the mouse wheel on the calendar grid, which involved a change to calendar_main.js.
 
 6. Current Focus / Next Steps
 Current Major Task/Feature Being Worked On:

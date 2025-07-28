@@ -4,6 +4,7 @@ import EventBus from './eventBus.js';
 import CalendarService from './calendarService.js';
 import * as TaskService from './taskService.js';
 import { formatDate } from './utils.js';
+import NotificationService from './notificationService.js';
 
 const CalendarUI = (() => {
     // --- State ---
@@ -13,13 +14,16 @@ const CalendarUI = (() => {
     let selectedColor = 'sky-500'; // Default color
     let draggedEventId = null;
     let timeIndicatorInterval = null;
-    let datePicker = null; // MODIFICATION: To hold the Flatpickr instance
+    let notificationCheckInterval = null;
+    let datePicker = null;
+    let holidays = []; // To store fetched holidays
 
     // --- DOM Elements ---
     let calendarGrid, weekDayViewContainer, currentMonthYearEl, prevMonthBtn, nextMonthBtn, todayBtn;
     let monthViewBtn, weekViewBtn, dayViewBtn;
-    let eventModal, eventModalTitle, eventForm, eventIdInput, eventTitleInput, eventStartDateInput, eventEndDateInput, eventStartTimeInput, eventEndTimeInput, eventDescriptionInput, cancelEventBtn, isAllDayCheckbox, timeInputsContainer, colorPalette;
-    let viewEventModal, viewEventTitle, viewEventTime, viewEventDescription, closeViewEventBtn, editEventBtn, deleteEventBtn;
+    let eventModal, eventModalTitle, eventForm, eventIdInput, eventTitleInput, eventStartDateInput, eventEndDateInput, eventStartTimeInput, eventEndTimeInput, eventDescriptionInput, cancelEventBtn, isAllDayCheckbox, timeInputsContainer, colorPalette, eventLocationInput, eventRecurrenceInput;
+    let viewEventModal, viewEventTitle, viewEventTime, viewEventLocation, viewEventDescription, closeViewEventBtn, editEventBtn, deleteEventBtn;
+    let settingsModal, closeSettingsBtn, settingsDoneBtn, enableNotificationsToggle, notifyMinutesBeforeInput, notificationPermissionStatusText, showHolidaysToggle;
 
     function getDOMElements() {
         calendarGrid = document.getElementById('calendarGrid');
@@ -45,17 +49,84 @@ const CalendarUI = (() => {
         isAllDayCheckbox = document.getElementById('isAllDay');
         timeInputsContainer = document.getElementById('timeInputsContainer');
         colorPalette = document.getElementById('color-palette');
+        eventLocationInput = document.getElementById('eventLocation');
+        eventRecurrenceInput = document.getElementById('eventRecurrence');
         viewEventModal = document.getElementById('viewEventModal');
         viewEventTitle = document.getElementById('viewEventTitle');
         viewEventTime = document.getElementById('viewEventTime');
+        viewEventLocation = document.getElementById('viewEventLocation');
         viewEventDescription = document.getElementById('viewEventDescription');
         closeViewEventBtn = document.getElementById('closeViewEventBtn');
         editEventBtn = document.getElementById('editEventBtn');
         deleteEventBtn = document.getElementById('deleteEventBtn');
+        settingsModal = document.getElementById('settingsModal');
+        closeSettingsBtn = document.getElementById('closeSettingsBtn');
+        settingsDoneBtn = document.getElementById('settingsDoneBtn');
+        enableNotificationsToggle = document.getElementById('enableNotificationsToggle');
+        notifyMinutesBeforeInput = document.getElementById('notifyMinutesBefore');
+        notificationPermissionStatusText = document.getElementById('notificationPermissionStatusText');
+        showHolidaysToggle = document.getElementById('showHolidaysToggle');
     }
 
-    function updateView() {
+    async function fetchHolidays(year) {
+        const isEnabled = localStorage.getItem('showCanadianHolidays') === 'true';
+        if (!isEnabled) {
+            holidays = [];
+            return;
+        }
+        try {
+            const response = await fetch(`https://canada-holidays.ca/api/v1/holidays?year=${year}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            holidays = data.holidays;
+        } catch (error) {
+            LoggingService.error('[CalendarUI] Could not fetch holiday data.', error);
+            holidays = [];
+        }
+    }
+
+    function getRecurrenceEvents(event, viewStartDate, viewEndDate) {
+        if (!event.recurrence || event.recurrence === 'none') {
+            return [];
+        }
+
+        const occurrences = [];
+        let current = new Date(event.startTime);
+        
+        while (current <= viewEndDate) {
+            if (current >= viewStartDate) {
+                const occurrence = { ...event, startTime: current.toISOString(), endTime: new Date(current.getTime() + (new Date(event.endTime).getTime() - new Date(event.startTime).getTime())).toISOString() };
+                occurrences.push(occurrence);
+            }
+
+            switch (event.recurrence) {
+                case 'daily':
+                    current.setDate(current.getDate() + 1);
+                    break;
+                case 'weekly':
+                    current.setDate(current.getDate() + 7);
+                    break;
+                case 'bi-weekly':
+                    current.setDate(current.getDate() + 14);
+                    break;
+                case 'monthly':
+                    current.setMonth(current.getMonth() + 1);
+                    break;
+                case 'yearly':
+                    current.setFullYear(current.getFullYear() + 1);
+                    break;
+                default:
+                    return occurrences;
+            }
+        }
+        return occurrences;
+    }
+
+    async function updateView() {
         if (timeIndicatorInterval) clearInterval(timeIndicatorInterval);
+        await fetchHolidays(currentDate.getFullYear());
 
         const viewRenderers = {
             month: renderMonthView,
@@ -110,9 +181,11 @@ const CalendarUI = (() => {
         currentMonthYearEl.textContent = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
         const year = currentDate.getFullYear();
         const month = currentDate.getMonth();
-        const firstDayOfMonth = new Date(year, month, 1).getDay();
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const firstDayOfMonth = new Date(year, month, 1);
+        const lastDayOfMonth = new Date(year, month + 1, 0);
         const allTasks = AppStore.getTasks() || [];
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
         ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach(day => {
             const dayEl = document.createElement('div');
@@ -121,16 +194,20 @@ const CalendarUI = (() => {
             calendarGrid.appendChild(dayEl);
         });
 
-        const totalDaysToRender = (firstDayOfMonth + daysInMonth) > 35 ? 42 : 35;
+        const totalDaysToRender = (firstDayOfMonth.getDay() + lastDayOfMonth.getDate()) > 35 ? 42 : 35;
         for (let i = 0; i < totalDaysToRender; i++) {
             const daySquare = document.createElement('div');
             daySquare.className = 'calendar-day-square';
-            const dayOfMonth = i - firstDayOfMonth + 1;
+            const dayOfMonth = i - firstDayOfMonth.getDay() + 1;
 
-            if (i >= firstDayOfMonth && dayOfMonth <= daysInMonth) {
+            if (i >= firstDayOfMonth.getDay() && dayOfMonth <= lastDayOfMonth.getDate()) {
                 const date = new Date(year, month, dayOfMonth);
                 const dateStr = date.toISOString().split('T')[0];
                 daySquare.dataset.date = dateStr;
+
+                if (dateStr === todayStr) {
+                    daySquare.classList.add('today-marker');
+                }
 
                 const dayNumber = document.createElement('span');
                 dayNumber.className = 'calendar-day-number';
@@ -140,15 +217,38 @@ const CalendarUI = (() => {
                 const itemsContainer = document.createElement('div');
                 itemsContainer.className = 'space-y-1 mt-1 overflow-y-auto';
 
-                const events = CalendarService.getEvents().filter(event => {
-                    const eventStart = new Date(event.startTime);
-                    const eventEnd = new Date(event.endTime);
-                    const currentDayStart = new Date(dateStr + "T00:00:00");
-                    const currentDayEnd = new Date(dateStr + "T23:59:59");
-                    return currentDayStart <= eventEnd && currentDayEnd >= eventStart;
+                const allEvents = CalendarService.getEvents();
+                let eventsForDay = [];
+
+                allEvents.forEach(event => {
+                    if (event.recurrence && event.recurrence !== 'none') {
+                        const occurrences = getRecurrenceEvents(event, firstDayOfMonth, lastDayOfMonth);
+                        occurrences.forEach(occ => {
+                            if (new Date(occ.startTime).toISOString().split('T')[0] === dateStr) {
+                                eventsForDay.push(occ);
+                            }
+                        });
+                    } else {
+                        const eventStart = new Date(event.startTime);
+                        const eventEnd = new Date(event.endTime);
+                        const currentDayStart = new Date(dateStr + "T00:00:00");
+                        const currentDayEnd = new Date(dateStr + "T23:59:59");
+                        if (currentDayStart <= eventEnd && currentDayEnd >= eventStart) {
+                            eventsForDay.push(event);
+                        }
+                    }
                 });
 
-                events.forEach(event => {
+                holidays.forEach(holiday => {
+                    if (holiday.date === dateStr) {
+                        const holidayEl = document.createElement('div');
+                        holidayEl.className = 'holiday-pill';
+                        holidayEl.textContent = holiday.nameEn;
+                        itemsContainer.appendChild(holidayEl);
+                    }
+                });
+
+                eventsForDay.forEach(event => {
                     const eventEl = document.createElement('div');
                     eventEl.className = 'event-pill';
                     eventEl.draggable = true;
@@ -404,6 +504,8 @@ const CalendarUI = (() => {
             eventIdInput.value = event.id;
             eventTitleInput.value = event.title;
             eventDescriptionInput.value = event.description || '';
+            eventLocationInput.value = event.location || '';
+            eventRecurrenceInput.value = event.recurrence || 'none';
             isAllDayCheckbox.checked = event.isAllDay;
             setSelectedColor(event.color || 'sky-500');
             eventStartDateInput.value = event.startTime.split('T')[0];
@@ -415,6 +517,7 @@ const CalendarUI = (() => {
             eventIdInput.value = '';
             isAllDayCheckbox.checked = false;
             setSelectedColor('sky-500');
+            eventRecurrenceInput.value = 'none';
             if(preselectedDate) {
                 eventStartDateInput.value = preselectedDate;
                 eventEndDateInput.value = preselectedDate;
@@ -451,6 +554,7 @@ const CalendarUI = (() => {
         }
 
         viewEventTime.textContent = timeString;
+        viewEventLocation.textContent = event.location || 'Not specified';
         viewEventDescription.textContent = event.description || 'No description provided.';
         viewEventModal.classList.remove('hidden');
     }
@@ -473,6 +577,8 @@ const CalendarUI = (() => {
         const eventData = {
             title: eventTitleInput.value,
             description: eventDescriptionInput.value,
+            location: eventLocationInput.value,
+            recurrence: eventRecurrenceInput.value,
             startTime,
             endTime,
             isAllDay,
@@ -525,6 +631,100 @@ const CalendarUI = (() => {
         draggedEventId = null;
     }
 
+    function openSettingsModal() {
+        settingsModal.classList.remove('hidden');
+        updateNotificationStatusUI();
+        showHolidaysToggle.checked = localStorage.getItem('showCanadianHolidays') === 'true';
+    }
+
+    function closeSettingsModal() {
+        settingsModal.classList.add('hidden');
+    }
+
+    function updateNotificationStatusUI() {
+        const permission = NotificationService.getPermissionStatus();
+        let statusText = 'Unknown';
+        if (permission === 'granted') statusText = 'Granted';
+        else if (permission === 'denied') statusText = 'Denied by browser';
+        else statusText = 'Not Granted';
+        notificationPermissionStatusText.textContent = `Browser Permission: ${statusText}`;
+        enableNotificationsToggle.checked = (localStorage.getItem('calendarNotificationsEnabled') === 'true') && (permission === 'granted');
+    }
+
+    async function handleEnableNotificationsToggle(e) {
+        const isEnabled = e.target.checked;
+        if (isEnabled) {
+            const permission = await NotificationService.requestPermission();
+            if (permission === 'granted') {
+                localStorage.setItem('calendarNotificationsEnabled', 'true');
+                startNotificationChecker();
+            } else {
+                localStorage.setItem('calendarNotificationsEnabled', 'false');
+                e.target.checked = false;
+            }
+        } else {
+            localStorage.setItem('calendarNotificationsEnabled', 'false');
+            stopNotificationChecker();
+        }
+        updateNotificationStatusUI();
+    }
+    
+    function startNotificationChecker() {
+        if (notificationCheckInterval) clearInterval(notificationCheckInterval);
+        notificationCheckInterval = setInterval(checkForUpcomingEvents, 60000); // Check every minute
+        LoggingService.info('[CalendarUI] Notification checker started.');
+    }
+
+    function stopNotificationChecker() {
+        if (notificationCheckInterval) clearInterval(notificationCheckInterval);
+        notificationCheckInterval = null;
+        LoggingService.info('[CalendarUI] Notification checker stopped.');
+    }
+
+    function checkForUpcomingEvents() {
+        const isEnabled = localStorage.getItem('calendarNotificationsEnabled') === 'true';
+        if (!isEnabled) return;
+
+        const now = new Date();
+        const minutesBefore = parseInt(notifyMinutesBeforeInput.value) || 15;
+        const notifyFrom = new Date(now.getTime() + minutesBefore * 60000);
+        
+        const allEvents = CalendarService.getEvents();
+
+        allEvents.forEach(event => {
+            const eventStart = new Date(event.startTime);
+            if (!event.isAllDay && eventStart > now && eventStart <= notifyFrom) {
+                const notificationId = `event_notification_${event.id}_${event.startTime}`;
+                if (!localStorage.getItem(notificationId)) {
+                     NotificationService.showNotification(event.title, {
+                        body: `Starts at ${eventStart.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}. Location: ${event.location || 'N/A'}`,
+                        tag: notificationId
+                    });
+                    localStorage.setItem(notificationId, 'true');
+                }
+            }
+        });
+    }
+
+    function handleShowHolidaysToggle(e) {
+        const isEnabled = e.target.checked;
+        localStorage.setItem('showCanadianHolidays', isEnabled);
+        updateView();
+    }
+    
+    function handleMouseWheel(e) {
+        if (currentView === 'month') {
+            e.preventDefault();
+            if (e.deltaY < 0) {
+                // Scroll up
+                currentDate.setMonth(currentDate.getMonth() - 1);
+            } else {
+                // Scroll down
+                currentDate.setMonth(currentDate.getMonth() + 1);
+            }
+            updateView();
+        }
+    }
 
     function setupEventListeners() {
         prevMonthBtn.addEventListener('click', () => {
@@ -561,6 +761,11 @@ const CalendarUI = (() => {
         cancelEventBtn.addEventListener('click', closeEventModal);
         closeViewEventBtn.addEventListener('click', closeViewEventModal);
         deleteEventBtn.addEventListener('click', handleDeleteEvent);
+        document.getElementById('settingsBtn').addEventListener('click', openSettingsModal);
+        closeSettingsBtn.addEventListener('click', closeSettingsModal);
+        settingsDoneBtn.addEventListener('click', closeSettingsModal);
+        enableNotificationsToggle.addEventListener('change', handleEnableNotificationsToggle);
+        showHolidaysToggle.addEventListener('change', handleShowHolidaysToggle);
         
         editEventBtn.addEventListener('click', () => {
             const eventIdToEdit = activeEventId;
@@ -570,12 +775,12 @@ const CalendarUI = (() => {
         
         calendarGrid.addEventListener('dragover', handleDragOver);
         calendarGrid.addEventListener('drop', handleDrop);
+        calendarGrid.addEventListener('wheel', handleMouseWheel);
         
         EventBus.subscribe('calendarEventsChanged', updateView);
         EventBus.subscribe('tasksChanged', updateView);
     }
 
-    // --- MODIFICATION START: Add a function to initialize the date picker ---
     function initializeDatePicker() {
         if (datePicker) {
             datePicker.destroy();
@@ -590,14 +795,16 @@ const CalendarUI = (() => {
             },
         });
     }
-    // --- MODIFICATION END ---
 
     return {
         initialize: () => {
             getDOMElements();
             setupEventListeners();
-            initializeDatePicker(); // MODIFICATION: Call the new function
+            initializeDatePicker();
             updateView();
+            if (localStorage.getItem('calendarNotificationsEnabled') === 'true' && NotificationService.getPermissionStatus() === 'granted') {
+                startNotificationChecker();
+            }
             LoggingService.info('[CalendarUI] Initialized.');
         }
     };

@@ -26,6 +26,8 @@ async function addEvent(eventData) {
             createdAt: Date.now(),
             updatedAt: Date.now(),
             color: 'blue', // Default color
+            location: '', // Add location field
+            recurrence: 'none', // Add recurrence field
             ...eventData,
         };
 
