@@ -165,6 +165,30 @@ Holiday Display: Integrated an external API to fetch and display Canadian public
 
 Mouse Wheel Navigation: Added the ability to scroll through months using the mouse wheel on the calendar grid, which involved a change to calendar_main.js.
 
+Date: 2025-07-28
+
+Task: Refactor and Enhance the Notes App Editor.
+
+Goal: To replace the dual-editor (Plain Text/Markdown) system with a single, more intuitive rich text editor.
+
+Sub-tasks Completed:
+
+UI Overhaul: Removed the Markdown toggle, view buttons, and the entire Markdown editor from notes.html, leaving only the rich text editor.
+
+Feature Simplification: Removed the isMarkdown property from noteService.js to simplify the data model.
+
+Logic Refactor: Updated notes_rendering.js and notes_event_handlers.js to remove all logic related to Markdown and focus solely on the rich text editor.
+
+Bug Fixes:
+
+Resolved a persistent bug where the cursor would jump to the beginning of the note when a toolbar button was clicked.
+
+Fixed a styling issue where lists were not displaying their bullet points or numbers.
+
+Improved the visual weight of bolded text.
+
+Feature Removal: Removed the text highlighting feature at the user's request to further simplify the toolbar.
+
 6. Current Focus / Next Steps
 Current Major Task/Feature Being Worked On:
 

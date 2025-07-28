@@ -26,6 +26,12 @@ db.version(2).stores({
     habit_completions: '++id, [habit_id+completedAt]' // The new, faster index
 });
 
+// --- Version 3 (Notes Feature Update) ---
+// Add isPinned and color to the notes table for pinning and color-coding.
+db.version(3).stores({
+    notes: '++id, notebookId, updatedAt, isPinned' // isPinned is indexed for sorting
+});
+
 
 // We are exporting the 'db' object so other files can use it to
 // interact with the database.

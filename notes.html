@@ -60,15 +60,15 @@
                 <div class="flex justify-between items-center mb-4 flex-shrink-0">
                     <div id="noteMeta" class="text-sm text-slate-400">
                         <div id="editorToolbar" class="flex items-center gap-4">
-                            <div class="flex items-center gap-2">
-                                <label for="markdownToggle" class="text-sm font-medium">Markdown</label>
-                                <input type="checkbox" id="markdownToggle" class="toggle-checkbox" />
-                                <label for="markdownToggle" class="toggle-label"></label>
-                            </div>
-                            <div id="markdownViewToggles" class="hidden items-center gap-1 p-1 bg-slate-800 rounded-md">
-                                <button id="editorViewBtn" class="px-2 py-1 text-xs rounded-md bg-sky-500 text-white" title="Show Editor Only"><i class="fas fa-pencil-alt"></i></button>
-                                <button id="splitViewBtn" class="px-2 py-1 text-xs rounded-md" title="Show Split View"><i class="fas fa-columns"></i></button>
-                                <button id="previewViewBtn" class="px-2 py-1 text-xs rounded-md" title="Show Preview Only"><i class="fas fa-eye"></i></button>
+                            <div class="relative">
+                                <button id="colorPaletteBtn" class="rich-text-btn"><i class="fas fa-palette"></i></button>
+                                <div id="colorPalette" class="color-palette hidden">
+                                    <div class="color-swatch" data-color="default" style="background-color: #4b5563;"></div>
+                                    <div class="color-swatch" data-color="red" style="background-color: #ef4444;"></div>
+                                    <div class="color-swatch" data-color="yellow" style="background-color: #f59e0b;"></div>
+                                    <div class="color-swatch" data-color="green" style="background-color: #10b981;"></div>
+                                    <div class="color-swatch" data-color="blue" style="background-color: #3b82f6;"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -81,14 +81,18 @@
                 
                 <input id="noteTitleInput" type="text" value="Select a note" class="w-full bg-transparent text-4xl font-bold text-white focus:outline-none mb-4 flex-shrink-0 border-b border-slate-700 pb-4">
 
-                <div class="flex-grow w-full overflow-y-hidden">
-                    <div id="editorContainer" class="w-full h-full">
-                        <textarea id="noteContentTextarea" class="w-full h-full text-slate-300 text-lg leading-relaxed focus:outline-none bg-transparent border-none resize-none"></textarea>
-
-                        <div id="markdownEditorContainer" class="hidden w-full h-full flex gap-0">
-                            <textarea id="markdownEditorArea" class="h-full text-slate-300 text-lg leading-relaxed focus:outline-none bg-transparent border-none resize-none p-2"></textarea>
-                            <div id="markdownResizer" class="w-2 flex-shrink-0 cursor-col-resize bg-slate-700 hover:bg-sky-500 transition-colors"></div>
-                            <div id="markdownPreviewArea" class="h-full text-slate-300 text-lg leading-relaxed overflow-y-auto p-2"></div>
+                <div class="flex-grow w-full overflow-y-auto flex flex-col">
+                    <div id="editorContainer" class="w-full h-full flex flex-col">
+                        <div id="richTextEditorContainer" class="w-full h-full flex flex-col">
+                            <div id="richTextToolbar" class="relative bg-slate-800 p-2 rounded-t-lg flex items-center gap-2 border-b border-slate-700">
+                                <button data-command="bold" class="rich-text-btn"><i class="fas fa-bold"></i></button>
+                                <button data-command="italic" class="rich-text-btn"><i class="fas fa-italic"></i></button>
+                                <button data-command="underline" class="rich-text-btn"><i class="fas fa-underline"></i></button>
+                                <div class="w-px h-6 bg-slate-700"></div>
+                                <button data-command="insertOrderedList" class="rich-text-btn"><i class="fas fa-list-ol"></i></button>
+                                <button data-command="insertUnorderedList" class="rich-text-btn"><i class="fas fa-list-ul"></i></button>
+                            </div>
+                            <div id="noteContentEditable" contenteditable="true" class="w-full flex-grow text-slate-300 text-lg leading-relaxed focus:outline-none bg-transparent p-4 resize-none"></div>
                         </div>
                     </div>
                 </div>
