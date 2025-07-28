@@ -91,7 +91,7 @@ export function getNoteById(noteId) {
     return notes.find(note => note.id === noteId);
 }
 
-export async function addNote({ title, content, notebookId, isMarkdown = false }) {
+export async function addNote({ title, content, notebookId }) {
     const functionName = 'addNote (NoteService)';
     if (!title || !title.trim()) {
         LoggingService.warn('[NoteService] Attempted to add a note with an empty title.', { functionName });
@@ -103,7 +103,9 @@ export async function addNote({ title, content, notebookId, isMarkdown = false }
         notebookId: notebookId || null,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        isMarkdown: isMarkdown,
+        isMarkdown: false,
+        isPinned: false, // Add isPinned property
+        color: 'default', // Add color property
     };
 
     try {

@@ -758,3 +758,103 @@ body.is-resizing-notes * {
     white-space: nowrap;
     cursor: default;
 }
+
+/* ===== NEW STYLES FOR NOTES APP RICH TEXT EDITOR ===== */
+.rich-text-btn {
+    background-color: #4b5563; /* gray-600 */
+    color: #d1d5db; /* gray-300 */
+    border: none;
+    border-radius: 0.375rem; /* rounded-md */
+    width: 2.25rem; /* w-9 */
+    height: 2.25rem; /* h-9 */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+}
+.rich-text-btn:hover {
+    background-color: #6b7280; /* gray-500 */
+}
+.rich-text-btn.active {
+    background-color: #0ea5e9; /* sky-500 */
+    color: white;
+}
+#noteContentEditable:focus {
+    outline: none;
+}
+
+#noteContentEditable b, #noteContentEditable strong {
+    font-weight: 900; /* Make bold text much bolder */
+}
+
+#noteContentEditable ul, #noteContentEditable ol {
+    display: block;
+    list-style-type: disc;
+    margin-block-start: 1em;
+    margin-block-end: 1em;
+    margin-inline-start: 0px;
+    margin-inline-end: 0px;
+    padding-inline-start: 40px;
+}
+#noteContentEditable ol {
+    list-style-type: decimal;
+}
+
+.color-palette {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: #374151; /* gray-700 */
+    border: 1px solid #4b5563; /* gray-600 */
+    border-radius: 0.375rem; /* rounded-md */
+    padding: 0.5rem;
+    display: flex;
+    gap: 0.5rem;
+    z-index: 10;
+}
+.color-swatch {
+    width: 1.5rem; /* w-6 */
+    height: 1.5rem; /* h-6 */
+    border-radius: 9999px; /* rounded-full */
+    cursor: pointer;
+    border: 2px solid #4b5563; /* gray-600 */
+}
+.color-swatch:hover {
+    border-color: #9ca3af; /* gray-400 */
+}
+.color-swatch.no-color {
+    background-image: linear-gradient(to top right, transparent 48%, red 48%, red 52%, transparent 52%);
+    background-color: white;
+}
+
+#noteContentEditable .note-color-red { color: #ef4444; }
+#noteContentEditable .note-color-yellow { color: #f59e0b; }
+#noteContentEditable .note-color-green { color: #10b981; }
+#noteContentEditable .note-color-blue { color: #3b82f6; }
+
+/* ===== NEW STYLES FOR NOTE PINNING AND COLOR BORDERS ===== */
+.note-pin-btn {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem; /* Moved to the right */
+    color: #6b7280; /* gray-500 */
+    background: none;
+    border: none;
+    cursor: pointer;
+    opacity: 0; /* Hidden by default */
+    transition: all 0.2s ease-in-out;
+}
+.note-item:hover .note-pin-btn,
+.note-pin-btn.pinned {
+    opacity: 1;
+}
+.note-pin-btn.pinned {
+    color: #ef4444; /* red-500 */
+    transform: rotate(0deg); /* Keep it straight */
+}
+
+.note-item.note-color-border-red { border-left-color: #ef4444; }
+.note-item.note-color-border-yellow { border-left-color: #f59e0b; }
+.note-item.note-color-border-green { border-left-color: #10b981; }
+.note-item.note-color-border-blue { border-left-color: #3b82f6; }

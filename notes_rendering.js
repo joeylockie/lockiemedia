@@ -6,8 +6,8 @@ import LoggingService from './loggingService.js';
 
 // --- DOM Element References ---
 let notebooksListEl, notesListEl, noteEditorEl, noteTitleInput;
-let plainTextEditor, markdownEditorContainer, markdownEditorArea, markdownPreviewArea;
-let markdownToggle, markdownViewToggles, currentNotebookTitleEl, notesCountEl;
+let richTextEditorContainer, noteContentEditable, richTextToolbar;
+let currentNotebookTitleEl, notesCountEl;
 
 /**
  * Initializes and caches the core DOM elements for the notes feature.
@@ -21,21 +21,15 @@ export function initializeDOMElements() {
     notesCountEl = document.getElementById('notesCount');
 
     // Editor-specific elements
-    plainTextEditor = document.getElementById('noteContentTextarea');
-    markdownEditorContainer = document.getElementById('markdownEditorContainer');
-    markdownEditorArea = document.getElementById('markdownEditorArea');
-    markdownPreviewArea = document.getElementById('markdownPreviewArea');
-    markdownToggle = document.getElementById('markdownToggle');
-    markdownViewToggles = document.getElementById('markdownViewToggles');
+    richTextEditorContainer = document.getElementById('richTextEditorContainer');
+    noteContentEditable = document.getElementById('noteContentEditable');
+    richTextToolbar = document.getElementById('richTextToolbar');
     
     LoggingService.debug('[NotesRendering] DOM elements initialized.', { module: 'notes_rendering' });
 }
 
 /**
  * Renders the list of notebooks in the sidebar.
- * @param {string} activeNotebookId - The ID of the currently selected notebook.
- * @param {function} onNotebookSelect - Callback function for when a notebook is clicked.
- * @param {function} onNotebookDelete - Callback function for when a notebook's delete button is clicked.
  */
 export function renderNotebooks(activeNotebookId, onNotebookSelect, onNotebookDelete) {
     if (!notebooksListEl) return;
@@ -92,15 +86,18 @@ export function renderNotebooks(activeNotebookId, onNotebookSelect, onNotebookDe
 
 /**
  * Renders the list of notes for the active notebook.
- * @param {string} activeNotebookId - The ID of the currently selected notebook.
- * @param {string} activeNoteId - The ID of the currently selected note.
- * @param {function} onNoteSelect - Callback function for when a note is clicked.
  */
 export function renderNotesList(activeNotebookId, activeNoteId, onNoteSelect) {
     if (!notesListEl) return;
 
     const notes = activeNotebookId === 'all' ? NoteService.getNotes() : NoteService.getNotes(activeNotebookId);
-    notes.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+    
+    // New sorting logic: pinned notes first, then by most recently updated
+    notes.sort((a, b) => {
+        if (a.isPinned && !b.isPinned) return -1;
+        if (!a.isPinned && b.isPinned) return 1;
+        return new Date(b.updatedAt) - new Date(a.updatedAt);
+    });
 
     notesListEl.innerHTML = '';
 
@@ -109,8 +106,23 @@ export function renderNotesList(activeNotebookId, activeNoteId, onNoteSelect) {
     } else {
         notes.forEach(note => {
             const noteDiv = document.createElement('div');
-            noteDiv.className = `note-item block p-4 rounded-lg bg-slate-800 hover:bg-slate-700 border-l-4 border-transparent cursor-pointer ${note.id === activeNoteId ? 'active' : ''}`;
+            const colorClass = note.color && note.color !== 'default' ? `note-color-border-${note.color}` : 'border-transparent';
+            noteDiv.className = `note-item block p-4 rounded-lg bg-slate-800 hover:bg-slate-700 border-l-4 cursor-pointer group relative ${note.id === activeNoteId ? 'active' : ''} ${colorClass}`;
             noteDiv.onclick = () => onNoteSelect(note.id);
+
+            // Add Pin button
+            const pinBtn = document.createElement('button');
+            pinBtn.className = 'note-pin-btn';
+            pinBtn.innerHTML = `<i class="fas fa-thumbtack"></i>`;
+            pinBtn.title = note.isPinned ? 'Unpin note' : 'Pin note';
+            if (note.isPinned) {
+                pinBtn.classList.add('pinned');
+            }
+            pinBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent note selection when pinning
+                NoteService.updateNote(note.id, { isPinned: !note.isPinned });
+            });
+            noteDiv.appendChild(pinBtn);
 
             const title = document.createElement('h3');
             title.className = 'font-semibold text-slate-100 truncate';
@@ -118,7 +130,9 @@ export function renderNotesList(activeNotebookId, activeNoteId, onNoteSelect) {
 
             const snippet = document.createElement('p');
             snippet.className = 'text-sm text-slate-400 truncate mt-1';
-            snippet.textContent = note.content ? note.content.substring(0, 100) : 'No content';
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = note.content || '';
+            snippet.textContent = (tempDiv.textContent || tempDiv.innerText || 'No content').substring(0, 100);
 
             const time = document.createElement('time');
             time.className = 'text-xs text-slate-500 mt-2 block';
@@ -146,8 +160,7 @@ export function renderNotesList(activeNotebookId, activeNoteId, onNoteSelect) {
 }
 
 /**
- * Renders the details of the active note, showing the correct editor.
- * @param {string} activeNoteId - The ID of the currently selected note.
+ * Renders the details of the active note.
  */
 export function renderNoteDetail(activeNoteId) {
     if (!noteEditorEl) return;
@@ -163,29 +176,10 @@ export function renderNoteDetail(activeNoteId) {
         return;
     }
 
-    // Show the main editor pane
     noteEditorEl.classList.remove('hidden');
-
-    // Set the title and the Markdown toggle state
     if (noteTitleInput) noteTitleInput.value = note.title;
-    if (markdownToggle) markdownToggle.checked = note.isMarkdown;
 
-    // Show or hide the correct editor based on the note's state
-    if (note.isMarkdown) {
-        plainTextEditor.classList.add('hidden');
-        markdownEditorContainer.classList.remove('hidden');
-        markdownViewToggles.classList.remove('hidden');
-        
-        // Populate the markdown editor and trigger the initial render
-        markdownEditorArea.value = note.content || '';
-        const dirtyHtml = marked.parse(note.content || '');
-        markdownPreviewArea.innerHTML = DOMPurify.sanitize(dirtyHtml);
-    } else {
-        plainTextEditor.classList.remove('hidden');
-        markdownEditorContainer.classList.add('hidden');
-        markdownViewToggles.classList.add('hidden');
-
-        // Populate the plain text editor
-        plainTextEditor.value = note.content || '';
-    }
+    // Always show rich text editor
+    richTextEditorContainer.classList.remove('hidden');
+    noteContentEditable.innerHTML = note.content || '';
 }
