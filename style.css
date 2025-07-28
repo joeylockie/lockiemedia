@@ -734,3 +734,27 @@ body.is-resizing-notes * {
     -moz-appearance: textfield; /* For Firefox */
     appearance: textfield;      /* Standard property for modern browsers */
 }
+
+/* ===== NEW STYLES FOR CALENDAR ===== */
+.today-marker .calendar-day-number {
+    background-color: #0ea5e9; /* sky-500 */
+    color: white;
+    border-radius: 9999px; /* rounded-full */
+    width: 1.75rem; /* w-7 */
+    height: 1.75rem; /* h-7 */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.holiday-pill {
+    font-size: 0.75rem; /* text-xs */
+    padding: 0.25rem;
+    border-radius: 0.25rem;
+    background-color: #166534; /* green-800 */
+    color: #dcfce7; /* green-100 */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: default;
+}
