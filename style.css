@@ -858,3 +858,21 @@ body.is-resizing-notes * {
 .note-item.note-color-border-yellow { border-left-color: #f59e0b; }
 .note-item.note-color-border-green { border-left-color: #10b981; }
 .note-item.note-color-border-blue { border-left-color: #3b82f6; }
+
+
+/* ===== NEW STYLES FOR TIME TRACKER REDESIGN ===== */
+/* Custom scrollbar for a cleaner look in dark mode */
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #2d3748;
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb {
+    background: #4a5568;
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #6a7588;
+}

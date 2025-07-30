@@ -132,7 +132,7 @@ function renderReport(groupedData) {
             activityList.className = 'space-y-2 pl-4 border-l-2 border-slate-600';
             
             for (const activityId in entriesByActivity) {
-                const activity = activities.find(a => a.id === activityId);
+                const activity = activities.find(a => a.id === parseInt(activityId, 10));
                 const activityEntries = entriesByActivity[activityId];
                 const activityTotalMs = activityEntries.reduce((sum, e) => sum + e.durationMs, 0);
 
