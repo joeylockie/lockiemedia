@@ -1,5 +1,5 @@
 // feature_time_tracker.js
-// Manages the UI and logic for the Time Tracker feature page.
+// Manages the UI and logic for the Time Tracker feature page (REDESIGNED).
 
 import LoggingService from './loggingService.js';
 import TimeTrackerService from './timeTrackerService.js';
@@ -7,22 +7,16 @@ import { formatMillisecondsToHMS } from './utils.js';
 import EventBus from './eventBus.js';
 
 // --- Internal State ---
-let _updateInterval = null;
+let _updateIntervals = {}; // Use an object to manage multiple timer intervals
 
 // --- DOM Element References ---
-let trackedItemsContainer;
-let activityButtonsContainer;
-let addManualEntryBtn;
-
-// --- Tracking Display References ---
-let trackingDisplayContainer, trackingStatusText, trackingTimeDisplay, stopBtn;
+let trackingCardsContainer, activityGrid;
+let floatingAddBtn, manageActivitiesLink;
 
 // --- Modal DOM Element References ---
 let manageActivitiesModal, manageActivitiesDialog, closeManageActivitiesModalBtn;
 let addActivityForm, activityNameInput, activityIconSelect, activityIconInput, activityColorInput;
-let existingActivitiesList, manageActivitiesBtn;
-
-// --- Time Entry Modal DOM Element References ---
+let existingActivitiesList;
 let timeEntryModal, timeEntryDialog, timeEntryModalTitle, closeTimeEntryModalBtn, cancelTimeEntryBtn;
 let timeEntryForm, timeEntryLogId, timeEntryActivitySelect, timeEntryDate, timeEntryStartTime, timeEntryEndTime, timeEntryNotes, saveTimeEntryBtn;
 
@@ -43,219 +37,156 @@ const iconSuggestions = [
     { name: 'Default Stop Watch', class: 'fas fa-stopwatch' },
     { name: 'Code / Development', class: 'fas fa-code' },
     { name: 'Briefcase / Work', class: 'fas fa-briefcase' },
-    { name: 'Building / Office', class: 'fas fa-building' },
-    { name: 'Terminal / Command Line', class: 'fas fa-terminal' },
     { name: 'Meeting / Team', class: 'fas fa-users' },
-    { name: 'Handshake / Client', class: 'fas fa-handshake' },
-    { name: 'Presentation / Teaching', class: 'fas fa-person-chalkboard' },
     { name: 'Design / Art', class: 'fas fa-paint-brush' },
-    { name: 'Palette / Graphics', class: 'fas fa-palette' },
-    { name: 'Drafting / Planning', class: 'fas fa-drafting-compass' },
-    { name: 'Magic Wand / Creative', class: 'fas fa-wand-magic-sparkles' },
     { name: 'Learning / Studying', class: 'fas fa-book-open' },
-    { name: 'Graduation / School', class: 'fas fa-graduation-cap' },
-    { name: 'Brain / Thinking', class: 'fas fa-brain' },
-    { name: 'Lightbulb / Ideas', class: 'fas fa-lightbulb' },
     { name: 'Phone / Calls', class: 'fas fa-phone' },
     { name: 'Email / Inbox', class: 'fas fa-envelope' },
-    { name: 'Comments / Communication', class: 'fas fa-comments' },
-    { name: 'Bullhorn / Marketing', class: 'fas fa-bullhorn' },
     { name: 'Coffee Break', class: 'fas fa-coffee' },
     { name: 'Lunch / Food', class: 'fas fa-utensils' },
-    { name: 'Tea Break', class: 'fas fa-mug-hot' },
     { name: 'Exercise / Gym', class: 'fas fa-dumbbell' },
-    { name: 'Heartbeat / Health', class: 'fas fa-heart-pulse' },
-    { name: 'Running / Jogging', class: 'fas fa-running' },
-    { name: 'Biking / Cycling', class: 'fas fa-bicycle' },
     { name: 'Gaming / Hobby', class: 'fas fa-gamepad' },
     { name: 'Music / Listening', class: 'fas fa-music' },
-    { name: 'Film / Movies', class: 'fas fa-film' },
-    { name: 'Book / Reading', class: 'fas fa-book' },
     { name: 'Shopping / Errands', class: 'fas fa-shopping-cart' },
-    { name: 'Finance / Budgeting', class: 'fas fa-piggy-bank' },
-    { name: 'Chart / Analytics', class: 'fas fa-chart-line' },
-    { name: 'Calculator / Accounting', class: 'fas fa-calculator' },
     { name: 'Home / Chores', class: 'fas fa-home' },
-    { name: 'Wrench / DIY', class: 'fas fa-wrench' },
-    { name: 'Broom / Cleaning', class: 'fas fa-broom' },
-    { name: 'Bed / Rest', class: 'fas fa-bed' },
-    { name: 'Travel / Commute', class: 'fas fa-plane' },
-    { name: 'Car / Driving', class: 'fas fa-car' },
-    { name: 'Suitcase / Packing', class: 'fas fa-suitcase-rolling' },
-    { name: 'Map / Navigation', class: 'fas fa-map-location-dot' },
-    { name: 'Admin / Settings', class: 'fas fa-cog' },
-    { name: 'Checkmark / Done', class: 'fas fa-check' },
-    { name: 'Flag / Goals', class: 'fas fa-flag' },
-    { name: 'Fire / Urgent', class: 'fas fa-fire' },
-    { name: 'Atom / Science', class: 'fas fa-atom' },
-    { name: 'Globe / World', class: 'fas fa-globe' },
-    { name: 'Meditation / Mindfulness', class: 'fas fa-om' },
-    { name: 'Writing / Journaling', class: 'fas fa-pen-nib' },
-    { name: 'Podcast / Audio', class: 'fas fa-podcast' },
-    { name: 'Video / Recording', class: 'fas fa-video' },
 ];
-
 
 // --- Rendering Functions ---
 
 function populateIconSelect() {
     if (!activityIconSelect) return;
     activityIconSelect.innerHTML = '';
-    
     const defaultOption = document.createElement('option');
     defaultOption.value = '';
     defaultOption.textContent = '--- Select a preset icon ---';
     activityIconSelect.appendChild(defaultOption);
-
     iconSuggestions.forEach(icon => {
         const option = document.createElement('option');
         option.value = icon.class;
-        // Prepending a simple character to prevent rendering issues
         option.textContent = `► ${icon.name}`;
         activityIconSelect.appendChild(option);
     });
 }
 
-function renderTrackedItems() {
-    if (!trackedItemsContainer) {
-        LoggingService.error("[TimeTrackerFeature] Tracked items container not found! Cannot render list.", null, { functionName: 'renderTrackedItems' });
-        return;
-    }
+function renderTrackingCards() {
+    if (!trackingCardsContainer) return;
 
-    const activities = TimeTrackerService.getActivities();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const logEntries = TimeTrackerService.getLogEntries().filter(entry => new Date(entry.startTime) >= today);
+    Object.values(_updateIntervals).forEach(clearInterval);
+    _updateIntervals = {};
+    trackingCardsContainer.innerHTML = '<h2 class="text-2xl font-bold text-white mb-4">Currently Tracking</h2>';
 
-    trackedItemsContainer.innerHTML = ''; 
+    const activeTimers = TimeTrackerService.getActiveTimers(); // Get the array of timers
 
-    if (logEntries.length === 0) {
-        trackedItemsContainer.innerHTML = '<p class="text-slate-400 italic">No time tracked yet today.</p>';
-        return;
-    }
-
-    logEntries.forEach(log => {
-        const activity = activities.find(a => a.id === log.activityId);
-        if (!activity) return; 
-
-        const itemDiv = document.createElement('div');
-        itemDiv.className = 'tracked-item flex items-center p-4 rounded-lg bg-slate-800 border-l-4 border-transparent';
-
-        const icon = document.createElement('i');
-        icon.className = `${activity.icon || 'fas fa-stopwatch'} text-xl ${colorMap[activity.color] || 'text-slate-400'} w-8 text-center mr-4`;
-
-        const infoDiv = document.createElement('div');
-        infoDiv.className = 'flex-grow';
-
-        const nameP = document.createElement('p');
-        nameP.className = 'font-semibold text-white';
-        nameP.textContent = activity.name;
-
-        const timeP = document.createElement('p');
-        timeP.className = 'text-xs text-slate-400';
-        const startTime = new Date(log.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const endTime = new Date(log.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        timeP.textContent = `${startTime} - ${endTime}`;
-
-        const notesP = document.createElement('p');
-        notesP.className = 'text-sm text-slate-300 mt-1 italic';
-        notesP.textContent = log.notes || '';
-        if (!log.notes) notesP.classList.add('hidden');
-
-        infoDiv.appendChild(nameP);
-        infoDiv.appendChild(timeP);
-        infoDiv.appendChild(notesP);
-
-        const actionsDiv = document.createElement('div');
-        actionsDiv.className = 'tracked-item-actions flex items-center gap-2 ml-4';
-
-        const editBtn = document.createElement('button');
-        editBtn.innerHTML = '<i class="fas fa-pencil-alt"></i>';
-        editBtn.className = 'text-slate-400 hover:text-sky-400 transition-colors';
-        editBtn.title = 'Edit Entry';
-        editBtn.onclick = () => openTimeEntryModal(log.id);
-        
-        const deleteBtn = document.createElement('button');
-        deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
-        deleteBtn.className = 'text-slate-400 hover:text-red-500 transition-colors';
-        deleteBtn.title = 'Delete Entry';
-        deleteBtn.onclick = async () => {
-            if (confirm('Are you sure you want to delete this time entry?')) {
-                await TimeTrackerService.deleteLogEntry(log.id);
+    if (activeTimers.length > 0) {
+        activeTimers.forEach(timer => {
+            const activity = TimeTrackerService.getActivities().find(a => a.id === timer.activityId);
+            if (activity) {
+                trackingCardsContainer.appendChild(createTrackingCard(activity, timer));
             }
-        };
-
-        actionsDiv.appendChild(editBtn);
-        actionsDiv.appendChild(deleteBtn);
-
-        const durationSpan = document.createElement('span');
-        durationSpan.className = 'font-mono text-lg text-white';
-        durationSpan.textContent = formatMillisecondsToHMS(log.durationMs);
-
-        itemDiv.appendChild(icon);
-        itemDiv.appendChild(infoDiv);
-        itemDiv.appendChild(durationSpan);
-        itemDiv.appendChild(actionsDiv);
-
-        trackedItemsContainer.appendChild(itemDiv);
-    });
-}
-
-function updateCurrentlyTrackingUI() {
-    if (!trackingDisplayContainer) return;
-
-    if (_updateInterval) clearInterval(_updateInterval);
-
-    const activeTimer = TimeTrackerService.getActiveTimer();
-    trackingDisplayContainer.classList.remove('hidden');
-
-    if (activeTimer) {
-        const activity = TimeTrackerService.getActivities().find(a => a.id === activeTimer.activityId);
-        if(trackingStatusText) trackingStatusText.textContent = `Currently tracking: ${activity ? activity.name : '...'}`;
-        
-        const updateTime = () => {
-            if (trackingTimeDisplay) {
-                const elapsedMs = new Date().getTime() - new Date(activeTimer.startTime).getTime();
-                trackingTimeDisplay.textContent = formatMillisecondsToHMS(elapsedMs);
-            }
-        };
-        _updateInterval = setInterval(updateTime, 1000);
-        updateTime();
-        if(stopBtn) stopBtn.classList.remove('hidden');
-
+        });
     } else {
-        if(trackingStatusText) trackingStatusText.textContent = 'Time Tracked Today';
-        const totalMs = TimeTrackerService.getTodaysTotalTrackedMs();
-        if(trackingTimeDisplay) trackingTimeDisplay.textContent = formatMillisecondsToHMS(totalMs);
-        if(stopBtn) stopBtn.classList.add('hidden');
+        trackingCardsContainer.innerHTML += '<p class="text-gray-400 text-sm">No active timers. Select an activity from the right to start tracking!</p>';
     }
 }
 
-function renderActivityButtons() {
-    if (!activityButtonsContainer) return;
+function createTrackingCard(activity, timerData) {
+    const card = document.createElement('section');
+    card.className = 'bg-gray-800 rounded-xl shadow-lg p-6 mb-6';
+    const timerId = `timer-${activity.id}`;
+    const isPaused = timerData.isPaused;
+
+    let actionButtonsHTML = '';
+    if (isPaused) {
+        actionButtonsHTML = `
+            <button data-activity-id="${activity.id}" class="resume-btn p-3 rounded-full text-green-400 hover:text-green-300 transition duration-200" title="Resume">
+                <i class="fas fa-play text-lg"></i>
+            </button>
+            <button data-activity-id="${activity.id}" class="stop-btn p-3 rounded-full text-red-400 hover:text-red-300 transition duration-200" title="Stop">
+                <i class="fas fa-stop text-lg"></i>
+            </button>
+        `;
+    } else {
+         actionButtonsHTML = `
+            <button data-activity-id="${activity.id}" class="pause-btn p-3 rounded-full text-blue-400 hover:text-blue-300 transition duration-200" title="Pause">
+                <i class="fas fa-pause text-lg"></i>
+            </button>
+            <button data-activity-id="${activity.id}" class="stop-btn p-3 rounded-full text-red-400 hover:text-red-300 transition duration-200" title="Stop">
+                <i class="fas fa-stop text-lg"></i>
+            </button>
+        `;
+    }
+
+    card.innerHTML = `
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center">
+                <div class="mr-4">
+                    <i class="${activity.icon || 'fas fa-stopwatch'} ${colorMap[activity.color] || 'text-gray-400'} text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-lg font-semibold text-white">${activity.name}</p>
+                    <p class="text-sm text-gray-400">${activity.description || 'Tracked activity'}</p>
+                </div>
+            </div>
+            <div class="flex space-x-2">${actionButtonsHTML}</div>
+        </div>
+        <div id="${timerId}" class="text-right text-3xl font-mono font-bold ${isPaused ? 'text-gray-500' : 'text-blue-400'}">
+            ...
+        </div>
+    `;
+
+    const timerDisplay = card.querySelector(`#${timerId}`);
+
+    function updateTimerDisplay() {
+        let elapsedMs;
+        if (isPaused) {
+            elapsedMs = timerData.pauseTime.getTime() - timerData.startTime.getTime();
+        } else {
+            elapsedMs = new Date().getTime() - timerData.startTime.getTime();
+        }
+        if (timerDisplay) timerDisplay.textContent = formatMillisecondsToHMS(elapsedMs);
+    }
+
+    if (!isPaused) {
+        _updateIntervals[activity.id] = setInterval(updateTimerDisplay, 1000);
+    }
+    
+    updateTimerDisplay(); // Initial display
+
+    card.querySelector('.stop-btn')?.addEventListener('click', (e) => TimeTrackerService.stopTracking(parseInt(e.currentTarget.dataset.activityId)));
+    card.querySelector('.pause-btn')?.addEventListener('click', (e) => TimeTrackerService.pauseTracking(parseInt(e.currentTarget.dataset.activityId)));
+    card.querySelector('.resume-btn')?.addEventListener('click', (e) => TimeTrackerService.resumeTracking(parseInt(e.currentTarget.dataset.activityId)));
+    
+    return card;
+}
+
+
+function renderActivityGrid() {
+    if (!activityGrid) return;
     const activities = TimeTrackerService.getActivities();
-    activityButtonsContainer.innerHTML = ''; 
+    activityGrid.innerHTML = '';
+
     if (!activities || activities.length === 0) {
-        activityButtonsContainer.innerHTML = `<p class="text-slate-400 italic text-sm p-4">No activities created. Click "Manage Activities" to add some.</p>`;
+        activityGrid.innerHTML = `<p class="text-gray-400 col-span-full">No activities created yet. Click on "Activities" in the sidebar to add some.</p>`;
         return;
     }
+
     activities.forEach(activity => {
         const card = document.createElement('div');
-        card.className = 'text-center p-2 cursor-pointer';
+        card.className = 'flex flex-col items-center justify-center bg-gray-800 p-4 rounded-xl shadow-md cursor-pointer hover:shadow-lg transition duration-200 h-full';
         card.title = `Start tracking ${activity.name}`;
         card.innerHTML = `
-            <div class="w-16 h-16 flex items-center justify-center">
-                 <i class="${activity.icon || 'fas fa-stopwatch'} ${colorMap[activity.color] || 'text-slate-400'} text-3xl"></i>
+            <div class="mb-2">
+                <i class="${activity.icon || 'fas fa-stopwatch'} ${colorMap[activity.color] || 'text-gray-400'} text-2xl"></i>
             </div>
-            <p class="text-xs mt-1 text-slate-300">${activity.name}</p>
+            <p class="text-sm font-medium text-gray-200 break-words text-center">${activity.name}</p>
         `;
-        card.onclick = () => {
+        card.addEventListener('click', () => {
             TimeTrackerService.startTracking(activity.id);
-            updateCurrentlyTrackingUI();
-        };
-        activityButtonsContainer.appendChild(card);
+        });
+        activityGrid.appendChild(card);
     });
 }
+
 
 // --- Modal Management Functions ---
 
@@ -397,22 +328,20 @@ async function handleTimeEntryFormSubmit(event) {
 
 function initialize() {
     const functionName = 'initialize (TimeTrackerFeature)';
-    if (!document.getElementById('timeTrackerHeader')) {
-        LoggingService.debug('[TimeTrackerFeature] Not on time-tracker page. Skipping initialization.', { functionName });
+    if (!document.getElementById('activityGrid')) {
+        LoggingService.debug('[TimeTrackerFeature] Not on the redesigned time-tracker page. Skipping initialization.', { functionName });
         return;
     }
     LoggingService.info('[TimeTrackerFeature] Initializing...', { functionName });
     TimeTrackerService.initialize();
 
     // Get all DOM element references
-    trackedItemsContainer = document.getElementById('trackedItemsContainer');
-    activityButtonsContainer = document.getElementById('activityButtonsContainer');
-    trackingDisplayContainer = document.getElementById('trackingDisplayContainer');
-    if (trackingDisplayContainer) {
-        trackingStatusText = trackingDisplayContainer.querySelector('#trackingStatusText');
-        trackingTimeDisplay = trackingDisplayContainer.querySelector('#trackingTimeDisplay');
-        stopBtn = trackingDisplayContainer.querySelector('#stopBtn');
-    }
+    trackingCardsContainer = document.getElementById('trackingCardsContainer');
+    activityGrid = document.getElementById('activityGrid');
+    floatingAddBtn = document.getElementById('floatingAddBtn');
+    manageActivitiesLink = document.getElementById('manageActivitiesLink');
+
+    // Modal elements
     manageActivitiesModal = document.getElementById('manageActivitiesModal');
     manageActivitiesDialog = document.getElementById('manageActivitiesDialog');
     closeManageActivitiesModalBtn = document.getElementById('closeManageActivitiesModalBtn');
@@ -422,8 +351,6 @@ function initialize() {
     activityIconInput = document.getElementById('activityIconInput');
     activityColorInput = document.getElementById('activityColorInput');
     existingActivitiesList = document.getElementById('existingActivitiesList');
-    manageActivitiesBtn = document.getElementById('manageActivitiesBtn');
-    addManualEntryBtn = document.getElementById('addManualEntryBtn');
     timeEntryModal = document.getElementById('timeEntryModal');
     timeEntryDialog = document.getElementById('timeEntryDialog');
     timeEntryModalTitle = document.getElementById('timeEntryModalTitle');
@@ -439,21 +366,14 @@ function initialize() {
     saveTimeEntryBtn = document.getElementById('saveTimeEntryBtn');
 
     // Attach listeners
-    if (manageActivitiesBtn) manageActivitiesBtn.addEventListener('click', openManageActivitiesModal);
+    if (manageActivitiesLink) manageActivitiesLink.addEventListener('click', openManageActivitiesModal);
     if (closeManageActivitiesModalBtn) closeManageActivitiesModalBtn.addEventListener('click', closeManageActivitiesModal);
     if (addActivityForm) addActivityForm.addEventListener('submit', handleAddActivityFormSubmit);
-    if (addManualEntryBtn) addManualEntryBtn.addEventListener('click', () => openTimeEntryModal());
+    if (floatingAddBtn) floatingAddBtn.addEventListener('click', () => openTimeEntryModal());
     if (timeEntryForm) timeEntryForm.addEventListener('submit', handleTimeEntryFormSubmit);
     if (closeTimeEntryModalBtn) closeTimeEntryModalBtn.addEventListener('click', closeTimeEntryModal);
     if (cancelTimeEntryBtn) cancelTimeEntryBtn.addEventListener('click', closeTimeEntryModal);
-    
-    if (stopBtn) {
-        stopBtn.onclick = async () => {
-            await TimeTrackerService.stopTracking();
-            updateCurrentlyTrackingUI();
-        };
-    }
-    
+
     if (activityIconSelect) {
         activityIconSelect.addEventListener('change', (e) => {
             if (e.target.value) {
@@ -464,21 +384,19 @@ function initialize() {
     
     // Subscribe to AppStore events for reactive UI updates
     EventBus.subscribe('timeActivitiesChanged', () => {
-        renderActivityButtons();
+        renderActivityGrid();
+        renderTrackingCards();
         if (manageActivitiesModal && !manageActivitiesModal.classList.contains('hidden')) {
             renderManageActivitiesList();
         }
     });
 
-    EventBus.subscribe('timeLogEntriesChanged', () => {
-        renderTrackedItems();
-        updateCurrentlyTrackingUI(); // Also update total when entries change
-    });
+    EventBus.subscribe('timeLogEntriesChanged', renderTrackingCards);
+    EventBus.subscribe('activeTimerChanged', renderTrackingCards);
 
     // Initial Render
-    renderActivityButtons();
-    renderTrackedItems();
-    updateCurrentlyTrackingUI();
+    renderActivityGrid();
+    renderTrackingCards();
     
     LoggingService.info('[TimeTrackerFeature] Initialized and event bus subscriptions are active.', { functionName });
 }

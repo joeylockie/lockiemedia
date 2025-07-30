@@ -6,75 +6,78 @@
     <title>Time Tracker - LockieMedia</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c;
+            color: #e2e8f0;
+        }
+        /* Custom scrollbar for a cleaner look in dark mode */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #2d3748;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4a5568;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6a7588;
+        }
+    </style>
 </head>
-<body class="bg-gradient-to-br from-slate-900 to-slate-700 min-h-screen dark">
+<body class="min-h-screen flex">
+    <aside class="w-20 bg-gray-900 shadow-lg flex flex-col items-center py-8 px-2">
+<div class="mb-10">
+    <a href="index.html" title="Go to Home">
+        <i class="fas fa-home text-blue-400 text-3xl"></i>
+    </a>
+</div>
+        <nav class="flex flex-col space-y-8">
+            <a href="time-tracker.html" class="flex flex-col items-center text-blue-400 border-l-2 border-blue-400 pl-2" title="Timer">
+                <i class="fas fa-stopwatch text-2xl mb-1"></i>
+                <span class="text-xs">Timer</span>
+            </a>
+            <a href="time-history.html" class="flex flex-col items-center text-gray-400 hover:text-white transition duration-200" title="Log">
+                <i class="fas fa-book text-2xl mb-1"></i>
+                <span class="text-xs">Log</span>
+            </a>
+            <a href="#" id="manageActivitiesLink" class="flex flex-col items-center text-gray-400 hover:text-white transition duration-200" title="Activities">
+                <i class="fas fa-list-ul text-2xl mb-1"></i>
+                <span class="text-xs">Activities</span>
+            </a>
+            <a href="#" id="moreOptionsLink" class="flex flex-col items-center text-gray-400 hover:text-white transition duration-200" title="More">
+                <i class="fas fa-ellipsis-h text-2xl mb-1"></i>
+                <span class="text-xs">More</span>
+            </a>
+        </nav>
+    </aside>
 
-    <div class="flex h-screen">
-        <aside class="w-72 bg-slate-800 p-6 flex-shrink-0 border-r border-slate-700 flex flex-col">
-            <div class="flex items-center justify-between mb-8">
-                <h1 class="text-2xl font-bold text-sky-400">Time Tracker</h1>
-                 <a href="index.html" class="text-slate-400 hover:text-white" title="Back to Dashboard">
-                    <i class="fas fa-home"></i>
-                </a>
-            </div>
-            <nav class="flex-grow">
-                <ul class="space-y-2">
-                    <li>
-                        <a href="time-tracker.html" class="flex items-center px-4 py-2.5 rounded-lg bg-sky-500 text-white font-semibold">
-                            <i class="fas fa-clock w-5 mr-3"></i>
-                            <span>Today</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="time-history.html" class="flex items-center px-4 py-2.5 rounded-lg text-slate-300 hover:bg-slate-700">
-                            <i class="fas fa-calendar-week w-5 mr-3"></i>
-                            <span>History & Reports</span>
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-            <div class="mt-auto space-y-2">
-                 <button id="manageRemindersBtn" class="w-full flex items-center justify-center px-4 py-3 rounded-lg transition-colors duration-200 bg-slate-700 hover:bg-slate-600 text-white font-semibold">
-                    <i class="fas fa-bell mr-2"></i>
-                    <span>Manage Reminders</span>
-                </button>
-                 <button id="manageActivitiesBtn" class="w-full flex items-center justify-center px-4 py-3 rounded-lg transition-colors duration-200 bg-slate-700 hover:bg-slate-600 text-white font-semibold">
-                    <i class="fas fa-cog mr-2"></i>
-                    <span>Manage Activities</span>
-                </button>
-            </div>
-        </aside>
+    <main class="flex-1 flex flex-col items-center py-8 px-8 overflow-y-auto">
+        <header class="w-full max-w-4xl text-center mb-8">
+            <h1 class="text-4xl font-bold text-white">Time Tracker</h1>
+        </header>
 
-        <main class="flex-1 bg-slate-900/70 p-8 overflow-y-auto">
-            <header class="mb-8 flex justify-between items-center">
-                <div>
-                    <h2 id="timeTrackerHeader" class="text-2xl font-bold text-white mb-2">Activities</h2>
-                    <p class="text-sm text-slate-400">Select an activity to start tracking or add a manual entry.</p>
+        <div class="w-full max-w-4xl flex flex-col lg:flex-row lg:space-x-8">
+            <div id="trackingCardsContainer" class="flex-1">
+                <h2 class="text-2xl font-bold text-white mb-4">Currently Tracking</h2>
                 </div>
-                <button id="addManualEntryBtn" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center">
-                    <i class="fas fa-plus mr-2"></i>
-                    <span>Add Entry</span>
-                </button>
-            </header>
-            
-            <div id="activityButtonsContainer" class="flex gap-4 overflow-x-auto pb-4">
-            </div>
-            
-            <div id="trackingDisplayContainer" class="bg-slate-800 p-4 rounded-lg mb-6 flex-wrap justify-between items-center hidden">
-                <span id="trackingStatusText" class="font-medium text-lg text-white">Currently tracking: ...</span>
-                <div class="flex items-center gap-4 mt-2 sm:mt-0">
-                    <span id="trackingTimeDisplay" class="text-2xl font-mono font-bold text-sky-400">00:00:00</span>
-                    <button id="stopBtn" class="text-slate-400 hover:text-white" title="Stop"><i class="fas fa-stop"></i></button>
-                </div>
-            </div>
 
-            <h3 class="text-xl font-semibold text-slate-200 mt-8 mb-4">Today's Log</h3>
-            <div id="trackedItemsContainer" class="space-y-2">
+            <div class="flex-1">
+                <h2 class="text-2xl font-bold text-white mb-4">Your Activities</h2>
+                <section id="activityGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-20">
+                    </section>
             </div>
-        </main>
-    </div>
+        </div>
+
+        <button id="floatingAddBtn" class="fixed bottom-8 right-8 bg-blue-600 text-white p-5 rounded-full shadow-xl hover:bg-blue-700 transition duration-200 transform hover:scale-105" title="Add Manual Entry">
+            <i class="fas fa-plus text-2xl"></i>
+        </button>
+    </main>
 
     <div id="manageActivitiesModal" class="fixed inset-0 bg-slate-900 bg-opacity-75 flex items-center justify-center z-50 hidden opacity-0 dark">
         <div id="manageActivitiesDialog" class="bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-md border border-slate-700 transform scale-95 opacity-0">
@@ -188,7 +191,6 @@
             </div>
         </div>
     </div>
-
     <div id="reminderEditorModal" class="fixed inset-0 bg-slate-900 bg-opacity-80 flex items-center justify-center z-[60] hidden opacity-0 dark">
         <div id="reminderEditorDialog" class="bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-lg border border-slate-700 transform scale-95 opacity-0">
             <h3 id="reminderEditorTitle" class="text-2xl font-semibold text-slate-100 mb-4">Add Reminder</h3>
@@ -246,15 +248,6 @@
         </div>
     </div>
 
-
-    <script>
-        const headerEl = document.getElementById('timeTrackerHeader');
-        if(headerEl) {
-            const today = new Date();
-            const options = { weekday: 'long', month: 'long', day: 'numeric' };
-            headerEl.textContent = `Today - ${today.toLocaleDateString('en-US', options)}`;
-        }
-    </script>
     <script src="loggingService.js" type="module"></script>
     <script src="eventBus.js" type="module"></script>
     <script src="store.js" type="module"></script>
