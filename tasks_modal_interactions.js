@@ -109,14 +109,25 @@ export function openViewEditModal(taskId) {
 
     if (AdvancedRecurrenceFeature?.updateRecurrenceUI) {
         const recurrenceOptions = task.recurrence || {};
-        document.getElementById('modalRecurrenceViewEdit').value = recurrenceOptions.frequency || 'none';
+        const modalRecurrenceViewEditEl = document.getElementById('modalRecurrenceViewEdit');
+        modalRecurrenceViewEditEl.value = recurrenceOptions.frequency || 'none';
         document.getElementById('recurrenceIntervalViewEdit').value = recurrenceOptions.interval || 1;
         document.getElementById('recurrenceEndDateViewEdit').value = recurrenceOptions.endDate || '';
+        
         const checkboxes = document.querySelectorAll('#weeklyRecurrenceOptionsViewEdit input[type="checkbox"]');
         checkboxes.forEach(cb => {
             cb.checked = recurrenceOptions.daysOfWeek?.includes(cb.value) || false;
         });
-        AdvancedRecurrenceFeature.updateRecurrenceUI();
+
+        // *** THIS IS THE FIX ***
+        // We now pass the correct DOM elements to the update function.
+        AdvancedRecurrenceFeature.updateRecurrenceUI(
+            modalRecurrenceViewEditEl,
+            document.getElementById('recurrenceOptionsViewEdit'),
+            document.getElementById('recurrenceIntervalViewEdit'),
+            document.getElementById('recurrenceFrequencyTextViewEdit'),
+            document.getElementById('weeklyRecurrenceOptionsViewEdit')
+        );
     }
 
     const viewEditTaskModalEl = document.getElementById('viewEditTaskModal');

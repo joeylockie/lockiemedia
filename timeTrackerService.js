@@ -205,6 +205,9 @@ const TimeTrackerService = {
     addLogEntry,
     updateLogEntry,
     deleteLogEntry,
+    addActivity,
+    deleteActivity,
+    getTodaysTotalTrackedMs,
 };
 
 export default TimeTrackerService;
