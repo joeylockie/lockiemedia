@@ -1,42 +1,53 @@
 // timeTrackerService.js
 // Manages logic for the time tracker feature, using IndexedDB for core data
-// and localStorage for the transient active timer state.
+// and localStorage for the transient active timer state. Now supports multiple timers.
 
 import LoggingService from './loggingService.js';
 import AppStore from './store.js';
 import db from './database.js'; // Import the database connection
 import EventBus from './eventBus.js'; // Import EventBus
 
-const ACTIVE_TIMER_KEY = 'timeTracker_active_timer_v1';
+const ACTIVE_TIMERS_KEY = 'timeTracker_active_timers_v2'; // Renamed key for new array structure
 
 // --- Internal State ---
-let _activeTimer = null; // This remains managed by localStorage for efficiency.
+let _activeTimers = []; // Now an array
 
 // --- Private Helper Functions (for active timer) ---
-function _loadActiveTimer() {
+function _loadActiveTimers() {
     try {
-        const storedTimer = localStorage.getItem(ACTIVE_TIMER_KEY);
-        _activeTimer = storedTimer ? JSON.parse(storedTimer) : null;
-        if (_activeTimer) {
-            // Make sure dates are actual Date objects
-            if (_activeTimer.startTime) _activeTimer.startTime = new Date(_activeTimer.startTime);
-            if (_activeTimer.pauseTime) _activeTimer.pauseTime = new Date(_activeTimer.pauseTime);
+        // --- MIGRATION LOGIC ---
+        // Check for the old single-timer key and migrate it if it exists.
+        const oldTimerKey = 'timeTracker_active_timer_v1';
+        const oldTimerData = localStorage.getItem(oldTimerKey);
+        if (oldTimerData) {
+            const oldTimer = JSON.parse(oldTimerData);
+            if (oldTimer && oldTimer.activityId) {
+                // If the old timer exists, put it in the new array structure
+                _activeTimers = [oldTimer];
+                localStorage.setItem(ACTIVE_TIMERS_KEY, JSON.stringify(_activeTimers));
+                localStorage.removeItem(oldTimerKey); // Clean up the old key
+                LoggingService.info('[TimeTrackerService] Migrated old active timer to new multi-timer format.');
+            }
         }
+        // --- END MIGRATION LOGIC ---
+
+        const storedTimers = localStorage.getItem(ACTIVE_TIMERS_KEY);
+        _activeTimers = storedTimers ? JSON.parse(storedTimers) : [];
+        _activeTimers.forEach(timer => {
+            if (timer.startTime) timer.startTime = new Date(timer.startTime);
+            if (timer.pauseTime) timer.pauseTime = new Date(timer.pauseTime);
+        });
     } catch (error) {
-        LoggingService.error('[TimeTrackerService] Error loading active timer from localStorage.', error);
-        _activeTimer = null;
+        LoggingService.error('[TimeTrackerService] Error loading active timers from localStorage.', error);
+        _activeTimers = [];
     }
 }
 
-function _saveActiveTimer() {
+function _saveActiveTimers() {
     try {
-        if (_activeTimer) {
-            localStorage.setItem(ACTIVE_TIMER_KEY, JSON.stringify(_activeTimer));
-        } else {
-            localStorage.removeItem(ACTIVE_TIMER_KEY);
-        }
+        localStorage.setItem(ACTIVE_TIMERS_KEY, JSON.stringify(_activeTimers));
     } catch (error) {
-        LoggingService.error('[TimeTrackerService] Error saving active timer to localStorage.', error);
+        LoggingService.error('[TimeTrackerService] Error saving active timers to localStorage.', error);
     }
 }
 
@@ -62,23 +73,27 @@ async function deleteActivity(activityId) {
     await AppStore.deleteTimeActivity(activityId, 'deleteActivity (TimeTrackerService)');
 }
 
-async function stopTracking() {
-    if (!_activeTimer) return;
+async function stopTracking(activityId) {
+    const timerIndex = _activeTimers.findIndex(t => t.activityId === activityId);
+    if (timerIndex === -1) return;
+
+    const timerToStop = _activeTimers[timerIndex];
     try {
-        const endTime = _activeTimer.isPaused ? _activeTimer.pauseTime : new Date();
+        const endTime = timerToStop.isPaused ? timerToStop.pauseTime : new Date();
         const newLogEntry = {
-            activityId: _activeTimer.activityId,
-            startTime: _activeTimer.startTime,
+            activityId: timerToStop.activityId,
+            startTime: timerToStop.startTime,
             endTime: endTime,
-            notes: _activeTimer.notes || '',
+            notes: timerToStop.notes || '',
             manuallyAdded: false,
-            durationMs: endTime.getTime() - _activeTimer.startTime.getTime()
+            durationMs: endTime.getTime() - timerToStop.startTime.getTime()
         };
 
         await db.time_log_entries.add(newLogEntry);
-        _activeTimer = null;
-        _saveActiveTimer();
-        EventBus.publish('activeTimerChanged', null);
+
+        _activeTimers.splice(timerIndex, 1); // Remove from the list
+        _saveActiveTimers();
+        EventBus.publish('activeTimerChanged', getActiveTimers());
 
         const allEntries = await db.time_log_entries.toArray();
         await AppStore.setTimeLogEntries(allEntries);
@@ -124,56 +139,57 @@ async function deleteLogEntry(logId) {
 
 function getActivities() { return AppStore ? AppStore.getTimeActivities() : []; }
 function getLogEntries() { return AppStore ? AppStore.getTimeLogEntries() : []; }
-function getActiveTimer() { return _activeTimer ? { ..._activeTimer } : null; }
+function getActiveTimers() { return [..._activeTimers]; } // Return a copy of the array
 
 async function startTracking(activityId) {
-    if (_activeTimer && _activeTimer.activityId === activityId && !_activeTimer.isPaused) return; // Already running
-    if (_activeTimer && _activeTimer.activityId === activityId && _activeTimer.isPaused) {
-        return resumeTracking(); // If it's the same activity and paused, resume it.
+    const existingTimer = _activeTimers.find(t => t.activityId === activityId);
+    if (existingTimer) {
+        if (existingTimer.isPaused) {
+            resumeTracking(activityId);
+        }
+        return; // Already running, do nothing
     }
-    if (_activeTimer) {
-        await stopTracking();
-    }
+
     const activity = await db.time_activities.get(activityId);
     if (!activity) {
         LoggingService.warn('[TimeTrackerService] Attempted to start tracking for non-existent activity ID:', { activityId });
         return;
     }
-    _activeTimer = {
+
+    _activeTimers.push({
         activityId: activityId,
         startTime: new Date(),
         isPaused: false,
         pauseTime: null,
         totalPausedMs: 0
-    };
-    _saveActiveTimer();
-    EventBus.publish('activeTimerChanged', getActiveTimer());
-    return getActiveTimer();
+    });
+    _saveActiveTimers();
+    EventBus.publish('activeTimerChanged', getActiveTimers());
 }
 
-function pauseTracking() {
-    if (!_activeTimer || _activeTimer.isPaused) return;
-    _activeTimer.isPaused = true;
-    _activeTimer.pauseTime = new Date();
-    _saveActiveTimer();
-    EventBus.publish('activeTimerChanged', getActiveTimer());
+function pauseTracking(activityId) {
+    const timer = _activeTimers.find(t => t.activityId === activityId);
+    if (!timer || timer.isPaused) return;
+    timer.isPaused = true;
+    timer.pauseTime = new Date();
+    _saveActiveTimers();
+    EventBus.publish('activeTimerChanged', getActiveTimers());
 }
 
-function resumeTracking() {
-    if (!_activeTimer || !_activeTimer.isPaused) return;
-    const pausedMs = new Date().getTime() - _activeTimer.pauseTime.getTime();
-    _activeTimer.totalPausedMs += pausedMs;
-    // Adjust start time to effectively remove the paused duration from the total elapsed time.
-    _activeTimer.startTime = new Date(_activeTimer.startTime.getTime() + pausedMs);
-    _activeTimer.isPaused = false;
-    _activeTimer.pauseTime = null;
-    _saveActiveTimer();
-    EventBus.publish('activeTimerChanged', getActiveTimer());
+function resumeTracking(activityId) {
+    const timer = _activeTimers.find(t => t.activityId === activityId);
+    if (!timer || !timer.isPaused) return;
+    const pausedMs = new Date().getTime() - timer.pauseTime.getTime();
+    timer.totalPausedMs += pausedMs;
+    timer.startTime = new Date(timer.startTime.getTime() + pausedMs);
+    timer.isPaused = false;
+    timer.pauseTime = null;
+    _saveActiveTimers();
+    EventBus.publish('activeTimerChanged', getActiveTimers());
 }
-
 
 function initialize() {
-    _loadActiveTimer();
+    _loadActiveTimers();
     LoggingService.info('[TimeTrackerService] Initialized.');
 }
 
@@ -181,7 +197,7 @@ const TimeTrackerService = {
     initialize,
     getActivities,
     getLogEntries,
-    getActiveTimer,
+    getActiveTimers, // Renamed from getActiveTimer
     startTracking,
     stopTracking,
     pauseTracking,

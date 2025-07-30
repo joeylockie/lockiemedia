@@ -75,13 +75,15 @@ function renderTrackingCards() {
     _updateIntervals = {};
     trackingCardsContainer.innerHTML = '<h2 class="text-2xl font-bold text-white mb-4">Currently Tracking</h2>';
 
-    const activeTimer = TimeTrackerService.getActiveTimer();
+    const activeTimers = TimeTrackerService.getActiveTimers(); // Get the array of timers
 
-    if (activeTimer) {
-        const activity = TimeTrackerService.getActivities().find(a => a.id === activeTimer.activityId);
-        if (activity) {
-            trackingCardsContainer.appendChild(createTrackingCard(activity, activeTimer));
-        }
+    if (activeTimers.length > 0) {
+        activeTimers.forEach(timer => {
+            const activity = TimeTrackerService.getActivities().find(a => a.id === timer.activityId);
+            if (activity) {
+                trackingCardsContainer.appendChild(createTrackingCard(activity, timer));
+            }
+        });
     } else {
         trackingCardsContainer.innerHTML += '<p class="text-gray-400 text-sm">No active timers. Select an activity from the right to start tracking!</p>';
     }
@@ -150,11 +152,10 @@ function createTrackingCard(activity, timerData) {
     
     updateTimerDisplay(); // Initial display
 
-    card.querySelector('.stop-btn')?.addEventListener('click', () => TimeTrackerService.stopTracking());
-    card.querySelector('.pause-btn')?.addEventListener('click', () => TimeTrackerService.pauseTracking());
-    card.querySelector('.resume-btn')?.addEventListener('click', () => TimeTrackerService.resumeTracking());
-    card.querySelector('.play-btn')?.addEventListener('click', () => TimeTrackerService.startTracking(activity.id));
-
+    card.querySelector('.stop-btn')?.addEventListener('click', (e) => TimeTrackerService.stopTracking(parseInt(e.currentTarget.dataset.activityId)));
+    card.querySelector('.pause-btn')?.addEventListener('click', (e) => TimeTrackerService.pauseTracking(parseInt(e.currentTarget.dataset.activityId)));
+    card.querySelector('.resume-btn')?.addEventListener('click', (e) => TimeTrackerService.resumeTracking(parseInt(e.currentTarget.dataset.activityId)));
+    
     return card;
 }
 
