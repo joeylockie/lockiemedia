@@ -14,7 +14,7 @@ const CalendarUI = (() => {
     let selectedColor = 'sky-500'; // Default color
     let draggedEventId = null;
     let timeIndicatorInterval = null;
-    // REMOVED: let notificationCheckInterval = null;
+    // REMOVED: notificationCheckInterval
     let datePicker = null;
     let holidays = []; // To store fetched holidays
 

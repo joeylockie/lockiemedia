@@ -1,5 +1,5 @@
 AI Project Curation Log: Lockie Media Platform
-Last Updated: 2025-07-21 04:45 (EDT)
+Last Updated: 2025-07-30 21:06 (EDT)
 
 1. Instructions for AI (Gemini)
 Purpose of this Document: A Note to AI Assistants: This document is your primary source of truth for the Lockie Media Platform project. It provides context, tracks progress, outlines current tasks, and lists future goals. Please refer to it to understand:
@@ -74,6 +74,7 @@ lockiemedia-dev/
 ├── version.json                    # Stores the application's current version number.
 │
 ├── app_logic.js                    # Manages the application's light/dark theme based on user preference or system settings.
+├── centralNotificationService.js   # New service to manage all app notifications from a single, efficient service.
 ├── dashboard_main.js               # Handles all logic for the main dashboard, including rendering widgets and data import/export functionality.
 ├── eventBus.js                     # A simple publish/subscribe system for decoupled communication between different modules.
 ├── loggingService.js               # A centralized service for logging debug, info, warning, and error messages to the console.
@@ -147,47 +148,26 @@ Notes App Enhancements: Added notebook deletion and a full-featured Markdown edi
 Calendar App Enhancements: Implemented a full-featured Week View with drag-and-drop and a live time indicator.
 
 5. Work Completed (Specific to Current Major Task)
-Date: 2025-07-27
+Date: 2025-07-30
 
-Task: Calendar App Feature Enhancement.
+Task: Centralized Notification Service Implementation.
 
-Goal: To add several new features to the calendar application to improve its usability and bring it closer to parity with modern calendar apps.
-
-Sub-tasks Completed:
-
-Current Date Highlighting: Added a visual marker (a colored circle) to the current day in the month view for easier identification. This involved changes to calendar_main.js and style.css. Fixed a timezone bug to ensure the correct local date is highlighted.
-
-Event Recurrence and Location: Implemented a feature to allow events to repeat (daily, weekly, bi-weekly, monthly, yearly). Also added a location field to events. This required modifications to calendar.html, calendarService.js, and calendar_main.js.
-
-Desktop Notifications: Added a settings panel to enable desktop notifications for upcoming events, including requesting user permission. This involved changes to calendar.html and calendar_main.js.
-
-Holiday Display: Integrated an external API to fetch and display Canadian public holidays on the calendar, with a setting to toggle this feature on and off. This involved changes to calendar.html, calendar_main.js, and style.css.
-
-Mouse Wheel Navigation: Added the ability to scroll through months using the mouse wheel on the calendar grid, which involved a change to calendar_main.js.
-
-Date: 2025-07-28
-
-Task: Refactor and Enhance the Notes App Editor.
-
-Goal: To replace the dual-editor (Plain Text/Markdown) system with a single, more intuitive rich text editor.
+Goal: To create a single, smart notification system that handles alerts for all platform apps, ensuring notifications are delivered regardless of which page is currently open.
 
 Sub-tasks Completed:
 
-UI Overhaul: Removed the Markdown toggle, view buttons, and the entire Markdown editor from notes.html, leaving only the rich text editor.
+Central Service Creation: Created a new `centralNotificationService.js` file. This service now contains all logic for checking due tasks and upcoming calendar events and runs on a single, efficient interval timer.
 
-Feature Simplification: Removed the isMarkdown property from noteService.js to simplify the data model.
+Dashboard Integration: Added a "Test Notifications" button to `index.html` for easy debugging. Modified `dashboard_main.js` to initialize the new CentralNotificationService when the app loads and to handle clicks on the new test button.
 
-Logic Refactor: Updated notes_rendering.js and notes_event_handlers.js to remove all logic related to Markdown and focus solely on the rich text editor.
+App Refactoring:
+Modified `feature_desktop_notifications.js` (Tasks) to remove its internal notification-checking timer and logic. It is now only responsible for managing the UI for task notification settings.
+Modified `calendar_main.js` (Calendar) to remove its internal notification-checking timer and logic. It now only manages the UI for calendar notification settings.
 
-Bug Fixes:
-
-Resolved a persistent bug where the cursor would jump to the beginning of the note when a toolbar button was clicked.
-
-Fixed a styling issue where lists were not displaying their bullet points or numbers.
-
-Improved the visual weight of bolded text.
-
-Feature Removal: Removed the text highlighting feature at the user's request to further simplify the toolbar.
+Settings Isolation (Bug Fix):
+Updated `feature_desktop_notifications.js` to save its settings to a unique `taskNotifications` key in user preferences.
+Updated `calendar_main.js` to save its settings to a unique `calendarNotifications` key in user preferences.
+Updated `centralNotificationService.js` to read from these two separate keys, resolving a bug where settings in one app would overwrite the other.
 
 6. Current Focus / Next Steps
 Current Major Task/Feature Being Worked On:
@@ -219,7 +199,7 @@ automation.html To be built out at a future date.
 budget.html To be built out at a future date.
 
 9. Important Notes / Decisions Made
-Versioning Scheme: Adopted the Semantic Versioning (MAJOR.MINOR.PATCH) standard for the application.
+Versioning Scheme: Adopted the Semantic Versioning (MAJOR.MINOR.PATCH) standard for the application. The current version is now **1.4.0**.
 
 Data Layer Upgrade to IndexedDB: The application's data persistence layer has been upgraded from localStorage to IndexedDB (via the Dexie.js library). This was done to provide a more scalable, performant, and resilient data storage solution capable of handling larger amounts of data and more complex queries.
 

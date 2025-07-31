@@ -13,6 +13,7 @@ const CHECK_INTERVAL_MS = 60 * 1000; // Check every minute
  */
 function checkCalendarEvents() {
     const functionName = 'checkCalendarEvents (CentralNotificationService)';
+    // MODIFICATION: Read from the correct, isolated settings key.
     const prefs = AppStore.getUserPreferences()?.calendarNotifications || {};
 
     if (!prefs.enabled) return;
@@ -44,8 +45,10 @@ function checkCalendarEvents() {
  */
 function checkTaskDeadlines() {
     const functionName = 'checkTaskDeadlines (CentralNotificationService)';
-    const prefs = AppStore.getUserPreferences()?.desktopNotifications || {};
+    // MODIFICATION: Read from the correct, isolated settings key.
+    const prefs = AppStore.getUserPreferences()?.taskNotifications || {};
 
+    // MODIFICATION: Use the correct property name from the task settings object.
     if (!prefs.notificationsEnabled || !prefs.notifyOnTaskDue) return;
 
     const tasks = AppStore.getTasks();

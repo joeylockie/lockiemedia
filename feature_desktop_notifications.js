@@ -36,14 +36,15 @@ function _loadSettings() {
     }
     try {
         const allUserPreferences = AppStore.getUserPreferences();
-        const storedNotificationSettings = allUserPreferences.desktopNotifications;
+        // MODIFICATION: Read from 'taskNotifications' instead of 'desktopNotifications'
+        const storedNotificationSettings = allUserPreferences.taskNotifications;
 
         if (storedNotificationSettings && typeof storedNotificationSettings === 'object') {
             currentSettings = { ...defaultDesktopNotificationSettings, ...storedNotificationSettings };
             LoggingService.info('[DesktopNotificationsFeature] Loaded settings from AppStore.', { functionName, loadedSettings: currentSettings });
         } else {
             currentSettings = { ...defaultDesktopNotificationSettings };
-            LoggingService.info('[DesktopNotificationsFeature] No desktop notification settings found in AppStore. Using defaults.', { functionName });
+            LoggingService.info('[DesktopNotificationsFeature] No task notification settings found in AppStore. Using defaults.', { functionName });
         }
     } catch (error) {
         currentSettings = { ...defaultDesktopNotificationSettings };
@@ -59,8 +60,9 @@ async function _saveSettings() {
         return;
     }
     try {
-        // We now save our settings under the 'desktopNotifications' key
-        await AppStore.setUserPreferences({ desktopNotifications: { ...currentSettings } }, 'DesktopNotificationsFeature._saveSettings');
+        // MODIFICATION: Save settings under the 'taskNotifications' key, preserving other preferences.
+        const prefs = AppStore.getUserPreferences();
+        await AppStore.setUserPreferences({ ...prefs, taskNotifications: { ...currentSettings } }, 'DesktopNotificationsFeature._saveSettings');
         LoggingService.info('[DesktopNotificationsFeature] Settings saved to AppStore.', { functionName, savedSettings: currentSettings });
     } catch (error) {
         LoggingService.error('[DesktopNotificationsFeature] Error saving settings via AppStore.', error, { functionName });
@@ -153,7 +155,6 @@ function initialize() {
             currentSettings.notificationsEnabled = isChecked && permissionGranted;
             await _saveSettings();
             _updateSettingsUI();
-            // REMOVED call to _manageDueTaskChecker
             if (isChecked && !permissionGranted) {
                  EventBus.publish('displayUserMessage', { text: 'Desktop notifications permission denied or not yet granted.', type: 'warn' });
             }
@@ -165,7 +166,6 @@ function initialize() {
             currentSettings.notifyOnTaskDue = event.target.checked;
             await _saveSettings();
             _updateSettingsUI();
-            // REMOVED call to _manageDueTaskChecker
         });
     }
 
@@ -211,26 +211,22 @@ function initialize() {
             _saveSettings();
         }
         _updateSettingsUI();
-        // REMOVED call to _manageDueTaskChecker
     });
 
     EventBus.subscribe('userPreferencesChanged', (allPreferences) => {
         const funcName = 'eventSub_UserPrefsChanged (DesktopNotificationsFeature)';
         LoggingService.info(`[DesktopNotificationsFeature] Event: userPreferencesChanged received.`, { funcName });
-        if (allPreferences && allPreferences.desktopNotifications) {
+        // MODIFICATION: Check for 'taskNotifications'
+        if (allPreferences && allPreferences.taskNotifications) {
             const oldSettingsJSON = JSON.stringify(currentSettings);
-            currentSettings = { ...defaultDesktopNotificationSettings, ...allPreferences.desktopNotifications };
+            // MODIFICATION: Read from 'taskNotifications'
+            currentSettings = { ...defaultDesktopNotificationSettings, ...allPreferences.taskNotifications };
             if (JSON.stringify(currentSettings) !== oldSettingsJSON) {
                 LoggingService.info('[DesktopNotificationsFeature] Local notification settings updated from AppStore.', { funcName, newSettings: currentSettings });
                 _updateSettingsUI();
-                // REMOVED call to _manageDueTaskChecker
             }
         }
     });
-
-    // REMOVED tasksChanged event subscription
-
-    // REMOVED initial call to _manageDueTaskChecker
 
     LoggingService.info('[DesktopNotificationsFeature] Initialized.', { functionName });
 }
@@ -248,19 +244,10 @@ function updateUIVisibility() {
         LoggingService.warn('[DesktopNotificationsFeature] settingsManageNotificationsBtnEl NOT FOUND during updateUIVisibility.', { functionName });
     }
 
-    if (!isActuallyEnabled) {
-        // Stop the checker if it exists
-        // (It shouldn't if the new logic is correct, but this is a safeguard)
-        if (dueTaskCheckInterval) {
-            clearInterval(dueTaskCheckInterval);
-            dueTaskCheckInterval = null;
-        }
-    } else {
+    if (isActuallyEnabled) {
         _loadSettings();
         _updateSettingsUI();
-        // REMOVED call to _manageDueTaskChecker
     }
-    LoggingService.info(`[DesktopNotificationsFeature] UI Visibility logic executed for its elements. Actual enabled: ${isActuallyEnabled}`, { functionName });
 }
 
 function refreshSettingsUIDisplay() {
