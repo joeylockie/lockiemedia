@@ -3,7 +3,8 @@
 import LoggingService from './loggingService.js';
 import AppStore from './store.js';
 import TimeTrackerService from './timeTrackerService.js';
-import { formatMillisecondsToHMS } from './utils.js';
+// MODIFICATION: Import getDateString and formatDate
+import { formatMillisecondsToHMS, getDateString, formatDate } from './utils.js';
 
 // --- DOM Element References ---
 let startDateEl, endDateEl, runReportBtnEl, reportContainerEl;
@@ -17,23 +18,23 @@ let startDateEl, endDateEl, runReportBtnEl, reportContainerEl;
  */
 function groupEntriesByWeek(logEntries) {
     const getWeekNumber = (d) => {
-        d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-        // Set to nearest Thursday: current date + 4 - current day number
-        // Make Monday day 1, Sunday day 7
-        const dayNum = d.getUTCDay() || 7;
-        d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-        const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+        // Create a new date object to avoid modifying the original
+        const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
+        const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
         // Calculate full weeks to nearest Thursday
-        return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        const weekNo = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+        return weekNo;
     };
 
     const grouped = {};
 
     logEntries.forEach(entry => {
         const date = new Date(entry.startTime);
-        const year = date.getUTCFullYear();
+        const year = date.getFullYear(); // Use local year
         const week = getWeekNumber(date);
-        const day = date.toISOString().split('T')[0];
+        // MODIFICATION: Use the timezone-safe getDateString function
+        const day = getDateString(date);
 
         const weekKey = `${year}-W${String(week).padStart(2, '0')}`;
         if (!grouped[weekKey]) {
@@ -51,8 +52,9 @@ function groupEntriesByWeek(logEntries) {
     for (const weekKey in grouped) {
         let weekTotalMs = 0;
         const days = Object.keys(grouped[weekKey].entries).sort();
-        grouped[weekKey].startDate = new Date(days[0] + 'T00:00:00');
-        grouped[weekKey].endDate = new Date(days[days.length - 1] + 'T00:00:00');
+        // MODIFICATION: Use noon to avoid timezone issues when creating a new Date from a string
+        grouped[weekKey].startDate = new Date(days[0] + 'T12:00:00');
+        grouped[weekKey].endDate = new Date(days[days.length - 1] + 'T12:00:00');
         
         for(const day in grouped[weekKey].entries) {
              weekTotalMs += grouped[weekKey].entries[day].reduce((sum, entry) => sum + entry.durationMs, 0);
@@ -94,8 +96,9 @@ function renderReport(groupedData) {
         
         const weekTitle = document.createElement('h3');
         weekTitle.className = 'text-xl font-bold text-sky-400';
-        const start = weekData.startDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-        const end = weekData.endDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        // MODIFICATION: Use the timezone-safe formatDate function
+        const start = formatDate(weekData.startDate);
+        const end = formatDate(weekData.endDate);
         weekTitle.textContent = `Week of ${start} - ${end}`;
         
         const weekTotal = document.createElement('p');
@@ -109,15 +112,17 @@ function renderReport(groupedData) {
         const sortedDays = Object.keys(weekData.entries).sort().reverse();
         sortedDays.forEach(dayKey => {
             const dayEntries = weekData.entries[dayKey];
-            const dayDate = new Date(dayKey + 'T00:00:00');
+            // MODIFICATION: Use noon to avoid timezone issues when creating a new Date from a string
+            const dayDate = new Date(dayKey + 'T12:00:00');
             const dayTotalMs = dayEntries.reduce((sum, entry) => sum + entry.durationMs, 0);
             
             const dayContainer = document.createElement('div');
 
             const dayTitle = document.createElement('h4');
             dayTitle.className = 'text-lg font-semibold text-slate-300 mb-2 flex justify-between items-baseline';
+            // MODIFICATION: Use the timezone-safe formatDate function
             dayTitle.innerHTML = `
-                <span>${dayDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</span>
+                <span>${dayDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' })}</span>
                 <span class="text-base font-mono">${formatMillisecondsToHMS(dayTotalMs)}</span>
             `;
             dayContainer.appendChild(dayTitle);
@@ -215,8 +220,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(today.getDate() - 6); // -6 to make a 7-day period inclusive of today
 
-        endDateEl.value = today.toISOString().split('T')[0];
-        startDateEl.value = sevenDaysAgo.toISOString().split('T')[0];
+        // MODIFICATION: Use the timezone-safe getDateString function
+        endDateEl.value = getDateString(today);
+        startDateEl.value = getDateString(sevenDaysAgo);
 
         // Attach event listeners
         runReportBtnEl.addEventListener('click', generateReport);

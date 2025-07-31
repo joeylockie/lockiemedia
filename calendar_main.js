@@ -3,7 +3,7 @@ import AppStore from './store.js';
 import EventBus from './eventBus.js';
 import CalendarService from './calendarService.js';
 import * as TaskService from './taskService.js';
-import { formatDate } from './utils.js';
+import { formatDate, formatTime } from './utils.js';
 import NotificationService from './notificationService.js';
 
 const CalendarUI = (() => {
@@ -254,7 +254,7 @@ const CalendarUI = (() => {
                     eventEl.draggable = true;
                     const colorClass = `bg-${event.color || 'sky-500'}`;
                     eventEl.classList.add(colorClass.replace('500', '600'));
-                    eventEl.textContent = event.title;
+                    eventEl.textContent = event.isAllDay ? event.title : `${formatTime(event.startTime)} ${event.title}`;
                     eventEl.dataset.eventId = event.id;
                     eventEl.addEventListener('click', (e) => { e.stopPropagation(); openViewEventModal(event.id); });
                     eventEl.addEventListener('dragstart', (e) => {
