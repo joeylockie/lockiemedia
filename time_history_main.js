@@ -3,166 +3,67 @@
 import LoggingService from './loggingService.js';
 import AppStore from './store.js';
 import TimeTrackerService from './timeTrackerService.js';
-// MODIFICATION: Import getDateString and formatDate
-import { formatMillisecondsToHMS, getDateString, formatDate } from './utils.js';
+import { formatMillisecondsToHMS, getDateString, formatDate, formatTime } from './utils.js';
+import { TimeTrackerFeature } from './feature_time_tracker.js';
+import EventBus from './eventBus.js'; // This line is the fix
 
 // --- DOM Element References ---
-let startDateEl, endDateEl, runReportBtnEl, reportContainerEl;
+let startDateEl, endDateEl, runReportBtnEl, reportContainerEl, manageActivitiesBtn;
 
-// --- Helper Functions ---
-
-/**
- * Groups log entries by week (starting on Monday) and then by day.
- * @param {Array<Object>} logEntries - The array of log entries to group.
- * @returns {Object} - An object where keys are "year-week" and values are objects of days.
- */
-function groupEntriesByWeek(logEntries) {
-    const getWeekNumber = (d) => {
-        // Create a new date object to avoid modifying the original
-        const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-        date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
-        const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-        // Calculate full weeks to nearest Thursday
-        const weekNo = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
-        return weekNo;
-    };
-
-    const grouped = {};
-
-    logEntries.forEach(entry => {
-        const date = new Date(entry.startTime);
-        const year = date.getFullYear(); // Use local year
-        const week = getWeekNumber(date);
-        // MODIFICATION: Use the timezone-safe getDateString function
-        const day = getDateString(date);
-
-        const weekKey = `${year}-W${String(week).padStart(2, '0')}`;
-        if (!grouped[weekKey]) {
-            grouped[weekKey] = { entries: {}, totalMs: 0, startDate: null, endDate: null };
-        }
-
-        if (!grouped[weekKey].entries[day]) {
-            grouped[weekKey].entries[day] = [];
-        }
-
-        grouped[weekKey].entries[day].push(entry);
-    });
-
-    // Calculate totals and date ranges for each week
-    for (const weekKey in grouped) {
-        let weekTotalMs = 0;
-        const days = Object.keys(grouped[weekKey].entries).sort();
-        // MODIFICATION: Use noon to avoid timezone issues when creating a new Date from a string
-        grouped[weekKey].startDate = new Date(days[0] + 'T12:00:00');
-        grouped[weekKey].endDate = new Date(days[days.length - 1] + 'T12:00:00');
-        
-        for(const day in grouped[weekKey].entries) {
-             weekTotalMs += grouped[weekKey].entries[day].reduce((sum, entry) => sum + entry.durationMs, 0);
-        }
-        grouped[weekKey].totalMs = weekTotalMs;
-    }
-
-    return grouped;
-}
+// --- Rendering Functions ---
 
 /**
- * Renders the full report from the grouped data.
- * @param {Object} groupedData - Data grouped by week from groupEntriesByWeek.
+ * Renders the full report as a list of individual time log entries.
+ * @param {Array<Object>} logEntries - A sorted array of log entries to display.
  */
-function renderReport(groupedData) {
+function renderReport(logEntries) {
     reportContainerEl.innerHTML = '';
     const activities = TimeTrackerService.getActivities();
 
-    const sortedWeeks = Object.keys(groupedData).sort().reverse();
-
-    if (sortedWeeks.length === 0) {
+    if (logEntries.length === 0) {
         reportContainerEl.innerHTML = `
             <div class="text-center py-10 report-card">
                 <i class="fas fa-search-minus text-5xl text-slate-500"></i>
                 <h3 class="mt-4 text-xl font-semibold text-slate-300">No Data Found</h3>
                 <p class="text-slate-400">There are no time entries for the selected date range.</p>
-            </div>
-        `;
+            </div>`;
         return;
     }
 
-    sortedWeeks.forEach(weekKey => {
-        const weekData = groupedData[weekKey];
-        const weekCard = document.createElement('div');
-        weekCard.className = 'report-card space-y-4';
+    const list = document.createElement('ul');
+    list.className = 'space-y-3';
 
-        const weekHeader = document.createElement('div');
-        weekHeader.className = 'flex justify-between items-baseline pb-2 border-b border-slate-700';
-        
-        const weekTitle = document.createElement('h3');
-        weekTitle.className = 'text-xl font-bold text-sky-400';
-        // MODIFICATION: Use the timezone-safe formatDate function
-        const start = formatDate(weekData.startDate);
-        const end = formatDate(weekData.endDate);
-        weekTitle.textContent = `Week of ${start} - ${end}`;
-        
-        const weekTotal = document.createElement('p');
-        weekTotal.className = 'text-lg font-semibold text-slate-200';
-        weekTotal.textContent = `Total: ${formatMillisecondsToHMS(weekData.totalMs)}`;
+    logEntries.forEach(entry => {
+        const activity = activities.find(a => a.id === entry.activityId);
+        const li = document.createElement('li');
+        li.className = 'report-card flex items-center justify-between gap-4';
 
-        weekHeader.appendChild(weekTitle);
-        weekHeader.appendChild(weekTotal);
-        weekCard.appendChild(weekHeader);
-        
-        const sortedDays = Object.keys(weekData.entries).sort().reverse();
-        sortedDays.forEach(dayKey => {
-            const dayEntries = weekData.entries[dayKey];
-            // MODIFICATION: Use noon to avoid timezone issues when creating a new Date from a string
-            const dayDate = new Date(dayKey + 'T12:00:00');
-            const dayTotalMs = dayEntries.reduce((sum, entry) => sum + entry.durationMs, 0);
-            
-            const dayContainer = document.createElement('div');
+        const activityName = activity ? activity.name : 'Unknown Activity';
+        const startTime = new Date(entry.startTime);
+        const endTime = new Date(entry.endTime);
 
-            const dayTitle = document.createElement('h4');
-            dayTitle.className = 'text-lg font-semibold text-slate-300 mb-2 flex justify-between items-baseline';
-            // MODIFICATION: Use the timezone-safe formatDate function
-            dayTitle.innerHTML = `
-                <span>${dayDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' })}</span>
-                <span class="text-base font-mono">${formatMillisecondsToHMS(dayTotalMs)}</span>
-            `;
-            dayContainer.appendChild(dayTitle);
-
-            const entriesByActivity = dayEntries.reduce((acc, entry) => {
-                if (!acc[entry.activityId]) acc[entry.activityId] = [];
-                acc[entry.activityId].push(entry);
-                return acc;
-            }, {});
-
-            const activityList = document.createElement('div');
-            activityList.className = 'space-y-2 pl-4 border-l-2 border-slate-600';
-            
-            for (const activityId in entriesByActivity) {
-                const activity = activities.find(a => a.id === parseInt(activityId, 10));
-                const activityEntries = entriesByActivity[activityId];
-                const activityTotalMs = activityEntries.reduce((sum, e) => sum + e.durationMs, 0);
-
-                const activityRow = document.createElement('div');
-                activityRow.className = 'flex justify-between items-center bg-slate-800 p-3 rounded-md';
-                
-                const activityName = document.createElement('span');
-                activityName.className = 'font-medium text-slate-200';
-                activityName.textContent = activity ? activity.name : 'Unknown Activity';
-                
-                const activityDuration = document.createElement('span');
-                activityDuration.className = 'font-mono text-slate-300';
-                activityDuration.textContent = formatMillisecondsToHMS(activityTotalMs);
-
-                activityRow.appendChild(activityName);
-                activityRow.appendChild(activityDuration);
-                activityList.appendChild(activityRow);
-            }
-
-            dayContainer.appendChild(activityList);
-            weekCard.appendChild(dayContainer);
-        });
-
-        reportContainerEl.appendChild(weekCard);
+        li.innerHTML = `
+            <div class="flex-grow">
+                <div class="flex items-center justify-between">
+                    <p class="font-bold text-lg text-white">${activityName}</p>
+                    <p class="font-mono text-xl text-sky-300">${formatMillisecondsToHMS(entry.durationMs)}</p>
+                </div>
+                <p class="text-sm text-slate-400">${formatDate(startTime)} from ${formatTime(startTime)} to ${formatTime(endTime)}</p>
+                ${entry.notes ? `<p class="mt-2 text-sm text-slate-300 bg-slate-800 p-2 rounded-md">${entry.notes}</p>` : ''}
+            </div>
+            <div class="flex flex-col gap-2">
+                <button class="edit-log-btn p-2 rounded-md hover:bg-slate-600 transition-colors" data-log-id="${entry.id}" title="Edit Entry">
+                    <i class="fas fa-pencil-alt text-sky-400"></i>
+                </button>
+                <button class="delete-log-btn p-2 rounded-md hover:bg-slate-600 transition-colors" data-log-id="${entry.id}" title="Delete Entry">
+                    <i class="fas fa-trash-alt text-red-500"></i>
+                </button>
+            </div>
+        `;
+        list.appendChild(li);
     });
+
+    reportContainerEl.appendChild(list);
 }
 
 
@@ -181,19 +82,48 @@ async function generateReport() {
         return;
     }
     
-    // Fetch all entries from the service.
-    // In a larger app, you'd pass the date range to the service/backend.
     const allEntries = TimeTrackerService.getLogEntries();
 
     const filteredEntries = allEntries.filter(entry => {
         const entryDate = new Date(entry.startTime);
         return entryDate >= startDate && entryDate <= endDate;
-    });
+    }).sort((a, b) => new Date(b.startTime) - new Date(a.startTime)); // Sort by most recent first
     
-    const groupedData = groupEntriesByWeek(filteredEntries);
-    renderReport(groupedData);
+    renderReport(filteredEntries);
 }
 
+// --- Event Handlers ---
+function setupEventListeners() {
+    runReportBtnEl.addEventListener('click', generateReport);
+    
+    if (manageActivitiesBtn) {
+        manageActivitiesBtn.addEventListener('click', () => {
+             if (TimeTrackerFeature && TimeTrackerFeature.openManageActivitiesModal) {
+                TimeTrackerFeature.openManageActivitiesModal();
+            }
+        });
+    }
+
+    reportContainerEl.addEventListener('click', async (e) => {
+        const editBtn = e.target.closest('.edit-log-btn');
+        const deleteBtn = e.target.closest('.delete-log-btn');
+
+        if (editBtn) {
+            const logId = parseInt(editBtn.dataset.logId, 10);
+            if (TimeTrackerFeature && TimeTrackerFeature.openTimeEntryModal) {
+                TimeTrackerFeature.openTimeEntryModal(logId);
+            }
+        }
+
+        if (deleteBtn) {
+            const logId = parseInt(deleteBtn.dataset.logId, 10);
+            if (confirm('Are you sure you want to delete this time entry?')) {
+                await TimeTrackerService.deleteLogEntry(logId);
+                // The AppStore will publish an event, and the UI will auto-refresh
+            }
+        }
+    });
+}
 
 // --- Initialization ---
 
@@ -205,31 +135,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     endDateEl = document.getElementById('endDate');
     runReportBtnEl = document.getElementById('runReportBtn');
     reportContainerEl = document.getElementById('reportContainer');
+    manageActivitiesBtn = document.getElementById('manageActivitiesBtn');
 
     try {
         LoggingService.info('[TimeHistory] Initializing Time History page...', { functionName });
         
-        // Load all app data
         await AppStore.initializeStore();
-        
-        // Initialize the service which loads transient state
         TimeTrackerService.initialize();
+        // The TimeTrackerFeature is initialized on its own page, but we can still call its public functions
+        // TimeTrackerFeature.initialize(); 
 
-        // Set default dates: today and 7 days ago
         const today = new Date();
         const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(today.getDate() - 6); // -6 to make a 7-day period inclusive of today
+        sevenDaysAgo.setDate(today.getDate() - 6);
 
-        // MODIFICATION: Use the timezone-safe getDateString function
         endDateEl.value = getDateString(today);
         startDateEl.value = getDateString(sevenDaysAgo);
 
-        // Attach event listeners
-        runReportBtnEl.addEventListener('click', generateReport);
+        setupEventListeners();
+        
+        // Listen for data changes to auto-refresh the report
+        EventBus.subscribe('timeLogEntriesChanged', generateReport);
         
         LoggingService.info('[TimeHistory] Page initialized.', { functionName });
         
-        // Automatically run the report for the default range
         await generateReport();
 
     } catch (error) {

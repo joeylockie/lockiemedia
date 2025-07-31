@@ -64,26 +64,33 @@ export function formatDate(dateInput) {
 
 
 /**
- * Formats a time string (HH:MM) into a 12-hour format with AM/PM.
- * @param {string} timeString - The time string in HH:MM format.
+ * Formats a time string (HH:MM) or a Date object into a 12-hour format with AM/PM.
+ * @param {string|Date} timeInput - The time string in HH:MM format or a Date object.
  * @returns {string} The formatted time string, or 'Not set'.
  */
-export function formatTime(timeString) {
-    const functionName = 'formatTime'; // For logging context
-    if (!timeString) return 'Not set';
+export function formatTime(timeInput) {
+    const functionName = 'formatTime';
+    if (!timeInput) return 'Not set';
 
-    // Handle full ISO strings (like from calendar events)
-    if (timeString.includes('T')) {
+    // --- THIS IS THE FIX ---
+    // First, check if the input is a Date object.
+    if (timeInput instanceof Date) {
+        return timeInput.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    // --- END OF FIX ---
+
+    // Continue with original logic if it's a string.
+    if (typeof timeInput === 'string' && timeInput.includes('T')) {
         try {
-            return new Date(timeString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            return new Date(timeInput).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         } catch (e) {
-            // Fallback to original logic if parsing fails
+            // Fallback if parsing fails
         }
     }
 
-    const [hours, minutes] = timeString.split(':');
+    const [hours, minutes] = String(timeInput).split(':');
     if (isNaN(parseInt(hours)) || isNaN(parseInt(minutes))) {
-        LoggingService.debug(`[Utils] ${functionName}: Received invalid timeString.`, { functionName, timeString });
+        LoggingService.debug(`[Utils] ${functionName}: Received invalid timeString.`, { functionName, timeInput });
         return 'Invalid Time';
     }
     const h = parseInt(hours, 10);
@@ -92,6 +99,7 @@ export function formatTime(timeString) {
     const formattedHours = h % 12 || 12;
     return `${String(formattedHours)}:${String(m).padStart(2, '0')} ${ampm}`;
 }
+
 
 /**
  * Formats estimated hours and minutes into a readable string.
