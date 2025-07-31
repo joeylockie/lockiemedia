@@ -1,18 +1,14 @@
 // feature_desktop_notifications.js
-// Manages the Desktop Notifications Feature, including settings and triggering notifications.
+// Manages the Desktop Notifications Feature, including settings.
+// The logic for triggering notifications has been moved to centralNotificationService.js.
 
-// import { isFeatureEnabled } from './featureFlagService.js'; // REMOVED
 import NotificationService from './notificationService.js';
 import LoggingService from './loggingService.js';
 import EventBus from './eventBus.js';
-import AppStore from './store.js'; // To access tasks and now user preferences
+import AppStore from './store.js';
 
-// --- DOM Element References (will be populated in initialize or when settings UI is rendered) ---
+// --- DOM Element References ---
 let settingsDesktopNotificationsBtnEl;
-let notificationSettingsModalEl;
-let notificationSettingsModalDialogEl;
-let notificationSettingsContentAreaEl;
-
 let enableNotificationsToggleEl;
 let notifyOnTaskDueToggleEl;
 let notifyMinutesBeforeDueEl;
@@ -28,8 +24,6 @@ const defaultDesktopNotificationSettings = {
 
 // --- Internal State ---
 let currentSettings = { ...defaultDesktopNotificationSettings };
-let dueTaskCheckInterval = null;
-const DUE_TASK_CHECK_INTERVAL_MS = 60 * 1000;
 
 // --- Private Helper Functions ---
 
@@ -65,6 +59,7 @@ async function _saveSettings() {
         return;
     }
     try {
+        // We now save our settings under the 'desktopNotifications' key
         await AppStore.setUserPreferences({ desktopNotifications: { ...currentSettings } }, 'DesktopNotificationsFeature._saveSettings');
         LoggingService.info('[DesktopNotificationsFeature] Settings saved to AppStore.', { functionName, savedSettings: currentSettings });
     } catch (error) {
@@ -75,14 +70,13 @@ async function _saveSettings() {
 
 function _updateSettingsUI() {
     const functionName = '_updateSettingsUI';
-    if (!window.isFeatureEnabled('desktopNotificationsFeature')) return; // MODIFIED to use window
+    if (!window.isFeatureEnabled('desktopNotificationsFeature')) return;
 
     if (!enableNotificationsToggleEl) enableNotificationsToggleEl = document.getElementById('enableNotificationsToggle');
     if (!notifyOnTaskDueToggleEl) notifyOnTaskDueToggleEl = document.getElementById('notifyOnTaskDueToggle');
     if (!notifyMinutesBeforeDueEl) notifyMinutesBeforeDueEl = document.getElementById('notifyMinutesBeforeDue');
     if (!notificationPermissionStatusTextEl) notificationPermissionStatusTextEl = document.getElementById('notificationPermissionStatusText');
     if (!testNotificationBtnEl) testNotificationBtnEl = document.getElementById('testNotificationBtn');
-
 
     const permission = NotificationService.getPermissionStatus();
     const canEnableBasedOnPermission = permission === 'granted';
@@ -125,90 +119,16 @@ function _updateSettingsUI() {
     LoggingService.debug('[DesktopNotificationsFeature] Settings UI updated.', { functionName, currentSettings, permission });
 }
 
-function _checkAndNotifyForDueTasks() {
-    const functionName = '_checkAndNotifyForDueTasks';
-    if (!window.isFeatureEnabled('desktopNotificationsFeature') || // MODIFIED to use window
-        !currentSettings.notificationsEnabled ||
-        !currentSettings.notifyOnTaskDue ||
-        NotificationService.getPermissionStatus() !== 'granted' ||
-        !AppStore) {
-        return;
-    }
-
-    const tasks = AppStore.getTasks();
-    const now = new Date();
-
-    tasks.forEach(task => {
-        if (!task.completed && task.dueDate) {
-            const dueDateStr = task.dueDate + (task.time ? `T${task.time}` : 'T23:59:59');
-            const dueDateTime = new Date(dueDateStr);
-
-            if (isNaN(dueDateTime.getTime())) {
-                LoggingService.warn(`[DesktopNotificationsFeature] Invalid due date for task ID ${task.id}: ${dueDateStr}`, { functionName, taskId: task.id });
-                return;
-            }
-
-            const minutesBefore = currentSettings.notifyMinutesBeforeDue || 0;
-            const notificationTime = new Date(dueDateTime.getTime() - (minutesBefore * 60000));
-            const alreadyNotifiedKey = `notified_due_${task.id}_${dueDateTime.getTime()}`;
-
-            if (now >= notificationTime && now <= dueDateTime && !localStorage.getItem(alreadyNotifiedKey)) {
-                let body = `Task "${task.text}" is due ${minutesBefore > 0 ? `in ${minutesBefore} minutes` : 'now'}!`;
-                if (task.time) body += ` at ${task.time}`;
-
-                NotificationService.showNotification('Task Due!', {
-                    body: body,
-                    icon: './icon-32x32.png',
-                    tag: `task_due_${task.id}`,
-                    data: { taskId: task.id, url: window.location.href }
-                }, (event) => {
-                    LoggingService.info(`[DesktopNotificationsFeature] Due task notification clicked for task ID: ${event.notification.data.taskId}`, { functionName });
-                    window.focus();
-                });
-                localStorage.setItem(alreadyNotifiedKey, 'true');
-                LoggingService.info(`[DesktopNotificationsFeature] Due task notification triggered for task: ${task.text}`, { functionName, taskId: task.id });
-            }
-        }
-    });
-}
-
-function _manageDueTaskChecker() {
-    const functionName = '_manageDueTaskChecker';
-    if (dueTaskCheckInterval) {
-        clearInterval(dueTaskCheckInterval);
-        dueTaskCheckInterval = null;
-        LoggingService.debug('[DesktopNotificationsFeature] Due task checker interval cleared.', { functionName });
-    }
-
-    if (window.isFeatureEnabled('desktopNotificationsFeature') && // MODIFIED to use window
-        currentSettings.notificationsEnabled &&
-        currentSettings.notifyOnTaskDue &&
-        NotificationService.getPermissionStatus() === 'granted') {
-        dueTaskCheckInterval = setInterval(_checkAndNotifyForDueTasks, DUE_TASK_CHECK_INTERVAL_MS);
-        _checkAndNotifyForDueTasks();
-        LoggingService.info('[DesktopNotificationsFeature] Due task checker interval started.', { functionName, intervalMs: DUE_TASK_CHECK_INTERVAL_MS });
-    } else {
-        LoggingService.info('[DesktopNotificationsFeature] Due task checker not started (conditions not met).', {
-             functionName,
-             featureEnabled: window.isFeatureEnabled('desktopNotificationsFeature'), // MODIFIED to use window
-             settingsEnabled: currentSettings.notificationsEnabled,
-             notifyOnDue: currentSettings.notifyOnTaskDue,
-             permission: NotificationService.getPermissionStatus()
-        });
-    }
-}
+// REMOVED _checkAndNotifyForDueTasks and _manageDueTaskChecker functions
 
 function initialize() {
     const functionName = 'initialize (DesktopNotificationsFeature)';
     
-    // --- Page-Specific Guard ---
-    // The elements this feature initializes are only on the main todo page.
     if (!document.getElementById('settingsModal')) {
         LoggingService.debug('[DesktopNotificationsFeature] Settings modal not found. Skipping initialization.', { functionName });
         return;
     }
-    // --- End Page-Specific Guard ---
-
+    
     LoggingService.info('[DesktopNotificationsFeature] Initializing...', { functionName });
 
     _loadSettings();
@@ -233,7 +153,7 @@ function initialize() {
             currentSettings.notificationsEnabled = isChecked && permissionGranted;
             await _saveSettings();
             _updateSettingsUI();
-            _manageDueTaskChecker();
+            // REMOVED call to _manageDueTaskChecker
             if (isChecked && !permissionGranted) {
                  EventBus.publish('displayUserMessage', { text: 'Desktop notifications permission denied or not yet granted.', type: 'warn' });
             }
@@ -245,7 +165,7 @@ function initialize() {
             currentSettings.notifyOnTaskDue = event.target.checked;
             await _saveSettings();
             _updateSettingsUI();
-            _manageDueTaskChecker();
+            // REMOVED call to _manageDueTaskChecker
         });
     }
 
@@ -259,15 +179,13 @@ function initialize() {
 
     if (testNotificationBtnEl) {
         testNotificationBtnEl.addEventListener('click', () => {
-            // **** ADDED LOGGING START ****
             const testButtonFunctionName = 'testNotificationBtnClickHandler';
             LoggingService.debug(`[DesktopNotificationsFeature] Test Notification button clicked.`, {
                 functionName: testButtonFunctionName,
                 permissionStatus: NotificationService.getPermissionStatus(),
                 appNotificationsEnabled: currentSettings.notificationsEnabled,
-                currentSettings: JSON.parse(JSON.stringify(currentSettings)) // Log a snapshot of current settings
+                currentSettings: JSON.parse(JSON.stringify(currentSettings))
             });
-            // **** ADDED LOGGING END ****
 
             if (NotificationService.getPermissionStatus() === 'granted' && currentSettings.notificationsEnabled) {
                 LoggingService.debug(`[DesktopNotificationsFeature] Conditions met. Attempting to show test notification.`, { functionName: testButtonFunctionName });
@@ -279,7 +197,7 @@ function initialize() {
             } else if (NotificationService.getPermissionStatus() !== 'granted') {
                 LoggingService.warn(`[DesktopNotificationsFeature] Test notification NOT sent: Browser permission not granted.`, { functionName: testButtonFunctionName, permission: NotificationService.getPermissionStatus() });
                 EventBus.publish('displayUserMessage', {text: 'Please enable notifications and grant browser permission first.', type: 'warn'});
-            } else { // Implies permission is granted, but currentSettings.notificationsEnabled is false
+            } else {
                 LoggingService.warn(`[DesktopNotificationsFeature] Test notification NOT sent: In-app notifications not enabled.`, { functionName: testButtonFunctionName, appNotificationsEnabled: currentSettings.notificationsEnabled });
                  EventBus.publish('displayUserMessage', {text: 'Please enable notifications in settings first.', type: 'warn'});
             }
@@ -293,7 +211,7 @@ function initialize() {
             _saveSettings();
         }
         _updateSettingsUI();
-        _manageDueTaskChecker();
+        // REMOVED call to _manageDueTaskChecker
     });
 
     EventBus.subscribe('userPreferencesChanged', (allPreferences) => {
@@ -305,51 +223,42 @@ function initialize() {
             if (JSON.stringify(currentSettings) !== oldSettingsJSON) {
                 LoggingService.info('[DesktopNotificationsFeature] Local notification settings updated from AppStore.', { funcName, newSettings: currentSettings });
                 _updateSettingsUI();
-                _manageDueTaskChecker();
+                // REMOVED call to _manageDueTaskChecker
             }
         }
     });
 
-    EventBus.subscribe('tasksChanged', () => {
-        LoggingService.debug('[DesktopNotificationsFeature] Event: tasksChanged, re-evaluating notifications.', { functionName: 'eventSub_TasksChanged' });
-         _manageDueTaskChecker();
-    });
+    // REMOVED tasksChanged event subscription
 
-    _manageDueTaskChecker();
+    // REMOVED initial call to _manageDueTaskChecker
 
     LoggingService.info('[DesktopNotificationsFeature] Initialized.', { functionName });
 }
 
 function updateUIVisibility() {
     const functionName = 'updateUIVisibility (DesktopNotificationsFeature)';
-    const isActuallyEnabled = window.isFeatureEnabled('desktopNotificationsFeature'); // MODIFIED to use window
+    const isActuallyEnabled = window.isFeatureEnabled('desktopNotificationsFeature');
     LoggingService.debug(`[DesktopNotificationsFeature] Updating UI visibility. Feature enabled: ${isActuallyEnabled}.`, { functionName, isActuallyEnabled });
 
     if (!settingsDesktopNotificationsBtnEl) settingsDesktopNotificationsBtnEl = document.getElementById('settingsManageNotificationsBtn');
 
-    LoggingService.debug('[DesktopNotificationsFeature] settingsManageNotificationsBtnEl before toggle:', { element: settingsDesktopNotificationsBtnEl, initialHiddenState: settingsDesktopNotificationsBtnEl ? settingsDesktopNotificationsBtnEl.classList.contains('hidden') : 'not_found' });
-
     if (settingsDesktopNotificationsBtnEl) {
         settingsDesktopNotificationsBtnEl.classList.toggle('hidden', !isActuallyEnabled);
-        LoggingService.debug('[DesktopNotificationsFeature] settingsManageNotificationsBtnEl AFTER toggle:', { finalHiddenState: settingsDesktopNotificationsBtnEl.classList.contains('hidden'), shouldBeHidden: !isActuallyEnabled });
     } else {
         LoggingService.warn('[DesktopNotificationsFeature] settingsManageNotificationsBtnEl NOT FOUND during updateUIVisibility.', { functionName });
     }
 
     if (!isActuallyEnabled) {
+        // Stop the checker if it exists
+        // (It shouldn't if the new logic is correct, but this is a safeguard)
         if (dueTaskCheckInterval) {
             clearInterval(dueTaskCheckInterval);
             dueTaskCheckInterval = null;
-            LoggingService.info('[DesktopNotificationsFeature] Feature disabled, due task checker stopped.', { functionName });
-        }
-        const modalEl = document.getElementById('desktopNotificationsSettingsModal');
-        if (modalEl && !modalEl.classList.contains('hidden')) {
-            // modal_interactions.js should handle closing this modal if necessary
         }
     } else {
         _loadSettings();
         _updateSettingsUI();
-        _manageDueTaskChecker();
+        // REMOVED call to _manageDueTaskChecker
     }
     LoggingService.info(`[DesktopNotificationsFeature] UI Visibility logic executed for its elements. Actual enabled: ${isActuallyEnabled}`, { functionName });
 }

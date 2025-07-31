@@ -8,10 +8,16 @@ import TimeTrackerService from './timeTrackerService.js';
 import { formatDate, formatMillisecondsToHMS } from './utils.js';
 import db from './database.js';
 import Dexie from './dexie.mjs';
-import { initializeVersionChecker } from './versionService.js'; // <-- ADD THIS LINE
+import { initializeVersionChecker } from './versionService.js';
+// START OF MODIFICATIONS
+import { CentralNotificationService } from './centralNotificationService.js';
+// END OF MODIFICATIONS
 
 // --- DOM Element References ---
 let greetingHeader, myDayContent, habitContent, timeTrackerContent, upcomingContent, notesContent, quickLinksContent, exportDataBtn, importDataBtn, importFileInput;
+// START OF MODIFICATIONS
+let testNotificationsBtn;
+// END OF MODIFICATIONS
 let timeTrackerInterval = null;
 
 // --- Helper Functions to Get Data ---
@@ -373,7 +379,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         await AppStore.initializeStore();
         NoteService.getNotes();
         TimeTrackerService.initialize();
-        initializeVersionChecker(); // <-- ADD THIS LINE
+        initializeVersionChecker();
+        // START OF MODIFICATIONS
+        CentralNotificationService.initialize();
+        // END OF MODIFICATIONS
 
         greetingHeader = document.getElementById('greetingHeader');
         myDayContent = document.getElementById('myDayContent');
@@ -385,6 +394,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         exportDataBtn = document.getElementById('exportDataBtn');
         importDataBtn = document.getElementById('importDataBtn');
         importFileInput = document.getElementById('importFileInput');
+        // START OF MODIFICATIONS
+        testNotificationsBtn = document.getElementById('testNotificationsBtn');
+        // END OF MODIFICATIONS
 
         document.body.style.visibility = 'visible';
 
@@ -398,6 +410,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (importFileInput) {
             importFileInput.addEventListener('change', handleImportData);
         }
+        // START OF MODIFICATIONS
+        if (testNotificationsBtn) {
+            testNotificationsBtn.addEventListener('click', () => {
+                CentralNotificationService.fireTestNotification();
+            });
+        }
+        // END OF MODIFICATIONS
 
         renderAllWidgets();
 
