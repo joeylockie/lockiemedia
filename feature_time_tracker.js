@@ -218,7 +218,7 @@ function renderManageActivitiesList() {
     });
 }
 
-function openManageActivitiesModal() {
+export function openManageActivitiesModal() {
     if (!manageActivitiesModal || !manageActivitiesDialog) return;
     renderManageActivitiesList();
     populateIconSelect();
@@ -254,7 +254,7 @@ async function handleAddActivityFormSubmit(event) {
 
 // --- Time Entry Modal Functions ---
 
-function openTimeEntryModal(logId = null) {
+export function openTimeEntryModal(logId = null) {
     timeEntryForm.reset();
     const activities = TimeTrackerService.getActivities();
     timeEntryActivitySelect.innerHTML = '';
@@ -301,7 +301,7 @@ function closeTimeEntryModal() {
 
 async function handleTimeEntryFormSubmit(event) {
     event.preventDefault();
-    const logId = timeEntryLogId.value;
+    const logId = parseInt(timeEntryLogId.value, 10);
     const startTime = new Date(`${timeEntryDate.value}T${timeEntryStartTime.value}`);
     const endTime = new Date(`${timeEntryDate.value}T${timeEntryEndTime.value}`);
 
@@ -403,5 +403,7 @@ function initialize() {
 
 export const TimeTrackerFeature = {
     initialize,
+    openTimeEntryModal,
+    openManageActivitiesModal,
     updateUIVisibility: () => {} 
 };
