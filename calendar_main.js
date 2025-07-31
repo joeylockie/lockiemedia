@@ -14,7 +14,7 @@ const CalendarUI = (() => {
     let selectedColor = 'sky-500'; // Default color
     let draggedEventId = null;
     let timeIndicatorInterval = null;
-    let notificationCheckInterval = null;
+    // REMOVED: notificationCheckInterval
     let datePicker = null;
     let holidays = []; // To store fetched holidays
 
@@ -648,63 +648,37 @@ const CalendarUI = (() => {
         else if (permission === 'denied') statusText = 'Denied by browser';
         else statusText = 'Not Granted';
         notificationPermissionStatusText.textContent = `Browser Permission: ${statusText}`;
-        enableNotificationsToggle.checked = (localStorage.getItem('calendarNotificationsEnabled') === 'true') && (permission === 'granted');
+
+        // START OF MODIFICATION
+        const prefs = AppStore.getUserPreferences()?.calendarNotifications || {};
+        enableNotificationsToggle.checked = prefs.enabled && (permission === 'granted');
+        notifyMinutesBeforeInput.value = prefs.notifyMinutesBefore || 15;
+        // END OF MODIFICATION
     }
 
     async function handleEnableNotificationsToggle(e) {
         const isEnabled = e.target.checked;
-        if (isEnabled) {
+        let permissionGranted = NotificationService.getPermissionStatus() === 'granted';
+
+        if (isEnabled && !permissionGranted) {
             const permission = await NotificationService.requestPermission();
-            if (permission === 'granted') {
-                localStorage.setItem('calendarNotificationsEnabled', 'true');
-                startNotificationChecker();
-            } else {
-                localStorage.setItem('calendarNotificationsEnabled', 'false');
-                e.target.checked = false;
-            }
-        } else {
-            localStorage.setItem('calendarNotificationsEnabled', 'false');
-            stopNotificationChecker();
+            permissionGranted = permission === 'granted';
         }
+
+        // START OF MODIFICATION
+        const prefs = AppStore.getUserPreferences();
+        await AppStore.setUserPreferences({
+            ...prefs,
+            calendarNotifications: {
+                ...(prefs.calendarNotifications || {}),
+                enabled: isEnabled && permissionGranted,
+            }
+        });
+        // END OF MODIFICATION
         updateNotificationStatusUI();
     }
     
-    function startNotificationChecker() {
-        if (notificationCheckInterval) clearInterval(notificationCheckInterval);
-        notificationCheckInterval = setInterval(checkForUpcomingEvents, 60000); // Check every minute
-        LoggingService.info('[CalendarUI] Notification checker started.');
-    }
-
-    function stopNotificationChecker() {
-        if (notificationCheckInterval) clearInterval(notificationCheckInterval);
-        notificationCheckInterval = null;
-        LoggingService.info('[CalendarUI] Notification checker stopped.');
-    }
-
-    function checkForUpcomingEvents() {
-        const isEnabled = localStorage.getItem('calendarNotificationsEnabled') === 'true';
-        if (!isEnabled) return;
-
-        const now = new Date();
-        const minutesBefore = parseInt(notifyMinutesBeforeInput.value) || 15;
-        const notifyFrom = new Date(now.getTime() + minutesBefore * 60000);
-        
-        const allEvents = CalendarService.getEvents();
-
-        allEvents.forEach(event => {
-            const eventStart = new Date(event.startTime);
-            if (!event.isAllDay && eventStart > now && eventStart <= notifyFrom) {
-                const notificationId = `event_notification_${event.id}_${event.startTime}`;
-                if (!localStorage.getItem(notificationId)) {
-                     NotificationService.showNotification(event.title, {
-                        body: `Starts at ${eventStart.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}. Location: ${event.location || 'N/A'}`,
-                        tag: notificationId
-                    });
-                    localStorage.setItem(notificationId, 'true');
-                }
-            }
-        });
-    }
+    // REMOVED startNotificationChecker, stopNotificationChecker, and checkForUpcomingEvents
 
     function handleShowHolidaysToggle(e) {
         const isEnabled = e.target.checked;
@@ -767,6 +741,19 @@ const CalendarUI = (() => {
         enableNotificationsToggle.addEventListener('change', handleEnableNotificationsToggle);
         showHolidaysToggle.addEventListener('change', handleShowHolidaysToggle);
         
+        // START OF MODIFICATION
+        notifyMinutesBeforeInput.addEventListener('change', async (e) => {
+            const prefs = AppStore.getUserPreferences();
+            await AppStore.setUserPreferences({
+                ...prefs,
+                calendarNotifications: {
+                    ...(prefs.calendarNotifications || {}),
+                    notifyMinutesBefore: parseInt(e.target.value, 10) || 15,
+                }
+            });
+        });
+        // END OF MODIFICATION
+
         editEventBtn.addEventListener('click', () => {
             const eventIdToEdit = activeEventId;
             closeViewEventModal();
@@ -802,9 +789,7 @@ const CalendarUI = (() => {
             setupEventListeners();
             initializeDatePicker();
             updateView();
-            if (localStorage.getItem('calendarNotificationsEnabled') === 'true' && NotificationService.getPermissionStatus() === 'granted') {
-                startNotificationChecker();
-            }
+            // REMOVED initial call to startNotificationChecker
             LoggingService.info('[CalendarUI] Initialized.');
         }
     };
@@ -816,6 +801,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         CalendarUI.initialize();
     } catch (error) {
         LoggingService.critical('[CalendarMain] A critical error occurred during calendar initialization.', error);
-        document.body.innerHTML = '<p class="text-red-500 text-center p-8">Could not load the Calendar app. Please check the console for errors and try refreshing the page.</p>';
+        document.body.innerHTML = '<p class="text-white text-center p-8">Could not load the Calendar app. Please check the console for errors and try refreshing the page.</p>';
     }
 });
