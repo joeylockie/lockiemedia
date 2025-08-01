@@ -1,65 +1,42 @@
-AI Project Curation Log: Lockie Media Platform
-Last Updated: 2025-07-30 21:06 (EDT)
+# AI Project Curation Log: Lockie Media Platform
+Last Updated: 2025-08-01 19:49 (EDT)
 
-1. Instructions for AI (Gemini)
-Purpose of this Document: A Note to AI Assistants: This document is your primary source of truth for the Lockie Media Platform project. It provides context, tracks progress, outlines current tasks, and lists future goals. Please refer to it to understand:
+## 1. Instructions for AI (Gemini)
+**Purpose of this Document:** A Note to AI Assistants: This document is your primary source of truth for the Lockie Media Platform project. It provides context, tracks progress, outlines current tasks, and lists future goals. Please refer to it to understand:
 
-The overall project scope.
+* The overall project scope.
+* What has already been completed.
+* What the user is currently working on with your assistance.
+* The specific sub-tasks and files involved in the current session.
+* Any known issues or important decisions made.
 
-What has already been completed.
+**How to Use & Update This Document:**
 
-What the user is currently working on with your assistance.
+* **Prioritize this Document:** When the user provides this document or refers to it at the start of a session, consider its content as the most up-to-date information, potentially overriding previous chat history if there are discrepancies regarding project state.
+* **Understand Current Focus:** Pay close attention to Section 6: "Current Focus / Next Steps" from the previous version of this log to understand the immediate objectives for the current session.
+* **Track Session Progress:** During our development session, keep track of:
+    * Tasks completed and files modified/created.
+    * New issues or bugs identified.
+    * Key decisions made.
+    * The next logical steps or remaining sub-tasks.
+* **Generate Updated Log Content (End of Session):**
+    * When the user asks you to "update the AI Project Log" (or similar), your task is to regenerate the entire Markdown content for this document.
+    * You will use the previous version of this log as your base.
+    * Update all relevant sections based on the work done during the session, including the "Last Updated" timestamp, "Work Completed," "Current Focus," and "Known Issues."
+    * Maintain Format: Preserve the existing Markdown structure and formatting.
+    * Provide Complete Output: Present the entire, fully updated Markdown content back to the user so they can replace the content of their `AI_PROJECT_LOG.md` file.
 
-The specific sub-tasks and files involved in the current session.
+## 2. Project Overview & Goals
+* **Platform:** "Lockie Media Platform", a suite of user-facing productivity "apps".
+* **Vision:** To be an all-in-one platform for personal management, comprised of modular apps that run entirely in the browser.
+* **Technology:** A purely client-side application.
+    * **Core:** Vanilla JavaScript (ES6 Modules), HTML5
+    * **Styling:** Tailwind CSS
+    * **Data Storage:** IndexedDB via the Dexie.js library.
+* **Core Platform Apps:** Task Manager, Notes, Habit Tracker, Time Tracker, Calendar.
+* **Overall Goal:** Develop a robust, feature-complete, and easily deployable management platform.
 
-Any known issues or important decisions made.
-
-How to Use & Update This Document:
-
-Prioritize this Document: When the user provides this document or refers to it at the start of a session, consider its content as the most up-to-date information, potentially overriding previous chat history if there are discrepancies regarding project state.
-
-Understand Current Focus: Pay close attention to Section 6: "Current Focus / Next Steps" from the previous version of this log to understand the immediate objectives for the current session.
-
-Track Session Progress: During our development session, keep track of:
-
-Tasks completed and files modified/created.
-
-New issues or bugs identified.
-
-Key decisions made.
-
-The next logical steps or remaining sub-tasks.
-
-Generate Updated Log Content (End of Session):
-
-When the user asks you to "update the AI Project Log" (or similar), your task is to regenerate the entire Markdown content for this document.
-
-You will use the previous version of this log as your base.
-
-Update all relevant sections based on the work done during the session, including the "Last Updated" timestamp, "Work Completed," "Current Focus," and "Known Issues."
-
-Maintain Format: Preserve the existing Markdown structure and formatting.
-
-Provide Complete Output: Present the entire, fully updated Markdown content back to the user so they can replace the content of their AI_PROJECT_LOG.md file.
-
-2. Project Overview & Goals
-Platform: "Lockie Media Platform", a suite of user-facing productivity "apps".
-
-Vision: To be an all-in-one platform for personal management, comprised of modular apps that run entirely in the browser.
-
-Technology: A purely client-side application.
-
-Core: Vanilla JavaScript (ES6 Modules), HTML5
-
-Styling: Tailwind CSS
-
-Data Storage: IndexedDB via the Dexie.js library.
-
-Core Platform Apps: Task Manager, Notes, Habit Tracker, Time Tracker, Calendar.
-
-Overall Goal: Develop a robust, feature-complete, and easily deployable management platform.
-
-3. Verified File Structure
+## 3. Verified File Structure
 This is the definitive file tree for the project. Do not assume other files or paths exist.
 
 lockiemedia-dev/
@@ -87,7 +64,6 @@ lockiemedia-dev/
 ├── viewManager.js                  # Manages the presentation state of the Task app, such as current filters, sorting, and search terms.
 │
 ├── automation.html                 # A placeholder page for a future "Automation Workflows" feature.
-├── budget.html                     # A placeholder page for a future "Budget Planner" feature.
 │
 ├── tasks.html                      # The main HTML structure for the Task Manager application, including all its modals and UI elements.
 ├── taskService.js                  # Contains all business logic for creating, reading, updating, and deleting tasks in the database.
@@ -130,81 +106,72 @@ lockiemedia-dev/
 ├── feature_shopping_list.js        # Manages the visibility and logic for the "Shopping List" smart view in the Task Manager.
 ├── feature_time_tracker.js         # Contains the UI logic and event handlers for the main Time Tracker page.
 └── feature_time_tracker_reminders.js # Manages the UI and logic for setting up automated reminders within the Time Tracker.
-4. Work Completed (Overall Project - High Level)
-Data Management: Implemented a full client-side data backup (export) and restore (import) feature using .json files.
 
-Application Versioning: Implemented a version display and a periodic background check that notifies the user when a new version of the application is available.
 
-Architecture Migration: Migrated the entire platform from a self-hosted Node.js microservice architecture to a purely client-side application.
+## 4. Work Completed (Overall Project - High Level)
+* **Data Management:** Implemented a full client-side data backup (export) and restore (import) feature using .json files.
+* **Application Versioning:** Implemented a version display and a periodic background check that notifies the user when a new version of the application is available.
+* **Architecture Migration:** Migrated the entire platform from a self-hosted Node.js microservice architecture to a purely client-side application.
+* **Data Layer Migration:** Upgraded the data storage from localStorage to a robust IndexedDB database using the Dexie.js library, including a seamless, one-time data migration for existing users.
+* **File Structure Simplification:** Flattened the project structure by moving all files from the `/public` directory to the root, preparing it for simple static hosting.
+* **Core Task Management:** Functionalities implemented as a foundational module.
+* **Notes App Enhancements:** Added notebook deletion and a full-featured Markdown editor.
+* **Calendar App Enhancements:** Implemented a full-featured Week View with drag-and-drop and a live time indicator.
+* **Centralized Notifications:** Created a single, smart notification system that handles alerts for all platform apps.
 
-Data Layer Migration: Upgraded the data storage from localStorage to a robust IndexedDB database using the Dexie.js library, including a seamless, one-time data migration for existing users.
+## 5. Work Completed (Specific to Current Major Task)
+**Date:** 2025-08-01
 
-File Structure Simplification: Flattened the project structure by moving all files from the /public directory to the root, preparing it for simple static hosting.
+**Task:** Time Tracker Enhancements & Cleanup.
 
-Core Task Management: Functionalities implemented as a foundational module.
+**Goal:** To improve the functionality of the Time Tracker's history page, optimize the database, and clean up unused application components.
 
-Notes App Enhancements: Added notebook deletion and a full-featured Markdown editor.
+**Sub-tasks Completed:**
 
-Calendar App Enhancements: Implemented a full-featured Week View with drag-and-drop and a live time indicator.
+1.  **Calendar UI Improvement:**
+    * Modified `calendar_main.js` to display the start time for non-all-day events directly on the month view grid.
+2.  **Budget App Removal:**
+    * Removed the "Budget Planner" link from the quick links widget in `dashboard_main.js`.
+    * Deleted the `budget.html` file from the project.
+3.  **Time History Page Overhaul:**
+    * Fixed a date-formatting bug in `utils.js` that was causing "Invalid Date" to appear in the report header.
+    * Refactored `time_history_main.js` to display each time log as an individual entry instead of a daily summary.
+    * Added "Edit" and "Delete" buttons to each log entry in the history view.
+    * Enabled the "Edit" button by exporting the `openTimeEntryModal` function from `feature_time_tracker.js` and calling it from `time_history_main.js`.
+4.  **Database Optimization:**
+    * Created a new database version and migration function in `database.js`.
+    * The migration removes the redundant `durationMs` property and shortens all other property keys (e.g., `startTime` -> `s`) for `time_log_entries` to save significant space.
+    * Updated `timeTrackerService.js`, `time_history_main.js`, and `dashboard_main.js` to be compatible with the new, compact data format.
+5.  **Bug Fixes:**
+    * Fixed a `ReferenceError` for `EventBus` in `time_history_main.js` by adding the missing import.
+    * Fixed a `TypeError` in `utils.js` by making the `formatTime` function correctly handle `Date` objects as input.
 
-5. Work Completed (Specific to Current Major Task)
-Date: 2025-07-30
+## 6. Current Focus / Next Steps
+**Current Major Task/Feature Being Worked On:**
 
-Task: Centralized Notification Service Implementation.
+* **Name:** None. Project is awaiting the next development objective.
+* **Goal for this Task:** N/A
 
-Goal: To create a single, smart notification system that handles alerts for all platform apps, ensuring notifications are delivered regardless of which page is currently open.
+**Specific questions for AI (if any):**
 
-Sub-tasks Completed:
+* None.
 
-Central Service Creation: Created a new `centralNotificationService.js` file. This service now contains all logic for checking due tasks and upcoming calendar events and runs on a single, efficient interval timer.
+**Blockers (if any):**
 
-Dashboard Integration: Added a "Test Notifications" button to `index.html` for easy debugging. Modified `dashboard_main.js` to initialize the new CentralNotificationService when the app loads and to handle clicks on the new test button.
+* None.
 
-App Refactoring:
-Modified `feature_desktop_notifications.js` (Tasks) to remove its internal notification-checking timer and logic. It is now only responsible for managing the UI for task notification settings.
-Modified `calendar_main.js` (Calendar) to remove its internal notification-checking timer and logic. It now only manages the UI for calendar notification settings.
+## 7. Known Issues / Bugs
+* None.
 
-Settings Isolation (Bug Fix):
-Updated `feature_desktop_notifications.js` to save its settings to a unique `taskNotifications` key in user preferences.
-Updated `calendar_main.js` to save its settings to a unique `calendarNotifications` key in user preferences.
-Updated `centralNotificationService.js` to read from these two separate keys, resolving a bug where settings in one app would overwrite the other.
+## 8. Future/Pending Work (Overall Project - High Level)
+* **Security:** Future enhancements could include adding an optional encryption layer before saving to IndexedDB.
+* **UI/UX:** Continuously improve the user interface and experience across all apps.
+* **automation.html:** To be built out at a future date.
 
-6. Current Focus / Next Steps
-Current Major Task/Feature Being Worked On:
-
-Name: None. Project is awaiting the next development objective.
-
-Goal for this Task: N/A
-
-Specific questions for AI (if any):
-
-None.
-
-Blockers (if any):
-
-None.
-
-7. Known Issues / Bugs
-None.
-
-8. Future/Pending Work (Overall Project - High Level)
-Data Management: Manual data import/restore feature is now implemented.
-
-Security: Future enhancements could include adding an optional encryption layer before saving to IndexedDB.
-
-UI/UX: Continuously improve the user interface and experience across all apps.
-
-automation.html To be built out at a future date.
-
-budget.html To be built out at a future date.
-
-9. Important Notes / Decisions Made
-Versioning Scheme: Adopted the Semantic Versioning (MAJOR.MINOR.PATCH) standard for the application. The current version is now **1.4.0**.
-
-Data Layer Upgrade to IndexedDB: The application's data persistence layer has been upgraded from localStorage to IndexedDB (via the Dexie.js library). This was done to provide a more scalable, performant, and resilient data storage solution capable of handling larger amounts of data and more complex queries.
-
-PIVOTAL DECISION: Migration to Client-Side Architecture: The project has been fundamentally changed from a complex, self-hosted Node.js microservice application to a pure client-side application.
-
-File Structure: The project's file structure has been flattened, with all necessary files moved to the root directory to simplify deployment on static hosting services.
-
-Data Backup Strategy: The backup strategy is a client-side .json file export and import.
+## 9. Important Notes / Decisions Made
+* **Versioning Scheme:** Adopted the Semantic Versioning (MAJOR.MINOR.PATCH) standard for the application. The current version is now **1.6.0**.
+* **Data Layer Upgrade to IndexedDB:** The application's data persistence layer has been upgraded from localStorage to IndexedDB (via the Dexie.js library). This was done to provide a more scalable, performant, and resilient data storage solution capable of handling larger amounts of data and more complex queries.
+* **PIVOTAL DECISION: Migration to Client-Side Architecture:** The project has been fundamentally changed from a complex, self-hosted Node.js microservice application to a pure client-side application.
+* **File Structure:** The project's file structure has been flattened, with all necessary files moved to the root directory to simplify deployment on static hosting services.
+* **Data Backup Strategy:** The backup strategy is a client-side .json file export and import.
+* **Time Log Optimization:** The `time_log_entries` table in the database has been optimized to save space by removing redundant data and shortening property names. A database migration handles the conversion for existing users.
