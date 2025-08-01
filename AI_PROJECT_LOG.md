@@ -169,7 +169,7 @@ lockiemedia-dev/
 * **automation.html:** To be built out at a future date.
 
 ## 9. Important Notes / Decisions Made
-* **Versioning Scheme:** Adopted the Semantic Versioning (MAJOR.MINOR.PATCH) standard for the application. The current version is now **1.6.0**.
+* **Versioning Scheme:** Adopted the Semantic Versioning (MAJOR.MINOR.PATCH) standard for the application. The current version is now **1.7.0**.
 * **Data Layer Upgrade to IndexedDB:** The application's data persistence layer has been upgraded from localStorage to IndexedDB (via the Dexie.js library). This was done to provide a more scalable, performant, and resilient data storage solution capable of handling larger amounts of data and more complex queries.
 * **PIVOTAL DECISION: Migration to Client-Side Architecture:** The project has been fundamentally changed from a complex, self-hosted Node.js microservice application to a pure client-side application.
 * **File Structure:** The project's file structure has been flattened, with all necessary files moved to the root directory to simplify deployment on static hosting services.
