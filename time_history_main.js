@@ -5,7 +5,7 @@ import AppStore from './store.js';
 import TimeTrackerService from './timeTrackerService.js';
 import { formatMillisecondsToHMS, getDateString, formatDate, formatTime } from './utils.js';
 import { TimeTrackerFeature } from './feature_time_tracker.js';
-import EventBus from './eventBus.js'; // This line is the fix
+import EventBus from './eventBus.js';
 
 // --- DOM Element References ---
 let startDateEl, endDateEl, runReportBtnEl, reportContainerEl, manageActivitiesBtn;
