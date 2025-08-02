@@ -14,7 +14,6 @@ const CalendarUI = (() => {
     let selectedColor = 'sky-500'; // Default color
     let draggedEventId = null;
     let timeIndicatorInterval = null;
-    // REMOVED: notificationCheckInterval
     let datePicker = null;
     let holidays = []; // To store fetched holidays
 
@@ -24,6 +23,7 @@ const CalendarUI = (() => {
     let eventModal, eventModalTitle, eventForm, eventIdInput, eventTitleInput, eventStartDateInput, eventEndDateInput, eventStartTimeInput, eventEndTimeInput, eventDescriptionInput, cancelEventBtn, isAllDayCheckbox, timeInputsContainer, colorPalette, eventLocationInput, eventRecurrenceInput;
     let viewEventModal, viewEventTitle, viewEventTime, viewEventLocation, viewEventDescription, closeViewEventBtn, editEventBtn, deleteEventBtn;
     let settingsModal, closeSettingsBtn, settingsDoneBtn, enableNotificationsToggle, notifyMinutesBeforeInput, notificationPermissionStatusText, showHolidaysToggle;
+    let createEventBtn; // New element
 
     function getDOMElements() {
         calendarGrid = document.getElementById('calendarGrid');
@@ -66,6 +66,7 @@ const CalendarUI = (() => {
         notifyMinutesBeforeInput = document.getElementById('notifyMinutesBefore');
         notificationPermissionStatusText = document.getElementById('notificationPermissionStatusText');
         showHolidaysToggle = document.getElementById('showHolidaysToggle');
+        createEventBtn = document.getElementById('create-event-btn'); // New element
     }
 
     async function fetchHolidays(year) {
@@ -143,6 +144,10 @@ const CalendarUI = (() => {
         if (activeBtn) {
             activeBtn.classList.add('bg-sky-600', 'text-white');
             activeBtn.classList.remove('hover:bg-slate-700');
+        }
+        
+        if (datePicker) {
+            datePicker.setDate(currentDate, false);
         }
     }
 
@@ -649,11 +654,9 @@ const CalendarUI = (() => {
         else statusText = 'Not Granted';
         notificationPermissionStatusText.textContent = `Browser Permission: ${statusText}`;
 
-        // START OF MODIFICATION
         const prefs = AppStore.getUserPreferences()?.calendarNotifications || {};
         enableNotificationsToggle.checked = prefs.enabled && (permission === 'granted');
         notifyMinutesBeforeInput.value = prefs.notifyMinutesBefore || 15;
-        // END OF MODIFICATION
     }
 
     async function handleEnableNotificationsToggle(e) {
@@ -665,7 +668,6 @@ const CalendarUI = (() => {
             permissionGranted = permission === 'granted';
         }
 
-        // START OF MODIFICATION
         const prefs = AppStore.getUserPreferences();
         await AppStore.setUserPreferences({
             ...prefs,
@@ -674,12 +676,9 @@ const CalendarUI = (() => {
                 enabled: isEnabled && permissionGranted,
             }
         });
-        // END OF MODIFICATION
         updateNotificationStatusUI();
     }
     
-    // REMOVED startNotificationChecker, stopNotificationChecker, and checkForUpcomingEvents
-
     function handleShowHolidaysToggle(e) {
         const isEnabled = e.target.checked;
         localStorage.setItem('showCanadianHolidays', isEnabled);
@@ -718,6 +717,11 @@ const CalendarUI = (() => {
             currentDate = new Date();
             updateView();
         });
+        
+        createEventBtn.addEventListener('click', () => {
+             const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
+            openEventModal(null, dateStr);
+        });
 
         monthViewBtn.addEventListener('click', () => { currentView = 'month'; updateView(); });
         weekViewBtn.addEventListener('click', () => { currentView = 'week'; updateView(); });
@@ -741,7 +745,6 @@ const CalendarUI = (() => {
         enableNotificationsToggle.addEventListener('change', handleEnableNotificationsToggle);
         showHolidaysToggle.addEventListener('change', handleShowHolidaysToggle);
         
-        // START OF MODIFICATION
         notifyMinutesBeforeInput.addEventListener('change', async (e) => {
             const prefs = AppStore.getUserPreferences();
             await AppStore.setUserPreferences({
@@ -752,7 +755,6 @@ const CalendarUI = (() => {
                 }
             });
         });
-        // END OF MODIFICATION
 
         editEventBtn.addEventListener('click', () => {
             const eventIdToEdit = activeEventId;
@@ -768,28 +770,32 @@ const CalendarUI = (() => {
         EventBus.subscribe('tasksChanged', updateView);
     }
 
-    function initializeDatePicker() {
+function initializeDatePicker() {
         if (datePicker) {
             datePicker.destroy();
         }
-        datePicker = flatpickr(currentMonthYearEl, {
+        datePicker = flatpickr("#inline-datepicker", {
+            inline: true,
             defaultDate: currentDate,
+            monthSelectorType: 'static', // Prevents month dropdown
             onChange: function(selectedDates) {
                 if (selectedDates[0]) {
                     currentDate = selectedDates[0];
                     updateView();
                 }
             },
+            // This locale object fixes the "2025" instead of "August" issue
+            locale: {
+                "showMonths": 1,
+            }
         });
     }
-
     return {
         initialize: () => {
             getDOMElements();
             setupEventListeners();
             initializeDatePicker();
             updateView();
-            // REMOVED initial call to startNotificationChecker
             LoggingService.info('[CalendarUI] Initialized.');
         }
     };

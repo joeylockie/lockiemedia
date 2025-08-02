@@ -1,5 +1,5 @@
 # AI Project Curation Log: Lockie Media Platform
-Last Updated: 2025-08-01 19:49 (EDT)
+Last Updated: 2025-08-02 12:00 (EDT)
 
 ## 1. Instructions for AI (Gemini)
 **Purpose of this Document:** A Note to AI Assistants: This document is your primary source of truth for the Lockie Media Platform project. It provides context, tracks progress, outlines current tasks, and lists future goals. Please refer to it to understand:
@@ -120,31 +120,29 @@ lockiemedia-dev/
 * **Centralized Notifications:** Created a single, smart notification system that handles alerts for all platform apps.
 
 ## 5. Work Completed (Specific to Current Major Task)
-**Date:** 2025-08-01
+**Date:** 2025-08-02
 
-**Task:** Time Tracker Enhancements & Cleanup.
+**Task:** Calendar Sidebar Enhancements.
 
-**Goal:** To improve the functionality of the Time Tracker's history page, optimize the database, and clean up unused application components.
+**Goal:** To improve the user experience of the Calendar app by adding key features and navigation controls to the sidebar.
 
 **Sub-tasks Completed:**
 
-1.  **Calendar UI Improvement:**
-    * Modified `calendar_main.js` to display the start time for non-all-day events directly on the month view grid.
-2.  **Budget App Removal:**
-    * Removed the "Budget Planner" link from the quick links widget in `dashboard_main.js`.
-    * Deleted the `budget.html` file from the project.
-3.  **Time History Page Overhaul:**
-    * Fixed a date-formatting bug in `utils.js` that was causing "Invalid Date" to appear in the report header.
-    * Refactored `time_history_main.js` to display each time log as an individual entry instead of a daily summary.
-    * Added "Edit" and "Delete" buttons to each log entry in the history view.
-    * Enabled the "Edit" button by exporting the `openTimeEntryModal` function from `feature_time_tracker.js` and calling it from `time_history_main.js`.
-4.  **Database Optimization:**
-    * Created a new database version and migration function in `database.js`.
-    * The migration removes the redundant `durationMs` property and shortens all other property keys (e.g., `startTime` -> `s`) for `time_log_entries` to save significant space.
-    * Updated `timeTrackerService.js`, `time_history_main.js`, and `dashboard_main.js` to be compatible with the new, compact data format.
-5.  **Bug Fixes:**
-    * Fixed a `ReferenceError` for `EventBus` in `time_history_main.js` by adding the missing import.
-    * Fixed a `TypeError` in `utils.js` by making the `formatTime` function correctly handle `Date` objects as input.
+1.  **"Create" Button:**
+    * Added a prominent "Create" button to the sidebar in `calendar.html`.
+    * Hooked up the button in `calendar_main.js` to open the event creation modal, pre-filling it with the currently selected date.
+2.  **Inline Mini-Calendar:**
+    * Moved the date-picking functionality from the main header into a permanently visible mini-calendar in the sidebar.
+    * Added a placeholder `div` in `calendar.html` for the new mini-calendar.
+    * Modified `calendar_main.js` to initialize the `flatpickr` library as an inline calendar within the new `div`.
+    * Linked the mini-calendar's selection to update the main calendar view.
+3.  **Search Bar:**
+    * Added a disabled, placeholder search bar to the sidebar in `calendar.html` for future implementation.
+4.  **Styling and Bug Fixes:**
+    * Added a new stylesheet link in `calendar.html` to use the official `flatpickr` dark theme.
+    * Removed extensive custom CSS from `style.css` in favor of the library's theme, simplifying maintenance.
+    * Widened the sidebar in `calendar.html` to prevent the mini-calendar's days from being cut off.
+    * Updated the `flatpickr` configuration in `calendar_main.js` to correctly display the month name (e.g., "August") instead of just the year.
 
 ## 6. Current Focus / Next Steps
 **Current Major Task/Feature Being Worked On:**
@@ -167,11 +165,13 @@ lockiemedia-dev/
 * **Security:** Future enhancements could include adding an optional encryption layer before saving to IndexedDB.
 * **UI/UX:** Continuously improve the user interface and experience across all apps.
 * **automation.html:** To be built out at a future date.
+* **Calendar Search:** The new search bar in the calendar sidebar needs to be implemented.
 
 ## 9. Important Notes / Decisions Made
-* **Versioning Scheme:** Adopted the Semantic Versioning (MAJOR.MINOR.PATCH) standard for the application. The current version is now **1.7.0**.
+* **Versioning Scheme:** Adopted the Semantic Versioning (MAJOR.MINOR.PATCH) standard for the application. The current version is now **1.8.0**.
 * **Data Layer Upgrade to IndexedDB:** The application's data persistence layer has been upgraded from localStorage to IndexedDB (via the Dexie.js library). This was done to provide a more scalable, performant, and resilient data storage solution capable of handling larger amounts of data and more complex queries.
 * **PIVOTAL DECISION: Migration to Client-Side Architecture:** The project has been fundamentally changed from a complex, self-hosted Node.js microservice application to a pure client-side application.
 * **File Structure:** The project's file structure has been flattened, with all necessary files moved to the root directory to simplify deployment on static hosting services.
 * **Data Backup Strategy:** The backup strategy is a client-side .json file export and import.
 * **Time Log Optimization:** The `time_log_entries` table in the database has been optimized to save space by removing redundant data and shortening property names. A database migration handles the conversion for existing users.
+* **Calendar Date Picker:** Decided to use the official `flatpickr` dark theme for the new inline calendar instead of maintaining extensive custom CSS for better reliability and easier maintenance.

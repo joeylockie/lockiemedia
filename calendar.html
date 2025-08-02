@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
     <link rel="stylesheet" href="style.css">
     <style>
         /* --- Month View Styles (Existing) --- */
@@ -44,12 +45,22 @@
 <body id="calendarPage" class="bg-gradient-to-br from-slate-900 to-slate-700 min-h-screen text-slate-200">
 
     <div class="flex h-screen">
-        <aside class="w-72 bg-slate-800 p-6 flex-shrink-0 border-r border-slate-700 flex flex-col">
-            <div class="flex items-center justify-between mb-8">
+        <aside class="w-96 bg-slate-800 p-6 flex-shrink-0 border-r border-slate-700 flex flex-col">
+            <div class="flex items-center justify-between mb-6">
                 <h1 class="text-2xl font-bold text-teal-400">Calendar</h1>
                 <a href="index.html" class="text-slate-400 hover:text-white" title="Back to Dashboard"><i class="fas fa-home"></i></a>
             </div>
-            <nav id="calendarSidebarNav" class="flex-grow"></nav>
+            <nav id="calendarSidebarNav" class="flex-grow">
+                <button id="create-event-btn" class="w-full text-left mb-6 bg-sky-600 hover:bg-sky-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center">
+                    <i class="fas fa-plus mr-3"></i>
+                    Create
+                </button>
+                <div id="inline-datepicker" class="mb-6"></div>
+                <div class="relative mt-4">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" id="calendar-search" placeholder="Search events..." class="w-full bg-slate-700 border border-slate-600 rounded-lg pl-10 pr-4 py-2 focus:ring-2 focus:ring-sky-500 outline-none" disabled>
+                </div>
+            </nav>
             <div class="mt-auto">
                 <button id="settingsBtn" class="w-full flex items-center justify-center px-4 py-3 rounded-lg transition-colors duration-200 bg-slate-700 hover:bg-slate-600 text-white font-semibold">
                     <i class="fas fa-cog mr-2"></i><span>Settings</span>
@@ -63,7 +74,7 @@
                     <button id="todayBtn" class="px-4 py-2 text-sm font-semibold rounded-md border border-slate-600 hover:bg-slate-700">Today</button>
                     <button id="prevMonthBtn" class="p-2 rounded-full hover:bg-slate-700" title="Previous Period"><i class="fas fa-chevron-left"></i></button>
                     <button id="nextMonthBtn" class="p-2 rounded-full hover:bg-slate-700" title="Next Period"><i class="fas fa-chevron-right"></i></button>
-                    <h2 id="currentMonthYear" class="text-3xl font-bold text-white cursor-pointer hover:text-sky-400 transition-colors"></h2>
+                    <h2 id="currentMonthYear" class="text-3xl font-bold text-white"></h2>
                 </div>
                 <div class="flex items-center gap-2">
                     <button id="monthViewBtn" class="px-4 py-2 text-sm rounded-md bg-sky-600 text-white">Month</button>
