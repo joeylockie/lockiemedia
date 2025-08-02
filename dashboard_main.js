@@ -9,15 +9,11 @@ import { formatDate, formatMillisecondsToHMS } from './utils.js';
 import db from './database.js';
 import Dexie from './dexie.mjs';
 import { initializeVersionChecker } from './versionService.js';
-// START OF MODIFICATIONS
 import { CentralNotificationService } from './centralNotificationService.js';
-// END OF MODIFICATIONS
 
 // --- DOM Element References ---
 let greetingHeader, myDayContent, habitContent, timeTrackerContent, upcomingContent, notesContent, quickLinksContent, exportDataBtn, importDataBtn, importFileInput;
-// START OF MODIFICATIONS
 let testNotificationsBtn;
-// END OF MODIFICATIONS
 let timeTrackerInterval = null;
 
 // --- Helper Functions to Get Data ---
@@ -257,13 +253,14 @@ function renderHabitWidget() {
     });
 }
 
-function renderTimeTrackerWidget() {
+async function renderTimeTrackerWidget() {
     if (!timeTrackerContent) return;
     if (timeTrackerInterval) clearInterval(timeTrackerInterval);
 
-    const activeTimer = TimeTrackerService.getActiveTimer();
+    const activeTimers = TimeTrackerService.getActiveTimers();
 
-    if (activeTimer) {
+    if (activeTimers.length > 0) {
+        const activeTimer = activeTimers[0]; // Display the first active timer on dashboard
         const activity = (TimeTrackerService.getActivities() || []).find(a => a.id === activeTimer.activityId);
         timeTrackerContent.innerHTML = `
               <p class="text-sm text-slate-400">Currently Tracking:</p>
@@ -278,13 +275,14 @@ function renderTimeTrackerWidget() {
         timeTrackerInterval = setInterval(updateTime, 1000);
         updateTime();
     } else {
-        const totalMs = TimeTrackerService.getTodaysTotalTrackedMs();
+        const totalMs = await TimeTrackerService.getTodaysTotalTrackedMs();
         timeTrackerContent.innerHTML = `
               <p class="text-sm text-slate-400">Time Tracked Today:</p>
               <p class="text-3xl font-bold text-slate-100 mt-2">${formatMillisecondsToHMS(totalMs)}</p>
         `;
     }
 }
+
 
 function renderQuickLinksWidget() {
     if (!quickLinksContent) return;
@@ -363,13 +361,13 @@ function createHabitRow(habit, isCompleted) {
 }
 
 
-function renderAllWidgets() {
+async function renderAllWidgets() {
     renderGreeting();
     renderMyDayWidget();
     renderUpcomingWidget();
     renderNotesWidget();
     renderHabitWidget();
-    renderTimeTrackerWidget();
+    await renderTimeTrackerWidget();
     renderQuickLinksWidget();
 }
 
@@ -417,7 +415,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         // END OF MODIFICATIONS
 
-        renderAllWidgets();
+        await renderAllWidgets();
 
         EventBus.subscribe('tasksChanged', () => {
             renderMyDayWidget();

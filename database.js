@@ -32,6 +32,33 @@ db.version(3).stores({
     notes: '++id, notebookId, updatedAt, isPinned' // isPinned is indexed for sorting
 });
 
+// --- Version 4 (Time Log Optimization) ---
+// This version migrates time log entries to a more compact format to save space.
+db.version(4).stores({
+    time_log_entries: '++id, a, s' // New, shorter index names for activityId and startTime
+}).upgrade(tx => {
+    // This upgrade function will run for every user once.
+    // It will transform the existing data to the new format.
+    return tx.table('time_log_entries').toCollection().modify(entry => {
+        // 1. Rename properties to shorter versions
+        entry.s = entry.startTime;
+        entry.e = entry.endTime;
+        entry.a = entry.activityId;
+        entry.n = entry.notes;
+        entry.m = entry.manuallyAdded;
+
+        // 2. Delete the old, long property names
+        delete entry.startTime;
+        delete entry.endTime;
+        delete entry.activityId;
+        delete entry.notes;
+        delete entry.manuallyAdded;
+
+        // 3. Delete the redundant durationMs property
+        delete entry.durationMs;
+    });
+});
+
 
 // We are exporting the 'db' object so other files can use it to
 // interact with the database.
