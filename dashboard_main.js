@@ -12,7 +12,8 @@ import { CentralNotificationService } from './centralNotificationService.js';
 
 // --- DOM Element References ---
 let greetingHeader, myDayContent, habitContent, timeTrackerContent, upcomingContent, quickLinksContent, exportDataBtn, importDataBtn, importFileInput;
-let testNotificationsBtn;
+let testNotificationsBtn, profileBtn;
+let profileModal, profileModalDialog, closeProfileModalBtn, cancelProfileBtn, profileForm, displayNameInput;
 let timeTrackerInterval = null;
 
 // --- Helper Functions to Get Data ---
@@ -137,12 +138,32 @@ async function handleImportData(event) {
     reader.readAsText(file);
 }
 
+// --- Profile Modal Functions ---
+function openProfileModal() {
+    const userProfile = AppStore.getUserProfile();
+    displayNameInput.value = userProfile.displayName || '';
+    profileModal.classList.remove('hidden');
+}
+
+function closeProfileModal() {
+    profileModal.classList.add('hidden');
+}
+
+async function handleProfileFormSubmit(event) {
+    event.preventDefault();
+    const newName = displayNameInput.value.trim();
+    if (newName) {
+        await AppStore.setUserProfile({ displayName: newName });
+        closeProfileModal();
+    }
+}
+
 
 // --- Rendering Functions ---
 
 function renderGreeting() {
     const profile = AppStore.getUserProfile();
-    const displayName = profile?.displayName?.split(' ')[0] || 'there';
+    const displayName = profile?.displayName || 'User';
     const hour = new Date().getHours();
     let greeting = "Welcome";
     if (hour < 12) greeting = "Good morning";
@@ -359,6 +380,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         importDataBtn = document.getElementById('importDataBtn');
         importFileInput = document.getElementById('importFileInput');
         testNotificationsBtn = document.getElementById('testNotificationsBtn');
+        profileBtn = document.getElementById('profileBtn');
+        profileModal = document.getElementById('profileModal');
+        profileModalDialog = document.getElementById('profileModalDialog');
+        closeProfileModalBtn = document.getElementById('closeProfileModalBtn');
+        cancelProfileBtn = document.getElementById('cancelProfileBtn');
+        profileForm = document.getElementById('profileForm');
+        displayNameInput = document.getElementById('displayNameInput');
 
         document.body.style.visibility = 'visible';
 
@@ -376,6 +404,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             testNotificationsBtn.addEventListener('click', () => {
                 CentralNotificationService.fireTestNotification();
             });
+        }
+        if (profileBtn) {
+            profileBtn.addEventListener('click', openProfileModal);
+        }
+        if (closeProfileModalBtn) {
+            closeProfileModalBtn.addEventListener('click', closeProfileModal);
+        }
+        if (cancelProfileBtn) {
+            cancelProfileBtn.addEventListener('click', closeProfileModal);
+        }
+        if (profileForm) {
+            profileForm.addEventListener('submit', handleProfileFormSubmit);
         }
 
         await renderAllWidgets();

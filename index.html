@@ -60,6 +60,10 @@
                 <p class="text-slate-400 mt-1">Here’s a look at your platform overview.</p>
             </div>
             <div class="mt-4 sm:mt-0 flex items-center gap-2">
+                <button id="profileBtn" class="bg-slate-500 hover:bg-slate-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center">
+                    <i class="fas fa-user-edit mr-2"></i>
+                    <span>Profile</span>
+                </button>
                 <button id="importDataBtn" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center">
                     <i class="fas fa-file-upload mr-2"></i>
                     <span>Import Backup</span>
@@ -123,6 +127,27 @@
         <p>LockieMedia © 2025</p>
         <p id="appVersionFooter" class="text-xs mt-1"></p>
     </footer>
+
+    <div id="profileModal" class="fixed inset-0 bg-slate-900 bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div id="profileModalDialog" class="bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-sm border border-slate-700">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-semibold text-slate-100">Edit Profile</h3>
+                <button id="closeProfileModalBtn" class="text-slate-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            <form id="profileForm">
+                <div class="space-y-4">
+                    <div>
+                        <label for="displayNameInput" class="block text-sm font-medium text-slate-300">Your Name</label>
+                        <input type="text" id="displayNameInput" placeholder="Enter your name" class="mt-1 w-full p-2.5 bg-slate-700 text-slate-200 border border-slate-600 rounded-md focus:ring-2 focus:ring-sky-500 outline-none">
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-end gap-3">
+                    <button type="button" id="cancelProfileBtn" class="px-5 py-2.5 bg-slate-600 text-slate-200 rounded-lg hover:bg-slate-500 transition-colors font-medium">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors font-semibold">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <script src="loggingService.js" type="module"></script>
     <script src="eventBus.js" type="module"></script>
