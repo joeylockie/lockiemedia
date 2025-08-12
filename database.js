@@ -59,6 +59,13 @@ db.version(4).stores({
     });
 });
 
+// --- Version 5 (Remove Notes Feature) ---
+// This version removes the 'notes' and 'notebooks' tables.
+db.version(5).stores({
+    notebooks: null,
+    notes: null
+});
+
 
 // We are exporting the 'db' object so other files can use it to
 // interact with the database.

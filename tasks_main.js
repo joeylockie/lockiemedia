@@ -28,7 +28,7 @@ function isFeatureEnabled(featureName) {
         desktopNotificationsFeature: true,
         appUpdateNotificationFeature: false, // REMOVED
         shoppingListFeature: true,
-        notesFeature: true, // Kept for potential cross-app integrations, but Notes UI is separate
+        notesFeature: false, // Kept for potential cross-app integrations, but Notes UI is separate
         debugMode: true,
         userRoleFeature: true,
 

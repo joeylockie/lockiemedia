@@ -119,8 +119,6 @@ export function openViewEditModal(taskId) {
             cb.checked = recurrenceOptions.daysOfWeek?.includes(cb.value) || false;
         });
 
-        // *** THIS IS THE FIX ***
-        // We now pass the correct DOM elements to the update function.
         AdvancedRecurrenceFeature.updateRecurrenceUI(
             modalRecurrenceViewEditEl,
             document.getElementById('recurrenceOptionsViewEdit'),
@@ -151,7 +149,6 @@ export function closeViewEditModal() {
     }, 200);
 }
 
-// This function was missing from the simplified version but is still needed.
 export function openViewTaskDetailsModal(taskId) {
     const task = AppStore.getTasks().find(t => t.id === taskId);
     if (!task) return;
@@ -159,7 +156,33 @@ export function openViewTaskDetailsModal(taskId) {
     ModalStateService.setCurrentViewTaskId(taskId);
     document.getElementById('viewTaskText').textContent = task.text;
     document.getElementById('viewTaskDueDate').textContent = task.dueDate ? formatDate(task.dueDate) : 'Not set';
-    // ... (populate all other fields in the view details modal) ...
+    document.getElementById('viewTaskTime').textContent = task.time ? formatTime(task.time) : 'Not set';
+    document.getElementById('viewTaskPriority').textContent = task.priority || 'Not set';
+    document.getElementById('viewTaskStatus').textContent = task.completed ? 'Completed' : 'Active';
+    document.getElementById('viewTaskLabel').textContent = task.label || 'None';
+    
+    // THIS IS THE FIX - Restore population of the notes field
+    document.getElementById('viewTaskNotes').textContent = task.notes || 'No notes added.';
+
+    // Populate project name
+    const project = AppStore.getProjects().find(p => p.id === task.projectId);
+    document.getElementById('viewTaskProject').textContent = project ? project.name : 'No Project';
+
+    // Handle Reminder Section
+    const reminderSection = document.getElementById('viewTaskReminderSection');
+    const reminderStatus = document.getElementById('viewTaskReminderStatus');
+    const reminderDetails = document.getElementById('viewTaskReminderDetails');
+    
+    if (task.isReminderSet) {
+        reminderStatus.textContent = 'Active';
+        document.getElementById('viewTaskReminderDate').textContent = formatDate(task.reminderDate);
+        document.getElementById('viewTaskReminderTime').textContent = formatTime(task.reminderTime);
+        document.getElementById('viewTaskReminderEmail').textContent = task.reminderEmail;
+        reminderDetails.classList.remove('hidden');
+    } else {
+        reminderStatus.textContent = 'Not set';
+        reminderDetails.classList.add('hidden');
+    }
 
     const viewTaskDetailsModalEl = document.getElementById('viewTaskDetailsModal');
     viewTaskDetailsModalEl.classList.remove('hidden');
@@ -198,12 +221,10 @@ export function closeManageLabelsModal() {
     setTimeout(() => { manageLabelsModalEl.classList.add('hidden'); }, 200);
 }
 
-// THE FIX IS HERE
 export function populateManageLabelsList() {
     const functionName = 'populateManageLabelsList';
     const existingLabelsListEl = document.getElementById('existingLabelsList');
     
-    // Simplified, correct check.
     if (!existingLabelsListEl) {
         LoggingService.error(`[${functionName}] Element 'existingLabelsList' not found.`);
         return;
