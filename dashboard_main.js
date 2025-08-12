@@ -2,7 +2,6 @@ import LoggingService from './loggingService.js';
 import EventBus from './eventBus.js';
 import AppStore from './store.js';
 import * as TaskService from './taskService.js';
-import * as NoteService from './noteService.js';
 import HabitTrackerService from './habitTrackerService.js';
 import TimeTrackerService from './timeTrackerService.js';
 import { formatDate, formatMillisecondsToHMS } from './utils.js';
@@ -12,7 +11,7 @@ import { initializeVersionChecker } from './versionService.js';
 import { CentralNotificationService } from './centralNotificationService.js';
 
 // --- DOM Element References ---
-let greetingHeader, myDayContent, habitContent, timeTrackerContent, upcomingContent, notesContent, quickLinksContent, exportDataBtn, importDataBtn, importFileInput;
+let greetingHeader, myDayContent, habitContent, timeTrackerContent, upcomingContent, quickLinksContent, exportDataBtn, importDataBtn, importFileInput;
 let testNotificationsBtn;
 let timeTrackerInterval = null;
 
@@ -44,11 +43,7 @@ function getDashboardData() {
         return taskDueDate > today && taskDueDate <= sevenDaysFromToday;
     }).sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate));
 
-    const recentNotes = (NoteService.getNotes() || [])
-        .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
-        .slice(0, 3);
-
-    return { overdueTasks, todayTasks, upcomingTasks, recentNotes };
+    return { overdueTasks, todayTasks, upcomingTasks };
 }
 
 /**
@@ -211,28 +206,6 @@ function renderUpcomingWidget() {
     upcomingContent.appendChild(list);
 }
 
-function renderNotesWidget() {
-    if (!notesContent) return;
-    const { recentNotes } = getDashboardData();
-    notesContent.innerHTML = '';
-
-      if (recentNotes.length === 0) {
-        notesContent.innerHTML = '<p class="text-slate-400 text-sm">No recent notes.</p>';
-        return;
-    }
-
-    const list = document.createElement('ul');
-    list.className = 'space-y-3';
-    recentNotes.forEach(note => {
-        const li = document.createElement('li');
-        li.className = 'text-sm text-slate-300 hover:text-sky-400 transition-colors cursor-pointer';
-        li.textContent = note.title;
-        li.onclick = () => window.location.href = 'notes.html';
-        list.appendChild(li);
-    });
-    notesContent.appendChild(list);
-}
-
 function renderHabitWidget() {
     if (!habitContent) return;
 
@@ -289,7 +262,6 @@ function renderQuickLinksWidget() {
 
     const links = [
         { href: 'tasks.html', icon: 'fa-check-double', title: 'Task Manager', color: 'text-sky-400' },
-        { href: 'notes.html', icon: 'fa-sticky-note', title: 'Notes', color: 'text-amber-400' },
         { href: 'habits.html', icon: 'fa-calendar-check', title: 'Habit Tracker', color: 'text-green-400' },
         { href: 'time-tracker.html', icon: 'fa-clock', title: 'Time Tracker', color: 'text-indigo-400' },
         { href: 'calendar.html', icon: 'fa-calendar-alt', title: 'Calendar', color: 'text-teal-400' }
@@ -365,7 +337,6 @@ async function renderAllWidgets() {
     renderGreeting();
     renderMyDayWidget();
     renderUpcomingWidget();
-    renderNotesWidget();
     renderHabitWidget();
     await renderTimeTrackerWidget();
     renderQuickLinksWidget();
@@ -374,26 +345,20 @@ async function renderAllWidgets() {
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         await AppStore.initializeStore();
-        NoteService.getNotes();
         TimeTrackerService.initialize();
         initializeVersionChecker();
-        // START OF MODIFICATIONS
         CentralNotificationService.initialize();
-        // END OF MODIFICATIONS
 
         greetingHeader = document.getElementById('greetingHeader');
         myDayContent = document.getElementById('myDayContent');
         habitContent = document.getElementById('habitContent');
         timeTrackerContent = document.getElementById('timeTrackerContent');
         upcomingContent = document.getElementById('upcomingContent');
-        notesContent = document.getElementById('notesContent');
         quickLinksContent = document.getElementById('quickLinksContent');
         exportDataBtn = document.getElementById('exportDataBtn');
         importDataBtn = document.getElementById('importDataBtn');
         importFileInput = document.getElementById('importFileInput');
-        // START OF MODIFICATIONS
         testNotificationsBtn = document.getElementById('testNotificationsBtn');
-        // END OF MODIFICATIONS
 
         document.body.style.visibility = 'visible';
 
@@ -407,13 +372,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (importFileInput) {
             importFileInput.addEventListener('change', handleImportData);
         }
-        // START OF MODIFICATIONS
         if (testNotificationsBtn) {
             testNotificationsBtn.addEventListener('click', () => {
                 CentralNotificationService.fireTestNotification();
             });
         }
-        // END OF MODIFICATIONS
 
         await renderAllWidgets();
 

@@ -6,7 +6,6 @@ A comprehensive, client-side productivity application designed to help you organ
 
 * **Dashboard**: A central hub providing an at-a-glance overview of your day, including tasks, upcoming events, and tracked time.
 * **Task Manager**: A powerful to-do list with support for due dates, projects, labels, and priorities.
-* **Notes**: A simple and effective note-taking application.
 * **Habit Tracker**: A tool to build and maintain good habits with visual tracking.
 * **Time Tracker**: Log time spent on different activities to understand your workflow.
 * **Calendar**: Visualize your tasks and events in a monthly calendar view.

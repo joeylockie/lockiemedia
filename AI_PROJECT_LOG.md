@@ -33,7 +33,7 @@ Last Updated: 2025-08-02 12:00 (EDT)
     * **Core:** Vanilla JavaScript (ES6 Modules), HTML5
     * **Styling:** Tailwind CSS
     * **Data Storage:** IndexedDB via the Dexie.js library.
-* **Core Platform Apps:** Task Manager, Notes, Habit Tracker, Time Tracker, Calendar.
+* **Core Platform Apps:** Task Manager, Habit Tracker, Time Tracker, Calendar.
 * **Overall Goal:** Develop a robust, feature-complete, and easily deployable management platform.
 
 ## 3. Verified File Structure
@@ -77,12 +77,6 @@ lockiemedia-dev/
 ├── tasks_ui_event_handlers.js      # Manages general UI event listeners for the Task Manager, like clicks on sort buttons or search input.
 ├── tasks_ui_rendering.js           # Contains all functions that directly manipulate the DOM to render the Task Manager's UI components.
 │
-├── notes.html                      # The main HTML structure for the Notes application, including sidebars and the editor area.
-├── noteService.js                  # Handles all business logic for creating, reading, updating, and deleting notes and notebooks.
-├── notes_main.js                   # The main entry point for the Notes application, responsible for initializing its components.
-├── notes_event_handlers.js         # Manages all user-driven event listeners for the Notes UI, such as button clicks and text input.
-├── notes_rendering.js              # Contains functions that directly manipulate the DOM to render the notebooks list, notes list, and note editor.
-│
 ├── time-tracker.html               # The main HTML structure for the Time Tracker application, showing daily activities and logs.
 ├── time-history.html               # The HTML page for viewing and generating reports on past time log entries.
 ├── timeTrackerService.js           # Manages all business logic for the time tracker, including starting/stopping timers and logging entries.
@@ -100,7 +94,6 @@ lockiemedia-dev/
 ├── feature_advanced_recurrence.js  # Manages the UI and logic for setting up recurring tasks.
 ├── feature_desktop_notifications.js# Manages the logic for browser desktop notifications for task reminders.
 ├── feature_habit_tracker.js        # Contains older, deprecated UI logic for the habit tracker.
-├── feature_notes.js                # Orchestrates the state and rendering for the Notes application feature.
 ├── feature_projects.js             # Manages all UI interactions for the projects feature within the Task Manager.
 ├── feature_reminder.js             # Handles UI logic for the simple reminder toggle in the task modals.
 ├── feature_shopping_list.js        # Manages the visibility and logic for the "Shopping List" smart view in the Task Manager.
@@ -115,7 +108,6 @@ lockiemedia-dev/
 * **Data Layer Migration:** Upgraded the data storage from localStorage to a robust IndexedDB database using the Dexie.js library, including a seamless, one-time data migration for existing users.
 * **File Structure Simplification:** Flattened the project structure by moving all files from the `/public` directory to the root, preparing it for simple static hosting.
 * **Core Task Management:** Functionalities implemented as a foundational module.
-* **Notes App Enhancements:** Added notebook deletion and a full-featured Markdown editor.
 * **Calendar App Enhancements:** Implemented a full-featured Week View with drag-and-drop and a live time indicator.
 * **Centralized Notifications:** Created a single, smart notification system that handles alerts for all platform apps.
 
@@ -143,6 +135,34 @@ lockiemedia-dev/
     * Removed extensive custom CSS from `style.css` in favor of the library's theme, simplifying maintenance.
     * Widened the sidebar in `calendar.html` to prevent the mini-calendar's days from being cut off.
     * Updated the `flatpickr` configuration in `calendar_main.js` to correctly display the month name (e.g., "August") instead of just the year.
+
+    Date: 2025-08-11
+
+Task: Remove the Notes Application.
+
+Goal: To completely remove the Notes application from the platform and all related code, UI elements, and database tables.
+
+Sub-tasks Completed:
+
+File Deletion: Deleted all 6 files dedicated exclusively to the Notes app (notes.html, noteService.js, notes_main.js, etc.).
+
+Dashboard Cleanup:
+
+Modified index.html to remove the "Recent Notes" widget and the "Notes" quick link.
+
+Modified dashboard_main.js to remove the logic for fetching and rendering note data.
+
+Data Layer Cleanup:
+
+Modified store.js to remove all state management for notes and notebooks.
+
+Modified database.js by adding a new schema version (v5) to explicitly delete the notes and notebooks tables from IndexedDB.
+
+Documentation & Configuration:
+
+Modified tasks_main.js to set the notesFeature flag to false.
+
+Modified README.md to remove the "Notes" app from the list of features.
 
 ## 6. Current Focus / Next Steps
 **Current Major Task/Feature Being Worked On:**

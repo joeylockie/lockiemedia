@@ -8,8 +8,6 @@ let _tasks = [];
 let _projects = [];
 let _userPreferences = {};
 let _userProfile = {};
-let _notebooks = [];
-let _notes = [];
 let _time_activities = [];
 let _time_log_entries = [];
 let _calendar_events = [];
@@ -59,8 +57,6 @@ async function _migrateFromLocalStorage() {
         await db.transaction('rw', db.tables, async () => {
             if (data.tasks) await db.tasks.bulkAdd(data.tasks);
             if (data.projects) await db.projects.bulkAdd(data.projects);
-            if (data.notebooks) await db.notebooks.bulkAdd(data.notebooks);
-            if (data.notes) await db.notes.bulkAdd(data.notes);
             if (data.time_activities) await db.time_activities.bulkAdd(data.time_activities);
             if (data.time_log_entries) await db.time_log_entries.bulkAdd(data.time_log_entries);
             if (data.calendar_events) await db.calendar_events.bulkAdd(data.calendar_events);
@@ -86,10 +82,7 @@ const AppStore = {
     getUniqueLabels: () => [..._uniqueLabels],
     getUserPreferences: () => ({ ..._userPreferences }),
     getUserProfile: () => ({ ..._userProfile }),
-    getNotebooks: () => [..._notebooks],
-    getNotes: () => [..._notes],
     getTimeActivities: () => [..._time_activities],
-    // THE FIX: Add the getLogEntries function back
     getTimeLogEntries: () => [..._time_log_entries],
     getCalendarEvents: () => [..._calendar_events],
     getHabits: () => [..._habits],
@@ -114,14 +107,6 @@ const AppStore = {
        await db.app_state.put({ key: 'userProfile', value: newProfile });
        _userProfile = newProfile;
        _publish('userProfileChanged', { ..._userProfile });
-    },
-    setNotebooks: async (newNotebooksArray) => {
-        _notebooks = newNotebooksArray;
-        _publish('notebooksChanged', [..._notebooks]);
-    },
-    setNotes: async (newNotesArray) => {
-        _notes = newNotesArray;
-        _publish('notesChanged', [..._notes]);
     },
     setTimeActivities: async (newActivitiesArray) => {
         _time_activities = newActivitiesArray;
@@ -163,11 +148,9 @@ const AppStore = {
         try {
             await _migrateFromLocalStorage();
 
-            const [tasks, projects, notebooks, notes, timeActivities, timeLogs, calendarEvents, habits, habitCompletions, userProfile, userPreferences] = await Promise.all([
+            const [tasks, projects, timeActivities, timeLogs, calendarEvents, habits, habitCompletions, userProfile, userPreferences] = await Promise.all([
                 db.tasks.toArray(),
                 db.projects.toArray(),
-                db.notebooks.toArray(),
-                db.notes.toArray(),
                 db.time_activities.toArray(),
                 db.time_log_entries.toArray(),
                 db.calendar_events.toArray(),
@@ -180,8 +163,6 @@ const AppStore = {
             _tasks = tasks;
             _updateUniqueLabels(); // Initial update of labels
             _projects = projects;
-            _notebooks = notebooks;
-            _notes = notes;
             _time_activities = timeActivities;
             _time_log_entries = timeLogs;
             _calendar_events = calendarEvents;
@@ -197,8 +178,6 @@ const AppStore = {
             _publish('projectsChanged', [..._projects]);
             _publish('userProfileChanged', { ..._userProfile });
             _publish('userPreferencesChanged', { ..._userPreferences });
-            _publish('notebooksChanged', [..._notebooks]);
-            _publish('notesChanged', [..._notes]);
             _publish('timeActivitiesChanged', [..._time_activities]);
             _publish('timeLogEntriesChanged', [..._time_log_entries]);
             _publish('calendarEventsChanged', [..._calendar_events]);
