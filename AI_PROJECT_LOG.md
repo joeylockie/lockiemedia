@@ -136,34 +136,6 @@ lockiemedia-dev/
     * Widened the sidebar in `calendar.html` to prevent the mini-calendar's days from being cut off.
     * Updated the `flatpickr` configuration in `calendar_main.js` to correctly display the month name (e.g., "August") instead of just the year.
 
-    Date: 2025-08-11
-
-Task: Remove the Notes Application.
-
-Goal: To completely remove the Notes application from the platform and all related code, UI elements, and database tables.
-
-Sub-tasks Completed:
-
-File Deletion: Deleted all 6 files dedicated exclusively to the Notes app (notes.html, noteService.js, notes_main.js, etc.).
-
-Dashboard Cleanup:
-
-Modified index.html to remove the "Recent Notes" widget and the "Notes" quick link.
-
-Modified dashboard_main.js to remove the logic for fetching and rendering note data.
-
-Data Layer Cleanup:
-
-Modified store.js to remove all state management for notes and notebooks.
-
-Modified database.js by adding a new schema version (v5) to explicitly delete the notes and notebooks tables from IndexedDB.
-
-Documentation & Configuration:
-
-Modified tasks_main.js to set the notesFeature flag to false.
-
-Modified README.md to remove the "Notes" app from the list of features.
-
 ## 6. Current Focus / Next Steps
 **Current Major Task/Feature Being Worked On:**
 
@@ -188,10 +160,12 @@ Modified README.md to remove the "Notes" app from the list of features.
 * **Calendar Search:** The new search bar in the calendar sidebar needs to be implemented.
 
 ## 9. Important Notes / Decisions Made
-* **Versioning Scheme:** Adopted the Semantic Versioning (MAJOR.MINOR.PATCH) standard for the application. The current version is now **1.8.0**.
+* **Versioning Scheme:** Adopted the Semantic Versioning (MAJOR.MINOR.PATCH) standard for the application. The current version is now **1.9.0**.
 * **Data Layer Upgrade to IndexedDB:** The application's data persistence layer has been upgraded from localStorage to IndexedDB (via the Dexie.js library). This was done to provide a more scalable, performant, and resilient data storage solution capable of handling larger amounts of data and more complex queries.
 * **PIVOTAL DECISION: Migration to Client-Side Architecture:** The project has been fundamentally changed from a complex, self-hosted Node.js microservice application to a pure client-side application.
 * **File Structure:** The project's file structure has been flattened, with all necessary files moved to the root directory to simplify deployment on static hosting services.
 * **Data Backup Strategy:** The backup strategy is a client-side .json file export and import.
 * **Time Log Optimization:** The `time_log_entries` table in the database has been optimized to save space by removing redundant data and shortening property names. A database migration handles the conversion for existing users.
 * **Calendar Date Picker:** Decided to use the official `flatpickr` dark theme for the new inline calendar instead of maintaining extensive custom CSS for better reliability and easier maintenance.
+* **User Profile Storage:** The user's display name is stored locally in the app_state table within IndexedDB, ensuring it remains private and is not sent over the network.
+
