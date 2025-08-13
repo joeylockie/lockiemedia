@@ -67,7 +67,6 @@ lockiemedia-dev/
 │
 ├── tasks.html                      # The main HTML structure for the Task Manager application, including all its modals and UI elements.
 ├── taskService.js                  # Contains all business logic for creating, reading, updating, and deleting tasks in the database.
-├── projectService.js               # Handles all logic related to managing projects, including adding, updating, and deleting them.
 ├── labelService.js                 # Manages logic for labels, such as removing a label's usage from all associated tasks.
 ├── tasks_main.js                   # The main entry point for the Task Manager, initializing all its features and services.
 ├── tasks_form_handlers.js          # Manages the form submission logic for adding and editing tasks.
@@ -94,7 +93,6 @@ lockiemedia-dev/
 ├── feature_advanced_recurrence.js  # Manages the UI and logic for setting up recurring tasks.
 ├── feature_desktop_notifications.js# Manages the logic for browser desktop notifications for task reminders.
 ├── feature_habit_tracker.js        # Contains older, deprecated UI logic for the habit tracker.
-├── feature_projects.js             # Manages all UI interactions for the projects feature within the Task Manager.
 ├── feature_reminder.js             # Handles UI logic for the simple reminder toggle in the task modals.
 ├── feature_shopping_list.js        # Manages the visibility and logic for the "Shopping List" smart view in the Task Manager.
 ├── feature_time_tracker.js         # Contains the UI logic and event handlers for the main Time Tracker page.
@@ -112,29 +110,24 @@ lockiemedia-dev/
 * **Centralized Notifications:** Created a single, smart notification system that handles alerts for all platform apps.
 
 ## 5. Work Completed (Specific to Current Major Task)
-**Date:** 2025-08-02
+**Date:** 2025-08-12
 
-**Task:** Calendar Sidebar Enhancements.
+**Task:** Remove Project Feature.
 
-**Goal:** To improve the user experience of the Calendar app by adding key features and navigation controls to the sidebar.
+**Goal:** To completely remove the project feature from the Task Manager application, including its data, logic, and UI components, to simplify the app.
 
 **Sub-tasks Completed:**
 
-1.  **"Create" Button:**
-    * Added a prominent "Create" button to the sidebar in `calendar.html`.
-    * Hooked up the button in `calendar_main.js` to open the event creation modal, pre-filling it with the currently selected date.
-2.  **Inline Mini-Calendar:**
-    * Moved the date-picking functionality from the main header into a permanently visible mini-calendar in the sidebar.
-    * Added a placeholder `div` in `calendar.html` for the new mini-calendar.
-    * Modified `calendar_main.js` to initialize the `flatpickr` library as an inline calendar within the new `div`.
-    * Linked the mini-calendar's selection to update the main calendar view.
-3.  **Search Bar:**
-    * Added a disabled, placeholder search bar to the sidebar in `calendar.html` for future implementation.
-4.  **Styling and Bug Fixes:**
-    * Added a new stylesheet link in `calendar.html` to use the official `flatpickr` dark theme.
-    * Removed extensive custom CSS from `style.css` in favor of the library's theme, simplifying maintenance.
-    * Widened the sidebar in `calendar.html` to prevent the mini-calendar's days from being cut off.
-    * Updated the `flatpickr` configuration in `calendar_main.js` to correctly display the month name (e.g., "August") instead of just the year.
+1.  **Database Schema:** Modified `database.js` to create a new database version (v6) that removes the `projects` table and deletes the `projectId` property from all existing tasks.
+2.  **State Management:** Edited `store.js` to remove the `_projects` state variable and all related getters and setters.
+3.  **UI Cleanup (HTML):** Removed all project-related UI elements from `tasks.html`, including dropdowns in modals, the filter section in the sidebar, and the "Manage Projects" modal itself.
+4.  **UI Cleanup (JavaScript):** Edited `tasks_ui_rendering.js`, `tasks_modal_interactions.js`, `tasks_ui_event_handlers.js`, `tasks_list_view.js`, and `tasks_modal_events.js` to remove all functions and logic that rendered or managed project-related UI.
+5.  **Logic Removal:**
+    * Edited `taskService.js` to no longer handle the `projectId` property when creating or updating tasks.
+    * Edited `viewManager.js` to remove the logic for filtering tasks by project.
+    * Edited `tasks_main.js` to remove the import and initialization of the project feature.
+6.  **File Deletion:** Deleted the `feature_projects.js` and `projectService.js` files as they are no longer needed.
+
 
 ## 6. Current Focus / Next Steps
 **Current Major Task/Feature Being Worked On:**
@@ -160,6 +153,7 @@ lockiemedia-dev/
 * **Calendar Search:** The new search bar in the calendar sidebar needs to be implemented.
 
 ## 9. Important Notes / Decisions Made
+* **Project Feature Removal:** The "Projects" feature has been removed to simplify the Task Manager's scope and focus on a more streamlined user experience with labels as the primary organization method.
 * **Versioning Scheme:** Adopted the Semantic Versioning (MAJOR.MINOR.PATCH) standard for the application. The current version is now **1.9.0**.
 * **Data Layer Upgrade to IndexedDB:** The application's data persistence layer has been upgraded from localStorage to IndexedDB (via the Dexie.js library). This was done to provide a more scalable, performant, and resilient data storage solution capable of handling larger amounts of data and more complex queries.
 * **PIVOTAL DECISION: Migration to Client-Side Architecture:** The project has been fundamentally changed from a complex, self-hosted Node.js microservice application to a pure client-side application.

@@ -35,7 +35,7 @@ import {
 import { setupModalEventListeners } from './tasks_modal_events.js';
 
 // Import Feature Modules (some might be used by handlers still in this file)
-import { ProjectsFeature } from './feature_projects.js';
+// REMOVED: import { ProjectsFeature } from './feature_projects.js';
 
 export let tempSubTasksForAddModal = [];
 
@@ -210,9 +210,6 @@ export function setupEventListeners() {
             const newMinimizedState = !isCurrentlyMinimized;
             localStorage.setItem('sidebarState', newMinimizedState ? 'minimized' : 'expanded');
             setSidebarMinimized(newMinimizedState);
-            if (window.isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) {
-                ProjectsFeature.populateProjectFilterList();
-            }
         });
     }
 
@@ -288,8 +285,6 @@ export function setupEventListeners() {
             openAddModal();
         }
     });
-
-    // REMOVED Bulk Action Listeners
 
     LoggingService.info("[UIEventHandlers] All non-modal, non-form event listeners setup process completed.", { functionName });
 }

@@ -5,7 +5,6 @@ import db from './database.js'; // Import our new database connection
 // --- Internal State Variables ---
 // These act as a fast, in-memory cache of the database content.
 let _tasks = [];
-let _projects = [];
 let _userPreferences = {};
 let _userProfile = {};
 let _time_activities = [];
@@ -56,7 +55,7 @@ async function _migrateFromLocalStorage() {
 
         await db.transaction('rw', db.tables, async () => {
             if (data.tasks) await db.tasks.bulkAdd(data.tasks);
-            if (data.projects) await db.projects.bulkAdd(data.projects);
+            // The 'projects' table will be ignored during migration as it's no longer in the schema
             if (data.time_activities) await db.time_activities.bulkAdd(data.time_activities);
             if (data.time_log_entries) await db.time_log_entries.bulkAdd(data.time_log_entries);
             if (data.calendar_events) await db.calendar_events.bulkAdd(data.calendar_events);
@@ -78,7 +77,6 @@ async function _migrateFromLocalStorage() {
 const AppStore = {
     // --- GETTERS ---
     getTasks: () => [..._tasks],
-    getProjects: () => [..._projects],
     getUniqueLabels: () => [..._uniqueLabels],
     getUserPreferences: () => ({ ..._userPreferences }),
     getUserProfile: () => ({ ..._userProfile }),
@@ -93,10 +91,6 @@ const AppStore = {
         _tasks = newTasksArray;
         _updateUniqueLabels(); // Update labels whenever tasks change
         _publish('tasksChanged', [..._tasks]);
-    },
-    setProjects: async (newProjectsArray) => {
-        _projects = newProjectsArray;
-        _publish('projectsChanged', [..._projects]);
     },
     setUserPreferences: async (newPreferences) => {
         await db.app_state.put({ key: 'userPreferences', value: newPreferences });
@@ -148,9 +142,8 @@ const AppStore = {
         try {
             await _migrateFromLocalStorage();
 
-            const [tasks, projects, timeActivities, timeLogs, calendarEvents, habits, habitCompletions, userProfile, userPreferences] = await Promise.all([
+            const [tasks, timeActivities, timeLogs, calendarEvents, habits, habitCompletions, userProfile, userPreferences] = await Promise.all([
                 db.tasks.toArray(),
-                db.projects.toArray(),
                 db.time_activities.toArray(),
                 db.time_log_entries.toArray(),
                 db.calendar_events.toArray(),
@@ -162,7 +155,6 @@ const AppStore = {
 
             _tasks = tasks;
             _updateUniqueLabels(); // Initial update of labels
-            _projects = projects;
             _time_activities = timeActivities;
             _time_log_entries = timeLogs;
             _calendar_events = calendarEvents;
@@ -175,7 +167,6 @@ const AppStore = {
 
             _publish('storeInitialized');
             _publish('tasksChanged', [..._tasks]);
-            _publish('projectsChanged', [..._projects]);
             _publish('userProfileChanged', { ..._userProfile });
             _publish('userPreferencesChanged', { ..._userPreferences });
             _publish('timeActivitiesChanged', [..._time_activities]);

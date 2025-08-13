@@ -7,15 +7,12 @@ import ViewManager from './viewManager.js';
 import ModalStateService from './modalStateService.js';
 import EventBus from './eventBus.js';
 import { formatDate, formatTime, formatDuration, formatMillisecondsToHMS } from './utils.js';
-import LoggingService from './loggingService.js'; 
+import LoggingService from './loggingService.js';
 
 // Import functions from other UI modules
 import {
     populateManageLabelsList
 } from './tasks_modal_interactions.js';
-
-// Import Feature Modules needed for direct calls
-import { ProjectsFeature } from './feature_projects.js';
 
 // Import the newly created rendering functions
 import { renderTaskListView, renderBulkActionControls } from './tasks_list_view.js';
@@ -45,19 +42,14 @@ export let settingsModal, modalDialogSettings, openSettingsModalButton, closeSet
 export let settingsClearCompletedBtn, settingsManageLabelsBtn, settingsManageRemindersBtn;
 export let featureFlagsListContainer;
 export let yourTasksHeading, mainContentArea;
-export let settingsManageProjectsBtn;
-export let manageProjectsModal, modalDialogManageProjects, closeManageProjectsModalBtn, closeManageProjectsSecondaryBtn;
-export let modalProjectSelectAdd, modalProjectSelectViewEdit;
-export let projectFilterContainer;
-export let viewTaskProject;
-// REMOVED bulk action element declarations
+// REMOVED project-related element declarations
 export let criticalErrorDisplay, criticalErrorMessage, criticalErrorId, closeCriticalErrorBtn;
 export let appVersionFooterEl;
 export let appVersionAboutUsDisplayEl;
 
 
 export function initializeDOMElements() {
-    LoggingService.debug('[DOM Init] Attempting to initialize DOM elements...', { module: 'tasks_ui_rendering' }); // Changed console.log
+    LoggingService.debug('[DOM Init] Attempting to initialize DOM elements...', { module: 'tasks_ui_rendering' });
     mainContentArea = document.querySelector('main');
     smartViewButtonsContainer = document.getElementById('smartViewButtonsContainer');
     taskSidebar = document.getElementById('taskSidebar');
@@ -69,9 +61,9 @@ export function initializeDOMElements() {
     sortByPriorityBtn = document.getElementById('sortByPriorityBtn');
     sortByLabelBtn = document.getElementById('sortByLabelBtn');
     taskSearchInput = document.getElementById('taskSearchInput');
-    taskList = document.getElementById('taskList'); // Exported
-    emptyState = document.getElementById('emptyState'); // Exported
-    noMatchingTasks = document.getElementById('noMatchingTasks'); // Exported
+    taskList = document.getElementById('taskList');
+    emptyState = document.getElementById('emptyState');
+    noMatchingTasks = document.getElementById('noMatchingTasks');
     messageBox = document.getElementById('messageBox');
     addTaskModal = document.getElementById('addTaskModal');
     modalDialogAdd = document.getElementById('modalDialogAdd');
@@ -147,16 +139,6 @@ export function initializeDOMElements() {
     settingsManageRemindersBtn = document.getElementById('settingsManageRemindersBtn');
     featureFlagsListContainer = document.getElementById('featureFlagsListContainer');
     yourTasksHeading = document.getElementById('yourTasksHeading');
-    settingsManageProjectsBtn = document.getElementById('settingsManageProjectsBtn');
-    manageProjectsModal = document.getElementById('manageProjectsModal');
-    modalDialogManageProjects = document.getElementById('modalDialogManageProjects');
-    closeManageProjectsModalBtn = document.getElementById('closeManageProjectsModalBtn');
-    closeManageProjectsSecondaryBtn = document.getElementById('closeManageProjectsSecondaryBtn');
-    modalProjectSelectAdd = document.getElementById('modalProjectSelectAdd');
-    modalProjectSelectViewEdit = document.getElementById('modalProjectSelectViewEdit');
-    projectFilterContainer = document.getElementById('projectFilterContainer');
-    viewTaskProject = document.getElementById('viewTaskProject');
-    // REMOVED bulk action element initializations
     criticalErrorDisplay = document.getElementById('criticalErrorDisplay');
     criticalErrorMessage = document.getElementById('criticalErrorMessage');
     criticalErrorId = document.getElementById('criticalErrorId');
@@ -167,21 +149,19 @@ export function initializeDOMElements() {
     if (closeCriticalErrorBtn) {
         closeCriticalErrorBtn.addEventListener('click', hideCriticalError);
     }
-    LoggingService.debug('[DOM Init] Finished initializing DOM elements.', { module: 'tasks_ui_rendering' }); // Changed console.log
+    LoggingService.debug('[DOM Init] Finished initializing DOM elements.', { module: 'tasks_ui_rendering' });
 }
 
 // --- UI Helper Functions ---
 
 export function renderAppVersion() {
-    // const versionString = getAppVersionString(); // REMOVED
-    const versionString = ''; // Set to empty
+    const versionString = '';
     if (appVersionFooterEl) {
         appVersionFooterEl.textContent = versionString;
     }
     if (appVersionAboutUsDisplayEl) {
         appVersionAboutUsDisplayEl.textContent = versionString;
     }
-    // LoggingService.debug(`[UI Rendering] App version rendered in UI: ${versionString}`, {module: 'tasks_ui_rendering'}); // Can be removed
 }
 
 export function showCriticalError(message, errorId) {
@@ -219,7 +199,7 @@ function _displayMessage(messageText, type = 'success') {
     }, 3000);
 }
 
-export function populateDatalist(datalistElement) { // Exported for renderTaskListView.js
+export function populateDatalist(datalistElement) {
     if (!datalistElement || !AppStore || typeof AppStore.getUniqueLabels !== 'function') return;
     const currentUniqueLabels = AppStore.getUniqueLabels();
     datalistElement.innerHTML = '';
@@ -265,9 +245,6 @@ export function setSidebarMinimized(minimize) {
         }
     });
 
-    if (window.isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) { 
-        ProjectsFeature.populateProjectFilterList();
-    }
     LoggingService.debug(`[UI Rendering] Sidebar minimized state set to: ${minimize}. CSS should now apply relevant styles.`, {module: 'tasks_ui_rendering'});
 }
 
@@ -282,9 +259,8 @@ export function refreshTaskView() {
     updateViewToggleButtonsState();
     updateYourTasksHeading();
     styleSmartViewButtons();
-    updateSortButtonStates(); // <--- FIX IS HERE
+    updateSortButtonStates();
 
-    // Default to list view as other views are removed
     ViewManager.setTaskViewMode('list');
     renderTaskListView();
     
@@ -354,27 +330,18 @@ export function updateClearCompletedButtonState() {
 }
 export function updateViewToggleButtonsState() {
     // This function can be removed or left empty as the buttons are gone.
-    // Leaving it empty prevents errors if it's called from somewhere else.
 }
 export function updateYourTasksHeading() {
     if (!yourTasksHeading || !ViewManager) return;
     const currentFilter = ViewManager.getCurrentFilter();
-    let title = "Your Items"; // More generic title
+    let title = "Your Items";
 
     if (currentFilter === 'inbox') title = "Inbox";
     else if (currentFilter === 'today') title = "Today's Items";
     else if (currentFilter === 'upcoming') title = "Upcoming Items";
     else if (currentFilter === 'completed') title = "Completed Items";
     else if (currentFilter === 'shopping_list') title = "Shopping List";
-    else if (currentFilter.startsWith('project_')) {
-        if (window.isFeatureEnabled('projectFeature') && AppStore) { 
-            const projectId = parseInt(currentFilter.split('_')[1]);
-            const project = AppStore.getProjects().find(p => p.id === projectId);
-            title = project ? `Project: ${project.name}` : "Project Items";
-        } else {
-            title = "Project Items";
-        }
-    } else {
+    else {
         title = `Label: ${currentFilter.charAt(0).toUpperCase() + currentFilter.slice(1)}`;
     }
     yourTasksHeading.textContent = title;
@@ -395,19 +362,6 @@ export function initializeUiRenderingSubscriptions() {
     });
 
     EventBus.subscribe('tasksChanged', (updatedTasks) => { LoggingService.debug("[UI Rendering] Event received: tasksChanged. Refreshing view.", {module: 'tasks_ui_rendering'}); refreshTaskView(); updateClearCompletedButtonState(); });
-    EventBus.subscribe('projectsChanged', (updatedProjects) => {
-        LoggingService.debug("[UI Rendering] Event received: projectsChanged. Refreshing view and project UI.", {module: 'tasks_ui_rendering'});
-        refreshTaskView();
-        if (window.isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) ProjectsFeature.populateProjectFilterList(); 
-        if (window.isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectDropdowns) ProjectsFeature.populateProjectDropdowns(); 
-        styleSmartViewButtons();
-    });
-    EventBus.subscribe('uniqueProjectsChanged', (newUniqueProjects) => {
-        LoggingService.debug("[UI Rendering] Event received: uniqueProjectsChanged. Repopulating project UI.", {module: 'tasks_ui_rendering'});
-        if (window.isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectFilterList) ProjectsFeature.populateProjectFilterList(); 
-        if (window.isFeatureEnabled('projectFeature') && ProjectsFeature?.populateProjectDropdowns) ProjectsFeature.populateProjectDropdowns(); 
-        styleSmartViewButtons();
-    });
     
     EventBus.subscribe('filterChanged', (eventData) => {
         LoggingService.debug("[UI Rendering] Event received: filterChanged. Refreshing view, heading, and button styles.", {module: 'tasks_ui_rendering'});
@@ -429,7 +383,6 @@ export function initializeUiRenderingSubscriptions() {
             populateManageLabelsList();
         }
     });
-    // EventBus.subscribe('bulkSelectionChanged', (selectedIds) => { LoggingService.debug("[UI Rendering] Event received: bulkSelectionChanged. Rendering controls.", {module: 'tasks_ui_rendering'}); renderBulkActionControls(); }); // REMOVED
     LoggingService.debug("[UI Rendering] Event subscriptions initialized.", {module: 'tasks_ui_rendering'});
 }
 
