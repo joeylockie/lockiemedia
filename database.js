@@ -66,6 +66,18 @@ db.version(5).stores({
     notes: null
 });
 
+// --- Version 6 (Remove Projects Feature) ---
+// This version removes the 'projects' table and the 'projectId' index from tasks.
+db.version(6).stores({
+    tasks: '++id, dueDate, label', // Removed projectId from the schema
+    projects: null // This deletes the projects table
+}).upgrade(tx => {
+    // This upgrade function will remove the projectId property from all existing tasks.
+    return tx.table('tasks').toCollection().modify(task => {
+        delete task.projectId;
+    });
+});
+
 
 // We are exporting the 'db' object so other files can use it to
 // interact with the database.

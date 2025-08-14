@@ -57,7 +57,6 @@ export async function addTask(taskData) {
             priority: taskData.priority || 'medium',
             label: taskData.label || '',
             notes: taskData.notes || '',
-            projectId: typeof taskData.projectId === 'number' ? taskData.projectId : 0,
             isReminderSet: taskData.isReminderSet || false,
             reminderDate: taskData.reminderDate || null,
             reminderTime: taskData.reminderTime || null,

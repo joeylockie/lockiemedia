@@ -8,7 +8,6 @@ import * as TaskService from './taskService.js';
 import EventBus from './eventBus.js';
 import { formatDate, formatTime } from './utils.js';
 import { openViewTaskDetailsModal } from './tasks_modal_interactions.js';
-import { ProjectsFeature } from './feature_projects.js';
 
 // DOM elements are now imported from the tasks-specific rendering module.
 import {
@@ -42,7 +41,6 @@ export function renderTaskListView() {
     const currentSortVal = ViewManager.getCurrentSort();
     const currentSearchTermVal = ViewManager.getCurrentSearchTerm();
     const currentTasks = AppStore.getTasks();
-    const currentProjects = AppStore.getProjects ? AppStore.getProjects() : [];
 
     let filteredTasks = [];
     const today = new Date();
@@ -75,13 +73,6 @@ export function renderTaskListView() {
         });
     } else if (currentFilterVal === 'completed') {
         filteredTasks = currentTasks.filter(task => task.completed);
-    } else if (currentFilterVal.startsWith('project_')) {
-        const projectId = parseInt(currentFilterVal.split('_')[1]);
-        if (!isNaN(projectId)) {
-            filteredTasks = currentTasks.filter(task => task.projectId === projectId && !task.completed);
-        } else {
-            filteredTasks = currentTasks.filter(task => (task.projectId === 0 || !task.projectId) && !task.completed);
-        }
     } else { // Assume label filter
         filteredTasks = currentTasks.filter(task => task.label && task.label.toLowerCase() === currentFilterVal.toLowerCase() && !task.completed);
     }
@@ -91,8 +82,7 @@ export function renderTaskListView() {
         filteredTasks = filteredTasks.filter(task =>
             task.text.toLowerCase().includes(searchTermLower) ||
             (task.label && task.label.toLowerCase().includes(searchTermLower)) ||
-            (task.notes && task.notes.toLowerCase().includes(searchTermLower)) ||
-            (window.isFeatureEnabled('projectFeature') && task.projectId && currentProjects.find(p => p.id === task.projectId)?.name.toLowerCase().includes(searchTermLower))
+            (task.notes && task.notes.toLowerCase().includes(searchTermLower))
         );
     }
 
@@ -140,11 +130,9 @@ export function renderTaskListView() {
         const mainContentClickableArea = document.createElement('div');
         mainContentClickableArea.className = 'task-item-clickable-area flex items-start flex-grow min-w-0 mr-2 rounded-l-lg';
         mainContentClickableArea.addEventListener('click', (event) => {
-            if (event.target.type === 'checkbox' || event.target.closest('.task-actions')) return; // REMOVED bulk-select-checkbox-container check
+            if (event.target.type === 'checkbox' || event.target.closest('.task-actions')) return;
             openViewTaskDetailsModal(task.id);
         });
-
-        // REMOVED bulk select checkbox container
 
         const completeCheckbox = document.createElement('input');
         completeCheckbox.type = 'checkbox';
@@ -162,16 +150,6 @@ export function renderTaskListView() {
 
         const detailsContainer = document.createElement('div');
         detailsContainer.className = 'flex items-center flex-wrap gap-x-2 gap-y-1 mt-1 sm:mt-1.5 text-xs';
-
-        if (window.isFeatureEnabled('projectFeature') && task.projectId && task.projectId !== 0) {
-            const project = AppStore.getProjects().find(p => p.id === task.projectId);
-            if (project) {
-                const projSpan = document.createElement('span');
-                projSpan.className = 'text-purple-600 dark:text-purple-400 flex items-center project-feature-element';
-                projSpan.innerHTML = `<i class="fas fa-folder mr-1"></i> ${project.name}`;
-                detailsContainer.appendChild(projSpan);
-            }
-        }
 
         if (task.priority && typeof TaskService.getPriorityClass === 'function') {
             const pB = document.createElement('span');
@@ -206,7 +184,6 @@ export function renderTaskListView() {
             textDetailsDiv.appendChild(detailsContainer);
         }
 
-        // mainContentClickableArea.appendChild(bulkSelectCheckboxContainer); // REMOVED
         mainContentClickableArea.appendChild(completeCheckbox);
         mainContentClickableArea.appendChild(textDetailsDiv);
 

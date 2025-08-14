@@ -12,7 +12,6 @@ import {
 } from './tasks_ui_rendering.js';
 
 import { handleDeleteLabel, clearTempSubTasksForAddModal } from './tasks_ui_event_handlers.js';
-import { ProjectsFeature } from './feature_projects.js';
 import { DesktopNotificationsFeature } from './feature_desktop_notifications.js';
 import { AdvancedRecurrenceFeature } from './feature_advanced_recurrence.js';
 
@@ -27,7 +26,6 @@ export function openAddModal() {
     const modalTodoFormAddEl = document.getElementById('modalTodoFormAdd');
     const modalPriorityInputAddEl = document.getElementById('modalPriorityInputAdd');
     const existingLabelsDatalistEl = document.getElementById('existingLabels');
-    const modalProjectSelectAddEl = document.getElementById('modalProjectSelectAdd');
     const modalRemindMeAddEl = document.getElementById('modalRemindMeAdd');
     const modalReminderDateAddEl = document.getElementById('modalReminderDateAdd');
     const modalReminderTimeAddEl = document.getElementById('modalReminderTimeAdd');
@@ -47,12 +45,6 @@ export function openAddModal() {
     if (recurrenceOptionsAddEl) recurrenceOptionsAddEl.classList.add('hidden');
 
     if (existingLabelsDatalistEl) populateDatalist(existingLabelsDatalistEl);
-
-    // Simplified Check
-    if (ProjectsFeature?.populateProjectDropdowns) {
-        ProjectsFeature.populateProjectDropdowns();
-        if (modalProjectSelectAddEl) modalProjectSelectAddEl.value = "0";
-    }
 
     if (modalRemindMeAddEl) modalRemindMeAddEl.checked = false;
     if (reminderOptionsAddEl) reminderOptionsAddEl.classList.add('hidden');
@@ -102,11 +94,6 @@ export function openViewEditModal(taskId) {
     
     populateDatalist(document.getElementById('existingLabelsEdit'));
     
-    if (ProjectsFeature?.populateProjectDropdowns) {
-        ProjectsFeature.populateProjectDropdowns();
-        document.getElementById('modalProjectSelectViewEdit').value = task.projectId || "0";
-    }
-
     if (AdvancedRecurrenceFeature?.updateRecurrenceUI) {
         const recurrenceOptions = task.recurrence || {};
         const modalRecurrenceViewEditEl = document.getElementById('modalRecurrenceViewEdit');
@@ -161,12 +148,7 @@ export function openViewTaskDetailsModal(taskId) {
     document.getElementById('viewTaskStatus').textContent = task.completed ? 'Completed' : 'Active';
     document.getElementById('viewTaskLabel').textContent = task.label || 'None';
     
-    // THIS IS THE FIX - Restore population of the notes field
     document.getElementById('viewTaskNotes').textContent = task.notes || 'No notes added.';
-
-    // Populate project name
-    const project = AppStore.getProjects().find(p => p.id === task.projectId);
-    document.getElementById('viewTaskProject').textContent = project ? project.name : 'No Project';
 
     // Handle Reminder Section
     const reminderSection = document.getElementById('viewTaskReminderSection');

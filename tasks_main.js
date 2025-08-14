@@ -4,7 +4,6 @@
 import EventBus from './eventBus.js';
 import AppStore from './store.js';
 // import { loadAppVersion, startUpdateChecker } from './versionService.js'; // REMOVED
-import { ProjectsFeature } from './feature_projects.js';
 import { setupEventListeners, applyActiveFeatures, setFilter } from './tasks_ui_event_handlers.js';
 import ViewManager from './viewManager.js';
 import { ReminderFeature } from './feature_reminder.js';
@@ -23,7 +22,7 @@ function isFeatureEnabled(featureName) {
     const features = {
         reminderFeature: true,
         advancedRecurrence: true,
-        projectFeature: true,
+        projectFeature: false, // REMOVED
         bulkActionsFeature: false, // REMOVED
         desktopNotificationsFeature: true,
         appUpdateNotificationFeature: false, // REMOVED
@@ -40,14 +39,14 @@ function isFeatureEnabled(featureName) {
         dataVersioningFeature: false,
         testButtonFeature: false,
         taskTimerSystem: false,
-        integrationsServices: false, 
+        integrationsServices: false,
         collaborationSharing: false,
         crossDeviceSync: false,
         tooltipsGuide: false,
         kanbanBoardFeature: false,
         calendarViewFeature: false,
         smarterSearchFeature: false,
-        pomodoroTimerHybridFeature: false, 
+        pomodoroTimerHybridFeature: false,
         backgroundFeature: false,
         contactUsFeature: false,
         socialMediaLinksFeature: false,
@@ -116,7 +115,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.AppFeatures = {
         LoggingService, EventBus, AppStore, ViewManager, ModalInteractions,
         ReminderFeature, AdvancedRecurrenceFeature,
-        ProjectsFeature,
         ShoppingListFeature,
         DesktopNotificationsFeature,
         isFeatureEnabled
